@@ -1,0 +1,84 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+```bash
+pnpm install              # install (pnpm 12, workspaces required — do not use npm/yarn)
+pnpm dev                  # all packages in dev (web on http://localhost:3001)
+pnpm dev:web              # only the web app
+pnpm build                # turbo build
+pnpm check                # Biome format + lint, writes fixes
+pnpm check-types          # see caveat below
+pnpm db:start             # docker compose up -d (postgres 18 on :5432)
+pnpm db:push              # push schema to DB (no migration files)
+pnpm db:generate          # generate migration SQL into packages/db/src/migrations
+pnpm db:migrate           # apply migrations
+pnpm db:studio            # Drizzle Studio
+pnpm db:stop / db:down    # stop / tear down the docker DB
+```
+
+Caveats:
+
+- `pnpm check-types` only runs the `check-types` task where it is defined, which today is just `packages/ui`. To typecheck the web app: `pnpm -F web exec tsc --noEmit`. Adding a `check-types` script to a package wires it into the root command automatically.
+- **No test runner is configured.** `apps/web` has `@testing-library/*` and `jsdom` in devDependencies but there is no `test` script and no vitest config. Do not claim tests pass; if tests are needed, set up the runner first.
+
+## Environment
+
+Env lives in **`apps/web/.env`** (not the repo root) — `packages/db/drizzle.config.ts` explicitly loads `../../apps/web/.env`. Server vars are validated at import time by `packages/env/src/server.ts` (t3-env + zod), so a missing var is a startup crash, not a runtime `undefined`:
+
+- `DATABASE_URL`
+- `BETTER_AUTH_SECRET` (min 32 chars)
+- `BETTER_AUTH_URL` (must be a URL; also used as the only trusted origin)
+
+Set `SKIP_ENV_VALIDATION=1` to bypass validation (e.g. in a build container).
+
+## Architecture
+
+Better-T-Stack monorepo (`bts.jsonc` records the generator config). pnpm workspaces + Turborepo. **There is no separate server app** — backend is `self`, meaning the API runs inside the TanStack Start app as server routes.
+
+```
+apps/web            TanStack Start (React 19 + Vite 8), SSR, port 3001 — the only app
+packages/api        tRPC router, procedures, request context
+packages/auth       Better Auth instance (Drizzle adapter, email+password)
+packages/db         Drizzle ORM + schema + drizzle-kit + docker-compose
+packages/env        t3-env validated env (server / web entrypoints)
+packages/ui         shared shadcn/ui primitives on @base-ui/react + Tailwind v4
+packages/config     shared tsconfig.base.json
+```
+
+**Workspace packages ship raw TypeScript.** Their `exports` map straight to `./src/*.ts` — there is no build step for them, Vite compiles them in place. Never add a `dist` import path or expect `pnpm build` to produce package output.
+
+**Dependency versions are centralized in the pnpm catalog** (`pnpm-workspace.yaml`). Shared deps (react, zod, trpc, better-auth, tailwind, typescript…) are declared as `"catalog:"` in each package.json. When adding a dep that more than one package uses, add it to the catalog and reference `catalog:`; bumping a version means editing the catalog, not each package.
+
+### Request flow
+
+- `apps/web/src/routes/api/trpc/$.ts` mounts the tRPC fetch handler at `/api/trpc`, using `appRouter` and `createContext` from `@quizio/api`.
+- `apps/web/src/routes/api/auth/$.ts` mounts `auth.handler` at `/api/auth/*`.
+- `packages/api/src/context.ts` resolves the Better Auth session from request headers; `protectedProcedure` (in `packages/api/src/index.ts`) throws `UNAUTHORIZED` when `ctx.session` is null and narrows the type for downstream resolvers.
+- Add procedures to `appRouter` in `packages/api/src/routers/index.ts`. `AppRouter` is exported as a type and consumed by the client — no codegen, type safety is by import.
+
+### Client data layer
+
+`apps/web/src/router.tsx` builds the tRPC client (`httpBatchLink` → `/api/trpc`, `credentials: "include"`), a QueryClient whose `QueryCache.onError` toasts every failure with a retry action, and wires `setupRouterSsrQueryIntegration` so loader-fetched queries hydrate. `trpc` and `queryClient` are on the router context (`RouterAppContext` in `routes/__root.tsx`). In components use `useTRPC()` from `@/utils/trpc` with TanStack Query: `useQuery(trpc.someProc.queryOptions())`.
+
+### Auth flow
+
+Client-side calls go through `authClient` (`apps/web/src/lib/auth-client.ts`, Better Auth React). Server-side, `authMiddleware` (`apps/web/src/middleware/auth.ts`) attaches the session to server functions; `getUser` (`apps/web/src/functions/get-user.ts`) is the server fn routes call. The `_auth` route group (`routes/_auth/route.tsx`) guards its children in `beforeLoad` and redirects to `/login`, returning `session` into the route context — child routes read it via `Route.useRouteContext()`.
+
+Auth tables (`user`, `session`, `account`, `verification`) live in `packages/db/src/schema/auth.ts` and are generated by Better Auth's schema — regenerate rather than hand-editing when auth config changes, then `pnpm db:push`.
+
+### UI conventions
+
+- Shared primitives live in `packages/ui/src/components` and are imported as `@quizio/ui/components/<name>`; app-only components go in `apps/web/src/components` and import via the `@/` alias.
+- Primitives wrap **`@base-ui/react`**, not Radix. shadcn style is `base-lyra` (see `components.json`). Match the existing pattern: `cva` variants + `cn()` + a `data-slot` attribute.
+- Tailwind v4, CSS-first. All tokens and `@source` globs live in `packages/ui/src/styles/globals.css`; `apps/web/src/index.css` only re-imports it. There is no `tailwind.config`.
+- Add shared primitives from the repo root: `npx shadcn@latest add <component> -c packages/ui`. Run the CLI from `apps/web` only for app-specific blocks.
+- The root document hardcodes `className="dark"` on `<html>` (`routes/__root.tsx`); `next-themes` is available but not wired up.
+
+### Formatting & generated files
+
+Biome (`biome.json`) is the only formatter/linter: **tabs** for indentation, double quotes, import organization on. `useSortedClasses` auto-sorts classes inside `cn`/`clsx`/`cva`. Run `pnpm check` before finishing a change.
+
+`apps/web/src/routeTree.gen.ts` is generated by the TanStack Start Vite plugin and gitignored — never edit it; add a file under `apps/web/src/routes/` and let the dev server regenerate.
