@@ -1,0 +1,53 @@
+name: quizio
+
+# Local infrastructure. Each service stands in for a production provider behind
+# a hexagonal port, so the app runs and integration tests pass with no cloud
+# accounts: Postgres, RustFS (S3 API ≈ Cloudflare R2), Soketi (Pusher protocol).
+services:
+  postgres:
+    image: postgres:18
+    container_name: quizio-postgres
+    environment:
+      POSTGRES_DB: quizio
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - quizio_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  storage:
+    image: rustfs/rustfs:latest
+    container_name: quizio-storage
+    environment:
+      RUSTFS_ACCESS_KEY: quizio
+      RUSTFS_SECRET_KEY: quizio-secret
+      RUSTFS_VOLUMES: /data
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # web console
+    volumes:
+      - quizio_storage_data:/data
+    restart: unless-stopped
+
+  realtime:
+    image: quay.io/soketi/soketi:1.6-16-debian
+    container_name: quizio-realtime
+    environment:
+      SOKETI_DEFAULT_APP_ID: quizio
+      SOKETI_DEFAULT_APP_KEY: quizio-key
+      SOKETI_DEFAULT_APP_SECRET: quizio-secret
+    ports:
+      - "6001:6001" # Pusher protocol (HTTP API + WebSocket)
+    restart: unless-stopped
+
+volumes:
+  quizio_postgres_data:
+  quizio_storage_data:

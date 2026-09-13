@@ -1,37 +1,44 @@
 {
-  "name": "quizio",
-  "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "type": "module",
-  "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "check-types": "turbo run check-types",
-    "dev:web": "turbo run dev -F web --",
-    "db:push": "turbo run db:push -F @quizio/db --",
-    "db:studio": "turbo run db:studio -F @quizio/db --",
-    "db:generate": "turbo run db:generate -F @quizio/db --",
-    "db:migrate": "turbo run db:migrate -F @quizio/db --",
-    "db:start": "turbo run db:start -F @quizio/db --",
-    "db:watch": "turbo run db:watch -F @quizio/db --",
-    "db:stop": "turbo run db:stop -F @quizio/db --",
-    "db:down": "turbo run db:down -F @quizio/db --",
-    "check": "biome check --write ."
-  },
-  "dependencies": {
-    "@quizio/env": "workspace:*",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.11",
-    "@quizio/config": "workspace:*",
-    "@types/node": "catalog:",
-    "turbo": "^2.10.12",
-    "typescript": "catalog:"
-  },
-  "packageManager": "pnpm@12.3.4"
+	"name": "quizio",
+	"private": true,
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"type": "module",
+	"scripts": {
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"check-types": "turbo run check-types",
+		"dev:web": "turbo run dev -F web --",
+		"db:push": "turbo run db:push -F @quizio/db --",
+		"db:studio": "turbo run db:studio -F @quizio/db --",
+		"db:generate": "turbo run db:generate -F @quizio/db --",
+		"db:migrate": "turbo run db:migrate -F @quizio/db --",
+		"db:start": "turbo run db:start -F @quizio/db --",
+		"db:watch": "turbo run db:watch -F @quizio/db --",
+		"db:stop": "turbo run db:stop -F @quizio/db --",
+		"db:down": "turbo run db:down -F @quizio/db --",
+		"infra:up": "docker compose up -d && pnpm -F @quizio/storage bucket:setup",
+		"infra:down": "docker compose down",
+		"test": "turbo run test",
+		"test:watch": "vitest",
+		"test:int": "turbo run test:int",
+		"test:e2e": "turbo run test:e2e -F web",
+		"check": "biome check --write ."
+	},
+	"dependencies": {
+		"@quizio/env": "workspace:*",
+		"dotenv": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.11",
+		"@quizio/config": "workspace:*",
+		"@types/node": "catalog:",
+		"turbo": "^2.10.12",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"packageManager": "pnpm@12.3.4"
 }

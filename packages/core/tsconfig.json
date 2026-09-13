@@ -1,0 +1,7 @@
+{
+	"extends": "@quizio/config/tsconfig.base.json",
+	"compilerOptions": {
+		"types": []
+	},
+	"include": ["src/**/*.ts"]
+}

@@ -1,3 +1,3 @@
 {
-  "extends": "@quizio/config/tsconfig.base.json"
+	"extends": "@quizio/config/tsconfig.base.json"
 }
