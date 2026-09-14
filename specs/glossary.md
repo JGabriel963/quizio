@@ -15,11 +15,23 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Publicador em tempo real | `RealtimePublisher` | Porta servidor → clientes | ✅ |
 | Assinante em tempo real | `RealtimeSubscriber` | Porta do cliente para receber eventos | ✅ |
 
+## Identidade (Better Auth)
+
+| PT | EN (código) | Definição | Status |
+| --- | --- | --- | --- |
+| Criador | `Creator` | Pessoa com conta que cria e organiza quizzes (spec 001) | 📝 |
+| Cadastro aberto | `SignUpEnabled` | Configuração da instância que permite ou bloqueia a criação de novas contas (spec 001) | 📝 |
+
 ## Quiz (autoria)
 
 | PT | EN (código) | Definição | Status |
 | --- | --- | --- | --- |
 | Kahoot / Quiz | `Quiz` | Conteúdo jogável: metadados e lista ordenada de blocos. Chamado de "quiz" na interface do Quizio | 📝 |
+| Dono | `Owner` / `ownerId` | Criador a quem o quiz pertence; único que pode vê-lo e alterá-lo na biblioteca (spec 001) | 📝 |
+| Título | `title` | Nome do quiz, ≤ 95 caracteres; opcional no rascunho, exibido como "Quiz sem título" (spec 001) | 📝 |
+| Descrição | `description` | Texto opcional do quiz, ≤ 500 caracteres (spec 001) | 📝 |
+| Capa | `CoverImage` | Imagem opcional do quiz, segue a política de mídia (spec 001) | 📝 |
+| Última modificação | `updatedAt` | Instante da criação ou da última alteração dos dados do quiz (spec 001) | 📝 |
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
 | Pergunta | `Question` | Bloco interativo com texto (≤ 120), tipo, tempo limite e pontos | 📝 |
 | Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | 📝 |
@@ -64,7 +76,12 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Biblioteca | `Library` | Quizzes do usuário: recentes, rascunhos, favoritos, compartilhados, pastas, lixeira | 📝 |
 | Pasta | `Folder` | Organização de quizzes | 📝 |
 | Favorito | `Favorite` | Marcação para acesso rápido | 📝 |
-| Lixeira | `Trash` | Quizzes excluídos, restauráveis | 📝 |
+| Lixeira | `Trash` | Quizzes excluídos, restauráveis; no Quizio inclui rascunhos (spec 001) | 📝 |
+| Seção da biblioteca | `LibrarySection` | `recent`, `drafts`, `trash` (spec 001) | 📝 |
+| Mover para a lixeira | `moveToTrash` | Excluir de forma reversível (spec 001) | 📝 |
+| Restaurar | `restore` | Devolver um quiz da lixeira à biblioteca (spec 001) | 📝 |
+| Excluir definitivamente | `deletePermanently` | Remover de forma irreversível um quiz da lixeira, com sua capa (spec 001) | 📝 |
+| Duplicar | `duplicate` | Criar um rascunho independente com os dados de outro quiz (spec 001) | 📝 |
 | Relatório | `Report` | Resultado consolidado de uma partida | 📝 |
 | Pergunta difícil | `DifficultQuestion` | Acertada por menos de 35% dos participantes | 📝 |
 | Mídia | `Media` | Arquivo enviado pelo usuário (imagem) | ✅ |
