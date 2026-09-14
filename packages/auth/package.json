@@ -9,8 +9,12 @@
 			"default": "./src/*.ts"
 		}
 	},
-	"scripts": {},
+	"scripts": {
+		"test": "vitest run",
+		"check-types": "tsc --noEmit"
+	},
 	"dependencies": {
+		"@quizio/core": "workspace:*",
 		"@quizio/db": "workspace:*",
 		"@quizio/env": "workspace:*",
 		"better-auth": "catalog:",
@@ -19,6 +23,7 @@
 	},
 	"devDependencies": {
 		"@quizio/config": "workspace:*",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	}
 }

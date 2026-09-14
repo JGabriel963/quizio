@@ -9,23 +9,28 @@ import {
 	DropdownMenuTrigger,
 } from "@quizio/ui/components/dropdown-menu";
 import { Skeleton } from "@quizio/ui/components/skeleton";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 
 import { authClient } from "@/lib/auth-client";
 
 export default function UserMenu() {
 	const navigate = useNavigate();
+	const router = useRouter();
 	const { data: session, isPending } = authClient.useSession();
 
 	if (isPending) {
-		return <Skeleton className="h-9 w-24" />;
+		return <Skeleton className="h-10 w-24" />;
 	}
 
 	if (!session) {
 		return (
-			<Link to="/login">
-				<Button variant="outline">Sign In</Button>
-			</Link>
+			<Button
+				variant="outline"
+				render={<Link to="/login" />}
+				nativeButton={false}
+			>
+				Entrar
+			</Button>
 		);
 	}
 
@@ -34,26 +39,25 @@ export default function UserMenu() {
 			<DropdownMenuTrigger render={<Button variant="outline" />}>
 				{session.user.name}
 			</DropdownMenuTrigger>
-			<DropdownMenuContent className="bg-card">
+			<DropdownMenuContent align="end" className="bg-card">
 				<DropdownMenuGroup>
-					<DropdownMenuLabel>My Account</DropdownMenuLabel>
+					<DropdownMenuLabel>Minha conta</DropdownMenuLabel>
 					<DropdownMenuSeparator />
-					<DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+					<DropdownMenuItem disabled>{session.user.email}</DropdownMenuItem>
 					<DropdownMenuItem
 						variant="destructive"
 						onClick={() => {
 							authClient.signOut({
 								fetchOptions: {
-									onSuccess: () => {
-										navigate({
-											to: "/",
-										});
+									onSuccess: async () => {
+										await router.invalidate();
+										await navigate({ to: "/" });
 									},
 								},
 							});
 						}}
 					>
-						Sign Out
+						Sair
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

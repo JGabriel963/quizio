@@ -9,29 +9,38 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | PT | EN (código) | Definição | Status |
 | --- | --- | --- | --- |
 | Erro de domínio | `DomainError` | Violação de regra de negócio, com `code` estável `CONTEXTO.MOTIVO` | ✅ |
+| Não encontrado | `NotFoundError` | Erro de domínio para recurso inexistente ou de outro dono; a API responde `NOT_FOUND` | ✅ |
 | Relógio | `Clock` | Porta que fornece o instante atual; permite testes determinísticos | ✅ |
 | Gerador de IDs | `IdGenerator` | Porta que gera identificadores | ✅ |
-| Armazenamento de objetos | `ObjectStorage` | Porta para arquivos binários (R2) | ✅ |
+| Armazenamento de objetos | `ObjectStorage` | Porta para arquivos binários (R2), com upload pré-assinado, cópia e exclusão | ✅ |
 | Publicador em tempo real | `RealtimePublisher` | Porta servidor → clientes | ✅ |
 | Assinante em tempo real | `RealtimeSubscriber` | Porta do cliente para receber eventos | ✅ |
+| Texto de pesquisa | `normalizeSearchText` | Texto sem acentos, em minúsculas e com espaços colapsados, usado para pesquisar | ✅ |
+| Contagem de caracteres | `characterCount` | Conta caracteres percebidos (emoji e acentos contam como 1) para todos os limites | ✅ |
+| Chave de mídia | `mediaKeyFor` / `isMediaKeyOwnedBy` | `media/{ownerId}/{id}.{ext}`: todo arquivo pertence ao prefixo do dono | ✅ |
 
 ## Identidade (Better Auth)
 
 | PT | EN (código) | Definição | Status |
 | --- | --- | --- | --- |
-| Criador | `Creator` | Pessoa com conta que cria e organiza quizzes (spec 001) | 📝 |
-| Cadastro aberto | `SignUpEnabled` | Configuração da instância que permite ou bloqueia a criação de novas contas (spec 001) | 📝 |
+| Criador | `Creator` (usuário do Better Auth) | Pessoa com conta que cria e organiza quizzes (spec 001) | ✅ |
+| Regras de cadastro | `sign-up-rules` (`CREATOR_NAME_LENGTH`, `PASSWORD_LENGTH`) | Nome de 2 a 50 caracteres, senha de 8 a 128, e-mail normalizado (spec 001) | ✅ |
+| Cadastro aberto | `signUpEnabled` / `AUTH_SIGN_UP_ENABLED` | Configuração da instância que permite ou bloqueia a criação de novas contas (spec 001) | ✅ |
 
 ## Quiz (autoria)
 
 | PT | EN (código) | Definição | Status |
 | --- | --- | --- | --- |
-| Kahoot / Quiz | `Quiz` | Conteúdo jogável: metadados e lista ordenada de blocos. Chamado de "quiz" na interface do Quizio | 📝 |
-| Dono | `Owner` / `ownerId` | Criador a quem o quiz pertence; único que pode vê-lo e alterá-lo na biblioteca (spec 001) | 📝 |
-| Título | `title` | Nome do quiz, ≤ 95 caracteres; opcional no rascunho, exibido como "Quiz sem título" (spec 001) | 📝 |
-| Descrição | `description` | Texto opcional do quiz, ≤ 500 caracteres (spec 001) | 📝 |
-| Capa | `CoverImage` | Imagem opcional do quiz, segue a política de mídia (spec 001) | 📝 |
-| Última modificação | `updatedAt` | Instante da criação ou da última alteração dos dados do quiz (spec 001) | 📝 |
+| Kahoot / Quiz | `Quiz` | Conteúdo jogável: metadados e lista ordenada de blocos. Chamado de "quiz" na interface do Quizio | ✅ (dados básicos; blocos 📝) |
+| Dados do quiz | `QuizDetails` | Título, descrição e visibilidade validados juntos (spec 001) | ✅ |
+| Dono | `ownerId` | Criador a quem o quiz pertence; único que pode vê-lo e alterá-lo (spec 001) | ✅ |
+| Título | `title` | Nome do quiz, ≤ 95 caracteres; opcional no rascunho, exibido como "Quiz sem título" (spec 001) | ✅ |
+| Descrição | `description` | Texto opcional do quiz, ≤ 500 caracteres (spec 001) | ✅ |
+| Capa | `coverImageKey` / `coverImageUrl` | Imagem opcional do quiz, segue a política de mídia (spec 001) | ✅ |
+| Alteração de capa | `CoverChange` | `keep`, `set` (nova chave) ou `remove` ao editar os dados (spec 001) | ✅ |
+| Última modificação | `updatedAt` | Instante da criação ou da última alteração dos dados do quiz (spec 001) | ✅ |
+| Rascunho | `status: "draft"` | Quiz ainda não salvo como versão jogável | ✅ |
+| Visibilidade | `QuizVisibility` | `private`, `unlisted` (spec 001); `public` com a descoberta pública | ✅ (`public` 📝) |
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
 | Pergunta | `Question` | Bloco interativo com texto (≤ 120), tipo, tempo limite e pontos | 📝 |
 | Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | 📝 |
@@ -42,8 +51,6 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Tempo limite | `TimeLimit` | Janela de resposta, 5–240 s conforme o tipo | 📝 |
 | Tempo de leitura | `ReadTime` | Pergunta exibida sem alternativas antes da resposta (≥ 5 s) | 📝 |
 | Pontos da pergunta | `PointsMultiplier` | `standard` (1000), `double` (2000), `noPoints` (0) | ✅ |
-| Rascunho | `Draft` | Quiz ainda não salvo como versão jogável | 📝 |
-| Visibilidade | `Visibility` | `private`, `unlisted`, `public` | 📝 |
 | Versão | `QuizVersion` / snapshot | Cópia imutável do quiz usada por uma partida | 📝 |
 
 ## Game (partida ao vivo)
@@ -73,15 +80,16 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 
 | PT | EN (código) | Definição | Status |
 | --- | --- | --- | --- |
-| Biblioteca | `Library` | Quizzes do usuário: recentes, rascunhos, favoritos, compartilhados, pastas, lixeira | 📝 |
+| Biblioteca | `Library` / `listLibrary` | Quizzes do usuário por seção, com pesquisa; depois favoritos, compartilhados e pastas | ✅ (seções da spec 001) |
+| Seção da biblioteca | `LibrarySection` | `recent`, `drafts`, `trash` (spec 001) | ✅ |
+| Item da biblioteca | `LibraryItem` / `LibraryQuizRecord` | Projeção de leitura de um quiz na listagem (spec 001) | ✅ |
+| Lixeira | `trashedAt` | Quizzes excluídos, restauráveis; no Quizio inclui rascunhos (spec 001) | ✅ |
+| Mover para a lixeira | `moveQuizToTrash` | Excluir de forma reversível (spec 001) | ✅ |
+| Restaurar | `restoreQuiz` | Devolver um quiz da lixeira à biblioteca (spec 001) | ✅ |
+| Excluir definitivamente | `deleteQuizPermanently` | Remover de forma irreversível um quiz da lixeira, com sua capa (spec 001) | ✅ |
+| Duplicar | `duplicateQuiz` | Criar um rascunho independente com os dados e uma cópia da capa de outro quiz (spec 001) | ✅ |
 | Pasta | `Folder` | Organização de quizzes | 📝 |
 | Favorito | `Favorite` | Marcação para acesso rápido | 📝 |
-| Lixeira | `Trash` | Quizzes excluídos, restauráveis; no Quizio inclui rascunhos (spec 001) | 📝 |
-| Seção da biblioteca | `LibrarySection` | `recent`, `drafts`, `trash` (spec 001) | 📝 |
-| Mover para a lixeira | `moveToTrash` | Excluir de forma reversível (spec 001) | 📝 |
-| Restaurar | `restore` | Devolver um quiz da lixeira à biblioteca (spec 001) | 📝 |
-| Excluir definitivamente | `deletePermanently` | Remover de forma irreversível um quiz da lixeira, com sua capa (spec 001) | 📝 |
-| Duplicar | `duplicate` | Criar um rascunho independente com os dados de outro quiz (spec 001) | 📝 |
 | Relatório | `Report` | Resultado consolidado de uma partida | 📝 |
 | Pergunta difícil | `DifficultQuestion` | Acertada por menos de 35% dos participantes | 📝 |
 | Mídia | `Media` | Arquivo enviado pelo usuário (imagem) | ✅ |

@@ -1,3 +1,7 @@
+import { authSettings } from "@quizio/auth";
+import { db } from "@quizio/db";
+import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
+import { createDrizzleQuizRepository } from "@quizio/db/repositories/quiz/drizzle-quiz-repository";
 import { env } from "@quizio/env/server";
 import { createPusherRealtimePublisher } from "@quizio/realtime/pusher-realtime-publisher";
 import { createS3ObjectStorage } from "@quizio/storage/s3-object-storage";
@@ -31,6 +35,9 @@ export function createAdaptersFromEnv(): Adapters {
 		}),
 		ids: { generate: () => crypto.randomUUID() },
 		clock: { now: () => new Date() },
+		quizzes: createDrizzleQuizRepository(db),
+		libraryQuizzes: createDrizzleLibraryQuizQuery(db),
+		authSettings,
 	};
 }
 

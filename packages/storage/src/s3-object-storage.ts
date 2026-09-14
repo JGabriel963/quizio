@@ -1,4 +1,5 @@
 import {
+	CopyObjectCommand,
 	DeleteObjectCommand,
 	HeadObjectCommand,
 	NotFound,
@@ -21,6 +22,14 @@ export interface S3ObjectStorageConfig {
 	publicBaseUrl: string;
 	/** Required by RustFS/MinIO-style servers; R2 works either way. */
 	forcePathStyle: boolean;
+}
+
+const encodeKey = (key: string) =>
+	key.split("/").map(encodeURIComponent).join("/");
+
+/** `CopySource` value: bucket plus the URL-encoded key, keeping slashes. */
+export function copySourceFor(bucket: string, key: string): string {
+	return `${bucket}/${encodeKey(key)}`;
 }
 
 /**
@@ -68,7 +77,7 @@ export function createS3ObjectStorage(
 		},
 
 		getPublicUrl(key) {
-			return `${publicBaseUrl}/${key.split("/").map(encodeURIComponent).join("/")}`;
+			return `${publicBaseUrl}/${encodeKey(key)}`;
 		},
 
 		async exists(key) {
@@ -92,6 +101,16 @@ export function createS3ObjectStorage(
 		async delete(key) {
 			await client.send(
 				new DeleteObjectCommand({ Bucket: config.bucket, Key: key }),
+			);
+		},
+
+		async copy(sourceKey, destinationKey) {
+			await client.send(
+				new CopyObjectCommand({
+					Bucket: config.bucket,
+					Key: destinationKey,
+					CopySource: copySourceFor(config.bucket, sourceKey),
+				}),
 			);
 		},
 	};

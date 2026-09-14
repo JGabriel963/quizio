@@ -1,7 +1,7 @@
 ---
 id: "001"
 title: Autenticação e biblioteca básica
-status: planned # draft | approved | planned | in-progress | done
+status: done # draft | approved | planned | in-progress | done
 contexts: [quiz, library, media]
 created: 2026-09-13
 ---
@@ -309,3 +309,7 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 
 - 2026-09-13 — spec criada. Decisões do produto registradas: cadastro aberto e desligável pelo dono da instância; login por e-mail e senha e por Google; exclusões sempre passam pela lixeira; a biblioteca inclui pesquisa por título e duplicação.
 - 2026-09-13 — spec aprovada. Confirmado que o Google acessa a conta existente de mesmo e-mail (RN-04) e que a recuperação de senha fica fora desta feature.
+- 2026-09-14 — implementada. Todos os CAs têm testes automatizados verdes (unitários, PGlite, integração e E2E desktop/mobile). Descobertas registradas no plano e no ADR 0007:
+  - RN-04 exige `requireLocalEmailVerified: false` no Better Auth, desligando a proteção contra tomada de conta pré-criada; é o risco aceito.
+  - RN-05 ganhou uma trava no banco, porque o `disableSignUp` do Google não cobre o login por ID token.
+  - O smoke manual com o Google real (CA-07/08/09) ficou no checklist de deploy do roadmap, por falta de cliente OAuth no ambiente de desenvolvimento.

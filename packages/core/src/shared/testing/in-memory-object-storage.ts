@@ -33,6 +33,18 @@ export class InMemoryObjectStorage implements ObjectStorage {
 		this.#objects.delete(key);
 	}
 
+	async copy(sourceKey: string, destinationKey: string): Promise<void> {
+		if (!this.#objects.has(sourceKey)) {
+			throw new Error(`Object "${sourceKey}" does not exist`);
+		}
+		this.#objects.add(destinationKey);
+	}
+
+	/** Test helper: every stored key, sorted. */
+	keys(): string[] {
+		return [...this.#objects].sort();
+	}
+
 	/** Test helper: simulates the browser completing a presigned upload. */
 	simulateUpload(key: string): void {
 		this.#objects.add(key);

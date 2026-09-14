@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	copySourceFor,
 	createS3ObjectStorage,
 	type S3ObjectStorageConfig,
 } from "./s3-object-storage";
@@ -45,5 +46,11 @@ describe("createS3ObjectStorage", () => {
 		expect(
 			[...url.searchParams.keys()].some((param) => param.includes("checksum")),
 		).toBe(false);
+	});
+
+	it("encodes each key segment in the copy source", () => {
+		expect(copySourceFor("quizio", "media/user 1/capa ção.png")).toBe(
+			"quizio/media/user%201/capa%20%C3%A7%C3%A3o.png",
+		);
 	});
 });

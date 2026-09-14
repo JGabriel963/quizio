@@ -7,6 +7,12 @@ export const env = createEnv({
 		DATABASE_URL: z.string().min(1),
 		BETTER_AUTH_SECRET: z.string().min(32),
 		BETTER_AUTH_URL: z.url(),
+		// Instance owner can close new sign-ups (spec 001, RN-05).
+		AUTH_SIGN_UP_ENABLED: z.stringbool().default(true),
+		// Google sign-in: set both or neither (checked when building auth).
+		// Redirect URI: {BETTER_AUTH_URL}/api/auth/callback/google
+		GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+		GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),

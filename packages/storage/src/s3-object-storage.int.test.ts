@@ -67,6 +67,32 @@ describe("S3ObjectStorage against a real S3 server", () => {
 		expect(await storage.exists(key)).toBe(false);
 	});
 
+	it("copies an object so deleting the copy keeps the original", async () => {
+		const original = `media/int-test/${crypto.randomUUID()}.png`;
+		const copy = `media/int-test/${crypto.randomUUID()}.png`;
+		const body = new Uint8Array(128).fill(3);
+		const upload = await storage.createPresignedUpload({
+			key: original,
+			contentType: "image/png",
+			contentLength: body.byteLength,
+			expiresInSeconds: 60,
+		});
+		await fetch(upload.url, {
+			method: upload.method,
+			headers: upload.headers,
+			body,
+		});
+
+		await storage.copy(original, copy);
+		expect(await storage.exists(copy)).toBe(true);
+
+		await storage.delete(copy);
+		expect(await storage.exists(copy)).toBe(false);
+		expect(await storage.exists(original)).toBe(true);
+
+		await storage.delete(original);
+	});
+
 	it("rejects a body whose size differs from the signed content length", async () => {
 		const key = `media/int-test/${crypto.randomUUID()}.png`;
 		const upload = await storage.createPresignedUpload({

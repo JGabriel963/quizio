@@ -25,10 +25,10 @@ function HomeComponent() {
 			<div className="flex flex-wrap justify-center gap-3">
 				<Button
 					size="lg"
-					render={<Link to="/dashboard" />}
+					render={<Link to="/library" search={{ section: "recent" }} />}
 					nativeButton={false}
 				>
-					Crie um quiz
+					Ir para a biblioteca
 				</Button>
 				<Button
 					size="lg"

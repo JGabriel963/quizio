@@ -11,7 +11,10 @@ export interface ObjectStorage {
 	/** Public URL of an object, for rendering. Does not check existence. */
 	getPublicUrl(key: string): string;
 	exists(key: string): Promise<boolean>;
+	/** Idempotent: deleting a missing object succeeds. */
 	delete(key: string): Promise<void>;
+	/** Server-side copy, so two owners of the same image can delete independently. */
+	copy(sourceKey: string, destinationKey: string): Promise<void>;
 }
 
 export interface PresignedUploadRequest {

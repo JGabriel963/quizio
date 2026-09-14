@@ -1,5 +1,6 @@
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import { mediaKeyFor } from "../../shared/domain/media-key";
 import {
 	assertMediaContentType,
 	assertMediaSize,
@@ -39,7 +40,11 @@ export function createRequestMediaUpload(deps: {
 		const mediaType = assertMediaContentType(contentType);
 		assertMediaSize(sizeBytes);
 
-		const key = `media/${ownerId}/${deps.ids.generate()}.${MEDIA_EXTENSIONS[mediaType]}`;
+		const key = mediaKeyFor(
+			ownerId,
+			deps.ids.generate(),
+			MEDIA_EXTENSIONS[mediaType],
+		);
 		const upload = await deps.storage.createPresignedUpload({
 			key,
 			contentType: mediaType,

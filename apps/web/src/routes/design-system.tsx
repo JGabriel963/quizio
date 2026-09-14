@@ -1,9 +1,34 @@
 import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@quizio/ui/components/alert-dialog";
+import {
 	AnswerOption,
 	type AnswerOptionState,
 } from "@quizio/ui/components/answer-option";
 import { ANSWER_SHAPES } from "@quizio/ui/components/answer-shape";
+import { Badge } from "@quizio/ui/components/badge";
 import { Button } from "@quizio/ui/components/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@quizio/ui/components/dialog";
+import { Input } from "@quizio/ui/components/input";
+import { Label } from "@quizio/ui/components/label";
+import { RadioGroup, RadioGroupItem } from "@quizio/ui/components/radio-group";
+import { Textarea } from "@quizio/ui/components/textarea";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 
@@ -89,6 +114,75 @@ function DesignSystemPage() {
 							</Button>
 						))}
 					</div>
+				</div>
+			</Section>
+
+			<Section title="Formulários">
+				<div className="grid gap-4 md:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="ds-title">Título</Label>
+						<Input id="ds-title" placeholder="Bom de Bíblia (Junho)" />
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="ds-description">Descrição</Label>
+						<Textarea id="ds-description" placeholder="Atos 1 a 7" />
+					</div>
+					<div className="flex flex-col gap-2">
+						<span className="font-medium text-sm">Visibilidade</span>
+						<RadioGroup defaultValue="private" aria-label="Visibilidade">
+							<Label className="flex items-center gap-2">
+								<RadioGroupItem value="private" /> Privado
+							</Label>
+							<Label className="flex items-center gap-2">
+								<RadioGroupItem value="unlisted" /> Não listado
+							</Label>
+						</RadioGroup>
+					</div>
+					<div className="flex flex-wrap items-center gap-2">
+						<Badge variant="private">Privado</Badge>
+						<Badge variant="unlisted">Não listado</Badge>
+						<Badge>Rascunho</Badge>
+					</div>
+				</div>
+			</Section>
+
+			<Section title="Diálogos">
+				<div className="flex flex-wrap gap-3">
+					<Dialog>
+						<DialogTrigger render={<Button variant="outline" />}>
+							Abrir diálogo
+						</DialogTrigger>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>Configurações do quiz</DialogTitle>
+								<DialogDescription>
+									Título, descrição, capa e visibilidade.
+								</DialogDescription>
+							</DialogHeader>
+							<DialogFooter>
+								<Button>Salvar</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
+					<AlertDialog>
+						<AlertDialogTrigger render={<Button variant="destructive" />}>
+							Excluir definitivamente
+						</AlertDialogTrigger>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>Excluir o quiz para sempre?</AlertDialogTitle>
+								<AlertDialogDescription>
+									Esta ação não pode ser desfeita.
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>Cancelar</AlertDialogCancel>
+								<AlertDialogAction variant="destructive">
+									Excluir
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</div>
 			</Section>
 

@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@quizio/api": "workspace:*",
 		"@quizio/auth": "workspace:*",
+		"@quizio/core": "workspace:*",
 		"@quizio/env": "workspace:*",
 		"@quizio/realtime": "workspace:*",
 		"@quizio/ui": "workspace:*",

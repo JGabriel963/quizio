@@ -261,7 +261,8 @@ Configuração aplicada:
 | --- | --- | --- |
 | `emailAndPassword` | `enabled`, `minPasswordLength: 8`, `maxPasswordLength: 128`, `disableSignUp: !signUpEnabled` | RN-02, RN-05 |
 | `socialProviders.google` | presente só se configurado; `disableSignUp: !signUpEnabled`, `prompt: "select_account"` | RN-03, RN-05 |
-| `account.accountLinking` | `enabled: true`, **sem** `trustedProviders`: o vínculo implícito do Better Auth ocorre porque o Google informa `email_verified` | RN-04 |
+| `account.accountLinking` | `enabled: true`, `requireLocalEmailVerified: false`, sem `trustedProviders`. *Correção na implementação:* por padrão o Better Auth recusa vincular a uma conta local de e-mail não verificado, e o cadastro por senha ainda não verifica (ADR 0007) | RN-04 |
+| `databaseHooks.user.create.before` | recusa criar usuário com `SIGNUP_DISABLED` quando `signUpEnabled` é falso; cobre o login por ID token, onde o `disableSignUp` do Google não é aplicado | RN-05 |
 | `rateLimit` | `enabled: true` (também em dev), `storage: "database"`, `customRules: { "/sign-in/email": { window: 60, max: 5 }, "/sign-up/email": { window: 60, max: 5 } }` | RN-07 |
 | `session` | padrão (7 dias, renovada a cada 24 h, cookie persistente) | RN-08 |
 | `hooks.before` em `/sign-up/email` | `normalizeCreatorName`/`normalizeEmail` no body; `assertCreatorName`, com erro → `APIError("BAD_REQUEST", { code: "INVALID_NAME" })` | RN-02 |

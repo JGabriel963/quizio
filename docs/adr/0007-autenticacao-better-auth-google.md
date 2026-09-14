@@ -18,8 +18,8 @@ O projeto já usa Better Auth com o adapter Drizzle, e o deploy é serverless (V
 
 - **Continuar com Better Auth**, que já oferece provedores sociais, vínculo de contas, bloqueio de cadastro por provedor e limite de tentativas. Nenhum provedor externo de identidade é adicionado.
 - **Google via `socialProviders.google`**, habilitado só quando `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` existem.
-- **Vínculo implícito** (`account.accountLinking.enabled`) apoiado no `email_verified` informado pelo Google, **sem** incluí-lo em `trustedProviders`, que dispensaria até essa verificação.
-- **Cadastro desligável** por `AUTH_SIGN_UP_ENABLED`, aplicado a `emailAndPassword.disableSignUp` e `socialProviders.google.disableSignUp`.
+- **Vínculo implícito** com `account.accountLinking.requireLocalEmailVerified: false`, sem `trustedProviders`: o Google ainda precisa informar `email_verified`. *Correção feita durante a implementação (2026-09-14):* por padrão, o Better Auth 1.7.1 recusa vincular a uma conta local cujo e-mail não foi verificado (`OAUTH_LINK_ERROR`). É justamente a proteção contra tomada de conta pré-criada, e sem desligá-la a RN-04 não funciona para contas criadas por senha. Desligar essa proteção é o risco aceito abaixo.
+- **Cadastro desligável** por `AUTH_SIGN_UP_ENABLED`, aplicado a `emailAndPassword.disableSignUp`, `socialProviders.google.disableSignUp` e a um `databaseHooks.user.create.before` que recusa qualquer criação de usuário. O hook é necessário porque o `disableSignUp` do Google não é aplicado ao login por ID token (verificado em teste).
 - **Limite de tentativas no banco** (`rateLimit.storage = "database"`, tabela `rateLimit`), ligado também em desenvolvimento para que o comportamento seja testável. A memória foi descartada porque não funciona em funções serverless.
 - **Configuração como fábrica** `createAuth({ db, ... })`: a instância de produção é montada a partir do env; os testes montam instâncias com PGlite e verificação de token do Google simulada.
 - **Regras de nome e senha** definidas no core (`identity/domain/sign-up-rules.ts`) e aplicadas por hook do Better Auth e pelo formulário web.

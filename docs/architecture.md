@@ -34,13 +34,13 @@ flowchart LR
 | Pacote | Papel hexagonal | Pode importar |
 | --- | --- | --- |
 | `packages/core` | Domínio + aplicação (casos de uso, portas, fakes de teste) | **Nada** além de si mesmo. Sem `drizzle`, `pusher`, `@aws-sdk`, `react`, `zod`, env. |
-| `packages/db` | Adapter de saída: schema Drizzle, repositórios | `core`, `env` |
+| `packages/db` | Adapter de saída: schema Drizzle, repositórios, harness PGlite | `core`, `env` |
 | `packages/storage` | Adapter de saída: `ObjectStorage` via S3 (R2) | `core` |
 | `packages/realtime` | Adapter de saída (`RealtimePublisher`) e porta/adapter do cliente (`RealtimeSubscriber`) | `core` |
-| `packages/auth` | Subdomínio genérico (Better Auth) | `db`, `env` |
+| `packages/auth` | Subdomínio genérico (Better Auth), montado por `createAuth(...)` | `core` (regras de cadastro), `db`, `env` |
 | `packages/api` | Adapter de entrada (tRPC) + **composition root** | todos os anteriores |
 | `packages/ui` | Design system (sem regra de negócio) | — |
-| `apps/web` | Adapter de entrada (UI, rotas server) | `api` (tipos + handler), `ui`, `realtime` (cliente), `env` |
+| `apps/web` | Adapter de entrada (UI, rotas server) | `api` (tipos + handler), `core` (constantes e regras puras para validação no formulário), `ui`, `realtime` (cliente), `env` |
 
 Regras:
 
@@ -55,14 +55,16 @@ Regras:
 | --- | --- | --- | --- |
 | **Quiz** (autoria) | `core/src/quiz` | Kahoot/quiz, perguntas e seus tipos, alternativas, tempo, pontos, validação de publicação | Editor |
 | **Game** (partida ao vivo) | `core/src/game` | Sessão, PIN, lobby, jogadores, ciclo de vida da pergunta, respostas, pontuação, streak, placar, pódio | Organizar ao vivo |
-| **Library** | `core/src/library` | Pastas, favoritos, rascunhos, compartilhamento, lixeira, descoberta | Biblioteca |
+| **Library** | `core/src/library` | Consultas da biblioteca (seções, pesquisa); depois pastas, favoritos, compartilhamento, descoberta | Biblioteca |
 | **Reports** | `core/src/reports` | Resultados consolidados por partida/jogador/pergunta | Relatórios |
 | **Media** | `core/src/media` | Política de mídia, upload direto ao storage | Imagens/fundos |
-| **Identity** | — (Better Auth) | Contas e sessões; o core recebe apenas `ownerId`/`userId` | Conta |
+| **Identity** | `core/src/identity` (só regras) + Better Auth | Contas e sessões ficam no Better Auth; o core define apenas regras de cadastro (nome, senha, e-mail) e recebe `ownerId` nos demais contextos | Conta |
 
-Contextos se comunicam por **IDs** e por **casos de uso**, nunca importando entidades uns dos outros. Ex.: o Game recebe um *snapshot* do quiz no início da partida (a partida não muda se o quiz for editado depois — igual ao Kahoot).
+Contextos se comunicam por **IDs** e por **casos de uso**, nunca importando o comportamento uns dos outros. Ex.: o Game recebe um *snapshot* do quiz no início da partida (a partida não muda se o quiz for editado depois — igual ao Kahoot).
 
-`core/src/shared` é o *shared kernel*: `DomainError`, portas transversais (`Clock`, `IdGenerator`, `ObjectStorage`, `RealtimePublisher`) e seus fakes.
+**Read models.** Quando um contexto só *projeta* dados de outro para leitura — como a `library`, que lista quizzes por seção e pesquisa — ele define sua própria porta de consulta (`LibraryQuizQuery`) e um registro de leitura (`LibraryQuizRecord`). O registro pode reutilizar **tipos de valor** do contexto de origem (`QuizVisibility`, `QuizStatus`), mas não suas funções. O adapter de banco implementa a consulta direto sobre as tabelas, sem carregar agregados.
+
+`core/src/shared` é o *shared kernel*: `DomainError` e `NotFoundError`, portas transversais (`Clock`, `IdGenerator`, `ObjectStorage`, `RealtimePublisher`), utilidades puras usadas por vários contextos (`normalizeSearchText`, `characterCount`, chaves de mídia por dono) e seus fakes.
 
 ## Estrutura de um contexto
 
@@ -82,9 +84,11 @@ packages/core/src/<contexto>/
 
 - **Caso de uso** = função fábrica que recebe dependências e devolve a operação:
   `createRequestMediaUpload({ storage, ids })` → `(input) => Promise<output>`. Tipo exportado `RequestMediaUpload`.
-- **Erros de negócio** estendem `DomainError` e têm `code` estável no formato `CONTEXTO.MOTIVO` (`MEDIA.UNSUPPORTED_TYPE`). O middleware do tRPC converte qualquer `DomainError` em `BAD_REQUEST` e expõe `data.domainCode` ao cliente; qualquer outro erro vira 500.
+- **Erros de negócio** estendem `DomainError` e têm `code` estável no formato `CONTEXTO.MOTIVO` (`MEDIA.UNSUPPORTED_TYPE`). O middleware do tRPC converte `NotFoundError` em `NOT_FOUND` e os demais `DomainError` em `BAD_REQUEST`, sempre expondo `data.domainCode` ao cliente; qualquer outro erro vira 500.
+- **Recursos de outro dono são "não encontrados".** Casos de uso carregam o agregado e verificam o dono (`requireOwnedQuiz`); inexistente e alheio produzem o mesmo `NotFoundError`, para nunca revelar que o recurso existe.
+- **Limites de caracteres** usam `characterCount` (grafemas), para que emoji e acentos contem como um caractere no servidor e no formulário.
 - **Portas** são interfaces TypeScript nomeadas pelo que o domínio precisa (`ObjectStorage`), não pela tecnologia.
-- **Adapters** são nomeados `<tecnologia>-<porta>.ts` (`s3-object-storage.ts`, `pusher-realtime-publisher.ts`, futuramente `drizzle-quiz-repository.ts`) e expostos por uma fábrica `create…(config)` que recebe configuração explícita (nunca lê env).
+- **Adapters** são nomeados `<tecnologia>-<porta>.ts` (`s3-object-storage.ts`, `pusher-realtime-publisher.ts`, `drizzle-quiz-repository.ts`, `drizzle-library-quiz-query.ts`) e expostos por uma fábrica `create…(config)` que recebe configuração explícita (nunca lê env). O Better Auth segue o mesmo padrão com `createAuth({ db, ... })`.
 - **Fakes** (`InMemoryObjectStorage`, `FixedClock`…) moram no pacote que define a porta, em `testing/`, e são a forma padrão de isolar testes — preferidos a `vi.fn()`.
 - **Schema do banco** por contexto em `packages/db/src/schema/<contexto>.ts`; repositórios em `packages/db/src/repositories/<contexto>/`. Repositórios recebem o tipo `Database` (`packages/db/src/types.ts`), que funciona com node-postgres e PGlite.
 

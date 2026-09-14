@@ -14,9 +14,14 @@ function createQueryClient() {
 	return new QueryClient({
 		queryCache: new QueryCache({
 			onError: (error, query) => {
-				toast.error(error.message, {
+				// Pages that render their own error state (e.g. "quiz not found") opt out.
+				if (query.meta?.suppressErrorToast) {
+					return;
+				}
+				toast.error("Não foi possível carregar os dados.", {
+					description: error.message,
 					action: {
-						label: "retry",
+						label: "Tentar novamente",
 						onClick: () => {
 							query.invalidate();
 						},
@@ -55,7 +60,11 @@ export const getRouter = () => {
 		defaultPreloadStaleTime: 0,
 		context: { trpc, queryClient },
 		defaultPendingComponent: () => <Loader />,
-		defaultNotFoundComponent: () => <div>Not Found</div>,
+		defaultNotFoundComponent: () => (
+			<main className="mx-auto px-4 py-16 text-center font-bold text-2xl">
+				Página não encontrada
+			</main>
+		),
 		Wrap: ({ children }) => (
 			<TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
 				{children}
