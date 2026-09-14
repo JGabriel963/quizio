@@ -1,0 +1,29 @@
+{
+	"name": "@quizio/storage",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {
+		"test": "vitest run",
+		"test:int": "vitest run --config vitest.int.config.ts",
+		"check-types": "tsc --noEmit",
+		"bucket:setup": "node scripts/setup-bucket.mjs"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.1131.0",
+		"@aws-sdk/s3-request-presigner": "^3.1131.0",
+		"@quizio/core": "workspace:*"
+	},
+	"devDependencies": {
+		"@quizio/config": "workspace:*",
+		"@types/node": "catalog:",
+		"dotenv": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

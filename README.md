@@ -1,100 +1,59 @@
-# quizio
+# Quizio
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Self, TRPC, and more.
+Clone pessoal do Kahoot, sem paywalls nem limite de participantes: crie quizzes, organize partidas ao vivo com PIN e acompanhe relatórios.
 
-## Features
+## Stack
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **tRPC** - End-to-end type-safe APIs
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Biome** - Linting and formatting
-- **Turborepo** - Optimized monorepo build system
+TanStack Start (React 19, Vite 8) · tRPC · Drizzle + PostgreSQL · Better Auth · Cloudflare R2 (API S3) · protocolo Pusher (Pusher/Soketi) · shadcn + Base UI + Tailwind v4 · Vitest · Playwright · Biome · Turborepo · pnpm.
 
-## Getting Started
+## Começando
 
-First, install the dependencies:
+Requisitos: Node 22.12+, pnpm 12, Docker.
 
 ```bash
 pnpm install
+cp apps/web/.env.example apps/web/.env   # ajuste BETTER_AUTH_SECRET
+pnpm infra:up                            # Postgres, RustFS (S3) e Soketi (Pusher) + bucket
+pnpm db:push
+pnpm dev                                 # http://localhost:3001
 ```
 
-## Database Setup
+Console do storage local: http://localhost:9001 (usuário `quizio`, senha `quizio-secret`).
 
-This project uses PostgreSQL with Drizzle ORM.
-
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/web/.env` file with your PostgreSQL connection details.
-
-3. Apply the schema to your database:
+## Testes
 
 ```bash
-pnpm run db:push
+pnpm test        # unitários, componentes e repositórios (PGlite) — sem infraestrutura
+pnpm test:int    # adapters contra RustFS e Soketi (requer infra:up)
+pnpm test:e2e    # Playwright; na primeira vez: pnpm -F web exec playwright install chromium
 ```
 
-Then, run the development server:
+## Documentação
 
-```bash
-pnpm run dev
-```
+| Documento | Conteúdo |
+| --- | --- |
+| [docs/architecture.md](docs/architecture.md) | Arquitetura hexagonal, bounded contexts, regras de dependência |
+| [docs/testing.md](docs/testing.md) | Estratégia de testes e TDD |
+| [docs/design-system.md](docs/design-system.md) | Tokens e componentes com visual Kahoot |
+| [docs/adr/](docs/adr) | Decisões de arquitetura |
+| [specs/README.md](specs/README.md) | Fluxo Spec-Driven Development (`/sdd-spec` → `/sdd-plan` → `/sdd-tasks` → `/sdd-implement`) |
+| [specs/constitution.md](specs/constitution.md) | Princípios inegociáveis |
+| [specs/product/kahoot-reference.md](specs/product/kahoot-reference.md) | Referência funcional do Kahoot |
+| [specs/roadmap.md](specs/roadmap.md) | Ordem das funcionalidades |
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
-
-## UI Customization
-
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
-
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
-
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
-
-```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
-```
-
-Import shared components like this:
-
-```tsx
-import { Button } from "@quizio/ui/components/button";
-```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Git Hooks and Formatting
-
-- Run checks: `pnpm run check`
-
-## Project Structure
+## Estrutura
 
 ```
-quizio/
-├── apps/
-│   └── web/         # Fullstack application (React + TanStack Start)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── api/         # API layer / business logic
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
+apps/web            app TanStack Start (UI + rotas de API)
+packages/core       domínio e casos de uso (sem infraestrutura)
+packages/api        routers tRPC + composition root
+packages/db         schema Drizzle, repositórios, harness PGlite
+packages/storage    adapter S3 (Cloudflare R2)
+packages/realtime   adapters do protocolo Pusher (servidor e cliente)
+packages/auth       Better Auth
+packages/env        variáveis de ambiente validadas
+packages/ui         design system
+packages/config     tsconfig compartilhado
+specs/              specs, templates, roadmap, referência do Kahoot
+docs/               arquitetura, testes, design system, ADRs
 ```
-
-## Available Scripts
-
-- `pnpm run dev`: Start all applications in development mode
-- `pnpm run build`: Build all applications
-- `pnpm run dev:web`: Start only the web application
-- `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run db:push`: Push schema changes to database
-- `pnpm run db:generate`: Generate database client/types
-- `pnpm run db:migrate`: Run database migrations
-- `pnpm run db:studio`: Open database studio UI
-- `pnpm run check`: Run Biome formatting and linting

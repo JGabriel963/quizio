@@ -1,52 +1,54 @@
+import { Button } from "@quizio/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/")({
-  component: HomeComponent,
+	component: HomeComponent,
 });
 
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
-
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
-
 function HomeComponent() {
-  const trpc = useTRPC();
-  const healthCheck = useQuery(trpc.healthCheck.queryOptions());
+	const trpc = useTRPC();
+	const healthCheck = useQuery(trpc.healthCheck.queryOptions());
 
-  return (
-    <div className="container mx-auto max-w-3xl px-4 py-2">
-      <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-      <div className="grid gap-6">
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-2 font-medium">API Status</h2>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-2 w-2 rounded-full ${healthCheck.data ? "bg-green-500" : "bg-red-500"}`}
-            />
-            <span className="text-muted-foreground text-sm">
-              {healthCheck.isLoading
-                ? "Checking..."
-                : healthCheck.data
-                  ? "Connected"
-                  : "Disconnected"}
-            </span>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+	return (
+		<main className="mx-auto flex w-full max-w-3xl flex-col items-center gap-8 px-4 py-16 text-center">
+			<div className="flex flex-col gap-3">
+				<h1 className="font-black text-5xl text-brand tracking-tight">
+					Quizio
+				</h1>
+				<p className="text-lg text-muted-foreground">
+					Quizzes ao vivo, sem limite de participantes.
+				</p>
+			</div>
+			<div className="flex flex-wrap justify-center gap-3">
+				<Button
+					size="lg"
+					render={<Link to="/library" search={{ section: "recent" }} />}
+					nativeButton={false}
+				>
+					Ir para a biblioteca
+				</Button>
+				<Button
+					size="lg"
+					variant="brand"
+					render={<Link to="/design-system" />}
+					nativeButton={false}
+				>
+					Ver design system
+				</Button>
+			</div>
+			<div className="flex items-center gap-2 text-muted-foreground text-sm">
+				<span
+					className={`size-2 rounded-full ${healthCheck.data ? "bg-success" : "bg-destructive"}`}
+				/>
+				{healthCheck.isLoading
+					? "Verificando API…"
+					: healthCheck.data
+						? "API conectada"
+						: "API indisponível"}
+			</div>
+		</main>
+	);
 }
