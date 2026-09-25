@@ -1,4 +1,12 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	redirect,
+	useRouterState,
+} from "@tanstack/react-router";
+
+import { AppShell } from "@/components/layout/app-shell";
+import { CreateQuizProvider } from "@/components/layout/create-quiz-context";
 
 import { getUser } from "@/functions/get-user";
 
@@ -18,5 +26,15 @@ export const Route = createFileRoute("/_auth")({
 });
 
 function AuthLayout() {
-	return <Outlet />;
+	const pathname = useRouterState({
+		select: (state) => state.location.pathname,
+	});
+
+	return (
+		<CreateQuizProvider>
+			<AppShell pathname={pathname}>
+				<Outlet />
+			</AppShell>
+		</CreateQuizProvider>
+	);
 }

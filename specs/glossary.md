@@ -80,8 +80,11 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 
 | PT | EN (código) | Definição | Status |
 | --- | --- | --- | --- |
+| Página inicial | `Home` | Painel de entrada do criador em `/`: saudação, quizzes mais recentes e cartões do que vem a seguir (spec 002) | ✅ |
+| Navegação principal | `MainNav` | Navegação comum às telas do criador: Início, Biblioteca, Relatórios, Descobrir, Grupos (spec 002) | ✅ |
+| Em breve | `comingSoon` | Marcação de um ponto de entrada de feature ainda não entregue: visível, sem link e anunciado como indisponível (spec 002) | ✅ |
 | Biblioteca | `Library` / `listLibrary` | Quizzes do usuário por seção, com pesquisa; depois favoritos, compartilhados e pastas | ✅ (seções da spec 001) |
-| Seção da biblioteca | `LibrarySection` | `recent`, `drafts`, `trash` (spec 001) | ✅ |
+| Seção da biblioteca | `LibrarySection` | `recent`, `drafts`, `trash` (spec 001); exibidas como abas desde a spec 002 | ✅ |
 | Item da biblioteca | `LibraryItem` / `LibraryQuizRecord` | Projeção de leitura de um quiz na listagem (spec 001) | ✅ |
 | Lixeira | `trashedAt` | Quizzes excluídos, restauráveis; no Quizio inclui rascunhos (spec 001) | ✅ |
 | Mover para a lixeira | `moveQuizToTrash` | Excluir de forma reversível (spec 001) | ✅ |

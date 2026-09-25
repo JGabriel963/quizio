@@ -20,6 +20,9 @@ const badgeVariants = cva(
 				// Quiz visibility (spec 001): private is neutral, unlisted hints it can be shared.
 				private: "bg-muted text-muted-foreground",
 				unlisted: "bg-accent text-accent-foreground",
+				// Entry point of a feature that is planned but not delivered yet
+				// (spec 002): dashed outline reads as "not here yet", not as a state.
+				soon: "border-border border-dashed text-muted-foreground",
 			},
 		},
 		defaultVariants: {

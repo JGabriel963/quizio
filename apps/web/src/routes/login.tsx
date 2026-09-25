@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { PublicHeader } from "@/components/layout/public-header";
 import Loader from "@/components/loader";
 import { getUser } from "@/functions/get-user";
 import { authClient } from "@/lib/auth-client";
@@ -68,40 +69,43 @@ function LoginPage() {
 	const { signUpEnabled = true, googleEnabled = false } = settings.data ?? {};
 
 	return (
-		<main className="mx-auto flex w-full max-w-md flex-col px-4 py-10">
-			<div className="rounded-lg bg-card p-6 shadow-sm sm:p-8">
-				{mode === "sign-up" ? (
-					<SignUpForm
-						signUpEnabled={signUpEnabled}
-						googleEnabled={googleEnabled}
-						onSignUp={async (values) => {
-							const { error: signUpError } =
-								await authClient.signUp.email(values);
-							if (!signUpError) {
-								await enterApp();
-							}
-							return { error: signUpError };
-						}}
-						onGoogleSignIn={signInWithGoogle}
-						onSwitchToSignIn={() => switchMode("sign-in")}
-					/>
-				) : (
-					<SignInForm
-						googleEnabled={googleEnabled}
-						initialError={error ? { code: error } : null}
-						onSignIn={async (values) => {
-							const { error: signInError } =
-								await authClient.signIn.email(values);
-							if (!signInError) {
-								await enterApp();
-							}
-							return { error: signInError };
-						}}
-						onGoogleSignIn={signInWithGoogle}
-						onSwitchToSignUp={() => switchMode("sign-up")}
-					/>
-				)}
-			</div>
-		</main>
+		<>
+			<PublicHeader showSignIn={false} />
+			<main className="mx-auto flex w-full max-w-md flex-col px-4 py-10">
+				<div className="rounded-lg bg-card p-6 shadow-sm sm:p-8">
+					{mode === "sign-up" ? (
+						<SignUpForm
+							signUpEnabled={signUpEnabled}
+							googleEnabled={googleEnabled}
+							onSignUp={async (values) => {
+								const { error: signUpError } =
+									await authClient.signUp.email(values);
+								if (!signUpError) {
+									await enterApp();
+								}
+								return { error: signUpError };
+							}}
+							onGoogleSignIn={signInWithGoogle}
+							onSwitchToSignIn={() => switchMode("sign-in")}
+						/>
+					) : (
+						<SignInForm
+							googleEnabled={googleEnabled}
+							initialError={error ? { code: error } : null}
+							onSignIn={async (values) => {
+								const { error: signInError } =
+									await authClient.signIn.email(values);
+								if (!signInError) {
+									await enterApp();
+								}
+								return { error: signInError };
+							}}
+							onGoogleSignIn={signInWithGoogle}
+							onSwitchToSignUp={() => switchMode("sign-up")}
+						/>
+					)}
+				</div>
+			</main>
+		</>
 	);
 }

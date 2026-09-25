@@ -37,15 +37,21 @@ export async function signUp(
 	await page.getByLabel("E-mail").fill(email);
 	await page.getByLabel("Senha").fill(E2E_PASSWORD);
 	await page.getByRole("button", { name: "Criar conta" }).click();
-	await expect(page).toHaveURL(/\/library/);
+	// Signing in with no requested page lands on the dashboard (spec 002, RN-02).
+	await expect(page).toHaveURL(/\/$/);
 	return { name, email };
 }
 
 export async function signIn(page: Page, email: string) {
 	await page.getByLabel("E-mail").fill(email);
 	await page.getByLabel("Senha").fill(E2E_PASSWORD);
-	// The header also shows an "Entrar" link while signed out.
 	await page.getByRole("main").getByRole("button", { name: "Entrar" }).click();
+}
+
+/** Opens the library, whatever screen the test is on. */
+export async function goToLibrary(page: Page) {
+	await page.goto("/library");
+	await expect(page).toHaveURL(/\/library/);
 }
 
 export function quizList(page: Page) {
@@ -74,6 +80,11 @@ export async function createQuiz(
 		await expect(page.getByRole("img", { name: "Capa do quiz" })).toBeVisible();
 	}
 	await page.getByRole("button", { name: "Criar quiz" }).click();
+	// Creating opens the new quiz (spec 002, RN-13); come back for the listing.
+	await expect(
+		page.getByRole("heading", { level: 1, name: title }),
+	).toBeVisible();
+	await goToLibrary(page);
 	await expect(quizList(page).getByRole("link", { name: title })).toBeVisible();
 }
 

@@ -14,4 +14,15 @@ describe("Badge", () => {
 		expect(badge).toHaveAttribute("data-slot", "badge");
 		expect(badge).toHaveAttribute("data-variant", variant);
 	});
+
+	it("renders the soon variant for not yet available entry points", () => {
+		render(<Badge variant="soon">Em breve</Badge>);
+
+		const badge = screen.getByText("Em breve");
+		expect(badge).toHaveAttribute("data-slot", "badge");
+		expect(badge).toHaveAttribute("data-variant", "soon");
+		// The dashed outline is what tells "planned" apart from the solid
+		// "private" badge, so the class is the contract here.
+		expect(badge.className).toContain("border-dashed");
+	});
 });

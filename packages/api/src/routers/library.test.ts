@@ -68,4 +68,42 @@ describe("library router", () => {
 
 		expect(error).toMatchObject({ code: "UNAUTHORIZED" });
 	});
+
+	it("home returns at most six quizzes with the total outside the trash", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		for (let index = 1; index <= 8; index += 1) {
+			await ana.quiz.create({ title: `Quiz ${index}` });
+		}
+		const trashed = await ana.quiz.create({ title: "Lixo" });
+		await ana.quiz.moveToTrash({ quizId: trashed.id });
+
+		const overview = await ana.library.home();
+
+		expect(overview.quizzes).toHaveLength(6);
+		expect(overview.totalQuizCount).toBe(8);
+		expect(overview.quizzes[0]).toMatchObject({
+			questionCount: 0,
+			coverImageUrl: null,
+		});
+	});
+
+	it("home lists only the caller's quizzes", async () => {
+		const api = createTestApi();
+		const ana = api.callerFor("user-1");
+		const mine = await ana.quiz.create({ title: "Bom de Bíblia" });
+		await api.callerFor("user-2").quiz.create({ title: "Do Beto" });
+
+		const overview = await ana.library.home();
+
+		expect(overview.quizzes.map((quiz) => quiz.id)).toEqual([mine.id]);
+		expect(overview.totalQuizCount).toBe(1);
+	});
+
+	it("home refuses visitors", async () => {
+		const visitor = createTestApi().callerFor(null);
+
+		const error = await failureOf(visitor.library.home());
+
+		expect(error).toMatchObject({ code: "UNAUTHORIZED" });
+	});
 });

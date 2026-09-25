@@ -17,4 +17,8 @@ export const libraryRouter = router({
 				...input,
 			}),
 		),
+
+	home: protectedProcedure.query(({ ctx }) =>
+		ctx.container.useCases.getHomeOverview({ ownerId: ctx.session.user.id }),
+	),
 });

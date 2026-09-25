@@ -36,8 +36,10 @@ export default function UserMenu() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger render={<Button variant="outline" />}>
-				{session.user.name}
+			<DropdownMenuTrigger
+				render={<Button variant="outline" className="max-w-32 shrink-0" />}
+			>
+				<span className="truncate">{session.user.name}</span>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="bg-card">
 				<DropdownMenuGroup>

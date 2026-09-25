@@ -25,6 +25,8 @@ export interface LibraryQuizCriteria {
 	section: LibrarySection;
 	/** Already normalized; null lists the whole section. */
 	searchText: string | null;
+	/** At most this many records, newest first; undefined lists them all. */
+	limit?: number;
 }
 
 /**
@@ -33,8 +35,11 @@ export interface LibraryQuizCriteria {
  * - `recent`: not trashed; `drafts`: not trashed and draft; `trash`: trashed;
  * - `searchText` matches a substring of `searchTitle`;
  * - `recent`/`drafts` ordered by `updatedAt` desc, `trash` by `trashedAt` desc,
- *   ties broken by `id`.
+ *   ties broken by `id`;
+ * - `limit` keeps the first records of that order (spec 002).
  */
 export interface LibraryQuizQuery {
 	list(criteria: LibraryQuizCriteria): Promise<LibraryQuizRecord[]>;
+	/** How many records `list` would return without a `limit`. */
+	count(criteria: LibraryQuizCriteria): Promise<number>;
 }

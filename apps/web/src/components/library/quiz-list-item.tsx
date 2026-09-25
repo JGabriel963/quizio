@@ -14,6 +14,7 @@ import { QuizCover } from "@/components/quiz/quiz-cover";
 import { VisibilityBadge } from "@/components/quiz/visibility-badge";
 import type { LibraryItemView } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
+import { questionCountLabel } from "@/lib/quiz-labels";
 
 export interface QuizItemActions {
 	onEdit: (item: LibraryItemView) => void;
@@ -21,10 +22,6 @@ export interface QuizItemActions {
 	onMoveToTrash: (item: LibraryItemView) => void;
 	onRestore: (item: LibraryItemView) => void;
 	onDeletePermanently: (item: LibraryItemView) => void;
-}
-
-export function questionCountLabel(count: number): string {
-	return `${count} ${count === 1 ? "pergunta" : "perguntas"}`;
 }
 
 export function QuizListItem({
