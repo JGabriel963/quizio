@@ -1,4 +1,8 @@
 import {
+	createGetHomeOverview,
+	type GetHomeOverview,
+} from "@quizio/core/library/application/get-home-overview";
+import {
 	createListLibrary,
 	type ListLibrary,
 } from "@quizio/core/library/application/list-library";
@@ -69,6 +73,7 @@ export interface Container extends Adapters {
 		restoreQuiz: RestoreQuiz;
 		deleteQuizPermanently: DeleteQuizPermanently;
 		listLibrary: ListLibrary;
+		getHomeOverview: GetHomeOverview;
 	};
 }
 
@@ -89,6 +94,7 @@ export function createContainer(adapters: Adapters): Container {
 			restoreQuiz: createRestoreQuiz(adapters),
 			deleteQuizPermanently: createDeleteQuizPermanently(adapters),
 			listLibrary: createListLibrary(adapters),
+			getHomeOverview: createGetHomeOverview(adapters),
 		},
 	};
 }

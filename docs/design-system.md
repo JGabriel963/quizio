@@ -33,6 +33,14 @@ A classe `.dark` define superfícies roxas para as telas de partida (lobby, perg
 
 Variantes sólidas pressionáveis: `default` (azul), `brand`, `success`, `destructive`, `secondary` (branco). Variantes planas: `outline`, `ghost`, `link`. Tamanhos: `xs`, `sm`, `default`, `lg`, `xl` (CTA de lobby) e `icon*`. Para navegação, use `render={<Link …/>}` com `nativeButton={false}` (padrão Base UI).
 
+### `Badge`
+
+Além das variantes de visibilidade do quiz (`private`, `unlisted`), a variante **`soon`** (contorno tracejado, texto esmaecido) marca pontos de entrada de features planejadas mas ainda não entregues — navegação e cartões "Em breve" da spec 002.
+
+### `TabNav` + `TabNavItem`
+
+Abas para as seções de uma área (Recentes / Rascunhos / Lixeira na Biblioteca). **São links, nunca `role="tablist"`**: a seção mora na URL, então voltar/avançar do navegador e abrir em nova aba precisam funcionar. Use `render={<Link …/>}` no `TabNavItem` e `current` para marcar a seção aberta (`aria-current="page"`). O trilho é `inline-flex`: dentro de uma coluna `flex`, envolva num `div` para ele não esticar.
+
 ### `AnswerOption` + `AnswerShape`
 
 - A **cor é derivada da forma** — impossível exibir um triângulo azul.

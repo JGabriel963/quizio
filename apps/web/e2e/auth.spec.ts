@@ -2,10 +2,12 @@ import { expect, test } from "@playwright/test";
 
 import { createQuiz, signIn, signUp, uniqueEmail } from "./support";
 
-test("signs up and lands on the empty library", async ({ page }) => {
-	await signUp(page);
+test("signs up and lands on the dashboard", async ({ page }) => {
+	const { name } = await signUp(page);
 
-	await expect(page.getByRole("heading", { name: "Recentes" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { name: `Olá, ${name}!` }),
+	).toBeVisible();
 	await expect(page.getByText("Você ainda não tem quizzes.")).toBeVisible();
 });
 
@@ -17,6 +19,11 @@ test("signs in and out, and the library then requires login", async ({
 	await page.getByRole("button", { name }).click();
 	await page.getByRole("menuitem", { name: "Sair" }).click();
 	await expect(page).toHaveURL(/\/$/);
+	// Signing out goes back to the public landing (spec 002, RN-03).
+	await expect(page.getByRole("link", { name: "Criar conta" })).toBeVisible();
+	await expect(
+		page.getByRole("navigation", { name: "Navegação principal" }),
+	).toBeHidden();
 
 	await page.goto("/library");
 	await expect(page).toHaveURL(/\/login\?redirect=/);

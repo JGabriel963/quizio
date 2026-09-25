@@ -113,3 +113,24 @@ test("deletes permanently after confirming, and the cover URL stops responding",
 	await expect(page.getByText("A lixeira está vazia.")).toBeVisible();
 	expect((await page.request.get(coverUrl ?? "")).ok()).toBe(false);
 });
+
+test("switching section tabs changes the URL and going back returns", async ({
+	page,
+}) => {
+	const tabs = page.getByRole("navigation", { name: "Seções da biblioteca" });
+	await page.goto("/library");
+
+	await tabs.getByRole("link", { name: "Lixeira" }).click();
+	await expect(page).toHaveURL(/section=trash/);
+	await expect(tabs.getByRole("link", { name: "Lixeira" })).toHaveAttribute(
+		"aria-current",
+		"page",
+	);
+
+	await page.goBack();
+	await expect(page).toHaveURL(/\/library/);
+	await expect(tabs.getByRole("link", { name: "Recentes" })).toHaveAttribute(
+		"aria-current",
+		"page",
+	);
+});

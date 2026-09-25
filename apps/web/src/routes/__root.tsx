@@ -11,7 +11,6 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
-import Header from "../components/header";
 import appCss from "../index.css?url";
 import { RealtimeProvider } from "../lib/realtime";
 import { createAppRealtimeSubscriber } from "../lib/realtime-subscriber";
@@ -54,10 +53,9 @@ function RootDocument() {
 			</head>
 			<body>
 				<RealtimeProvider createSubscriber={createAppRealtimeSubscriber}>
-					<div className="grid h-svh grid-rows-[auto_1fr]">
-						<Header />
-						<Outlet />
-					</div>
+					{/* Chrome is per area: the creator screens mount the AppShell
+					    themselves, the public ones stay bare (spec 002, RN-07). */}
+					<Outlet />
 				</RealtimeProvider>
 				<Toaster richColors />
 				<TanStackRouterDevtools position="bottom-left" />

@@ -28,6 +28,7 @@ import {
 import { Input } from "@quizio/ui/components/input";
 import { Label } from "@quizio/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@quizio/ui/components/radio-group";
+import { TabNav, TabNavItem } from "@quizio/ui/components/tab-nav";
 import { Textarea } from "@quizio/ui/components/textarea";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
@@ -141,9 +142,20 @@ function DesignSystemPage() {
 					<div className="flex flex-wrap items-center gap-2">
 						<Badge variant="private">Privado</Badge>
 						<Badge variant="unlisted">Não listado</Badge>
+						<Badge variant="soon">Em breve</Badge>
 						<Badge>Rascunho</Badge>
 					</div>
 				</div>
+			</Section>
+
+			<Section title="Abas de seção">
+				<TabNav aria-label="Exemplo de seções">
+					<TabNavItem current render={<span />}>
+						Recentes
+					</TabNavItem>
+					<TabNavItem render={<span />}>Rascunhos</TabNavItem>
+					<TabNavItem render={<span />}>Lixeira</TabNavItem>
+				</TabNav>
 			</Section>
 
 			<Section title="Diálogos">

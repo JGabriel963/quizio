@@ -1,9 +1,8 @@
 import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
 import { Button } from "@quizio/ui/components/button";
-
-import { questionCountLabel } from "@/components/library/quiz-list-item";
 import type { QuizDetailsData } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
+import { questionCountLabel } from "@/lib/quiz-labels";
 
 import { QuizCover } from "./quiz-cover";
 import { VisibilityBadge } from "./visibility-badge";

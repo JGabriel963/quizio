@@ -3,16 +3,16 @@ import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
 import { Button } from "@quizio/ui/components/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
+import { useCreateQuiz } from "@/components/layout/create-quiz-context";
 import { LibraryEmptyState } from "@/components/library/library-empty-state";
+import { LibrarySearch } from "@/components/library/library-search";
 import {
 	LIBRARY_SECTION_LABELS,
-	LibraryNav,
-} from "@/components/library/library-nav";
-import { LibrarySearch } from "@/components/library/library-search";
+	LibraryTabs,
+} from "@/components/library/library-tabs";
 import { QuizList, QuizListSkeleton } from "@/components/library/quiz-list";
 import type { QuizItemActions } from "@/components/library/quiz-list-item";
 import { DeletePermanentlyDialog } from "@/components/quiz/delete-permanently-dialog";
@@ -41,6 +41,7 @@ function LibraryPage() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const mutations = useQuizMutations();
+	const { openCreateQuiz } = useCreateQuiz();
 	const library = useQuery(
 		trpc.library.list.queryOptions({ section, search: q || undefined }),
 	);
@@ -67,21 +68,17 @@ function LibraryPage() {
 	};
 
 	return (
-		<main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:grid-cols-[13rem_1fr]">
-			<aside>
-				<LibraryNav active={section} />
-			</aside>
+		<div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+			{/* A plain wrapper keeps the tab rail at its content width: the
+			    column would otherwise stretch it edge to edge. */}
+			<div>
+				<LibraryTabs active={section} />
+			</div>
 
 			<section className="flex min-w-0 flex-col gap-4">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<h1 className="font-bold text-2xl">
-						{LIBRARY_SECTION_LABELS[section]}
-					</h1>
-					<Button onClick={() => setFormDialog({ mode: "create" })}>
-						<PlusIcon data-icon="inline-start" />
-						Criar
-					</Button>
-				</div>
+				<h1 className="font-bold text-2xl">
+					{LIBRARY_SECTION_LABELS[section]}
+				</h1>
 
 				<LibrarySearch
 					value={q}
@@ -110,10 +107,7 @@ function LibraryPage() {
 					) : section === "trash" ? (
 						<LibraryEmptyState kind="trash" />
 					) : (
-						<LibraryEmptyState
-							kind="library"
-							onCreate={() => setFormDialog({ mode: "create" })}
-						/>
+						<LibraryEmptyState kind="library" onCreate={openCreateQuiz} />
 					)
 				) : (
 					<QuizList items={library.data} section={section} actions={actions} />
@@ -136,6 +130,6 @@ function LibraryPage() {
 					setPendingDeletion(null);
 				}}
 			/>
-		</main>
+		</div>
 	);
 }

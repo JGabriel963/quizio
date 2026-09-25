@@ -8,17 +8,22 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 | --- | --- | --- | --- | --- | --- |
 | 000 | Fundamentos | todos | Arquitetura hexagonal, testes, infra local, adapters R2/Pusher, design system, fluxo SDD | ✅ | [docs/](../docs/architecture.md) |
 | 001 | Autenticação e biblioteca básica | quiz, library, media | Cadastro/login por e-mail e Google (cadastro desligável); criar e editar dados do quiz (título, descrição, capa, visibilidade); Recentes, Rascunhos, pesquisa, duplicar; lixeira com restaurar e excluir definitivamente | ✅ | [spec](features/001-autenticacao-e-biblioteca-basica/spec.md) · [plano](features/001-autenticacao-e-biblioteca-basica/plan.md) · [tarefas](features/001-autenticacao-e-biblioteca-basica/tasks.md) |
-| 002 | Editor: Quiz e Verdadeiro ou falso | quiz, media | Lista de perguntas (adicionar, duplicar, reordenar, excluir); 2–6 alternativas; seleção simples/múltipla; tempo; pontos; imagem; validação; publicação com snapshot | ⬜ | — |
-| 003 | Partida ao vivo — modo clássico | game | PIN, lobby com QR/link, entrada por apelido, ciclo da pergunta, pontuação oficial, sequência exibida, placar, pódio, travar/remover | ⬜ | — |
-| 004 | Robustez da partida e opções de jogo | game | Reconexão, entrada tardia, encerrar antes, randomização, perguntas no dispositivo, gerador/filtro de apelidos, autoplay, música | ⬜ | — |
-| 005 | Relatórios | reports | Resumo, participantes, perguntas, perguntas difíceis, precisa de ajuda, exportação | ⬜ | — |
-| 006 | Mais tipos: Resposta curta, Puzzle, Controle deslizante | quiz, game | Normalização de texto, tudo ou nada, margens e precisão | ⬜ | — |
-| 007 | Coletar opiniões | quiz, game | Enquete, Escala, NPS, Nuvem de palavras, Pergunta aberta | ⬜ | — |
-| 008 | Slides e modo Palestra | quiz, game | 6 layouts, ritmo manual, placar oculto, reações | ⬜ | — |
-| 009 | Atribuir e Jogar solo | game, reports | Atribuição com prazo; solo com oponentes virtuais | ⬜ | — |
-| 010 | Modo equipe | game | Times, Team Talk, pontuação por média | ⬜ | — |
-| 011 | Produtividade do criador | quiz, library | Importar planilha, banco de perguntas, favoritos, pastas | ⬜ | — |
-| 012 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, IA, Accuracy/Confidence, jogar novamente | ⬜ | — |
+| 002 | Página inicial | library, quiz | Painel do criador em `/`, navegação principal na barra lateral com os pontos de entrada do que virá, seções de cada área em abas (Biblioteca), barra superior com pesquisa na própria biblioteca e ação Criar, cartão "Seus quizzes" e "Relatórios mais recentes" como "Em breve" | ✅ | [spec](features/002-pagina-inicial/spec.md) · [plano](features/002-pagina-inicial/plan.md) · [tarefas](features/002-pagina-inicial/tasks.md) |
+| 003 | Editor: Quiz e Verdadeiro ou falso | quiz, media | Lista de perguntas (adicionar, duplicar, reordenar, excluir); 2–6 alternativas; seleção simples/múltipla; tempo; pontos; imagem; validação; publicação com snapshot | ⬜ | — |
+| 004 | Partida ao vivo — modo clássico | game | PIN, lobby com QR/link, entrada por apelido, ciclo da pergunta, pontuação oficial, sequência exibida, placar, pódio, travar/remover | ⬜ | — |
+| 005 | Robustez da partida e opções de jogo | game | Reconexão, entrada tardia, encerrar antes, randomização, perguntas no dispositivo, gerador/filtro de apelidos, autoplay, música | ⬜ | — |
+| 006 | Relatórios | reports | Resumo, participantes, perguntas, perguntas difíceis, precisa de ajuda, exportação | ⬜ | — |
+| 007 | Mais tipos: Resposta curta, Puzzle, Controle deslizante | quiz, game | Normalização de texto, tudo ou nada, margens e precisão | ⬜ | — |
+| 008 | Coletar opiniões | quiz, game | Enquete, Escala, NPS, Nuvem de palavras, Pergunta aberta | ⬜ | — |
+| 009 | Slides e modo Palestra | quiz, game | 6 layouts, ritmo manual, placar oculto, reações | ⬜ | — |
+| 010 | Atribuir e Jogar solo | game, reports | Atribuição com prazo; solo com oponentes virtuais | ⬜ | — |
+| 011 | Modo equipe | game | Times, Team Talk, pontuação por média | ⬜ | — |
+| 012 | Produtividade do criador | quiz, library | Importar planilha, banco de perguntas, favoritos, pastas | ⬜ | — |
+| 013 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, IA, Accuracy/Confidence, jogar novamente | ⬜ | — |
+
+## Mudanças de ordem
+
+- **2026-09-25 — a página inicial entrou como 002** e as features seguintes subiram um número (o editor passou de 002 para 003, e assim por diante até Extras, de 012 para 013). Motivo: a 001 deixou a área do criador sem casa e sem navegação, e cada feature seguinte teria que inventar a sua. Espelhar a home do Kahoot agora dá um lugar fixo para tudo o que vem depois. As specs já escritas foram atualizadas para os novos números.
 
 ## Pendências técnicas fora de features
 

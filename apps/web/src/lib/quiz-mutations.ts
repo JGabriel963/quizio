@@ -12,6 +12,7 @@ function useInvalidateQuizzes() {
 	return () =>
 		Promise.all([
 			queryClient.invalidateQueries({ queryKey: trpc.library.list.pathKey() }),
+			queryClient.invalidateQueries({ queryKey: trpc.library.home.pathKey() }),
 			queryClient.invalidateQueries({ queryKey: trpc.quiz.get.pathKey() }),
 		]);
 }

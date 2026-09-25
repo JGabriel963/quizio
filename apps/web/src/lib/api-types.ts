@@ -8,3 +8,7 @@ export type LibraryItemView = RouterOutputs["library"]["list"][number];
 
 /** A quiz as shown on its details page. */
 export type QuizDetailsData = RouterOutputs["quiz"]["get"];
+
+/** The dashboard overview: newest quizzes plus the total outside the trash. */
+export type HomeOverviewView = RouterOutputs["library"]["home"];
+export type HomeQuizView = HomeOverviewView["quizzes"][number];

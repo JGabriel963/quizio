@@ -18,11 +18,12 @@ describe("safeRedirect", () => {
 		"//evil.example",
 		"/\\evil.example",
 		"javascript:alert(1)",
-	])("falls back to the library for %s", (target) => {
+	])("falls back to the home for %s", (target) => {
 		expect(safeRedirect(target)).toBe(DEFAULT_REDIRECT);
 	});
 
-	it("uses /library as the default destination", () => {
-		expect(DEFAULT_REDIRECT).toBe("/library");
+	it("falls back to the home when no destination is given", () => {
+		// Spec 002, RN-02: signing in without a requested page lands on the dashboard.
+		expect(DEFAULT_REDIRECT).toBe("/");
 	});
 });

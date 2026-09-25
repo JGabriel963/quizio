@@ -10,7 +10,7 @@ created: 2026-09-13
 
 ## Contexto e problema
 
-Hoje o Quizio só tem o cadastro e o login gerados pelo scaffold, em inglês, que levam a um painel vazio. Não existe lugar para o criador guardar e organizar seus quizzes, e nenhum fluxo seguinte do roadmap funciona sem isso: o editor (002) precisa de um quiz com dono, e a partida ao vivo (003) precisa de um quiz para organizar.
+Hoje o Quizio só tem o cadastro e o login gerados pelo scaffold, em inglês, que levam a um painel vazio. Não existe lugar para o criador guardar e organizar seus quizzes, e nenhum fluxo seguinte do roadmap funciona sem isso: o editor (003) precisa de um quiz com dono, e a partida ao vivo (004) precisa de um quiz para organizar.
 
 No Kahoot, essa porta de entrada é a **Biblioteca (`Library`)**: a área onde o criador vê os kahoots recentes e os rascunhos, cria novos, duplica e exclui, com uma lixeira para recuperar o que foi apagado (kahoot-reference §11.1).
 
@@ -58,10 +58,10 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 | ID | Regra | Fonte |
 | --- | --- | --- |
 | RN-10 | Cada quiz tem exatamente um dono. Um criador só vê, altera, duplica e exclui os **próprios** quizzes. Para qualquer outra pessoa, o quiz se comporta como inexistente. | kahoot-reference §11 · decisão do produto |
-| RN-11 | Todo quiz criado nesta feature é um **rascunho (`Draft`)** com zero perguntas. Perguntas e publicação da versão jogável ficam para a feature 002. | kahoot-reference §3.6 |
+| RN-11 | Todo quiz criado nesta feature é um **rascunho (`Draft`)** com zero perguntas. Perguntas e publicação da versão jogável ficam para a feature 003. | kahoot-reference §3.6 |
 | RN-12 | O **título** é opcional no rascunho e tem no máximo **95 caracteres**. Espaços nas pontas são ignorados, e um título vazio ou só com espaços conta como ausente. Sem título, o quiz é exibido como "Quiz sem título". | kahoot-reference §3.1, §3.6 |
 | RN-13 | A **descrição** é opcional e tem no máximo **500 caracteres**. | kahoot-reference §3.1 |
-| RN-14 | A **visibilidade (`Visibility`)** é **Privado** (padrão) ou **Não listado**. Nesta feature ela é só registrada e exibida: nenhum quiz fica visível para outras pessoas, em nenhum dos dois casos. O efeito aparece nas features de partida e compartilhamento; "Público" chega com a descoberta pública (012). | kahoot-reference §3.1 · decisão do produto |
+| RN-14 | A **visibilidade (`Visibility`)** é **Privado** (padrão) ou **Não listado**. Nesta feature ela é só registrada e exibida: nenhum quiz fica visível para outras pessoas, em nenhum dos dois casos. O efeito aparece nas features de partida e compartilhamento; "Público" chega com a descoberta pública (013). | kahoot-reference §3.1 · decisão do produto |
 | RN-15 | A **capa (`CoverImage`)** é opcional e aceita **JPEG, PNG, GIF ou WebP de até 10 MB**. Pode ser trocada ou removida. Sem capa, o quiz mostra uma imagem padrão. | decisão do produto — política de mídia (ADR 0003) |
 | RN-16 | A seção **Recentes** mostra todos os quizzes do criador que estão fora da lixeira, do mais recentemente modificado para o menos recente. | kahoot-reference §11.1 |
 | RN-17 | A seção **Rascunhos** mostra os quizzes em rascunho que estão fora da lixeira, na mesma ordem. | kahoot-reference §11.1 |
@@ -285,7 +285,7 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 
 - **Rascunhos vão para a lixeira** (RN-21). No Kahoot, excluir um rascunho apaga para sempre. No Quizio, tudo passa pela lixeira para evitar perda por engano, principalmente enquanto todos os quizzes ainda são rascunhos.
 - **Regras da capa** (RN-15). O Kahoot aceita PNG, JPEG ou GIF de até 5 MB e 3264×3264 px. O Quizio segue a política de mídia do projeto: acrescenta WebP, vai até 10 MB e não limita dimensões.
-- **Visibilidade reduzida** (RN-14). Só Privado e Não listado nesta etapa. "Público" depende da descoberta pública (feature 012), e "Organização" não se aplica a um uso pessoal.
+- **Visibilidade reduzida** (RN-14). Só Privado e Não listado nesta etapa. "Público" depende da descoberta pública (feature 013), e "Organização" não se aplica a um uso pessoal.
 - **Controle de cadastro** (RN-05). O Kahoot não tem esse conceito; ele existe porque o Quizio é uma instância própria, sem planos pagos.
 
 ## Fora de escopo
@@ -293,8 +293,8 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 - Recuperação de senha e verificação de e-mail (dependem de envio de e-mails).
 - Edição de perfil, troca de senha, exclusão de conta e outros provedores de login além do Google.
 - Tela de administração para abrir ou fechar cadastros: nesta feature, isso é configuração da instância.
-- Perguntas, editor e publicação da versão jogável (feature 002).
-- Favoritos, pastas, "Compartilhados comigo" (feature 011), visibilidade pública e descoberta (feature 012).
+- Perguntas, editor e publicação da versão jogável (feature 003).
+- Favoritos, pastas, "Compartilhados comigo" (feature 012), visibilidade pública e descoberta (feature 013).
 - Idioma, tema e música do lobby do quiz.
 - Alternar entre grade e lista, e escolher a ordenação da biblioteca.
 - Esvaziar a lixeira inteira de uma vez, ou restaurar e excluir vários quizzes ao mesmo tempo.
@@ -303,7 +303,7 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 
 - [x] **Vincular Google a uma conta existente (RN-04 / CA-08)** — decidido em 2026-09-13: quando o e-mail coincide, entrar com Google acessa a mesma conta.
 - [x] **Senha esquecida enquanto não há envio de e-mails** — decidido em 2026-09-13: esta feature não oferece recuperação de senha. Quem tiver uma conta Google com o mesmo e-mail pode entrar por ela (RN-04).
-- [ ] **"Recentes" depois das partidas** — no Kahoot, Recentes considera kahoots *usados ou editados*. Nesta feature só existe edição. Na feature 003, decidir se organizar uma partida também traz o quiz para o topo.
+- [ ] **"Recentes" depois das partidas** — no Kahoot, Recentes considera kahoots *usados ou editados*. Nesta feature só existe edição. Na feature 004, decidir se organizar uma partida também traz o quiz para o topo.
 
 ## Changelog
 
@@ -313,3 +313,5 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
   - RN-04 exige `requireLocalEmailVerified: false` no Better Auth, desligando a proteção contra tomada de conta pré-criada; é o risco aceito.
   - RN-05 ganhou uma trava no banco, porque o `disableSignUp` do Google não cobre o login por ID token.
   - O smoke manual com o Google real (CA-07/08/09) ficou no checklist de deploy do roadmap, por falta de cliente OAuth no ambiente de desenvolvimento.
+- 2026-09-25 — referências de numeração atualizadas: a página inicial entrou no roadmap como 002 e as features seguintes subiram um número (editor 003, partida 004, produtividade 012, extras 013). A spec 002 também passa a definir o destino padrão depois de entrar (a página inicial, no lugar da biblioteca); a RN-09 desta spec, que preserva o destino pedido, continua valendo.
+- 2026-09-25 — alterada pela spec 002: a ação **Criar** passou a levar à tela do quiz criado (RN-13 da 002) e as seções da biblioteca saíram da coluna lateral para **abas** no topo do conteúdo (RN-22 da 002). As regras de seção, ordenação, pesquisa e lixeira desta spec continuam valendo sem mudança.

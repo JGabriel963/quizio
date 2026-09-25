@@ -1,4 +1,5 @@
-export const DEFAULT_REDIRECT = "/library";
+/** Where a creator lands after signing in with no page requested (spec 002, RN-02). */
+export const DEFAULT_REDIRECT = "/";
 
 /**
  * Accepts only paths inside this app, so a crafted `?redirect=` cannot send a

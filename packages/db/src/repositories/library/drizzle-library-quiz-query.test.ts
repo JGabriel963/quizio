@@ -36,6 +36,17 @@ describe("DrizzleLibraryQuizQuery", () => {
 			searchText,
 		});
 
+	const count = (
+		section: "recent" | "drafts" | "trash",
+		searchText: string | null = null,
+		ownerId = "user-1",
+	) =>
+		createDrizzleLibraryQuizQuery(testDb.db).count({
+			ownerId,
+			section,
+			searchText,
+		});
+
 	beforeAll(async () => {
 		testDb = await createTestDb();
 		await testDb.db.insert(user).values([
@@ -125,6 +136,47 @@ describe("DrizzleLibraryQuizQuery", () => {
 		await seed(aQuiz());
 
 		expect(await list("trash")).toEqual([]);
+	});
+
+	it("applies the limit keeping the newest first", async () => {
+		await seed(
+			aQuiz({ id: "a", updatedAt: day(1) }),
+			aQuiz({ id: "b", updatedAt: day(2) }),
+			aQuiz({ id: "c", updatedAt: day(3) }),
+		);
+
+		const records = await createDrizzleLibraryQuizQuery(testDb.db).list({
+			ownerId: "user-1",
+			section: "recent",
+			searchText: null,
+			limit: 2,
+		});
+
+		expect(ids(records)).toEqual(["c", "b"]);
+	});
+
+	it("counts every match ignoring the limit", async () => {
+		await seed(
+			aQuiz({ id: "a", updatedAt: day(1) }),
+			aQuiz({ id: "b", updatedAt: day(2) }),
+			aQuiz({ id: "trashed", trashedAt: day(3) }),
+			aQuiz({ id: "theirs", ownerId: "user-2" }),
+		);
+
+		await expect(
+			createDrizzleLibraryQuizQuery(testDb.db).count({
+				ownerId: "user-1",
+				section: "recent",
+				searchText: null,
+				limit: 1,
+			}),
+		).resolves.toBe(2);
+		await expect(count("trash")).resolves.toBe(1);
+		await expect(count("recent", "biblia")).resolves.toBe(2);
+	});
+
+	it("counts zero for a creator without quizzes", async () => {
+		await expect(count("recent")).resolves.toBe(0);
 	});
 
 	it("maps rows to library records", async () => {

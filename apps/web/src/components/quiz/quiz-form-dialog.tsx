@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import type { QuizDetailsData } from "@/lib/api-types";
@@ -21,6 +22,7 @@ export function QuizFormDialog({
 }) {
 	const mutations = useQuizMutations();
 	const uploadCover = useUploadCover();
+	const navigate = useNavigate();
 
 	return (
 		<QuizDetailsDialog
@@ -52,11 +54,16 @@ export function QuizFormDialog({
 						});
 						toast.success("Dados do quiz salvos.");
 					} else {
-						await mutations.create.mutateAsync({
+						const quiz = await mutations.create.mutateAsync({
 							...details,
 							coverImageKey: cover.type === "set" ? cover.key : null,
 						});
 						toast.success("Quiz criado.");
+						// Creating takes the creator straight into the new quiz (spec 002, RN-13).
+						await navigate({
+							to: "/quizzes/$quizId",
+							params: { quizId: quiz.id },
+						});
 					}
 					return { error: null };
 				} catch (error) {

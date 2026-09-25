@@ -9,11 +9,22 @@ import type { LibrarySection } from "../domain/library-section";
 export class InMemoryLibraryQuizQuery implements LibraryQuizQuery {
 	constructor(private readonly source: () => readonly LibraryQuizRecord[]) {}
 
-	async list({
+	async list(criteria: LibraryQuizCriteria): Promise<LibraryQuizRecord[]> {
+		const matches = this.matching(criteria);
+		return criteria.limit === undefined
+			? matches
+			: matches.slice(0, criteria.limit);
+	}
+
+	async count(criteria: LibraryQuizCriteria): Promise<number> {
+		return this.matching(criteria).length;
+	}
+
+	private matching({
 		ownerId,
 		section,
 		searchText,
-	}: LibraryQuizCriteria): Promise<LibraryQuizRecord[]> {
+	}: LibraryQuizCriteria): LibraryQuizRecord[] {
 		return this.source()
 			.filter((record) => record.ownerId === ownerId)
 			.filter((record) => isInSection(record, section))
