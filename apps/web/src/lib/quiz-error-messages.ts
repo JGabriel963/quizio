@@ -1,3 +1,5 @@
+import { QUESTION_TEXT_MAX_LENGTH } from "@quizio/core/quiz/domain/question";
+import { QUIZ_MAX_QUESTIONS } from "@quizio/core/quiz/domain/question-list";
 import {
 	QUIZ_DESCRIPTION_MAX_LENGTH,
 	QUIZ_TITLE_MAX_LENGTH,
@@ -11,6 +13,13 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.DESCRIPTION_TOO_LONG": `A descrição deve ter no máximo ${QUIZ_DESCRIPTION_MAX_LENGTH} caracteres.`,
 	"QUIZ.INVALID_VISIBILITY": "Escolha uma visibilidade válida.",
 	"QUIZ.INVALID_COVER": "Envie a capa novamente.",
+	"QUIZ.QUESTION_NOT_FOUND":
+		"Esta pergunta não existe mais. Recarregue a página.",
+	"QUIZ.QUESTION_TEXT_TOO_LONG": `A pergunta deve ter no máximo ${QUESTION_TEXT_MAX_LENGTH} caracteres.`,
+	"QUIZ.QUESTION_LIMIT_REACHED": `Limite de ${QUIZ_MAX_QUESTIONS} perguntas atingido.`,
+	"QUIZ.LAST_QUESTION": "Não é possível excluir todo o conteúdo.",
+	"QUIZ.INVALID_QUESTION_POSITION":
+		"Não foi possível mover a pergunta. Recarregue a página.",
 	"MEDIA.UNSUPPORTED_TYPE":
 		"Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
 	"MEDIA.INVALID_SIZE": "Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",

@@ -1,13 +1,15 @@
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { requireOwnedQuiz, restoreQuiz } from "../domain/quiz";
+import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
-import { type QuizDetailsView, toQuizDetailsView } from "./quiz-details-view";
+import { loadQuizDetailsView, type QuizDetailsView } from "./quiz-details-view";
 import type { QuizReference } from "./quiz-reference";
 
 export type RestoreQuiz = (input: QuizReference) => Promise<QuizDetailsView>;
 
 export function createRestoreQuiz(deps: {
 	quizzes: QuizRepository;
+	questions: Pick<QuestionRepository, "countByQuiz">;
 	storage: Pick<ObjectStorage, "getPublicUrl">;
 }): RestoreQuiz {
 	return async ({ ownerId, quizId }) => {
@@ -16,6 +18,6 @@ export function createRestoreQuiz(deps: {
 		if (restored !== quiz) {
 			await deps.quizzes.save(restored);
 		}
-		return toQuizDetailsView(restored, deps.storage);
+		return loadQuizDetailsView(restored, deps);
 	};
 }

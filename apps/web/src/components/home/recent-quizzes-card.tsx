@@ -56,7 +56,7 @@ function CardBody({
 	onRetry: () => void;
 	now: Date;
 }) {
-	const { openCreateQuiz } = useCreateQuiz();
+	const { createQuiz, creating } = useCreateQuiz();
 
 	if (state.status === "pending") {
 		return (
@@ -98,7 +98,7 @@ function CardBody({
 				<p className="text-muted-foreground text-sm">
 					Crie o primeiro e ele aparece aqui.
 				</p>
-				<Button onClick={openCreateQuiz}>
+				<Button onClick={createQuiz} disabled={creating}>
 					<PlusIcon data-icon="inline-start" />
 					Criar meu primeiro quiz
 				</Button>

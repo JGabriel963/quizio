@@ -12,6 +12,13 @@ export class InMemoryQuizRepository implements QuizRepository {
 		this.#quizzes.set(quiz.id, quiz);
 	}
 
+	async touch(id: string, updatedAt: Date): Promise<void> {
+		const quiz = this.#quizzes.get(id);
+		if (quiz) {
+			this.#quizzes.set(id, { ...quiz, updatedAt });
+		}
+	}
+
 	async delete(id: string): Promise<void> {
 		this.#quizzes.delete(id);
 	}

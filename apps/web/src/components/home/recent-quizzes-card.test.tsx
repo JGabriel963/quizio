@@ -24,14 +24,14 @@ const aQuiz = (id: string, title: string): HomeQuizView => ({
 });
 
 function renderCard(state: RecentQuizzesState) {
-	const openCreateQuiz = vi.fn();
+	const createQuiz = vi.fn();
 	const onRetry = vi.fn();
 	renderWithRouter(
-		<CreateQuizContext value={{ openCreateQuiz }}>
+		<CreateQuizContext value={{ createQuiz, creating: false }}>
 			<RecentQuizzesCard state={state} onRetry={onRetry} now={now} />
 		</CreateQuizContext>,
 	);
-	return { openCreateQuiz, onRetry, user: userEvent.setup() };
+	return { createQuiz, onRetry, user: userEvent.setup() };
 }
 
 describe("RecentQuizzesCard", () => {
@@ -53,7 +53,7 @@ describe("RecentQuizzesCard", () => {
 	});
 
 	it("offers creating the first quiz when the creator has none", async () => {
-		const { openCreateQuiz, user } = renderCard({
+		const { createQuiz, user } = renderCard({
 			status: "ready",
 			overview: { quizzes: [], totalQuizCount: 0 },
 		});
@@ -62,7 +62,7 @@ describe("RecentQuizzesCard", () => {
 			await screen.findByRole("button", { name: "Criar meu primeiro quiz" }),
 		);
 
-		expect(openCreateQuiz).toHaveBeenCalledOnce();
+		expect(createQuiz).toHaveBeenCalledOnce();
 		expect(screen.queryByRole("list", { name: "Seus quizzes" })).toBeNull();
 	});
 

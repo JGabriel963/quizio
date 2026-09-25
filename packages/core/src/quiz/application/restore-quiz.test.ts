@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { QuizNotFoundError } from "../domain/quiz";
 import { aQuiz } from "../testing/a-quiz";
+import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import { createRestoreQuiz, type RestoreQuiz } from "./restore-quiz";
 
@@ -18,6 +19,7 @@ describe("restoreQuiz", () => {
 		quizzes = new InMemoryQuizRepository();
 		restoreQuiz = createRestoreQuiz({
 			quizzes,
+			questions: new InMemoryQuestionRepository(),
 			storage: new InMemoryObjectStorage("https://media.test"),
 		});
 	});

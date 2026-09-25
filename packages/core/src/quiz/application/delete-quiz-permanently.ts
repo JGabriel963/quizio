@@ -1,5 +1,6 @@
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { assertPermanentlyDeletable, requireOwnedQuiz } from "../domain/quiz";
+import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
 import type { QuizReference } from "./quiz-reference";
 
@@ -7,6 +8,7 @@ export type DeleteQuizPermanently = (input: QuizReference) => Promise<void>;
 
 export function createDeleteQuizPermanently(deps: {
 	quizzes: QuizRepository;
+	questions: Pick<QuestionRepository, "deleteAllOfQuiz">;
 	storage: Pick<ObjectStorage, "delete">;
 }): DeleteQuizPermanently {
 	return async ({ ownerId, quizId }) => {
@@ -18,6 +20,8 @@ export function createDeleteQuizPermanently(deps: {
 		if (quiz.coverImageKey) {
 			await deps.storage.delete(quiz.coverImageKey);
 		}
+		// The database also cascades; this keeps the rule in the core (spec 003, RN-28).
+		await deps.questions.deleteAllOfQuiz(quiz.id);
 		await deps.quizzes.delete(quiz.id);
 	};
 }

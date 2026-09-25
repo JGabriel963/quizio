@@ -1,11 +1,13 @@
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
+import { aQuestion } from "@quizio/core/quiz/testing/a-question";
 import { aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { user } from "../../schema/auth";
 import { quiz as quizTable } from "../../schema/quiz";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
+import { createDrizzleQuestionRepository } from "../quiz/drizzle-question-repository";
 import { createDrizzleQuizRepository } from "../quiz/drizzle-quiz-repository";
 import { createDrizzleLibraryQuizQuery } from "./drizzle-library-quiz-query";
 
@@ -201,5 +203,34 @@ describe("DrizzleLibraryQuizQuery", () => {
 				trashedAt: null,
 			},
 		]);
+	});
+
+	it("records carry the real question count", async () => {
+		await seed(
+			aQuiz({ id: "quiz-1" }),
+			aQuiz({ id: "quiz-2", updatedAt: day(2) }),
+		);
+		await createDrizzleQuestionRepository(testDb.db).saveList("quiz-1", [
+			aQuestion({ id: "a" }),
+			aQuestion({ id: "b" }),
+			aQuestion({ id: "c" }),
+		]);
+
+		const records = await list("recent");
+
+		expect(
+			records.map(({ id, questionCount }) => ({ id, questionCount })),
+		).toEqual([
+			{ id: "quiz-2", questionCount: 0 },
+			{ id: "quiz-1", questionCount: 3 },
+		]);
+	});
+
+	it("a quiz without questions reports zero", async () => {
+		await seed(aQuiz());
+
+		const [record] = await list("recent");
+
+		expect(record?.questionCount).toBe(0);
 	});
 });

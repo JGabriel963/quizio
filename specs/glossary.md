@@ -42,8 +42,14 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Rascunho | `status: "draft"` | Quiz ainda não salvo como versão jogável | ✅ |
 | Visibilidade | `QuizVisibility` | `private`, `unlisted` (spec 001); `public` com a descoberta pública | ✅ (`public` 📝) |
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
-| Pergunta | `Question` | Bloco interativo com texto (≤ 120), tipo, tempo limite e pontos | 📝 |
-| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | 📝 |
+| Pergunta | `Question` | Bloco interativo com texto (≤ 120), tipo, tempo limite e pontos | ✅ (tipo e enunciado; tempo e pontos 📝) |
+| Enunciado | `text` | Texto da pergunta, ≤ 120 caracteres; pode ficar vazio no rascunho (spec 003) | ✅ |
+| Pergunta em branco | `blankQuestion` | Pergunta Quiz recém-criada, sem enunciado; todo quiz novo nasce com uma (spec 003) | ✅ |
+| Posição | `position` | Ordem da pergunta no quiz, que é a ordem de apresentação na partida (spec 003) | ✅ |
+| Limite de perguntas | `QUIZ_MAX_QUESTIONS` | Máximo de 200 perguntas por quiz, configurável (spec 003) | ✅ |
+| Editor | `Creator` (rota `/creator/:id`) | Tela cheia onde o criador monta as perguntas de um quiz (spec 003) | ✅ |
+| Salvamento automático | `Autosave` | Toda alteração no editor é salva sem ação do criador; o cabeçalho mostra "Salvando…", "Salvo" ou a falha (spec 003) | ✅ (`SaveTracker`) |
+| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`; demais 📝) |
 | Slide | `Slide` | Bloco só de conteúdo, com layout; sem resposta nem pontos | 📝 |
 | Alternativa | `AnswerOption` | Opção de resposta (texto ≤ 75 ou imagem) com flag de correta | 📝 (UI ✅) |
 | Forma da alternativa | `AnswerShape` | Triângulo, losango, círculo, quadrado — sempre com a cor correspondente | ✅ (UI) |

@@ -1,5 +1,7 @@
 import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
-import { Button } from "@quizio/ui/components/button";
+import { Button, buttonVariants } from "@quizio/ui/components/button";
+import { Link } from "@tanstack/react-router";
+import { PencilIcon } from "lucide-react";
 import type { QuizDetailsData } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
@@ -70,7 +72,18 @@ export function QuizDetailsView({
 							</>
 						) : (
 							<>
-								<Button onClick={actions.onEdit}>Editar dados</Button>
+								{/* The editor holds the questions (spec 003, RN-05). */}
+								<Link
+									to="/creator/$quizId"
+									params={{ quizId: quiz.id }}
+									className={buttonVariants()}
+								>
+									<PencilIcon data-icon="inline-start" />
+									Editar
+								</Link>
+								<Button variant="outline" onClick={actions.onEdit}>
+									Editar dados
+								</Button>
 								<Button variant="secondary" onClick={actions.onDuplicate}>
 									Duplicar
 								</Button>

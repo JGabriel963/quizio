@@ -2,6 +2,7 @@ import { QUIZ_VISIBILITIES } from "@quizio/core/quiz/domain/quiz-details";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
+import { quizQuestionsRouter } from "./quiz-questions";
 
 // Shapes only: limits and cover ownership are enforced by the quiz use cases.
 const quizReference = z.object({ quizId: z.string().min(1) });
@@ -13,12 +14,32 @@ const coverChange = z.discriminatedUnion("type", [
 ]);
 
 export const quizRouter = router({
+	questions: quizQuestionsRouter,
+
 	get: protectedProcedure.input(quizReference).query(({ ctx, input }) =>
 		ctx.container.useCases.getQuizDetails({
 			ownerId: ctx.session.user.id,
 			...input,
 		}),
 	),
+
+	/** Everything the editor opens with (spec 003). */
+	editor: protectedProcedure.input(quizReference).query(({ ctx, input }) =>
+		ctx.container.useCases.getQuizEditor({
+			ownerId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
+	/** Title autosaved from the editor header (spec 003, RN-18). */
+	rename: protectedProcedure
+		.input(quizReference.extend({ title: z.string().nullable() }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.renameQuiz({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
 
 	create: protectedProcedure
 		.input(

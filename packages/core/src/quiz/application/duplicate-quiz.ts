@@ -2,7 +2,9 @@ import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { mediaKeyExtension, mediaKeyFor } from "../../shared/domain/media-key";
+import { blankQuestion, copyQuestion } from "../domain/question";
 import { assertQuizEditable, copyQuiz, requireOwnedQuiz } from "../domain/quiz";
+import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
 import { type QuizDetailsView, toQuizDetailsView } from "./quiz-details-view";
 import type { QuizReference } from "./quiz-reference";
@@ -11,6 +13,7 @@ export type DuplicateQuiz = (input: QuizReference) => Promise<QuizDetailsView>;
 
 export function createDuplicateQuiz(deps: {
 	quizzes: QuizRepository;
+	questions: QuestionRepository;
 	storage: ObjectStorage;
 	ids: IdGenerator;
 	clock: Clock;
@@ -35,9 +38,20 @@ export function createDuplicateQuiz(deps: {
 			await deps.storage.copy(source.coverImageKey, coverImageKey);
 		}
 
+		// Same questions in the same order, under new ids (spec 003, RN-27). A
+		// source from before the editor still yields a usable copy (RN-08).
+		const sourceQuestions = await deps.questions.listByQuiz(source.id);
+		const copiedQuestions =
+			sourceQuestions.length > 0
+				? sourceQuestions.map((question) =>
+						copyQuestion(question, deps.ids.generate()),
+					)
+				: [blankQuestion(deps.ids.generate())];
+
 		const copy = copyQuiz(source, { id, coverImageKey, now: deps.clock.now() });
 		await deps.quizzes.save(copy);
+		await deps.questions.saveList(copy.id, copiedQuestions);
 
-		return toQuizDetailsView(copy, deps.storage);
+		return toQuizDetailsView(copy, deps.storage, copiedQuestions.length);
 	};
 }

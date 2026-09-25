@@ -1,0 +1,86 @@
+import { beforeEach, describe, expect, it } from "vitest";
+
+import { FixedClock } from "../../shared/testing/fixed-clock";
+import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
+import { blankQuestion } from "../domain/question";
+import {
+	QUIZ_MAX_QUESTIONS,
+	QuestionLimitReachedError,
+	QuestionNotFoundError,
+} from "../domain/question-list";
+import { aQuestion } from "../testing/a-question";
+import { aQuiz } from "../testing/a-quiz";
+import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
+import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
+import {
+	createDuplicateQuestion,
+	type DuplicateQuestion,
+} from "./duplicate-question";
+
+describe("duplicateQuestion", () => {
+	let quizzes: InMemoryQuizRepository;
+	let questions: InMemoryQuestionRepository;
+	let clock: FixedClock;
+	let duplicateQuestion: DuplicateQuestion;
+	const ref = { ownerId: "user-1", quizId: "quiz-1" };
+	const a = aQuestion({ id: "a", text: "Capital da França?" });
+	const b = aQuestion({ id: "b", text: "B" });
+
+	beforeEach(async () => {
+		quizzes = new InMemoryQuizRepository();
+		questions = new InMemoryQuestionRepository();
+		clock = new FixedClock("2026-06-01T12:00:00.000Z");
+		duplicateQuestion = createDuplicateQuestion({
+			quizzes,
+			questions,
+			ids: new SequentialIdGenerator("copy"),
+			clock,
+		});
+		await quizzes.save(aQuiz());
+		await questions.saveList("quiz-1", [a, b]);
+	});
+
+	it("places the copy right after the original under a new id", async () => {
+		const result = await duplicateQuestion({ ...ref, questionId: "a" });
+
+		expect(result).toEqual({
+			question: { id: "copy-1", type: "quiz", text: "Capital da França?" },
+			index: 1,
+		});
+		expect(questions.listOf("quiz-1").map(({ id }) => id)).toEqual([
+			"a",
+			"copy-1",
+			"b",
+		]);
+		expect((await quizzes.findById("quiz-1"))?.updatedAt).toEqual(clock.now());
+	});
+
+	it("the copy is independent of the original", async () => {
+		await duplicateQuestion({ ...ref, questionId: "a" });
+
+		await questions.saveQuestion("quiz-1", {
+			...a,
+			id: "copy-1",
+			text: "Outra",
+		});
+
+		expect(questions.listOf("quiz-1")[0]).toEqual(a);
+	});
+
+	it("refuses a question that is not in the quiz", async () => {
+		await expect(
+			duplicateQuestion({ ...ref, questionId: "missing" }),
+		).rejects.toThrow(QuestionNotFoundError);
+	});
+
+	it("refuses to duplicate at the limit", async () => {
+		const full = Array.from({ length: QUIZ_MAX_QUESTIONS }, (_, index) =>
+			blankQuestion(`q-${index}`),
+		);
+		await questions.saveList("quiz-1", full);
+
+		await expect(
+			duplicateQuestion({ ...ref, questionId: "q-0" }),
+		).rejects.toThrow(QuestionLimitReachedError);
+	});
+});

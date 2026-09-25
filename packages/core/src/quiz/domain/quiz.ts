@@ -2,6 +2,7 @@ import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
 import {
 	duplicateQuizTitle,
+	parseQuizTitle,
 	type QuizDetails,
 	type QuizVisibility,
 } from "./quiz-details";
@@ -82,6 +83,22 @@ export function changeQuizDetails(
 		coverImageKey: change.coverImageKey,
 		updatedAt: now,
 	};
+}
+
+/** Every change made in the editor is an edit of the quiz (spec 003, RN-24). */
+export function touchQuiz(quiz: Quiz, now: Date): Quiz {
+	assertQuizEditable(quiz);
+	return { ...quiz, updatedAt: now };
+}
+
+/** Title typed in the editor header (spec 003, RN-18). */
+export function renameQuiz(
+	quiz: Quiz,
+	rawTitle: string | null,
+	now: Date,
+): Quiz {
+	const title = parseQuizTitle(rawTitle);
+	return { ...touchQuiz(quiz, now), title };
 }
 
 /** Moving to the trash is not an edit: updatedAt stays (RN-18). Idempotent. */

@@ -1,6 +1,7 @@
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { Quiz, QuizStatus } from "../domain/quiz";
 import type { QuizVisibility } from "../domain/quiz-details";
+import type { QuestionRepository } from "./ports/question-repository";
 
 /** What the quiz use cases return to driving adapters. */
 export interface QuizDetailsView {
@@ -10,7 +11,6 @@ export interface QuizDetailsView {
 	coverImageUrl: string | null;
 	visibility: QuizVisibility;
 	status: QuizStatus;
-	/** Always 0 until the editor feature adds questions. */
 	questionCount: number;
 	createdAt: Date;
 	updatedAt: Date;
@@ -20,6 +20,7 @@ export interface QuizDetailsView {
 export function toQuizDetailsView(
 	quiz: Quiz,
 	storage: Pick<ObjectStorage, "getPublicUrl">,
+	questionCount: number,
 ): QuizDetailsView {
 	return {
 		id: quiz.id,
@@ -30,9 +31,24 @@ export function toQuizDetailsView(
 			: null,
 		visibility: quiz.visibility,
 		status: quiz.status,
-		questionCount: 0,
+		questionCount,
 		createdAt: quiz.createdAt,
 		updatedAt: quiz.updatedAt,
 		trashedAt: quiz.trashedAt,
 	};
+}
+
+/** Details view with the question count read from the repository (spec 003, RN-26). */
+export async function loadQuizDetailsView(
+	quiz: Quiz,
+	deps: {
+		questions: Pick<QuestionRepository, "countByQuiz">;
+		storage: Pick<ObjectStorage, "getPublicUrl">;
+	},
+): Promise<QuizDetailsView> {
+	return toQuizDetailsView(
+		quiz,
+		deps.storage,
+		await deps.questions.countByQuiz(quiz.id),
+	);
 }

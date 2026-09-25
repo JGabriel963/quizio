@@ -15,7 +15,7 @@ import {
 import { useQuizMutations } from "@/lib/quiz-mutations";
 import { useTRPC } from "@/utils/trpc";
 
-export const Route = createFileRoute("/_auth/quizzes/$quizId")({
+export const Route = createFileRoute("/_auth/_shell/quizzes/$quizId")({
 	component: QuizDetailsPage,
 });
 
@@ -86,7 +86,7 @@ function QuizDetailsPage() {
 			<QuizDetailsView
 				quiz={quiz.data}
 				actions={{
-					onEdit: () => setFormDialog({ mode: "edit", quiz: quiz.data }),
+					onEdit: () => setFormDialog({ quiz: quiz.data }),
 					onDuplicate: () => mutations.duplicate.mutate({ quizId }),
 					onMoveToTrash: () => mutations.moveToTrash.mutate({ quizId }),
 					onRestore: () => mutations.restore.mutate({ quizId }),

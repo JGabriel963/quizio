@@ -20,7 +20,7 @@ A configuração vira uma fábrica `createAuth(...)` que recebe o banco e as op�
 
 **Biblioteca.** Nasce no core, dividida em dois contextos:
 - **`quiz`** tem o agregado `Quiz` e os comandos: criar, editar dados, duplicar, lixeira, restaurar, excluir definitivamente.
-- **`library`** tem a consulta das seções com pesquisa: um *read model* separado por uma porta própria, que é onde entrarão favoritos e pastas (012).
+- **`library`** tem a consulta das seções com pesquisa: um *read model* separado por uma porta própria, que é onde entrarão favoritos e pastas (016).
 
 Adapters Drizzle implementam as duas portas sobre a mesma tabela `quiz`. A capa usa o upload pré-assinado já existente; a porta `ObjectStorage` ganha `copy` para que cada quiz seja dono do próprio objeto de capa.
 

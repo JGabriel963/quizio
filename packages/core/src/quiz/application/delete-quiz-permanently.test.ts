@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { QuizNotFoundError, QuizNotInTrashError } from "../domain/quiz";
+import { aQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
+import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import {
 	createDeleteQuizPermanently,
@@ -14,13 +16,19 @@ const trashedAt = new Date("2026-05-01T00:00:00.000Z");
 
 describe("deleteQuizPermanently", () => {
 	let quizzes: InMemoryQuizRepository;
+	let questions: InMemoryQuestionRepository;
 	let storage: InMemoryObjectStorage;
 	let deleteQuizPermanently: DeleteQuizPermanently;
 
 	beforeEach(() => {
 		quizzes = new InMemoryQuizRepository();
+		questions = new InMemoryQuestionRepository();
 		storage = new InMemoryObjectStorage();
-		deleteQuizPermanently = createDeleteQuizPermanently({ quizzes, storage });
+		deleteQuizPermanently = createDeleteQuizPermanently({
+			quizzes,
+			questions,
+			storage,
+		});
 	});
 
 	it("refuses quizzes outside the trash", async () => {
@@ -57,6 +65,17 @@ describe("deleteQuizPermanently", () => {
 		await deleteQuizPermanently({ ownerId: "user-1", quizId: "quiz-1" });
 
 		expect(await quizzes.findById("quiz-1")).toBeNull();
+	});
+
+	it("removes the quiz's questions", async () => {
+		await quizzes.save(aQuiz({ trashedAt }));
+		await questions.saveList("quiz-1", [aQuestion({ id: "a" })]);
+		await questions.saveList("quiz-2", [aQuestion({ id: "b" })]);
+
+		await deleteQuizPermanently({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(questions.listOf("quiz-1")).toEqual([]);
+		expect(questions.listOf("quiz-2")).toHaveLength(1);
 	});
 
 	it("treats another owner's quiz as not found", async () => {

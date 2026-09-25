@@ -9,6 +9,7 @@ import {
 } from "../domain/quiz";
 import { QuizDescriptionTooLongError } from "../domain/quiz-details";
 import { aQuiz } from "../testing/a-quiz";
+import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import {
 	createUpdateQuizDetails,
@@ -41,7 +42,12 @@ describe("updateQuizDetails", () => {
 		quizzes = new InMemoryQuizRepository();
 		storage = new InMemoryObjectStorage("https://media.test");
 		clock = new FixedClock("2026-06-01T12:00:00.000Z");
-		updateQuizDetails = createUpdateQuizDetails({ quizzes, storage, clock });
+		updateQuizDetails = createUpdateQuizDetails({
+			quizzes,
+			questions: new InMemoryQuestionRepository(),
+			storage,
+			clock,
+		});
 
 		await quizzes.save(aQuiz({ coverImageKey: OLD_COVER }));
 		storage.simulateUpload(OLD_COVER);

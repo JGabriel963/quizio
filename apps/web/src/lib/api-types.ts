@@ -12,3 +12,7 @@ export type QuizDetailsData = RouterOutputs["quiz"]["get"];
 /** The dashboard overview: newest quizzes plus the total outside the trash. */
 export type HomeOverviewView = RouterOutputs["library"]["home"];
 export type HomeQuizView = HomeOverviewView["quizzes"][number];
+
+/** Everything the editor opens with (spec 003). */
+export type QuizEditorData = RouterOutputs["quiz"]["editor"];
+export type QuestionData = QuizEditorData["questions"][number];

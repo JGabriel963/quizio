@@ -6,7 +6,8 @@ import { useTRPC, useTRPCClient } from "@/utils/trpc";
 import { quizErrorMessage } from "./quiz-error-messages";
 import { uploadFile } from "./upload-file";
 
-function useInvalidateQuizzes() {
+/** Marks every quiz listing stale, so counts and titles refresh after edits. */
+export function useInvalidateQuizzes() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	return () =>

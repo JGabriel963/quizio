@@ -30,7 +30,7 @@ const librarySearchSchema = z.object({
 	q: z.string().optional(),
 });
 
-export const Route = createFileRoute("/_auth/library")({
+export const Route = createFileRoute("/_auth/_shell/library")({
 	validateSearch: librarySearchSchema,
 	component: LibraryPage,
 });
@@ -41,7 +41,7 @@ function LibraryPage() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const mutations = useQuizMutations();
-	const { openCreateQuiz } = useCreateQuiz();
+	const { createQuiz } = useCreateQuiz();
 	const library = useQuery(
 		trpc.library.list.queryOptions({ section, search: q || undefined }),
 	);
@@ -55,7 +55,7 @@ function LibraryPage() {
 				const quiz = await queryClient.fetchQuery(
 					trpc.quiz.get.queryOptions({ quizId: item.id }),
 				);
-				setFormDialog({ mode: "edit", quiz });
+				setFormDialog({ quiz });
 			} catch (error) {
 				// The global query error toast already reports the failure.
 				console.error(quizErrorMessage(error));
@@ -107,7 +107,7 @@ function LibraryPage() {
 					) : section === "trash" ? (
 						<LibraryEmptyState kind="trash" />
 					) : (
-						<LibraryEmptyState kind="library" onCreate={openCreateQuiz} />
+						<LibraryEmptyState kind="library" onCreate={createQuiz} />
 					)
 				) : (
 					<QuizList items={library.data} section={section} actions={actions} />

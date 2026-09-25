@@ -3,8 +3,9 @@ import type { ObjectStorage } from "../../shared/application/ports/object-storag
 import { changeQuizDetails, requireOwnedQuiz } from "../domain/quiz";
 import { parseQuizDetails } from "../domain/quiz-details";
 import { assertUsableCover } from "./assert-usable-cover";
+import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
-import { type QuizDetailsView, toQuizDetailsView } from "./quiz-details-view";
+import { loadQuizDetailsView, type QuizDetailsView } from "./quiz-details-view";
 import type { QuizReference } from "./quiz-reference";
 
 export type CoverChange =
@@ -25,6 +26,7 @@ export type UpdateQuizDetails = (
 
 export function createUpdateQuizDetails(deps: {
 	quizzes: QuizRepository;
+	questions: Pick<QuestionRepository, "countByQuiz">;
 	storage: ObjectStorage;
 	clock: Clock;
 }): UpdateQuizDetails {
@@ -67,6 +69,6 @@ export function createUpdateQuizDetails(deps: {
 			await deps.storage.delete(quiz.coverImageKey);
 		}
 
-		return toQuizDetailsView(updated, deps.storage);
+		return loadQuizDetailsView(updated, deps);
 	};
 }

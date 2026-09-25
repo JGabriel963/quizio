@@ -29,13 +29,75 @@ describe("quiz router", () => {
 			title: "Bom de Bíblia",
 			visibility: "private",
 			status: "draft",
-			questionCount: 0,
+			questionCount: 1,
 		});
 		expect(fetched).toEqual(created);
 		expect(updated).toMatchObject({
 			title: "Geografia",
 			visibility: "unlisted",
 		});
+	});
+
+	it("create returns a quiz with one question", async () => {
+		const api = createTestApi();
+
+		const created = await api.callerFor("user-1").quiz.create({});
+
+		expect(created.questionCount).toBe(1);
+		expect(api.questions.listOf(created.id)).toHaveLength(1);
+	});
+
+	it("editor returns the quiz and its questions", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		const created = await ana.quiz.create({ title: "Geografia" });
+
+		const editor = await ana.quiz.editor({ quizId: created.id });
+
+		expect(editor.quiz).toMatchObject({ id: created.id, title: "Geografia" });
+		expect(editor.questions).toEqual([
+			{ id: expect.any(String), type: "quiz", text: null },
+		]);
+	});
+
+	it("editor of another owner's quiz is NOT_FOUND", async () => {
+		const api = createTestApi();
+		const created = await api.callerFor("user-1").quiz.create({});
+
+		const error = await failureOf(
+			api.callerFor("user-2").quiz.editor({ quizId: created.id }),
+		);
+
+		expect(error).toMatchObject({ code: "NOT_FOUND" });
+	});
+
+	it("editor of a trashed quiz is BAD_REQUEST with domainCode QUIZ.IN_TRASH", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		const created = await ana.quiz.create({});
+		await ana.quiz.moveToTrash({ quizId: created.id });
+
+		const error = await failureOf(ana.quiz.editor({ quizId: created.id }));
+
+		expect(error).toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "QUIZ.IN_TRASH" },
+		});
+	});
+
+	it("renames a quiz and refuses visitors", async () => {
+		const api = createTestApi();
+		const ana = api.callerFor("user-1");
+		const created = await ana.quiz.create({});
+
+		const renamed = await ana.quiz.rename({
+			quizId: created.id,
+			title: "Capitais",
+		});
+		const error = await failureOf(
+			api.callerFor(null).quiz.rename({ quizId: created.id, title: "X" }),
+		);
+
+		expect(renamed.title).toBe("Capitais");
+		expect(error).toMatchObject({ code: "UNAUTHORIZED" });
 	});
 
 	it("maps another owner's quiz to NOT_FOUND", async () => {

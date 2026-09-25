@@ -59,6 +59,23 @@ describe("DrizzleQuizRepository", () => {
 		expect(await testDb.db.select().from(quizTable)).toHaveLength(1);
 	});
 
+	it("touch sets only updatedAt", async () => {
+		const quizzes = createDrizzleQuizRepository(testDb.db);
+		await quizzes.save(aQuiz());
+		await testDb.db
+			.update(quizTable)
+			.set({ title: "Mudou em outra requisição" })
+			.where(eq(quizTable.id, "quiz-1"));
+		const later = new Date("2026-03-01T00:00:00.000Z");
+
+		await quizzes.touch("quiz-1", later);
+
+		expect(await quizzes.findById("quiz-1")).toMatchObject({
+			title: "Mudou em outra requisição",
+			updatedAt: later,
+		});
+	});
+
 	it("deletes a quiz", async () => {
 		const quizzes = createDrizzleQuizRepository(testDb.db);
 		await quizzes.save(aQuiz());

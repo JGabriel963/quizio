@@ -93,7 +93,9 @@ Dependency rule — enforce it in every change:
 
 `apps/web/src/router.tsx` builds the tRPC client (`httpBatchLink` → `/api/trpc`, `credentials: "include"`, **no transformer — `Date`s arrive as ISO strings**; use the view types in `apps/web/src/lib/api-types.ts`), a QueryClient whose `QueryCache.onError` toasts failures unless the query sets `meta: { suppressErrorToast: true }`, and wires `setupRouterSsrQueryIntegration`. `trpc` and `queryClient` are on the router context. In components use `useTRPC()` from `@/utils/trpc` with TanStack Query. Quiz mutations (with cache invalidation, toasts and the "Desfazer" undo) live in `apps/web/src/lib/quiz-mutations.ts`; domain codes map to Portuguese in `lib/quiz-error-messages.ts`.
 
-Routes: `/login?mode=&redirect=&error=`, `/library?section=recent|drafts|trash&q=`, `/quizzes/$quizId` (the last two under the `_auth` group), `/design-system`.
+Routes: `/login?mode=&redirect=&error=`, `/library?section=recent|drafts|trash&q=`, `/quizzes/$quizId`, `/creator/$quizId`, `/design-system`. `_auth` only guards the session; `/library` and `/quizzes/$quizId` sit in the pathless `_auth/_shell` layout (sidebar + top bar), while the editor `/creator/$quizId` is full screen outside it.
+
+Editor (spec 003): the page is one `quiz.editor` query; list changes go through `quiz.questions.*`. Autosave lives in `lib/save-tracker.tsx` (header status, retry, `flush()` before leaving) and `lib/use-debounced-autosave.ts` (800 ms, one request in flight per field); `lib/question-mutations.ts` wires the editor actions to tRPC with optimistic list updates from `lib/editor-cache.ts`. Editor mutations use `networkMode: "always"` so an offline save fails visibly instead of pausing.
 
 Realtime in components: `useRealtimeEvent(channel | null, event, handler)` from `apps/web/src/lib/realtime.tsx`, under the `RealtimeProvider` mounted in `__root.tsx`. The socket opens lazily on first subscription, never during SSR.
 

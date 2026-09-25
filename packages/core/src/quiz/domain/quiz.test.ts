@@ -10,10 +10,13 @@ import {
 	QuizInTrashError,
 	QuizNotFoundError,
 	QuizNotInTrashError,
+	renameQuiz,
 	requireOwnedQuiz,
 	restoreQuiz,
+	touchQuiz,
 	trashQuiz,
 } from "./quiz";
+import { QuizTitleTooLongError } from "./quiz-details";
 
 const createdAt = new Date("2026-01-01T10:00:00.000Z");
 const oneDayLater = new Date("2026-01-02T10:00:00.000Z");
@@ -188,5 +191,48 @@ describe("requireOwnedQuiz", () => {
 
 		expect(attempt).toThrow(QuizNotFoundError);
 		expect(attempt).toThrow(NotFoundError);
+	});
+});
+
+describe("touchQuiz", () => {
+	it("touching a quiz sets updatedAt to now", () => {
+		expect(touchQuiz(aQuiz(), oneDayLater)).toEqual({
+			...aQuiz(),
+			updatedAt: oneDayLater,
+		});
+	});
+
+	it("touching a trashed quiz throws QuizInTrashError", () => {
+		const trashed = aQuiz({ trashedAt: oneDayLater });
+
+		expect(() => touchQuiz(trashed, twoDaysLater)).toThrow(QuizInTrashError);
+	});
+});
+
+describe("renameQuiz", () => {
+	it("renames within 95 characters and touches updatedAt", () => {
+		const title = "Á".repeat(95);
+
+		expect(renameQuiz(aQuiz(), `  ${title} `, oneDayLater)).toEqual({
+			...aQuiz(),
+			title,
+			updatedAt: oneDayLater,
+		});
+		expect(() => renameQuiz(aQuiz(), "a".repeat(96), oneDayLater)).toThrow(
+			QuizTitleTooLongError,
+		);
+	});
+
+	it("renaming to blank stores no title", () => {
+		expect(renameQuiz(aQuiz(), "   ", oneDayLater).title).toBeNull();
+		expect(renameQuiz(aQuiz(), null, oneDayLater).title).toBeNull();
+	});
+
+	it("renaming a trashed quiz throws QuizInTrashError", () => {
+		const trashed = aQuiz({ trashedAt: oneDayLater });
+
+		expect(() => renameQuiz(trashed, "Novo", twoDaysLater)).toThrow(
+			QuizInTrashError,
+		);
 	});
 });
