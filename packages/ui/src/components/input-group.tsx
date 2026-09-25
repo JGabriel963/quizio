@@ -11,7 +11,6 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="input-group"
-			role="group"
 			className={cn(
 				"group/input-group relative flex h-8 w-full min-w-0 items-center rounded-md border border-input bg-background shadow-xs outline-none transition-[color,box-shadow] has-[>textarea]:h-auto dark:bg-input/30",
 				"has-[>[data-align=inline-end]]:[&>input]:pr-2 has-[>[data-align=inline-start]]:[&>input]:pl-2",
@@ -53,8 +52,8 @@ function InputGroupAddon({
 	...props
 }: React.ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>) {
 	return (
+		// biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: pointer-only convenience; clicking the icon focuses the input, which keyboard users already reach with Tab.
 		<div
-			role="group"
 			data-slot="input-group-addon"
 			data-align={align}
 			className={cn(inputGroupAddonVariants({ align }), className)}
