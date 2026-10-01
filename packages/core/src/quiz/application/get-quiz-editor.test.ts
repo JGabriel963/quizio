@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
+import { blankQuestion } from "../domain/question";
 import { QuizInTrashError, QuizNotFoundError } from "../domain/quiz";
 import { aQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
@@ -40,10 +40,7 @@ describe("getQuizEditor", () => {
 				questionCount: 2,
 			}),
 		);
-		expect(editor.questions).toEqual([
-			{ id: "b", type: "quiz", text: "B" },
-			{ id: "a", type: "quiz", text: "A" },
-		]);
+		expect(editor.questions).toEqual([b, a]);
 	});
 
 	it("hides missing and foreign quizzes behind QuizNotFoundError", async () => {
@@ -72,7 +69,7 @@ describe("getQuizEditor", () => {
 
 		const editor = await getQuizEditor({ ownerId: "user-1", quizId: "quiz-1" });
 
-		const blank = { id: "question-1", type: "quiz", text: null };
+		const blank = blankQuestion("question-1");
 		expect(editor.questions).toEqual([blank]);
 		expect(editor.quiz.questionCount).toBe(1);
 		expect(questions.listOf("quiz-1")).toEqual([blank]);

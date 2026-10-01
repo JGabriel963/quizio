@@ -1,12 +1,8 @@
-import type { Question, QuestionType } from "../domain/question";
+import type { Question } from "../domain/question";
 import type { QuizDetailsView } from "./quiz-details-view";
 
 /** A question as the editor shows it; list order is the question's position. */
-export interface QuestionView {
-	id: string;
-	type: QuestionType;
-	text: string | null;
-}
+export type QuestionView = Question;
 
 /** Everything the editor needs to open a quiz (spec 003). */
 export interface QuizEditorView {
@@ -15,6 +11,10 @@ export interface QuizEditorView {
 	questions: QuestionView[];
 }
 
+/** A detached copy, so callers never share the aggregate's arrays. */
 export function toQuestionView(question: Question): QuestionView {
-	return { id: question.id, type: question.type, text: question.text };
+	return {
+		...question,
+		choices: question.choices.map((choice) => ({ ...choice })),
+	};
 }

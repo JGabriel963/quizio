@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
+import { blankQuestion } from "../domain/question";
 import { InvalidCoverImageError } from "../domain/quiz";
 import { QuizTitleTooLongError } from "../domain/quiz-details";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
@@ -57,9 +57,7 @@ describe("createQuiz", () => {
 	it("creates the quiz with one blank quiz question", async () => {
 		const view = await createQuiz({ ownerId: "user-1" });
 
-		expect(questions.listOf(view.id)).toEqual([
-			{ id: "quiz-2", type: "quiz", text: null },
-		]);
+		expect(questions.listOf(view.id)).toEqual([blankQuestion("quiz-2")]);
 	});
 
 	it("stores an owned, uploaded cover", async () => {

@@ -37,8 +37,7 @@ describe("updateQuestion", () => {
 		});
 
 		expect(view).toEqual({
-			id: "a",
-			type: "quiz",
+			...aQuestion({ id: "a" }),
 			text: "Qual é a capital do Brasil?",
 		});
 		expect(questions.listOf("quiz-1")[0]?.text).toBe(

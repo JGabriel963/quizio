@@ -1,8 +1,13 @@
-import { QUESTION_TYPES } from "@quizio/core/quiz/domain/question";
+import {
+	DEFAULT_TIME_LIMIT_SECONDS,
+	QUESTION_POINTS,
+	QUESTION_TYPES,
+} from "@quizio/core/quiz/domain/question";
 import { QUIZ_VISIBILITIES } from "@quizio/core/quiz/domain/quiz-details";
 import {
 	index,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -44,10 +49,11 @@ export const quiz = pgTable(
 );
 
 export const questionType = pgEnum("question_type", QUESTION_TYPES);
+export const questionPoints = pgEnum("question_points", QUESTION_POINTS);
 
 /**
  * One row per question (ADR 0008): what every type shares is a column;
- * type-specific content arrives as a `content` jsonb column with spec 004.
+ * type-specific content is jsonb, whose shape only the core knows.
  */
 export const question = pgTable(
 	"question",
@@ -63,6 +69,12 @@ export const question = pgTable(
 		position: integer("position").notNull(),
 		type: questionType("type").notNull(),
 		text: text("text"),
+		timeLimitSeconds: integer("time_limit_seconds")
+			.notNull()
+			.default(DEFAULT_TIME_LIMIT_SECONDS),
+		points: questionPoints("points").notNull().default("standard"),
+		/** Read through `parseQuizContent`, so legacy `{}` rows get defaults. */
+		content: jsonb("content").$type<unknown>().notNull().default({}),
 	},
 	(table) => [
 		index("question_quiz_position_idx").on(table.quizId, table.position),

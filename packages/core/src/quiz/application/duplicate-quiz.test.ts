@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-
 import { characterCount } from "../../shared/domain/text-length";
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
+import { blankQuestion } from "../domain/question";
 import { QuizInTrashError, QuizNotFoundError } from "../domain/quiz";
 import { aQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
@@ -90,8 +90,8 @@ describe("duplicateQuiz", () => {
 
 		expect(copy.questionCount).toBe(2);
 		expect(questions.listOf(copy.id)).toEqual([
-			{ id: "new-2", type: "quiz", text: "A" },
-			{ id: "new-3", type: "quiz", text: "B" },
+			aQuestion({ id: "new-2", text: "A" }),
+			aQuestion({ id: "new-3", text: "B" }),
 		]);
 	});
 
@@ -113,9 +113,7 @@ describe("duplicateQuiz", () => {
 		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
 
 		expect(copy.questionCount).toBe(1);
-		expect(questions.listOf(copy.id)).toEqual([
-			{ id: "new-2", type: "quiz", text: null },
-		]);
+		expect(questions.listOf(copy.id)).toEqual([blankQuestion("new-2")]);
 	});
 
 	it("refuses quizzes in the trash", async () => {

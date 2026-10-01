@@ -1,9 +1,49 @@
 import type { QuestionRepository } from "@quizio/core/quiz/application/ports/question-repository";
-import type { Question } from "@quizio/core/quiz/domain/question";
+import {
+	DEFAULT_TIME_LIMIT_SECONDS,
+	parseQuizContent,
+	QUESTION_POINTS,
+	type Question,
+	TIME_LIMITS_SECONDS,
+} from "@quizio/core/quiz/domain/question";
 import { and, asc, count, eq, notInArray, sql } from "drizzle-orm";
 
 import { question as questionTable } from "../../schema/quiz";
 import type { Database } from "../../types";
+
+type QuestionRow = Pick<
+	typeof questionTable.$inferSelect,
+	"id" | "type" | "text" | "timeLimitSeconds" | "points" | "content"
+>;
+
+/** Tolerant on read: a value the core no longer accepts falls back to the default. */
+function toQuestion(row: QuestionRow): Question {
+	const { selection, choices } = parseQuizContent(row.content);
+	return {
+		id: row.id,
+		type: row.type,
+		text: row.text,
+		timeLimitSeconds: (TIME_LIMITS_SECONDS as readonly number[]).includes(
+			row.timeLimitSeconds,
+		)
+			? (row.timeLimitSeconds as Question["timeLimitSeconds"])
+			: DEFAULT_TIME_LIMIT_SECONDS,
+		points: QUESTION_POINTS.includes(row.points) ? row.points : "standard",
+		selection,
+		choices,
+	};
+}
+
+/** Columns written for a question; content is the type-specific jsonb. */
+function toColumns(question: Question) {
+	return {
+		type: question.type,
+		text: question.text,
+		timeLimitSeconds: question.timeLimitSeconds,
+		points: question.points,
+		content: { selection: question.selection, choices: question.choices },
+	};
+}
 
 export function createDrizzleQuestionRepository(
 	db: Database,
@@ -17,11 +57,14 @@ export function createDrizzleQuestionRepository(
 					id: questionTable.id,
 					type: questionTable.type,
 					text: questionTable.text,
+					timeLimitSeconds: questionTable.timeLimitSeconds,
+					points: questionTable.points,
+					content: questionTable.content,
 				})
 				.from(questionTable)
 				.where(ofQuiz(quizId))
 				.orderBy(asc(questionTable.position), asc(questionTable.id));
-			return rows satisfies Question[];
+			return rows.map(toQuestion);
 		},
 
 		async countByQuiz(quizId) {
@@ -49,7 +92,8 @@ export function createDrizzleQuestionRepository(
 					.insert(questionTable)
 					.values(
 						questions.map((question, position) => ({
-							...question,
+							id: question.id,
+							...toColumns(question),
 							quizId,
 							position,
 						})),
@@ -60,6 +104,11 @@ export function createDrizzleQuestionRepository(
 							position: sql.raw(`excluded.${questionTable.position.name}`),
 							type: sql.raw(`excluded.${questionTable.type.name}`),
 							text: sql.raw(`excluded.${questionTable.text.name}`),
+							timeLimitSeconds: sql.raw(
+								`excluded.${questionTable.timeLimitSeconds.name}`,
+							),
+							points: sql.raw(`excluded.${questionTable.points.name}`),
+							content: sql.raw(`excluded.${questionTable.content.name}`),
 						},
 						// Ids come back from clients on undo: an id owned by another
 						// quiz must never be taken over.
@@ -71,7 +120,7 @@ export function createDrizzleQuestionRepository(
 		async saveQuestion(quizId, question) {
 			await db
 				.update(questionTable)
-				.set({ type: question.type, text: question.text })
+				.set(toColumns(question))
 				.where(and(ofQuiz(quizId), eq(questionTable.id, question.id)));
 		},
 

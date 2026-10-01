@@ -37,8 +37,8 @@ describe("DrizzleQuestionRepository", () => {
 
 	it("deleting a quiz cascades to its questions", async () => {
 		await testDb.db.insert(questionTable).values([
-			{ ...aQuestion({ id: "a" }), quizId: "quiz-1", position: 0 },
-			{ ...aQuestion({ id: "b" }), quizId: "quiz-2", position: 0 },
+			{ id: "a", type: "quiz", quizId: "quiz-1", position: 0 },
+			{ id: "b", type: "quiz", quizId: "quiz-2", position: 0 },
 		]);
 
 		await testDb.db.delete(quizTable).where(eq(quizTable.id, "quiz-1"));
@@ -144,5 +144,40 @@ describe("DrizzleQuestionRepository", () => {
 
 		expect(await questions.listByQuiz("quiz-1")).toEqual([]);
 		expect(await questions.listByQuiz("quiz-2")).toEqual([b]);
+	});
+
+	it("round-trips time, points and quiz content", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const full = aQuestion({
+			id: "full",
+			timeLimitSeconds: 90,
+			points: "double",
+			selection: "multiple",
+			choices: [
+				{ id: "choice-1", text: "Brasília", correct: true },
+				{ id: "choice-2", text: "Rio", correct: true },
+				{ id: "choice-3", text: null, correct: false },
+				{ id: "choice-4", text: null, correct: false },
+				{ id: "choice-5", text: "Salvador", correct: false },
+				{ id: "choice-6", text: null, correct: false },
+			],
+		});
+
+		await questions.saveList("quiz-1", [full]);
+		await questions.saveQuestion("quiz-1", { ...full, points: "noPoints" });
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([
+			{ ...full, points: "noPoints" },
+		]);
+	});
+
+	it("reads legacy rows with defaults", async () => {
+		await testDb.db
+			.insert(questionTable)
+			.values({ id: "old", quizId: "quiz-1", position: 0, type: "quiz", text: "?" });
+
+		expect(
+			await createDrizzleQuestionRepository(testDb.db).listByQuiz("quiz-1"),
+		).toEqual([aQuestion({ id: "old", text: "?" })]);
 	});
 });

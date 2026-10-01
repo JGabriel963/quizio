@@ -30,7 +30,7 @@ describe("deleteQuestion", () => {
 		const result = await deleteQuestion({ ...ref, questionId: "b" });
 
 		expect(result).toEqual({
-			question: { id: "b", type: "quiz", text: "B" },
+			question: b,
 			index: 1,
 		});
 		expect(questions.listOf("quiz-1").map(({ id }) => id)).toEqual(["a"]);

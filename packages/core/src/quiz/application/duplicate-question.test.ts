@@ -44,7 +44,7 @@ describe("duplicateQuestion", () => {
 		const result = await duplicateQuestion({ ...ref, questionId: "a" });
 
 		expect(result).toEqual({
-			question: { id: "copy-1", type: "quiz", text: "Capital da França?" },
+			question: { ...a, id: "copy-1" },
 			index: 1,
 		});
 		expect(questions.listOf("quiz-1").map(({ id }) => id)).toEqual([

@@ -44,7 +44,7 @@ describe("addQuestion", () => {
 		const result = await addQuestion({ ...ref, afterQuestionId: "b" });
 
 		expect(result).toEqual({
-			question: { id: "new-1", type: "quiz", text: null },
+			question: blankQuestion("new-1"),
 			index: 2,
 		});
 		expect(storedIds()).toEqual(["a", "b", "new-1", "c"]);

@@ -1,10 +1,9 @@
-import type { Question } from "../domain/question";
+import { blankQuestion, type Question } from "../domain/question";
 
-/** Test builder: a quiz question with some text. */
+/** Test builder: a quiz question with some text and the blank defaults. */
 export function aQuestion(overrides: Partial<Question> = {}): Question {
 	return {
-		id: "question-1",
-		type: "quiz",
+		...blankQuestion(overrides.id ?? "question-1"),
 		text: "Qual é a capital do Brasil?",
 		...overrides,
 	};
