@@ -15,6 +15,8 @@ const buttonVariants = cva(
 				default: cn("bg-primary text-primary-foreground", pressable),
 				brand: cn("bg-brand text-brand-foreground", pressable),
 				success: cn("bg-success text-success-foreground", pressable),
+				// The near-black button of the player's join screens (spec 008).
+				game: cn("bg-neutral-800 text-white", pressable),
 				destructive: cn(
 					"bg-destructive text-destructive-foreground",
 					pressable,

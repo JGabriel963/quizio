@@ -54,6 +54,7 @@ const buttonVariants = [
 	"default",
 	"brand",
 	"success",
+	"game",
 	"destructive",
 	"secondary",
 	"outline",

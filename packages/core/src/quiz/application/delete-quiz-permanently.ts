@@ -1,6 +1,7 @@
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { assertPermanentlyDeletable, requireOwnedQuiz } from "../domain/quiz";
 import type { QuestionRepository } from "./ports/question-repository";
+import type { QuizGames } from "./ports/quiz-games";
 import type { QuizRepository } from "./ports/quiz-repository";
 import type { QuizVersionRepository } from "./ports/quiz-version-repository";
 import { imageKeysOf } from "./question-images";
@@ -13,10 +14,14 @@ export function createDeleteQuizPermanently(deps: {
 	questions: Pick<QuestionRepository, "listByQuiz" | "deleteAllOfQuiz">;
 	versions: Pick<QuizVersionRepository, "listByQuiz" | "deleteAllOfQuiz">;
 	storage: Pick<ObjectStorage, "delete">;
+	quizGames: QuizGames;
 }): DeleteQuizPermanently {
 	return async ({ ownerId, quizId }) => {
 		const quiz = requireOwnedQuiz(await deps.quizzes.findById(quizId), ownerId);
 		assertPermanentlyDeletable(quiz);
+
+		// Players still in a lobby of this quiz are told it is over (spec 008, RN-34).
+		await deps.quizGames.endGamesOfDeletedQuiz(quiz.id);
 
 		// Cover first: object deletion is idempotent, so a failure here can be
 		// retried, while deleting the row first would lose track of the object.

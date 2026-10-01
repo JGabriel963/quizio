@@ -339,7 +339,7 @@ Jogadores e anfitriões não aparecem nesta feature.
 ## Divergências intencionais do Kahoot
 
 - **Quiz na lixeira não abre no editor** (RN-03). No Kahoot rascunhos não vão para a lixeira; no Quizio vão (spec 001, RN-21), então é preciso definir o que acontece.
-- **Sem "Crie" (IA), sem as abas Procurar / Gerar / Importar, sem Temas, sem pré-visualização e sem "Faça upgrade"**. IA, banco de perguntas e importação ficam para as features 016 e 017; temas e pré-visualização para a 017; "upgrade" não existe no Quizio (constituição, artigo VI).
+- **Sem "Crie" (IA), sem as abas Procurar / Gerar / Importar, sem Temas, sem pré-visualização e sem "Faça upgrade"**. IA, banco de perguntas e importação ficam para as features 019 e 020; temas e pré-visualização para a 020; "upgrade" não existe no Quizio (constituição, artigo VI).
 - **Limite de 200 perguntas é configurável** (RN-16). O valor é o do Kahoot, mas no Quizio ele é uma decisão técnica, não de plano.
 
 - **Enunciado com até 160 caracteres** (RN-10). O Kahoot limita a 120; o Quizio dá um pouco mais de espaço, por decisão do produto.
@@ -374,3 +374,4 @@ Jogadores e anfitriões não aparecem nesta feature.
 - 2026-10-01 — o "Desfazer" da exclusão de pergunta foi removido por decisão do usuário: com a confirmação, a exclusão é definitiva, como no Kahoot (RN-14, CA-13). O caso de uso `restoreQuestion`, a procedure `quiz.questions.restore` e as funções `restoreQuestionAt` e `parseQuestion` foram removidos; `deleteQuestion` não devolve mais a pergunta excluída.
 - 2026-10-01 — o limite do enunciado subiu de 120 para 160 caracteres e a contagem de caracteres restantes passou a aparecer só com o campo em foco, a pedido do usuário (RN-10, CA-19).
 - 2026-10-01 — alterada pela spec 006: **Sair** passa a levar à Biblioteca, como no Kahoot (RN-06, CA-03, CA-25); num quiz publicado com alterações, Sair pergunta antes (spec 006, RN-24). O cabeçalho ganhou o botão Salvar e o selo de status.
+- 2026-10-01 — renumeração do roadmap: a partida ao vivo virou quatro specs (008 a 011) e as features seguintes subiram três números (robustez 012, relatórios 013, mais tipos 014, opiniões 015, slides 016, atribuir 017, equipe 018, produtividade 019, extras 020). Só as referências mudaram.

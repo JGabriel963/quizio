@@ -93,6 +93,7 @@ export function QuizEditor({
 	titleRevision = 0,
 	onOpenSettings,
 	onExit,
+	onHostLive = () => {},
 	onError = () => {},
 }: {
 	data: QuizEditorData;
@@ -102,6 +103,8 @@ export function QuizEditor({
 	onOpenSettings: () => void;
 	/** Leaves the editor; pending saves were already sent. */
 	onExit: (destination: ExitDestination) => void;
+	/** "Organizar ao vivo", from "O quiz está pronto" (spec 008, RN-03). */
+	onHostLive?: () => void;
 	/** Shows a passing error message. */
 	onError?: (message: string) => void;
 }) {
@@ -406,6 +409,7 @@ export function QuizEditor({
 				open={dialog?.kind === "ready"}
 				onBack={closeDialog}
 				onDone={() => onExit("library")}
+				onHostLive={onHostLive}
 			/>
 			<UnsavedChangesDialog
 				open={dialog?.kind === "unsaved"}

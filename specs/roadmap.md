@@ -14,22 +14,26 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 | 005 | Editor 3/5 — Verdadeiro ou falso e troca de tipo | quiz | Seletor de tipo ao adicionar, pergunta V/F com alternativas fixas, trocar o tipo de uma pergunta sem perder o que foi digitado na sessão | ✅ | [spec](features/005-editor-verdadeiro-ou-falso-e-troca-de-tipo/spec.md) · [plano](features/005-editor-verdadeiro-ou-falso-e-troca-de-tipo/plan.md) · [tarefas](features/005-editor-verdadeiro-ou-falso-e-troca-de-tipo/tasks.md) |
 | 006 | Editor 4/5 — Salvar a versão jogável | quiz, library | Botão Salvar valida o quiz inteiro e congela uma versão (snapshot); rascunho × publicado; alterações ainda não salvas, com manter ou descartar ao sair | ✅ | [spec](features/006-editor-salvar-a-versao-jogavel/spec.md) · [plano](features/006-editor-salvar-a-versao-jogavel/plan.md) · [tarefas](features/006-editor-salvar-a-versao-jogavel/tasks.md) |
 | 007 | Editor 5/5 — Imagem na pergunta | quiz, media | Imagem na pergunta (enviar, arrastar e colar), ao centro ou como fundo, com recorte e texto alternativo | ✅ | [spec](features/007-editor-imagem-na-pergunta/spec.md) · [plano](features/007-editor-imagem-na-pergunta/plan.md) · [tarefas](features/007-editor-imagem-na-pergunta/tasks.md) |
-| 008 | Partida ao vivo — modo clássico | game | PIN, lobby com QR/link, entrada por apelido, ciclo da pergunta, pontuação oficial, sequência exibida, placar, pódio, travar/remover | ⬜ | — |
-| 009 | Robustez da partida e opções de jogo | game | Reconexão, entrada tardia, encerrar antes, randomização, perguntas no dispositivo, gerador/filtro de apelidos, autoplay, música | ⬜ | — |
-| 010 | Relatórios | reports | Resumo, participantes, perguntas, perguntas difíceis, precisa de ajuda, exportação | ⬜ | — |
-| 011 | Mais tipos: Resposta curta, Puzzle, Controle deslizante | quiz, game | Normalização de texto, tudo ou nada, margens e precisão | ⬜ | — |
-| 012 | Coletar opiniões | quiz, game | Enquete, Escala, NPS, Nuvem de palavras, Pergunta aberta | ⬜ | — |
-| 013 | Slides e modo Palestra | quiz, game | 6 layouts, ritmo manual, placar oculto, reações | ⬜ | — |
-| 014 | Atribuir e Jogar solo | game, reports | Atribuição com prazo; solo com oponentes virtuais | ⬜ | — |
-| 015 | Modo equipe | game | Times, Team Talk, pontuação por média | ⬜ | — |
-| 016 | Produtividade do criador | quiz, library | Importar planilha, banco de perguntas, favoritos, pastas | ⬜ | — |
-| 017 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, IA, Accuracy/Confidence, jogar novamente, temas e pré-visualização no editor, imagem nas alternativas do Quiz, revelação de imagem | ⬜ | — |
+| 008 | Partida ao vivo 1/4 — Lobby | game, quiz | "Organizar ao vivo" num quiz publicado; PIN de 6 dígitos, QR e link; entrada do jogador por PIN e apelido, sem conta; lista e total de jogadores em tempo real; travar a entrada, remover participante e encerrar | ✅ | [spec](features/008-partida-ao-vivo-lobby/spec.md) · [plano](features/008-partida-ao-vivo-lobby/plan.md) · [tarefas](features/008-partida-ao-vivo-lobby/tasks.md) |
+| 009 | Partida ao vivo 2/4 — Ciclo da pergunta | game | Iniciar; abertura da pergunta com tempo de leitura; respostas no dispositivo (Quiz, múltipla escolha, Verdadeiro ou falso), imagem da pergunta; fim por tempo, por todos responderem ou por pular; revelação com a distribuição das respostas | ⬜ | — |
+| 010 | Partida ao vivo 3/4 — Pontuação e placar | game | Pontuação oficial por velocidade, pontos em dobro e sem pontos, múltipla escolha, sequência exibida, resultado no dispositivo do jogador, placar entre perguntas | ⬜ | — |
+| 011 | Partida ao vivo 4/4 — Fim de jogo e pódio | game | Avançar até a última pergunta, pódio com os três primeiros, tela final do jogador, menu final do anfitrião | ⬜ | — |
+| 012 | Robustez da partida e opções de jogo | game | Reconexão, entrada tardia, encerrar antes, randomização, perguntas no dispositivo, gerador/filtro de apelidos, autoplay, música | ⬜ | — |
+| 013 | Relatórios | reports | Resumo, participantes, perguntas, perguntas difíceis, precisa de ajuda, exportação | ⬜ | — |
+| 014 | Mais tipos: Resposta curta, Puzzle, Controle deslizante | quiz, game | Normalização de texto, tudo ou nada, margens e precisão | ⬜ | — |
+| 015 | Coletar opiniões | quiz, game | Enquete, Escala, NPS, Nuvem de palavras, Pergunta aberta | ⬜ | — |
+| 016 | Slides e modo Palestra | quiz, game | 6 layouts, ritmo manual, placar oculto, reações | ⬜ | — |
+| 017 | Atribuir e Jogar solo | game, reports | Atribuição com prazo; solo com oponentes virtuais | ⬜ | — |
+| 018 | Modo equipe | game | Times, Team Talk, pontuação por média | ⬜ | — |
+| 019 | Produtividade do criador | quiz, library | Importar planilha, banco de perguntas, favoritos, pastas | ⬜ | — |
+| 020 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, IA, Accuracy/Confidence, jogar novamente, avatares dos jogadores, temas e pré-visualização no editor, imagem nas alternativas do Quiz, revelação de imagem | ⬜ | — |
 
 ## Mudanças de ordem
 
 - **2026-09-25 — a página inicial entrou como 002** e as features seguintes subiram um número (o editor passou de 002 para 003, e assim por diante até Extras, de 012 para 013). Motivo: a 001 deixou a área do criador sem casa e sem navegação, e cada feature seguinte teria que inventar a sua. Espelhar a home do Kahoot agora dá um lugar fixo para tudo o que vem depois. As specs já escritas foram atualizadas para os novos números.
 - **2026-09-25 — o editor virou cinco specs (003 a 007)** e as features seguintes subiram quatro números (partida 004 → 008, e assim por diante até Extras, 013 → 017). Motivo: o editor concentra estrutura de dados, autosave, dois tipos de pergunta, publicação e mídia; numa spec só, a entrega ficaria grande demais para revisar. Cada etapa é uma entrega usável sozinha e constrói sobre a anterior. As specs 001 e 002 foram atualizadas para os novos números.
 - **2026-10-01 — a 007 ficou só com a imagem da pergunta.** A imagem nas alternativas do Quiz saiu dela por decisão do usuário e foi para Extras (017) até ser especificada; em troca, a 007 ganhou o que as capturas do Kahoot mostram para a imagem da pergunta: usar como fundo, recorte e texto alternativo.
+- **2026-10-01 — a partida ao vivo virou quatro specs (008 a 011)** e as features seguintes subiram três números (robustez 009 → 012, e assim por diante até Extras, 017 → 020). Motivo: a partida junta duas telas em tempo real, estado no servidor, ciclo da pergunta, pontuação e pódio; em etapas, cada entrega funciona na tela e pode ser revisada sozinha. Travar e remover, que seriam uma etapa à parte, entraram no lobby (008) por decisão do usuário. Os avatares dos jogadores foram para Extras. As specs 001 a 007 foram atualizadas para os novos números.
 
 ## Pendências técnicas fora de features
 

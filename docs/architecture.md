@@ -121,7 +121,9 @@ A Vercel não mantém WebSockets nem processos vivos entre requisições. Por is
 - **O servidor é autoritativo e sem estado em memória.** O estado da partida (pergunta atual, instante de abertura, respostas) fica no Postgres. Tempo de resposta = `recebidoEm − perguntaAbertaEm`, ambos medidos no servidor; o cliente nunca informa quanto tempo levou.
 - **Clientes nunca publicam.** Jogador responde via mutation tRPC → caso de uso grava e calcula → `RealtimePublisher` notifica host e jogadores.
 - **Sem timers no servidor.** O prazo da pergunta é derivado de `perguntaAbertaEm + limite`. A tela do host dispara a transição ("tempo esgotado", "próxima"), e o servidor valida que a transição é permitida (idempotente). Respostas após o prazo (com pequena tolerância de latência definida na spec do jogo) são rejeitadas.
-- **Canais** seguem o padrão `game-{gameId}` (broadcast da partida) e, quando houver dados individuais, canais privados por jogador autorizados por um endpoint próprio — a ser definido na spec da partida ao vivo.
+- **Um canal público por partida**, `game-{gameId}` ([ADR 0009](adr/0009-partida-ao-vivo.md)). Nada individual vai por evento: o que é de um jogador só é buscado por uma chamada autenticada pelo segredo dele.
+- **Evento é aviso; a consulta é a verdade.** Cada tela tem uma consulta que devolve o estado inteiro (`game.lobby`, `game.join.session`), refeita ao reconectar, ao voltar o foco e a cada 15 segundos. Casos de uso gravam primeiro e publicam depois.
+- **Jogador anônimo**: `playerId` público e um segredo guardado no navegador, sem Better Auth.
 
 Se o deploy mudar para um host com processos persistentes (VPS, Fly) ou para Cloudflare (Durable Objects), apenas os adapters de real-time e a composition root mudam.
 

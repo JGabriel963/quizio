@@ -1,5 +1,6 @@
 import { publicProcedure, router } from "../index";
 import { authRouter } from "./auth";
+import { gameRouter } from "./game";
 import { libraryRouter } from "./library";
 import { mediaRouter } from "./media";
 import { quizRouter } from "./quiz";
@@ -9,6 +10,7 @@ export const appRouter = router({
 		return "OK";
 	}),
 	auth: authRouter,
+	game: gameRouter,
 	library: libraryRouter,
 	media: mediaRouter,
 	quiz: quizRouter,

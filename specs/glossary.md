@@ -85,14 +85,20 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 
 | PT | EN (código) | Definição | Status |
 | --- | --- | --- | --- |
-| Partida ao vivo | `GameSession` | Instância de apresentação de um quiz | 📝 |
+| Partida ao vivo | `Game` | Instância de apresentação de um quiz: usa a versão jogável e o título do momento em que é criada; no máximo uma aberta por quiz (spec 008) | ✅ |
 | Modo de jogo | `GameMode` | `classic`, `team`, … | 📝 |
-| PIN do jogo | `GamePin` | Código numérico temporário para entrar na partida | 📝 |
+| PIN do jogo | `GamePin` | Código de 6 dígitos, sem zero à esquerda, único entre as partidas abertas; vale até a partida ser encerrada ou completar 8 horas (spec 008) | ✅ |
 | Opções de jogo | `GameOptions` | Randomizar perguntas/alternativas, mostrar no dispositivo, gerador de apelidos, autoplay… | 📝 |
-| Lobby | `Lobby` | Sala de espera antes do início | 📝 |
-| Jogador | `Player` | Participante anônimo identificado por apelido na partida | 📝 |
-| Apelido | `Nickname` | Nome do jogador na partida | 📝 |
-| Anfitrião | `Host` | Usuário que conduz a partida | 📝 |
+| Lobby | `Lobby` | Sala de espera antes do início: PIN, QR, link, lista e total de jogadores (spec 008) | ✅ |
+| Organizar ao vivo | `hostGame` (`game.host`) | Ação do dono de um quiz publicado que cria a partida e abre o lobby (spec 008) | ✅ |
+| Link de entrada | `joinLink` | Endereço `/join/{PIN}`, também contido no QR code, que leva o jogador direto à etapa do apelido (spec 008) | ✅ |
+| Entrada bloqueada | `locked` | Estado da partida em que ninguém novo entra; quem já entrou permanece (spec 008) | ✅ |
+| Remover participante | `removePlayer` | O anfitrião tira um jogador da partida; o apelido removido fica bloqueado nela (spec 008) | ✅ |
+| Encerrar o jogo | `endGame`, `GameEndReason` | Fecha a partida: o PIN deixa de funcionar e os jogadores são avisados (spec 008) | ✅ |
+| Limite de jogadores | `GAME_MAX_PLAYERS` | Máximo de 200 jogadores por partida, técnico e configurável (spec 008) | ✅ |
+| Jogador | `Player` | Participante anônimo identificado por apelido na partida; pertence ao navegador em que entrou (spec 008) | ✅ |
+| Apelido | `Nickname` | Nome do jogador na partida: 1 a 15 caracteres, único sem diferenciar maiúsculas e acentos, fixo depois de entrar (spec 008) | ✅ |
+| Anfitrião | `Host` | Criador que conduz a partida; é o dono do quiz (spec 008) | ✅ |
 | Fase da pergunta | `QuestionPhase` | `intro` → `answering` → `results` → `scoreboard` | 📝 |
 | Resposta | `Answer` | Envio de um jogador para uma pergunta (`received` / `timeout`) | 📝 |
 | Tempo de resposta | `ResponseTime` | Instante do envio − abertura das respostas, medido no servidor | ✅ (`responseTimeMs`) |

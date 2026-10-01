@@ -16,3 +16,10 @@ export type HomeQuizView = HomeOverviewView["quizzes"][number];
 /** Everything the editor opens with (spec 003). */
 export type QuizEditorData = RouterOutputs["quiz"]["editor"];
 export type QuestionData = QuizEditorData["questions"][number];
+
+/** The host's lobby (spec 008). */
+export type HostLobbyData = RouterOutputs["game"]["lobby"];
+export type LobbyPlayerData = HostLobbyData["players"][number];
+
+/** What a player's device should be showing (spec 008). */
+export type PlayerSessionData = RouterOutputs["game"]["join"]["session"];

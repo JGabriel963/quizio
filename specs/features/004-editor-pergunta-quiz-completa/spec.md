@@ -221,7 +221,7 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 - Verdadeiro ou falso e troca de tipo (spec 005).
 - Salvar a versão jogável, que é quem de fato bloqueia uma pergunta incompleta (spec 006).
 - Reordenar alternativas dentro da pergunta (o Kahoot também não reordena).
-- Tempo de leitura (`ReadTime`), que é regra da partida (spec 008).
+- Tempo de leitura (`ReadTime`), que é regra da partida (spec 009).
 
 ## Perguntas em aberto
 
@@ -234,3 +234,4 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 - 2026-10-01 — ajustes de layout pedidos pelo usuário: as dicas viraram balões junto aos campos, com a nova dica do enunciado (RN-16); avisos só depois que o criador sai da pergunta e volta (RN-16a, CA-12, CA-13, CA-14a); listas do painel com o seletor do design system.
 - 2026-10-01 — card da lista realinhado como o do Kahoot, por pedido do usuário: barras em contorno com ponto verde nas corretas e alerta na lateral do card; marcação de correta em verde-claro com anel branco.
 - 2026-10-01 — alterada pela spec 006 (RN-10a): os motivos do alerta da lista passam a usar os textos do Kahoot — "Pergunta ausente", "N respostas faltando" e "Resposta correta não selecionada" (CA-12). Os balões junto aos campos (RN-16) não mudaram. Uma pergunta incompleta agora impede o Salvar (spec 006, RN-09).
+- 2026-10-01 — renumeração do roadmap: a partida ao vivo virou quatro specs (008 a 011) e as features seguintes subiram três números (robustez 012, relatórios 013, mais tipos 014, opiniões 015, slides 016, atribuir 017, equipe 018, produtividade 019, extras 020). Só as referências mudaram.

@@ -34,7 +34,7 @@ A classe `.dark` define superfícies roxas para as telas de partida (lobby, perg
 
 ### `Button`
 
-Variantes sólidas pressionáveis: `default` (azul), `brand`, `success`, `destructive`, `secondary` (branco). Variantes planas: `outline`, `ghost`, `link`. Tamanhos: `xs`, `sm`, `default`, `lg`, `xl` (CTA de lobby) e `icon*`. Para navegação, use `render={<Link …/>}` com `nativeButton={false}` (padrão Base UI).
+Variantes sólidas pressionáveis: `default` (azul), `brand`, `success`, `destructive`, `secondary` (branco) e `game` (quase preto, das telas de entrada do jogador). Variantes planas: `outline`, `ghost`, `link`. Tamanhos: `xs`, `sm`, `default`, `lg`, `xl` (CTA de lobby) e `icon*`. Para navegação, use `render={<Link …/>}` com `nativeButton={false}` (padrão Base UI).
 
 ### `Badge`
 

@@ -1,3 +1,7 @@
+import { InMemoryGameRepository } from "@quizio/core/game/testing/in-memory-game-repository";
+import { InMemoryPlayableQuizQuery } from "@quizio/core/game/testing/in-memory-playable-quiz-query";
+import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-player-repository";
+import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
@@ -6,6 +10,7 @@ import { InMemoryQuestionRepository } from "@quizio/core/quiz/testing/in-memory-
 import { InMemoryQuizRepository } from "@quizio/core/quiz/testing/in-memory-quiz-repository";
 import { InMemoryQuizVersionRepository } from "@quizio/core/quiz/testing/in-memory-quiz-version-repository";
 import { FixedClock } from "@quizio/core/shared/testing/fixed-clock";
+import { InMemoryAttemptLimiter } from "@quizio/core/shared/testing/in-memory-attempt-limiter";
 import { InMemoryObjectStorage } from "@quizio/core/shared/testing/in-memory-object-storage";
 import { InMemoryRealtimePublisher } from "@quizio/core/shared/testing/in-memory-realtime-publisher";
 import { SequentialIdGenerator } from "@quizio/core/shared/testing/sequential-id-generator";
@@ -20,12 +25,18 @@ const createCaller = createCallerFactory(appRouter);
 export type TestApiCaller = ReturnType<typeof createCaller>;
 
 export interface TestApi {
-	/** Calls procedures as that signed-in creator, or as a visitor with `null`. */
-	callerFor(userId: string | null): TestApiCaller;
+	/**
+	 * Calls procedures as that signed-in creator, or as a visitor with `null`,
+	 * from the given network address.
+	 */
+	callerFor(userId: string | null, clientIp?: string): TestApiCaller;
 	quizzes: InMemoryQuizRepository;
 	questions: InMemoryQuestionRepository;
 	versions: InMemoryQuizVersionRepository;
 	storage: InMemoryObjectStorage;
+	games: InMemoryGameRepository;
+	players: InMemoryPlayerRepository;
+	realtime: InMemoryRealtimePublisher;
 }
 
 function toLibraryRecord(
@@ -52,9 +63,12 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const questions = new InMemoryQuestionRepository();
 	const versions = new InMemoryQuizVersionRepository();
 	const storage = new InMemoryObjectStorage("https://media.test");
+	const games = new InMemoryGameRepository();
+	const players = new InMemoryPlayerRepository();
+	const realtime = new InMemoryRealtimePublisher();
 	const adapters: Adapters = {
 		storage,
-		realtime: new InMemoryRealtimePublisher(),
+		realtime,
 		ids: new SequentialIdGenerator("id"),
 		clock: new FixedClock("2026-06-01T12:00:00.000Z"),
 		quizzes,
@@ -63,24 +77,40 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		libraryQuizzes: new InMemoryLibraryQuizQuery(() =>
 			quizzes.all().map((quiz) => toLibraryRecord(quiz, questions)),
 		),
+		games,
+		players,
+		playableQuizzes: new InMemoryPlayableQuizQuery(() =>
+			quizzes.all().map((quiz) => ({
+				id: quiz.id,
+				ownerId: quiz.ownerId,
+				title: quiz.title,
+				version: quiz.publishedVersion,
+				trashed: quiz.trashedAt !== null,
+			})),
+		),
+		pins: new SequentialGamePinGenerator("265914"),
+		attempts: new InMemoryAttemptLimiter(),
 		authSettings: { signUpEnabled: true, googleEnabled: false },
 		...overrides,
 	};
 	const container = createContainer(adapters);
 
 	return {
-		callerFor: (userId) => {
+		callerFor: (userId, clientIp = "203.0.113.1") => {
 			const session = userId
 				? ({
 						user: { id: userId },
 						session: { id: `session-${userId}` },
 					} as NonNullable<Context["session"]>)
 				: null;
-			return createCaller({ session, container });
+			return createCaller({ session, container, clientIp });
 		},
 		quizzes,
 		questions,
 		versions,
 		storage,
+		games,
+		players,
+		realtime,
 	};
 }

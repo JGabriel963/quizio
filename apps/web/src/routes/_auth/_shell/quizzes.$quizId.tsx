@@ -6,12 +6,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 import { useState } from "react";
 
+import { OpeningGame } from "@/components/game/opening-game";
 import { DeletePermanentlyDialog } from "@/components/quiz/delete-permanently-dialog";
 import { QuizDetailsView } from "@/components/quiz/quiz-details-view";
 import {
 	QuizFormDialog,
 	type QuizFormDialogState,
 } from "@/components/quiz/quiz-form-dialog";
+import { useHostGame } from "@/lib/game-mutations";
 import { useQuizMutations } from "@/lib/quiz-mutations";
 import { useTRPC } from "@/utils/trpc";
 
@@ -24,6 +26,7 @@ function QuizDetailsPage() {
 	const navigate = Route.useNavigate();
 	const trpc = useTRPC();
 	const mutations = useQuizMutations();
+	const hosting = useHostGame(quizId);
 	const quiz = useQuery({
 		...trpc.quiz.get.queryOptions({ quizId }),
 		retry: (failureCount, error) =>
@@ -86,6 +89,7 @@ function QuizDetailsPage() {
 			<QuizDetailsView
 				quiz={quiz.data}
 				actions={{
+					onHost: hosting.start,
 					onEdit: () => setFormDialog({ quiz: quiz.data }),
 					onDuplicate: () => mutations.duplicate.mutate({ quizId }),
 					onMoveToTrash: () => mutations.moveToTrash.mutate({ quizId }),
@@ -94,6 +98,11 @@ function QuizDetailsPage() {
 				}}
 			/>
 			<QuizFormDialog state={formDialog} onClose={() => setFormDialog(null)} />
+			<OpeningGame
+				state={hosting.state}
+				onRetry={hosting.start}
+				onCancel={hosting.cancel}
+			/>
 			<DeletePermanentlyDialog
 				open={confirmingDeletion}
 				quizTitle={displayQuizTitle(quiz.data.title)}
