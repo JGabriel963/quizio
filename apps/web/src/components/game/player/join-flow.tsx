@@ -336,9 +336,9 @@ export function JoinFlow({
 				stage: {
 					...stage,
 					remainingMs: stage.durationMs,
-					// Still the same question: the answer already sent stands.
 					answered: false,
-					result: null,
+					total: 0,
+					outcome: null,
 				},
 				receivedAt,
 			};
@@ -346,12 +346,23 @@ export function JoinFlow({
 				if (!isAhead(current, next) || !next.stage) {
 					return current;
 				}
-				const answered =
-					current?.stage?.questionIndex === next.stage.questionIndex &&
-					current.stage.answered;
-				return { ...next, stage: { ...next.stage, answered } };
+				// What is this player's alone stays as the device knows it: the
+				// total always, and within the same question the answer already
+				// sent and its outcome (the scoreboard comes after the results).
+				const known = current?.stage;
+				const sameQuestion = known?.questionIndex === next.stage.questionIndex;
+				return {
+					...next,
+					stage: {
+						...next.stage,
+						answered: sameQuestion && (known?.answered ?? false),
+						total: known?.total ?? 0,
+						outcome: sameQuestion ? (known?.outcome ?? null) : null,
+					},
+				};
 			});
-			if (stage.phase === "results") {
+			// Points, streak and place are never in an event (spec 010).
+			if (stage.phase === "results" || stage.phase === "scoreboard") {
 				void checkSession();
 			}
 		},

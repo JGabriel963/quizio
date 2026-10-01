@@ -11,7 +11,7 @@ import {
 	answerShapeAt,
 } from "@quizio/ui/components/answer-shape";
 
-import type { HostGameData } from "./api-types";
+import type { HostGameData, PlayerOutcomeData } from "./api-types";
 
 /** A stage, as far as ordering goes. */
 interface StagePosition {
@@ -85,4 +85,26 @@ const SHAPE_NAMES: Record<AnswerShapeName, string> = {
 /** How a screen reader names an answer button that shows only color and shape (RN-14). */
 export function answerShapeName(shapeIndex: number): string {
 	return SHAPE_NAMES[answerShapeAt(shapeIndex)];
+}
+
+/** How many places the podium has (spec 010, RN-15). */
+const PODIUM_PLACES = 3;
+
+/**
+ * Where a question left the player (spec 010, RN-15): on the podium, or the
+ * place and how far the player right ahead is.
+ */
+export function positionMessage(
+	outcome: Pick<PlayerOutcomeData, "rank" | "behind">,
+): { title: string; detail: string | null } {
+	if (outcome.rank <= PODIUM_PLACES) {
+		return { title: "Você está no pódio!", detail: null };
+	}
+	const { behind } = outcome;
+	return {
+		title: `Você está em ${outcome.rank}º lugar`,
+		detail: behind
+			? `${behind.points} ${behind.points === 1 ? "ponto" : "pontos"} atrás de ${behind.nickname}`
+			: null,
+	};
 }

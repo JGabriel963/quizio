@@ -58,7 +58,13 @@ Um evento perdido não pode deixar uma tela errada. Por isso:
 - **Apelido único na partida:** índice único em `(game_id, nickname_key)`. O jogador removido mantém a linha, o que também bloqueia o apelido dele (spec 008, RN-30).
 - **Uma resposta por jogador por pergunta:** chave primária em `(game_id, question_index, player_id)` na tabela `game_answer` (spec 009).
 - **Uma transição por fase:** a atualização condicional do item 1.
-- **Limite de jogadores:** conferido por contagem antes de inserir. Duas entradas simultâneas podem passar do limite por um ou dois jogadores, o que é aceitável para um limite técnico.
+- **Limite de jogadores:** conferido por contagem antes de inserir.
+
+### 6. Pontos gravados, classificação derivada (spec 010)
+
+Os pontos de uma resposta são calculados quando ela chega e gravados na linha dela. Total, sequência, posição e placar **não são guardados**: saem das respostas a cada leitura. Assim uma resposta que entra no instante em que a fase fecha nunca fica fora da conta, e não existe um segundo lugar que possa discordar das respostas.
+
+O que pode ser divulgado é sempre calculado até a última pergunta revelada: a atual, a partir da revelação; a anterior, antes disso. Pontos e posições não vão por evento. Duas entradas simultâneas podem passar do limite por um ou dois jogadores, o que é aceitável para um limite técnico.
 
 ## Consequências
 
@@ -66,6 +72,7 @@ Um evento perdido não pode deixar uma tela errada. Por isso:
 - Cada ação é uma requisição HTTP e uma escrita no banco. Serve para centenas de jogadores por partida (ADR 0002).
 - A consulta periódica custa uma leitura a cada 15 segundos por tela aberta, e a cada 5 segundos durante o jogo. Para 200 jogadores jogando, são cerca de 40 consultas por segundo, todas por chave primária.
 - Um evento de mudança de fase perdido custa tempo de resposta ao jogador, até a consulta seguinte.
+- Para dar a posição, cada consulta de sessão na revelação soma os pontos da partida inteira. Se pesar, a saída é guardar a classificação de cada pergunta quando a fase fecha, sem mudar o domínio.
 - Se a tela do anfitrião estiver fechada, a partida não avança: o prazo das respostas continua valendo, mas a revelação espera ele voltar.
 - O segredo fica no `localStorage`: quem tem acesso ao navegador do jogador joga como ele. O dano é uma pontuação num jogo de perguntas.
 - Trocar de aparelho no meio da partida cria outro jogador. A spec 012 decide se oferece outro caminho.

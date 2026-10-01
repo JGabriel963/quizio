@@ -3,6 +3,7 @@ import type { RealtimePublisher } from "../../shared/application/ports/realtime-
 import {
 	AlreadyAnsweredError,
 	AnswersClosedError,
+	answerPoints,
 	correctnessOf,
 	parseAnswerChoices,
 } from "../domain/answer";
@@ -31,8 +32,8 @@ export type SubmitAnswer = (input: {
 }) => Promise<void>;
 
 /**
- * A player's answer (spec 009, RN-14 to RN-21). The time and the correctness
- * are worked out here, on receipt; nothing the device says about either is
+ * A player's answer (spec 009, RN-14 to RN-21). The time, the correctness and
+ * the points (spec 010, RN-07) are worked out here, on receipt; nothing the device says about either is
  * read, and nothing about them goes back.
  */
 export function createSubmitAnswer(deps: {
@@ -75,17 +76,19 @@ export function createSubmitAnswer(deps: {
 		}
 
 		const chosen = parseAnswerChoices(question, choiceIds);
+		const responseTimeMs = responseTimeOf(
+			game.progress,
+			question.timeLimitSeconds,
+			now,
+		);
 		const added = await deps.answers.add({
 			gameId: game.id,
 			questionIndex,
 			playerId: player.id,
 			choiceIds: chosen,
-			responseTimeMs: responseTimeOf(
-				game.progress,
-				question.timeLimitSeconds,
-				now,
-			),
+			responseTimeMs,
 			correctness: correctnessOf(question, chosen),
+			points: answerPoints(question, chosen, responseTimeMs),
 			receivedAt: now,
 		});
 		if (added === "alreadyAnswered") {

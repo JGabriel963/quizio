@@ -41,4 +41,28 @@ export class InMemoryAnswerRepository implements AnswerRepository {
 	): Promise<number> {
 		return (await this.listByQuestion(gameId, questionIndex)).length;
 	}
+
+	async totalsThrough(
+		gameId: string,
+		questionIndex: number,
+	): Promise<{ playerId: string; total: number }[]> {
+		const totals = new Map<string, number>();
+		for (const answer of this.#answers) {
+			if (answer.gameId === gameId && answer.questionIndex <= questionIndex) {
+				totals.set(
+					answer.playerId,
+					(totals.get(answer.playerId) ?? 0) + answer.points,
+				);
+			}
+		}
+		return [...totals].map(([playerId, total]) => ({ playerId, total }));
+	}
+
+	async listByPlayer(gameId: string, playerId: string): Promise<Answer[]> {
+		return this.#answers
+			.filter(
+				(answer) => answer.gameId === gameId && answer.playerId === playerId,
+			)
+			.sort((a, b) => a.questionIndex - b.questionIndex);
+	}
 }

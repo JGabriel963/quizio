@@ -8,6 +8,7 @@ import { msLeft } from "@/lib/use-countdown";
 import { GameScreen } from "../game-screen";
 import { GameHeader } from "./game-header";
 import { EndGameDialog } from "./lobby-dialogs";
+import { Scoreboard } from "./scoreboard";
 import { StageBackground } from "./stage-image";
 import { Answering, GameIntro, QuestionIntro, Results } from "./stage-screens";
 
@@ -94,7 +95,15 @@ export function HostStage({
 				onExit={() => setEnding(true)}
 			/>
 
-			{(phase === "gameIntro" || !question) && <GameIntro title={game.title} />}
+			{phase === "scoreboard" ? (
+				<Scoreboard
+					entries={stage.scoreboard ?? []}
+					busy={busy}
+					onAdvance={() => request(false)}
+				/>
+			) : (
+				(phase === "gameIntro" || !question) && <GameIntro title={game.title} />
+			)}
 			{phase === "questionIntro" && question && (
 				<QuestionIntro
 					stage={stage}

@@ -139,7 +139,7 @@ describe("game play repositories (spec 009)", () => {
 		});
 
 		it("finishing frees the PIN", async () => {
-			const last = aPlayingGame("results", {
+			const last = aPlayingGame("scoreboard", {
 				questionIndex: 2,
 				questionCount: 3,
 				since: now,
@@ -152,7 +152,10 @@ describe("game play repositories (spec 009)", () => {
 			});
 
 			expect(
-				await games.saveIfAt(finished, { questionIndex: 2, phase: "results" }),
+				await games.saveIfAt(finished, {
+					questionIndex: 2,
+					phase: "scoreboard",
+				}),
 			).toBe(true);
 
 			expect(await games.findUnendedByPin("265914")).toBeNull();
@@ -232,6 +235,43 @@ describe("game play repositories (spec 009)", () => {
 
 			// The same player answers the next question.
 			expect(await answers.add({ ...first, questionIndex: 1 })).toBe("added");
+		});
+
+		it("sums the points of each player up to a question", async () => {
+			await answers.add({ ...first, points: 875 });
+			await answers.add({ ...second, points: 0 });
+			await answers.add({ ...first, questionIndex: 1, points: 1000 });
+			await answers.add({ ...first, questionIndex: 2, points: 500 });
+			const byPlayer = (totals: { playerId: string; total: number }[]) =>
+				[...totals].sort((a, b) => a.playerId.localeCompare(b.playerId));
+
+			expect(byPlayer(await answers.totalsThrough("game-1", 0))).toEqual([
+				{ playerId: "p1", total: 875 },
+				{ playerId: "p2", total: 0 },
+			]);
+			expect(byPlayer(await answers.totalsThrough("game-1", 1))).toEqual([
+				{ playerId: "p1", total: 1875 },
+				{ playerId: "p2", total: 0 },
+			]);
+			expect(await answers.totalsThrough("game-1", -1)).toEqual([]);
+			expect(await answers.totalsThrough("game-2", 5)).toEqual([]);
+		});
+
+		it("lists a player's answers by question", async () => {
+			await answers.add({ ...first, questionIndex: 2, points: 500 });
+			await answers.add({ ...first, points: 875 });
+			await answers.add(second);
+
+			expect(
+				(await answers.listByPlayer("game-1", "p1")).map((answer) => [
+					answer.questionIndex,
+					answer.points,
+				]),
+			).toEqual([
+				[0, 875],
+				[2, 500],
+			]);
+			expect(await answers.listByPlayer("game-1", "p9")).toEqual([]);
 		});
 	});
 

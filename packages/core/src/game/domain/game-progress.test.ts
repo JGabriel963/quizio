@@ -22,6 +22,7 @@ import {
 	QUESTION_INTRO_MS,
 	remainingMsOf,
 	responseTimeOf,
+	revealedThrough,
 	StageNotDueError,
 	startGame,
 } from "./game-progress";
@@ -91,6 +92,7 @@ describe("phases of a game (spec 009)", () => {
 		expect(phaseDurationMs("questionIntro", 20)).toBe(QUESTION_INTRO_MS);
 		expect(phaseDurationMs("answering", 20)).toBe(20_000);
 		expect(phaseDurationMs("results", 20)).toBeNull();
+		expect(phaseDurationMs("scoreboard", 20)).toBeNull();
 	});
 
 	it("knows the time that is left, never below zero", () => {
@@ -173,21 +175,44 @@ describe("phases of a game (spec 009)", () => {
 		});
 	});
 
-	it("the results wait for the host, then open the next question", () => {
-		const next = nextStage(at("results", 0), {
-			timeLimitSeconds: 20,
-			skip: false,
-			now: later(1),
-		});
+	it("the results lead to the scoreboard, then to the next question", () => {
+		const input = { timeLimitSeconds: 20, skip: false, now: later(1) };
 
-		expect(next).toMatchObject({
+		const scoreboard = nextStage(at("results", 0), input);
+		expect(scoreboard).toMatchObject({
+			status: "playing",
+			progress: { questionIndex: 0, phase: "scoreboard" },
+		});
+		expect(nextStage(scoreboard, input)).toMatchObject({
 			status: "playing",
 			progress: { questionIndex: 1, phase: "questionIntro" },
 		});
 	});
 
-	it("advancing after the last results finishes the game", () => {
-		const finished = nextStage(at("results", 2), {
+	it("the last question has its scoreboard too", () => {
+		expect(
+			nextStage(at("results", 2), {
+				timeLimitSeconds: 20,
+				skip: false,
+				now: later(1),
+			}),
+		).toMatchObject({
+			status: "playing",
+			progress: { questionIndex: 2, phase: "scoreboard" },
+		});
+	});
+
+	it("knows which question's points are revealed", () => {
+		expect(revealedThrough(at("gameIntro").progress)).toBe(-1);
+		expect(revealedThrough(at("answering", 0).progress)).toBe(-1);
+		expect(revealedThrough(at("results", 0).progress)).toBe(0);
+		expect(revealedThrough(at("scoreboard", 0).progress)).toBe(0);
+		expect(revealedThrough(at("questionIntro", 1).progress)).toBe(0);
+		expect(revealedThrough(at("answering", 1).progress)).toBe(0);
+	});
+
+	it("the last scoreboard finishes the game", () => {
+		const finished = nextStage(at("scoreboard", 2), {
 			timeLimitSeconds: 20,
 			skip: false,
 			now: later(60_000),

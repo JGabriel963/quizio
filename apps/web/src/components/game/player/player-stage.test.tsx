@@ -2,7 +2,11 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { PlayerQuestionData, PlayerStageData } from "@/lib/api-types";
+import type {
+	PlayerOutcomeData,
+	PlayerQuestionData,
+	PlayerStageData,
+} from "@/lib/api-types";
 
 import { PlayerStage } from "./player-stage";
 
@@ -39,7 +43,8 @@ function stageAt(overrides: Partial<PlayerStageData> = {}): PlayerStageData {
 		remainingMs: 20_000,
 		question: quiz(),
 		answered: false,
-		result: null,
+		total: 0,
+		outcome: null,
 		...overrides,
 	};
 }
@@ -218,8 +223,32 @@ describe("PlayerStage: answering (spec 009)", () => {
 });
 
 describe("PlayerStage: results and end (spec 009)", () => {
-	const results = (result: PlayerStageData["result"]) =>
-		stageAt({ phase: "results", durationMs: null, remainingMs: null, result });
+	const outcomeOf = (
+		result: PlayerOutcomeData["result"],
+		overrides: Partial<PlayerOutcomeData> = {},
+	): PlayerOutcomeData => ({
+		result,
+		points: result === "correct" ? 639 : 0,
+		streak: result === "correct" ? 2 : 0,
+		rank: 2,
+		behind: { nickname: "Bia", points: 62 },
+		...overrides,
+	});
+	const results = (
+		result: PlayerOutcomeData["result"] | null,
+		overrides: Partial<PlayerOutcomeData> = {},
+		stage: Partial<PlayerStageData> = {},
+	) =>
+		stageAt({
+			phase: "results",
+			durationMs: null,
+			remainingMs: null,
+			total: 1340,
+			outcome: result && outcomeOf(result, overrides),
+			...stage,
+		});
+	const slot = (name: string) =>
+		document.querySelector(`[data-slot="${name}"]`)?.textContent ?? null;
 	const mark = () =>
 		(document.querySelector('[data-slot="result-mark"]') as HTMLElement | null)
 			?.dataset.result;
@@ -264,5 +293,65 @@ describe("PlayerStage: results and end (spec 009)", () => {
 
 		expect(screen.getByRole("heading", { name: "Fim do jogo" })).toBeVisible();
 		expect(screen.getByText("Obrigado por jogar!")).toBeVisible();
+	});
+
+	it("tells the points, the streak, the place and the total (spec 010)", () => {
+		renderStage(results("correct"));
+
+		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
+		expect(screen.getByText("Sequência de respostas")).toBeVisible();
+		expect(slot("answer-streak")).toBe("2");
+		expect(slot("answer-points")).toBe("+ 639");
+		expect(slot("player-position")).toBe("Você está no pódio!");
+		expect(slot("player-total")).toBe("1340");
+	});
+
+	it("tells the place and who is ahead outside the podium", () => {
+		renderStage(
+			results("correct", {
+				rank: 5,
+				behind: { nickname: "Bia", points: 120 },
+			}),
+		);
+
+		expect(slot("player-position")).toBe(
+			"Você está em 5º lugar120 pontos atrás de Bia",
+		);
+	});
+
+	it.each(["wrong", "timeout"] as const)(
+		"shows no points and no streak for a %s answer, only the place",
+		(result) => {
+			renderStage(results(result));
+
+			expect(slot("answer-points")).toBeNull();
+			expect(slot("answer-streak")).toBeNull();
+			expect(screen.queryByText("Sequência de respostas")).toBeNull();
+			expect(slot("player-position")).toBe("Você está no pódio!");
+			expect(slot("player-total")).toBe("1340");
+		},
+	);
+
+	it("shows a right answer of a no-points question without the points", () => {
+		renderStage(results("correct", { points: null, streak: 3 }));
+
+		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
+		expect(slot("answer-streak")).toBe("3");
+		expect(slot("answer-points")).toBeNull();
+	});
+
+	it("keeps the result on the phone during the host's scoreboard", () => {
+		renderStage(results("correct", {}, { phase: "scoreboard" }));
+
+		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
+		expect(slot("answer-points")).toBe("+ 639");
+	});
+
+	it("shows the total, and nothing about the answer just sent, while waiting", () => {
+		renderStage(stageAt({ answered: true, total: 1354 }));
+
+		expect(slot("player-total")).toBe("1354");
+		expect(slot("answer-points")).toBeNull();
+		expect(slot("player-position")).toBeNull();
 	});
 });

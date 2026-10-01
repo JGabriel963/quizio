@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Question } from "../../quiz/domain/question";
 import { aQuestion, aTrueFalseQuestion } from "../../quiz/testing/a-question";
 import { somePlayableQuestions } from "../testing/game-deps";
 import { createStartedGame } from "../testing/started-game";
@@ -184,8 +185,8 @@ describe("getHostGame during a game (spec 009)", () => {
 
 	it("shows a finished game without a stage", async () => {
 		const { deps, host, advance, reach } = await createStartedGame();
-		await reach("results", 1);
-		await advance({ ...host, from: { questionIndex: 1, phase: "results" } });
+		await reach("scoreboard", 1);
+		await advance({ ...host, from: { questionIndex: 1, phase: "scoreboard" } });
 
 		expect(await createGetHostGame(deps)(mine)).toMatchObject({
 			status: "finished",
@@ -193,5 +194,193 @@ describe("getHostGame during a game (spec 009)", () => {
 			questionCount: 2,
 			stage: null,
 		});
+	});
+});
+
+/** A quiz question of 20 s whose first answer is right. */
+const capital = (overrides: Parameters<typeof aQuestion>[0] = {}): Question =>
+	quizWith(
+		[choice("a", true), choice("b"), choice("c"), choice("d")],
+		overrides,
+	);
+
+describe("getHostGame: the scoreboard (spec 010)", () => {
+	const names = ["Ana", "Bia", "Caio", "Duda", "Eva", "Fábio", "Gil"];
+
+	it("has no scoreboard before the scoreboard phase", async () => {
+		const { deps, reach, answer } = await createStartedGame();
+		await reach("answering");
+		await answer(1, "choice-1");
+		await reach("results");
+
+		const { stage } = await createGetHostGame(deps)(mine);
+
+		expect(stage?.scoreboard).toBeNull();
+		expect(JSON.stringify(stage)).not.toContain("total");
+	});
+
+	it("shows the first five by total, without the question", async () => {
+		const { deps, reach, answer } = await createStartedGame({ players: names });
+		await reach("answering");
+		// The later the answer, the fewer the points; Gil gets it wrong.
+		for (const number of [3, 1, 6, 2, 5, 4]) {
+			deps.clock.advanceBy(1_000);
+			await answer(number, "choice-1");
+		}
+		await answer(7, "choice-2");
+		await reach("scoreboard");
+
+		const { stage } = await createGetHostGame(deps)(mine);
+
+		expect(stage).toMatchObject({
+			phase: "scoreboard",
+			question: null,
+			distribution: null,
+			remainingMs: null,
+		});
+		expect(stage?.scoreboard).toEqual([
+			{ playerId: "p3", nickname: "Caio", total: 975, rank: 1, climbed: false },
+			{ playerId: "p1", nickname: "Ana", total: 950, rank: 2, climbed: false },
+			{
+				playerId: "p6",
+				nickname: "Fábio",
+				total: 925,
+				rank: 3,
+				climbed: false,
+			},
+			{ playerId: "p2", nickname: "Bia", total: 900, rank: 4, climbed: false },
+			{ playerId: "p5", nickname: "Eva", total: 875, rank: 5, climbed: false },
+		]);
+	});
+
+	it("shows everybody when there are few, zero included, ties by arrival", async () => {
+		const { deps, reach } = await createStartedGame({
+			players: ["Ana", "Bia", "Caio"],
+		});
+		await reach("scoreboard");
+
+		const { stage } = await createGetHostGame(deps)(mine);
+
+		expect(
+			stage?.scoreboard?.map(({ nickname, total, rank }) => [
+				nickname,
+				total,
+				rank,
+			]),
+		).toEqual([
+			["Ana", 0, 1],
+			["Bia", 0, 2],
+			["Caio", 0, 3],
+		]);
+	});
+
+	it("shows the same scoreboard on a reload, with no arrow when nobody climbed", async () => {
+		const { deps, reach, answer } = await createStartedGame();
+		await reach("answering");
+		await answer(1, "choice-1");
+		await reach("answering", 1);
+		deps.clock.advanceBy(2_000);
+		await answer(2, "true");
+		deps.clock.advanceBy(6_000);
+		await answer(1, "false");
+		await reach("scoreboard", 1);
+		const getHostGame = createGetHostGame(deps);
+
+		const first = (await getHostGame(mine)).stage?.scoreboard;
+		const again = (await getHostGame(mine)).stage?.scoreboard;
+
+		expect(first).toEqual([
+			{ playerId: "p1", nickname: "Ana", total: 1000, rank: 1, climbed: false },
+			{ playerId: "p2", nickname: "Bia", total: 900, rank: 2, climbed: false },
+		]);
+		expect(again).toEqual(first);
+	});
+
+	it("gives the arrow to who went up, not to who went down", async () => {
+		const { deps, reach, answer } = await createStartedGame();
+		await reach("answering");
+		deps.clock.advanceBy(10_000);
+		await answer(1, "choice-1");
+		await reach("answering", 1);
+		await answer(2, "true");
+		await reach("scoreboard", 1);
+
+		const { stage } = await createGetHostGame(deps)(mine);
+
+		expect(stage?.scoreboard).toEqual([
+			{ playerId: "p2", nickname: "Bia", total: 1000, rank: 1, climbed: true },
+			{ playerId: "p1", nickname: "Ana", total: 750, rank: 2, climbed: false },
+		]);
+	});
+
+	it("a no-points question changes nothing in the scoreboard", async () => {
+		const { deps, reach, answer } = await createStartedGame({
+			questions: [capital(), capital({ id: "question-2", points: "noPoints" })],
+		});
+		await reach("answering");
+		await answer(2, "choice-1");
+		await reach("answering", 1);
+		await answer(1, "choice-1");
+		await reach("scoreboard", 1);
+
+		const { stage } = await createGetHostGame(deps)(mine);
+
+		expect(stage?.scoreboard).toEqual([
+			{ playerId: "p2", nickname: "Bia", total: 1000, rank: 1, climbed: false },
+			{ playerId: "p1", nickname: "Ana", total: 0, rank: 2, climbed: false },
+		]);
+	});
+
+	it("plays the reference game: Beto 2900, Ana 2850", async () => {
+		const { deps, reach, submitAnswer } = await createStartedGame({
+			players: ["Ana", "Beto"],
+			questions: [
+				capital(),
+				capital({ id: "question-2" }),
+				capital({ id: "question-3", points: "double" }),
+			],
+		});
+		/** Each player answers `seconds` after the answers open; null is a wrong answer. */
+		async function play(
+			questionIndex: number,
+			ana: number,
+			beto: number | null,
+		) {
+			await reach("answering", questionIndex);
+			const answers = [
+				{ number: 1, seconds: ana, choice: "choice-1" },
+				{
+					number: 2,
+					seconds: beto ?? 1,
+					choice: beto === null ? "choice-2" : "choice-1",
+				},
+			].sort((a, b) => a.seconds - b.seconds);
+			let elapsed = 0;
+			for (const { number, seconds, choice } of answers) {
+				deps.clock.advanceBy(seconds * 1000 - elapsed);
+				elapsed = seconds * 1000;
+				await submitAnswer({
+					gameId: "game-1",
+					playerId: `p${number}`,
+					secret: `s${number}`,
+					questionIndex,
+					choiceIds: [choice],
+				});
+			}
+		}
+		await play(0, 4, 0.4);
+		await play(1, 10, null);
+		await play(2, 16, 2);
+		await reach("scoreboard", 2);
+
+		const { stage } = await createGetHostGame(deps)(mine);
+
+		expect(
+			stage?.scoreboard?.map(({ nickname, total }) => [nickname, total]),
+		).toEqual([
+			["Beto", 2900],
+			["Ana", 2850],
+		]);
+		expect(stage?.scoreboard?.[0]?.climbed).toBe(true);
 	});
 });

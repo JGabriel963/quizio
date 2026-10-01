@@ -45,7 +45,7 @@ export function createAdvanceGame(
 		}
 
 		const current =
-			from.phase === "gameIntro"
+			from.phase === "gameIntro" || from.phase === "scoreboard"
 				? null
 				: await deps.gameQuestions.find(game.id, from.questionIndex);
 		const next = nextStage(game, {

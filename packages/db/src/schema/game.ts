@@ -124,6 +124,8 @@ export const gameAnswer = pgTable(
 		/** Measured by the server, from the answers opening (RN-18). */
 		responseTimeMs: integer("response_time_ms").notNull(),
 		correctness: answerCorrectness("correctness").notNull(),
+		/** Worked out on receipt and never changed (spec 010, RN-07). */
+		points: integer("points").notNull().default(0),
 		receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
 	},
 	(table) => [

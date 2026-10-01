@@ -11,6 +11,7 @@ const gameIntro = { questionIndex: 0, phase: "gameIntro" } as const;
 const intro = { questionIndex: 0, phase: "questionIntro" } as const;
 const answering = { questionIndex: 0, phase: "answering" } as const;
 const results = { questionIndex: 0, phase: "results" } as const;
+const scoreboard = { questionIndex: 0, phase: "scoreboard" } as const;
 
 describe("advanceGame (spec 009)", () => {
 	it("walks a question through its phases", async () => {
@@ -97,7 +98,28 @@ describe("advanceGame (spec 009)", () => {
 		expect(revealed.stage?.phase).toBe("results");
 	});
 
-	it("a repeated request changes nothing", async () => {
+	it("shows the scoreboard between questions", async () => {
+		const { host, advance, reach, stage } = await createStartedGame();
+		await reach("results");
+
+		const board = await advance({ ...host, from: results });
+		expect(board.stage).toMatchObject({
+			questionIndex: 0,
+			phase: "scoreboard",
+			remainingMs: null,
+			question: null,
+			distribution: null,
+		});
+
+		const next = await advance({ ...host, from: scoreboard });
+		expect(next.stage).toMatchObject({
+			questionIndex: 1,
+			phase: "questionIntro",
+		});
+		expect(await stage()).toEqual({ questionIndex: 1, phase: "questionIntro" });
+	});
+
+	it("a repeated request stays at the scoreboard", async () => {
 		const { deps, host, advance, reach, stage } = await createStartedGame();
 		await reach("results");
 		const published = deps.realtime.messages.length;
@@ -106,15 +128,24 @@ describe("advanceGame (spec 009)", () => {
 		const second = await advance({ ...host, from: results });
 
 		expect(first.stage).toMatchObject({
-			questionIndex: 1,
-			phase: "questionIntro",
+			questionIndex: 0,
+			phase: "scoreboard",
 		});
 		expect(second.stage).toMatchObject({
-			questionIndex: 1,
-			phase: "questionIntro",
+			questionIndex: 0,
+			phase: "scoreboard",
 		});
-		expect(await stage()).toEqual({ questionIndex: 1, phase: "questionIntro" });
+		expect(await stage()).toEqual(scoreboard);
 		expect(deps.realtime.messages).toHaveLength(published + 1);
+	});
+
+	it("the scoreboard waits for the host", async () => {
+		const { deps, reach, stage } = await createStartedGame();
+		await reach("scoreboard");
+
+		deps.clock.advanceBy(120_000);
+
+		expect(await stage()).toEqual(scoreboard);
 	});
 
 	it("applies a transition once when two requests race", async () => {
@@ -148,13 +179,22 @@ describe("advanceGame (spec 009)", () => {
 		expect(view.stage?.phase).toBe("results");
 	});
 
-	it("finishes after the last results and frees the PIN", async () => {
+	it("finishes after the last scoreboard and frees the PIN", async () => {
 		const { deps, host, advance, reach, stored } = await createStartedGame();
 		await reach("results", 1);
 
-		const view = await advance({
+		const board = await advance({
 			...host,
 			from: { questionIndex: 1, phase: "results" },
+		});
+		expect(board.stage).toMatchObject({
+			questionIndex: 1,
+			phase: "scoreboard",
+		});
+
+		const view = await advance({
+			...host,
+			from: { questionIndex: 1, phase: "scoreboard" },
 		});
 
 		expect(view).toMatchObject({ status: "finished", stage: null });
@@ -174,8 +214,8 @@ describe("advanceGame (spec 009)", () => {
 
 	it("a game that is over takes no transition", async () => {
 		const finished = await createStartedGame();
-		await finished.reach("results", 1);
-		const last = { questionIndex: 1, phase: "results" } as const;
+		await finished.reach("scoreboard", 1);
+		const last = { questionIndex: 1, phase: "scoreboard" } as const;
 		await finished.advance({ ...finished.host, from: last });
 
 		await expect(

@@ -1,6 +1,6 @@
 import type { AnswerRepository } from "@quizio/core/game/application/ports/answer-repository";
 import type { Answer } from "@quizio/core/game/domain/answer";
-import { and, asc, count as countRows, eq } from "drizzle-orm";
+import { and, asc, count as countRows, eq, lte, sum } from "drizzle-orm";
 
 import { gameAnswer as answerTable } from "../../schema/game";
 import type { Database } from "../../types";
@@ -56,6 +56,41 @@ export function createDrizzleAnswerRepository(db: Database): AnswerRepository {
 				.from(answerTable)
 				.where(ofQuestion(gameId, questionIndex));
 			return row?.total ?? 0;
+		},
+
+		async totalsThrough(gameId, questionIndex) {
+			const rows = await db
+				.select({
+					playerId: answerTable.playerId,
+					total: sum(answerTable.points),
+				})
+				.from(answerTable)
+				.where(
+					and(
+						eq(answerTable.gameId, gameId),
+						lte(answerTable.questionIndex, questionIndex),
+					),
+				)
+				.groupBy(answerTable.playerId);
+			// `sum` comes back as text, and null only for a group with no rows.
+			return rows.map(({ playerId, total }) => ({
+				playerId,
+				total: Number(total ?? 0),
+			}));
+		},
+
+		async listByPlayer(gameId, playerId) {
+			const rows = await db
+				.select()
+				.from(answerTable)
+				.where(
+					and(
+						eq(answerTable.gameId, gameId),
+						eq(answerTable.playerId, playerId),
+					),
+				)
+				.orderBy(asc(answerTable.questionIndex));
+			return rows.map(toAnswer);
 		},
 	};
 }

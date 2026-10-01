@@ -15,6 +15,11 @@ import {
 } from "../domain/game-progress";
 import type { GameQuestion } from "../domain/game-question";
 import type { Player } from "../domain/player";
+import {
+	rankPlayers,
+	type ScoreboardEntry,
+	scoreboardOf,
+} from "../domain/standings";
 import type { AnswerRepository } from "./ports/answer-repository";
 import type { GameQuestionRepository } from "./ports/game-question-repository";
 import type { PlayerRepository } from "./ports/player-repository";
@@ -57,12 +62,14 @@ export interface HostStageView {
 	/** By the server's clock when the view was made; null for the results. */
 	remainingMs: number | null;
 	durationMs: number | null;
-	/** Null during the game intro. */
+	/** Null during the game intro and in the scoreboard, which show none. */
 	question: HostQuestionView | null;
 	/** How many players answered the question so far. */
 	answerCount: number;
 	/** Only in the results. */
 	distribution: AnswerDistribution | null;
+	/** The first five and who climbed; only in the scoreboard (spec 010). */
+	scoreboard: ScoreboardEntry[] | null;
 }
 
 /** Everything the host's screen shows, in the lobby and during the game. */
@@ -84,7 +91,10 @@ export interface HostGameView {
 export interface HostGameViewDeps {
 	players: Pick<PlayerRepository, "listActive">;
 	gameQuestions: Pick<GameQuestionRepository, "find">;
-	answers: Pick<AnswerRepository, "listByQuestion" | "countByQuestion">;
+	answers: Pick<
+		AnswerRepository,
+		"listByQuestion" | "countByQuestion" | "totalsThrough"
+	>;
 	storage: Pick<ObjectStorage, "getPublicUrl">;
 	clock: Clock;
 }
@@ -117,9 +127,29 @@ function toQuestionView(
 	};
 }
 
+/**
+ * The first five after `questionIndex`, with who climbed since the question
+ * before. Worked out from the answers on every read: nothing else stores a
+ * total (spec 010).
+ */
+async function loadScoreboard(
+	deps: HostGameViewDeps,
+	gameId: string,
+	players: readonly Player[],
+	questionIndex: number,
+): Promise<ScoreboardEntry[]> {
+	const standingsAfter = async (index: number) =>
+		rankPlayers(players, await deps.answers.totalsThrough(gameId, index));
+	return scoreboardOf(
+		await standingsAfter(questionIndex),
+		questionIndex > 0 ? await standingsAfter(questionIndex - 1) : null,
+	);
+}
+
 async function loadStageView(
 	deps: HostGameViewDeps,
 	game: Game,
+	players: readonly Player[],
 	known: GameQuestion | null | undefined,
 ): Promise<HostStageView | null> {
 	if (!isPlaying(game)) {
@@ -128,7 +158,7 @@ async function loadStageView(
 	const { progress } = game;
 	const { questionIndex, phase } = progress;
 	const question =
-		phase === "gameIntro"
+		phase === "gameIntro" || phase === "scoreboard"
 			? null
 			: known?.index === questionIndex
 				? known
@@ -153,6 +183,10 @@ async function loadStageView(
 				: 0,
 		distribution:
 			answers && question ? answerDistribution(question, answers) : null,
+		scoreboard:
+			phase === "scoreboard"
+				? await loadScoreboard(deps, game.id, players, questionIndex)
+				: null,
 	};
 }
 
@@ -176,6 +210,6 @@ export async function loadHostGameView(
 		locked: game.locked,
 		players: players.map(toLobbyPlayerView),
 		questionCount: game.questionCount,
-		stage: await loadStageView(deps, game, question),
+		stage: await loadStageView(deps, game, players, question),
 	};
 }

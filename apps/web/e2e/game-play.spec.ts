@@ -28,6 +28,10 @@ const bars = (host: Page) =>
 	host
 		.getByRole("list", { name: "Distribuição das respostas" })
 		.getByRole("listitem");
+const scoreboard = (host: Page) =>
+	host.getByRole("list", { name: "Placar" }).getByRole("listitem");
+const playerTotal = (player: Page) =>
+	player.locator('[data-slot="player-total"]');
 const answerButtons = (player: Page) =>
 	player.locator('[data-slot="answer-button"]');
 const answerButton = (player: Page, name: string) =>
@@ -168,6 +172,35 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 		await expect(heading(bia, "Incorreto")).toBeVisible();
 		await expect(bia.getByText("Brasília")).toHaveCount(0);
 
+		// Spec 010, CA-14, CA-16: points, streak, place and the total in the footer.
+		const anaPoints = ana.locator('[data-slot="answer-points"]');
+		await expect(anaPoints).toHaveText(/^\+ \d{3,4}$/);
+		const firstPoints = Number((await anaPoints.textContent())?.slice(2));
+		expect(firstPoints).toBeGreaterThanOrEqual(500);
+		expect(firstPoints).toBeLessThanOrEqual(1000);
+		await expect(ana.locator('[data-slot="answer-streak"]')).toHaveText("1");
+		await expect(ana.getByText("Você está no pódio!")).toBeVisible();
+		await expect(playerTotal(ana)).toHaveText(String(firstPoints));
+		await expect(bia.locator('[data-slot="answer-points"]')).toHaveCount(0);
+		await expect(playerTotal(bia)).toHaveText("0");
+
+		// Spec 010, CA-20, CA-22, CA-25: the scoreboard comes before the next question.
+		await host.getByRole("button", { name: "Avançar" }).click();
+		await expect(scoreboard(host)).toHaveText([
+			new RegExp(`^Ana${firstPoints}$`),
+			/^Bia0$/,
+		]);
+		await expect(host.locator('[data-slot="scoreboard-climbed"]')).toHaveCount(
+			0,
+		);
+		// The phones keep the result while the host shows the scoreboard.
+		await expect(heading(ana, "Correto")).toBeVisible();
+		await expect(anaPoints).toBeVisible();
+
+		// Spec 010, CA-28: the scoreboard survives a reload.
+		await host.reload();
+		await expect(scoreboard(host)).toHaveCount(2);
+
 		// CA-34: Avançar opens the next question on the three screens.
 		await host.getByRole("button", { name: "Avançar" }).click();
 		await expect(position(host)).toHaveText("2/2");
@@ -179,10 +212,13 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 			["Verdadeiro", "Falso"],
 			NEXT_PHASE,
 		);
-		await expect(answerButtons(ana)).toHaveCount(2);
-		await expect(answerButton(ana, "Falso")).toBeVisible();
-		await answerButton(ana, "Verdadeiro").click();
+		await expect(answerButtons(bia)).toHaveCount(2);
+		await expect(answerButton(bia, "Falso")).toBeVisible();
+		await answerButton(bia, "Verdadeiro").click();
 		await expect(answerCount(host)).toHaveText("1");
+		// Spec 010, CA-18: the total does not move before the results.
+		await expect(playerTotal(bia)).toHaveText("0");
+		await expect(playerTotal(ana)).toHaveText(String(firstPoints));
 
 		// CA-41: a reload shows the time that is really left, not the whole time.
 		await expect(timeLeft(host)).not.toHaveText(/^(20|19|18)$/);
@@ -196,15 +232,39 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 		// CA-25: skipping the timer reveals; who did not answer ran out of time.
 		await host.getByRole("button", { name: "Pular o cronômetro" }).click();
 		await expect(host.getByRole("button", { name: "Avançar" })).toBeVisible();
-		await expect(heading(ana, "Correto")).toBeVisible();
-		await expect(heading(bia, "Tempo esgotado")).toBeVisible();
-		await expect(bia.getByText("Ainda não acabou!")).toBeVisible();
+		await expect(heading(bia, "Correto")).toBeVisible();
+		await expect(heading(ana, "Tempo esgotado")).toBeVisible();
+		await expect(ana.getByText("Ainda não acabou!")).toBeVisible();
+		// Ana missed: no points, no streak, and the total stays.
+		await expect(ana.locator('[data-slot="answer-points"]')).toHaveCount(0);
+		await expect(playerTotal(ana)).toHaveText(String(firstPoints));
 
-		// CA-40: a reload at the results shows the result again.
-		await ana.reload();
-		await expect(heading(ana, "Correto")).toBeVisible();
+		// CA-40 (and spec 010, CA-19): a reload at the results shows it all again.
+		const biaPoints = bia.locator('[data-slot="answer-points"]');
+		await expect(biaPoints).toHaveText(/^\+ \d{3,4}$/);
+		const secondPoints = Number((await biaPoints.textContent())?.slice(2));
+		await bia.reload();
+		await expect(heading(bia, "Correto")).toBeVisible();
+		await expect(biaPoints).toHaveText(`+ ${secondPoints}`);
+		await expect(playerTotal(bia)).toHaveText(String(secondPoints));
 
-		// CA-36: after the last question the game is over, and the PIN is free.
+		// Spec 010, CA-24, CA-29: the last question has its scoreboard, with an
+		// arrow by Bia only if she went past Ana.
+		await host.getByRole("button", { name: "Avançar" }).click();
+		const biaLeads = secondPoints > firstPoints;
+		await expect(scoreboard(host)).toHaveText(
+			biaLeads
+				? [new RegExp(`^Bia${secondPoints}`), new RegExp(`^Ana${firstPoints}$`)]
+				: [
+						new RegExp(`^Ana${firstPoints}$`),
+						new RegExp(`^Bia${secondPoints}$`),
+					],
+		);
+		await expect(host.locator('[data-slot="scoreboard-climbed"]')).toHaveCount(
+			biaLeads ? 1 : 0,
+		);
+
+		// CA-36: after the last scoreboard the game is over, and the PIN is free.
 		await host.getByRole("button", { name: "Avançar" }).click();
 		await expect(heading(host, "Fim do jogo")).toBeVisible();
 		await expect(

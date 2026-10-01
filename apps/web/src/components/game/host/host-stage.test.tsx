@@ -48,6 +48,7 @@ function stageAt(overrides: Partial<HostStageData>): HostStageData {
 		question: capitals(hidden),
 		answerCount: 0,
 		distribution: null,
+		scoreboard: null,
 		...overrides,
 	};
 }
@@ -459,5 +460,74 @@ describe("GameFinished (spec 009)", () => {
 		expect(
 			screen.getByRole("link", { name: "Voltar ao quiz" }),
 		).toHaveAttribute("href", "/quizzes/quiz-1");
+	});
+});
+
+describe("HostStage: scoreboard (spec 010)", () => {
+	const board = stageAt({
+		questionIndex: 1,
+		phase: "scoreboard",
+		remainingMs: null,
+		durationMs: null,
+		question: null,
+		scoreboard: [
+			{ playerId: "p2", nickname: "John", total: 701, rank: 1, climbed: true },
+			{
+				playerId: "p1",
+				nickname: "Claude",
+				total: 639,
+				rank: 2,
+				climbed: false,
+			},
+			{ playerId: "p3", nickname: "Bia", total: 0, rank: 3, climbed: false },
+		],
+	});
+	const entries = () =>
+		within(screen.getByRole("list", { name: "Placar" })).getAllByRole(
+			"listitem",
+		);
+
+	it("shows the scoreboard with the leader first and who climbed", () => {
+		renderStage(board);
+
+		expect(entries().map((entry) => entry.textContent)).toEqual([
+			"John701subiu de posição",
+			"Claude639",
+			"Bia0",
+		]);
+		expect(entries().map((entry) => entry.dataset.leader)).toEqual([
+			"true",
+			"false",
+			"false",
+		]);
+		expect(
+			document.querySelectorAll('[data-slot="scoreboard-climbed"]'),
+		).toHaveLength(1);
+		// The scoreboard shows no question and no answers.
+		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
+		expect(screen.queryByText("Capitais")).toBeNull();
+	});
+
+	it("the scoreboard waits for the host, who advances", async () => {
+		vi.useFakeTimers();
+		const { actions } = renderStage(board);
+
+		await tick(120_000);
+		expect(actions.advance).not.toHaveBeenCalled();
+
+		vi.useRealTimers();
+		await userEvent.click(screen.getByRole("button", { name: "Avançar" }));
+
+		expect(actions.advance).toHaveBeenCalledExactlyOnceWith(
+			{ questionIndex: 1, phase: "scoreboard" },
+			false,
+		);
+	});
+
+	it("shows an empty list rather than breaking when the scoreboard is missing", () => {
+		renderStage({ ...board, scoreboard: null });
+
+		expect(screen.getByRole("button", { name: "Avançar" })).toBeVisible();
+		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
 	});
 });

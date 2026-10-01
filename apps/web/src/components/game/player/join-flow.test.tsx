@@ -5,7 +5,11 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { PlayerResultData, PlayerSessionData } from "@/lib/api-types";
+import type {
+	PlayerOutcomeData,
+	PlayerResultData,
+	PlayerSessionData,
+} from "@/lib/api-types";
 import {
 	createPlayerSessionStore,
 	type StoredPlayerSession,
@@ -43,6 +47,8 @@ class FakeJoinApi implements JoinApi {
 	}[] = [];
 	/** How each player did in the question being revealed. */
 	readonly results = new Map<string, PlayerResultData>();
+	/** The points each player has, as the server would tell them. */
+	readonly totals = new Map<string, number>();
 	readonly players = new Map<string, { nickname: string; removed: boolean }>();
 	readonly finds: string[] = [];
 
@@ -111,11 +117,25 @@ class FakeJoinApi implements JoinApi {
 							...stage,
 							remainingMs: stage.durationMs,
 							answered,
-							result:
-								stage.phase === "results"
-									? (this.results.get(input.playerId) ?? "timeout")
+							total: this.totals.get(input.playerId) ?? 0,
+							outcome:
+								stage.phase === "results" || stage.phase === "scoreboard"
+									? this.outcomeOf(input.playerId)
 									: null,
 						},
+		};
+	}
+
+	/** What the question left the player with: 639 points for a right answer. */
+	outcomeOf(playerId: string): PlayerOutcomeData {
+		const result = this.results.get(playerId) ?? "timeout";
+		const right = result === "correct";
+		return {
+			result,
+			points: right ? 639 : 0,
+			streak: right ? 1 : 0,
+			rank: right ? 1 : 2,
+			behind: right ? null : { nickname: "Bia", points: 639 },
 		};
 	}
 
@@ -522,7 +542,11 @@ const stageOf = (
 	questionCount: 3,
 	phase,
 	durationMs:
-		phase === "results" ? null : phase === "answering" ? 20_000 : 5_000,
+		phase === "results" || phase === "scoreboard"
+			? null
+			: phase === "answering"
+				? 20_000
+				: 5_000,
 	question:
 		phase === "gameIntro"
 			? null
@@ -801,5 +825,49 @@ describe("JoinFlow: playing (spec 009)", () => {
 			"O anfitrião encerrou o jogo.",
 		);
 		expect(pinField()).toBeInTheDocument();
+	});
+
+	it("shows the points and the total at the results, and keeps them in the scoreboard (spec 010)", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+		await flow.user.click(red());
+		const total = () =>
+			document.querySelector('[data-slot="player-total"]')?.textContent;
+		expect(total()).toBe("0");
+
+		flow.api.results.set("p1", "correct");
+		flow.api.totals.set("p1", 639);
+		moveTo(flow, stageOf("results"));
+
+		expect(await screen.findByText("+ 639")).toBeVisible();
+		expect(screen.getByText("Você está no pódio!")).toBeVisible();
+		expect(total()).toBe("639");
+
+		// The host shows the scoreboard: the phone keeps the result, with no flicker.
+		moveTo(flow, stageOf("scoreboard"));
+		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
+		expect(screen.getByText("+ 639")).toBeVisible();
+
+		// The total stays in the footer through the next question.
+		moveTo(flow, stageOf("questionIntro", 1));
+		expect(screen.getByRole("heading", { name: "Pergunta 2" })).toBeVisible();
+		expect(total()).toBe("639");
+	});
+
+	it("a reload during the scoreboard shows the result again (spec 010)", async () => {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		api.stage = stageOf("scoreboard");
+		api.results.set("p1", "correct");
+		api.totals.set("p1", 639);
+		first.unmount();
+
+		renderFlow({ api, store, pin: PIN });
+
+		expect(await screen.findByText("+ 639")).toBeVisible();
+		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
 	});
 });

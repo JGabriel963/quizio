@@ -29,7 +29,7 @@ async function answering(players = ["Ana", "Bia"]) {
 }
 
 describe("submitAnswer (spec 009)", () => {
-	it("stores the answer with the server's time and its correctness", async () => {
+	it("stores the answer with the server's time, its correctness and its points", async () => {
 		const { deps, answer } = await answering();
 		deps.clock.advanceBy(4_200);
 
@@ -43,6 +43,7 @@ describe("submitAnswer (spec 009)", () => {
 				choiceIds: ["choice-1"],
 				responseTimeMs: 4_200,
 				correctness: "correct",
+				points: 895,
 				receivedAt: deps.clock.now(),
 			},
 		]);
@@ -163,11 +164,53 @@ describe("submitAnswer (spec 009)", () => {
 
 	it("a finished game takes no answer", async () => {
 		const { host, advance, submitAnswer, reach } = await createStartedGame();
-		await reach("results", 1);
-		await advance({ ...host, from: { questionIndex: 1, phase: "results" } });
+		await reach("scoreboard", 1);
+		await advance({ ...host, from: { questionIndex: 1, phase: "scoreboard" } });
 
 		await expect(submitAnswer(fromPlayer(1, ["true"], 1))).rejects.toThrow(
 			AnswersClosedError,
 		);
+	});
+
+	it("scores by speed, and nothing for a wrong answer", async () => {
+		const { deps, answer } = await answering(["Ana", "Bia", "Caio"]);
+		deps.clock.advanceBy(5_000);
+		await answer(1, "choice-1");
+		deps.clock.advanceBy(7_000);
+		await answer(2, "choice-1");
+		await answer(3, "choice-2");
+
+		const points = (await deps.answers.listByQuestion("game-1", 0)).map(
+			(entry) => entry.points,
+		);
+
+		expect(points).toEqual([875, 700, 0]);
+	});
+
+	it("an answer within the grace scores as one at the time limit", async () => {
+		const { deps, answer } = await answering();
+		deps.clock.advanceBy(20_300);
+
+		await answer(1, "choice-1");
+
+		expect(await deps.answers.find("game-1", 0, "p1")).toMatchObject({
+			points: 500,
+		});
+	});
+
+	it("the streak gives no points", async () => {
+		const { deps, reach, answer } = await createStartedGame();
+		await reach("answering");
+		await answer(1, "choice-1");
+		await reach("answering", 1);
+		deps.clock.advanceBy(5_000);
+
+		// Ana comes from a right answer, Bia from none: same instant, same points.
+		await answer(1, "true");
+		await answer(2, "true");
+
+		const [ana, bia] = await deps.answers.listByQuestion("game-1", 1);
+		expect(ana?.points).toBe(750);
+		expect(bia?.points).toBe(750);
 	});
 });

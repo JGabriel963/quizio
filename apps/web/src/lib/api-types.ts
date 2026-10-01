@@ -22,9 +22,14 @@ export type HostGameData = RouterOutputs["game"]["view"];
 export type LobbyPlayerData = HostGameData["players"][number];
 export type HostStageData = NonNullable<HostGameData["stage"]>;
 export type HostQuestionData = NonNullable<HostStageData["question"]>;
+export type ScoreboardEntryData = NonNullable<
+	HostStageData["scoreboard"]
+>[number];
 
 /** What a player's device should be showing (specs 008, 009). */
 export type PlayerSessionData = RouterOutputs["game"]["join"]["session"];
 export type PlayerStageData = NonNullable<PlayerSessionData["stage"]>;
 export type PlayerQuestionData = NonNullable<PlayerStageData["question"]>;
-export type PlayerResultData = NonNullable<PlayerStageData["result"]>;
+/** What a question left the player with: result, points, streak and place (spec 010). */
+export type PlayerOutcomeData = NonNullable<PlayerStageData["outcome"]>;
+export type PlayerResultData = PlayerOutcomeData["result"];

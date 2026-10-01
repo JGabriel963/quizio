@@ -15,6 +15,7 @@ export const GAME_PHASES = [
 	"questionIntro",
 	"answering",
 	"results",
+	"scoreboard",
 ] as const;
 export type GamePhase = (typeof GAME_PHASES)[number];
 
@@ -96,6 +97,7 @@ export function phaseDurationMs(
 		case "answering":
 			return timeLimitSeconds * 1000;
 		case "results":
+		case "scoreboard":
 			return null;
 	}
 }
@@ -130,7 +132,7 @@ function moveTo(game: Game, stage: StageRef, now: Date): Game {
 
 /**
  * The stage after the current one, or the game finished after the last
- * results (RN-30). A phase with a deadline only ends once it has passed;
+ * scoreboard (spec 009, RN-30; spec 010, RN-23). A phase with a deadline only ends once it has passed;
  * `skip` ends the answers early ("Pular o cronômetro", RN-10).
  */
 export function nextStage(
@@ -164,6 +166,8 @@ export function nextStage(
 		case "answering":
 			return moveTo(game, { questionIndex, phase: "results" }, input.now);
 		case "results":
+			return moveTo(game, { questionIndex, phase: "scoreboard" }, input.now);
+		case "scoreboard":
 			if (questionIndex + 1 < game.questionCount) {
 				return moveTo(
 					game,
@@ -180,6 +184,17 @@ export function nextStage(
 				endReason: null,
 			};
 	}
+}
+
+/**
+ * The last question whose points may be told (spec 010, RN-09): the current
+ * one once its results are out, the one before until then; -1 before any.
+ * Totals, streaks and places are always worked out up to it.
+ */
+export function revealedThrough(progress: GameProgress): number {
+	const revealed =
+		progress.phase === "results" || progress.phase === "scoreboard";
+	return revealed ? progress.questionIndex : progress.questionIndex - 1;
 }
 
 /** Everybody answered: the results come without waiting for the time (RN-10). */

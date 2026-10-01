@@ -40,6 +40,7 @@ export function anAnswer(overrides: Partial<Answer> = {}): Answer {
 		choiceIds: ["choice-1"],
 		responseTimeMs: 4_200,
 		correctness: "correct",
+		points: 895,
 		receivedAt: new Date("2026-06-01T12:00:04.200Z"),
 		...overrides,
 	};

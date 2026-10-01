@@ -1,5 +1,6 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import type { GameQuestion } from "./game-question";
+import { calculateAnswerScore } from "./scoring";
 
 /**
  * How an answer did (spec 009, RN-24). A player without an answer is not
@@ -18,6 +19,8 @@ export interface Answer {
 	/** Measured by the server, from the answers opening (RN-18). */
 	responseTimeMs: number;
 	correctness: Correctness;
+	/** Worked out on receipt and never changed (spec 010, RN-07). */
+	points: number;
 	receivedAt: Date;
 }
 
@@ -80,6 +83,28 @@ export function correctnessOf(
 	}
 	const rightAnswers = question.choices.filter((choice) => choice.correct);
 	return picked.length === rightAnswers.length ? "correct" : "partiallyCorrect";
+}
+
+/**
+ * What an answer is worth (spec 010, RN-01 to RN-06): by speed, per right
+ * answer marked, nothing if any marked answer is wrong or the question gives
+ * no points. `responseTimeMs` is the server's, within the time limit.
+ */
+export function answerPoints(
+	question: GameQuestion,
+	choiceIds: readonly string[],
+	responseTimeMs: number,
+): number {
+	const chosen = new Set(choiceIds);
+	return calculateAnswerScore({
+		isCorrect: correctnessOf(question, choiceIds) !== "wrong",
+		responseTimeMs,
+		timeLimitMs: question.timeLimitSeconds * 1000,
+		pointsMultiplier: question.points,
+		correctAnswers: question.choices.filter(
+			(choice) => choice.correct && chosen.has(choice.id),
+		).length,
+	});
 }
 
 /** Each answer a player marked counts once in its bar (RN-22, RN-23). */

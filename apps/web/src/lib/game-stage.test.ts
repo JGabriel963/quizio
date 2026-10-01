@@ -4,6 +4,7 @@ import type { HostGameData } from "./api-types";
 import {
 	answerShapeName,
 	applyAnswerCount,
+	positionMessage,
 	showsStage,
 	stageOrder,
 	waitingPhrase,
@@ -27,6 +28,7 @@ const answering: HostGameData = {
 		question: null,
 		answerCount: 2,
 		distribution: null,
+		scoreboard: null,
 	},
 };
 
@@ -122,5 +124,39 @@ describe("player texts (spec 009)", () => {
 			"Círculo amarelo",
 			"Quadrado verde",
 		]);
+	});
+});
+
+describe("positionMessage (spec 010)", () => {
+	it("is on the podium up to third place", () => {
+		for (const rank of [1, 2, 3]) {
+			expect(
+				positionMessage({ rank, behind: { nickname: "Bia", points: 10 } }),
+			).toEqual({ title: "Você está no pódio!", detail: null });
+		}
+	});
+
+	it("tells the place and who is ahead, from fourth on", () => {
+		expect(
+			positionMessage({ rank: 5, behind: { nickname: "Bia", points: 120 } }),
+		).toEqual({
+			title: "Você está em 5º lugar",
+			detail: "120 pontos atrás de Bia",
+		});
+		expect(
+			positionMessage({ rank: 4, behind: { nickname: "Ana", points: 1 } }),
+		).toEqual({
+			title: "Você está em 4º lugar",
+			detail: "1 ponto atrás de Ana",
+		});
+	});
+
+	it("orders the scoreboard after the results", () => {
+		expect(
+			stageOrder({ questionIndex: 0, phase: "scoreboard" }),
+		).toBeGreaterThan(stageOrder({ questionIndex: 0, phase: "results" }));
+		expect(stageOrder({ questionIndex: 0, phase: "scoreboard" })).toBeLessThan(
+			stageOrder({ questionIndex: 1, phase: "questionIntro" }),
+		);
 	});
 });

@@ -300,10 +300,12 @@ describe("game router: playing (spec 009)", () => {
 				{ choiceId: "choice-4", count: 0 },
 			],
 		});
-		expect((await visitor.game.join.session(ana)).stage?.result).toBe(
+		expect((await visitor.game.join.session(ana)).stage?.outcome?.result).toBe(
 			"correct",
 		);
-		expect((await visitor.game.join.session(bia)).stage?.result).toBe("wrong");
+		expect((await visitor.game.join.session(bia)).stage?.outcome?.result).toBe(
+			"wrong",
+		);
 		expect(await api.answers.find(gameId, 0, ana.playerId)).toMatchObject({
 			responseTimeMs: 4_200,
 		});
@@ -387,7 +389,7 @@ describe("game router: playing (spec 009)", () => {
 
 		for (const sent of [session, published]) {
 			expect(JSON.stringify(sent)).not.toMatch(
-				/Brasília|capital|correct|distribution/i,
+				/Brasília|capital|correct|distribution|points|rank|streak/i,
 			);
 		}
 		expect(published.at(-1)).toMatchObject({
@@ -403,7 +405,7 @@ describe("game router: playing (spec 009)", () => {
 			host.game.advance({
 				gameId,
 				// @ts-expect-error not a phase
-				from: { questionIndex: 0, phase: "scoreboard" },
+				from: { questionIndex: 0, phase: "podium" },
 			}),
 		).rejects.toMatchObject({
 			code: "BAD_REQUEST",
@@ -418,6 +420,71 @@ describe("game router: playing (spec 009)", () => {
 		).rejects.toMatchObject({
 			code: "BAD_REQUEST",
 			cause: { name: "ZodError" },
+		});
+	});
+
+	it("scores, ranks and shows the scoreboard (spec 010)", async () => {
+		const { api, host, visitor, gameId, ana, bia } = await answering();
+		api.clock.advanceBy(5_000);
+		await visitor.game.join.answer({
+			...ana,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+		api.clock.advanceBy(7_000);
+		await visitor.game.join.answer({
+			...bia,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+
+		expect((await visitor.game.join.session(bia)).stage).toMatchObject({
+			total: 700,
+			outcome: {
+				result: "correct",
+				points: 700,
+				streak: 1,
+				rank: 2,
+				behind: { nickname: "Ana", points: 175 },
+			},
+		});
+
+		const board = await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "results" },
+		});
+		expect(board.stage).toMatchObject({
+			phase: "scoreboard",
+			question: null,
+			scoreboard: [
+				{
+					playerId: ana.playerId,
+					nickname: "Ana",
+					total: 875,
+					rank: 1,
+					climbed: false,
+				},
+				{
+					playerId: bia.playerId,
+					nickname: "Bia",
+					total: 700,
+					rank: 2,
+					climbed: false,
+				},
+			],
+		});
+		expect((await host.game.view({ gameId })).stage?.scoreboard).toEqual(
+			board.stage?.scoreboard,
+		);
+
+		const next = await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "scoreboard" },
+		});
+		expect(next.stage).toMatchObject({
+			questionIndex: 1,
+			phase: "questionIntro",
+			scoreboard: null,
 		});
 	});
 });

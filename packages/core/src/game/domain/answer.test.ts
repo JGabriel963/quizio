@@ -4,6 +4,7 @@ import { aTrueFalseQuestion } from "../../quiz/testing/a-question";
 import { aGameQuestion, someChoices } from "../testing/a-game-question";
 import {
 	answerDistribution,
+	answerPoints,
 	correctnessOf,
 	InvalidAnswerError,
 	parseAnswerChoices,
@@ -99,5 +100,57 @@ describe("answer distribution (spec 009, RN-22)", () => {
 		expect(
 			answerDistribution(multiple, answers).map((entry) => entry.count),
 		).toEqual([3, 1, 1, 0]);
+	});
+});
+
+describe("answerPoints (spec 010)", () => {
+	it("scores by speed, down to half the points at the time limit", () => {
+		expect(answerPoints(single, ["choice-1"], 300)).toBe(1000);
+		expect(answerPoints(single, ["choice-1"], 5_000)).toBe(875);
+		expect(answerPoints(single, ["choice-1"], 12_000)).toBe(700);
+		expect(answerPoints(single, ["choice-1"], 19_900)).toBe(503);
+		expect(answerPoints(single, ["choice-1"], 20_000)).toBe(500);
+	});
+
+	it("follows the official example: 2 s of 30 s is 967", () => {
+		const question = aGameQuestion({ timeLimitSeconds: 30 });
+
+		expect(answerPoints(question, ["choice-1"], 2_000)).toBe(967);
+	});
+
+	it("doubles the points of a double-points question", () => {
+		const question = aGameQuestion({ points: "double" });
+
+		expect(answerPoints(question, ["choice-1"], 5_000)).toBe(1750);
+	});
+
+	it("a wrong answer and a no-points question score nothing", () => {
+		expect(answerPoints(single, ["choice-2"], 1_000)).toBe(0);
+		expect(
+			answerPoints(aGameQuestion({ points: "noPoints" }), ["choice-1"], 1_000),
+		).toBe(0);
+	});
+
+	it("scores multiple selection per right answer marked, nothing with a wrong one", () => {
+		const question = aGameQuestion({
+			timeLimitSeconds: 30,
+			selection: "multiple",
+			choices: someChoices(["a", "b", "c", "d"], [0, 1, 2]),
+		});
+
+		expect(
+			answerPoints(question, ["choice-1", "choice-2", "choice-3"], 8_000),
+		).toBe(2600);
+		expect(answerPoints(question, ["choice-1", "choice-2"], 8_000)).toBe(1733);
+		expect(
+			answerPoints(question, ["choice-1", "choice-2", "choice-4"], 8_000),
+		).toBe(0);
+	});
+
+	it("scores true/false like any other question", () => {
+		const question = toGameQuestion(aTrueFalseQuestion({ correct: true }), 0);
+
+		expect(answerPoints(question, ["true"], 10_000)).toBe(750);
+		expect(answerPoints(question, ["false"], 10_000)).toBe(0);
 	});
 });

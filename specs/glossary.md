@@ -104,16 +104,18 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Andamento | `GameProgress` | Onde a partida está: pergunta, fase e desde quando. O prazo da fase é esse instante mais a duração dela (spec 009) | ✅ |
 | Pergunta da partida | `GameQuestion` | A pergunta como a partida a usa, copiada ao iniciar: só as alternativas preenchidas, cada uma com a posição de cor e forma (spec 009) | ✅ |
 | Palco público | `PublicStage` | A parte de uma fase que todo aparelho pode saber: número da pergunta, fase, duração e formas das alternativas; sem textos e sem a correta (spec 009) | ✅ |
-| Fase | `GamePhase` | `gameIntro` (abertura da partida, 3 s) → `questionIntro` (5 s de leitura) → `answering` (limite de tempo da pergunta) → `results`; `scoreboard` chega na spec 010 | ✅ |
+| Fase | `GamePhase` | `gameIntro` (abertura da partida, 3 s) → `questionIntro` (5 s de leitura) → `answering` (limite de tempo da pergunta) → `results` → `scoreboard` (placar, até o anfitrião avançar) | ✅ |
 | Avançar de fase | `advanceGame`, `StageRef` | Pedido da tela do anfitrião para a fase seguinte, dizendo de que fase parte; o servidor confere o prazo e aplica uma única vez (spec 009) | ✅ |
 | Pular o cronômetro | `advanceGame` com `skip` | O anfitrião fecha a fase de respostas antes do tempo (spec 009) | ✅ |
 | Resposta | `Answer` | Envio de um jogador para uma pergunta: uma por pergunta, sem troca, aceita só dentro do prazo (spec 009) | ✅ |
 | Tempo de resposta | `ResponseTime` | Instante do envio − abertura das respostas, medido no servidor | ✅ (`responseTimeMs`) |
 | Correção | `Correctness` | `correct`, `partiallyCorrect` (múltipla escolha: parte das certas, nenhuma errada), `wrong`; sem resposta é `timeout` (`PlayerResult`, spec 009). `almostCorrect` chega com outros tipos | ✅ |
-| Pontuação da resposta | `AnswerScore` | Pontos pela fórmula de velocidade; cheia abaixo de 0,5 s | ✅ (`calculateAnswerScore`) |
-| Sequência de acertos | `AnswerStreak` | Acertos consecutivos; apenas exibida, não dá pontos | 📝 |
+| Pontuação da resposta | `AnswerScore` | Pontos pela fórmula de velocidade; cheia abaixo de 0,5 s; por alternativa correta marcada na múltipla escolha; gravada com a resposta (spec 010) | ✅ (`calculateAnswerScore`, `answerPoints`) |
+| Sequência de acertos | `AnswerStreak` | Perguntas seguidas com resposta correta ou parcialmente correta; zera com erro ou sem resposta; apenas exibida, não dá pontos (spec 010) | ✅ (`streakAfter`) |
+| Total de pontos | `totalScore` | Soma dos pontos das respostas de um jogador na partida; divulgado só a partir da revelação (spec 010) | ✅ |
+| Posição | `rank` | Lugar do jogador pelo total de pontos; empate pela ordem de entrada na partida (spec 010) | ✅ (`rankPlayers`) |
 | Distribuição de respostas | `AnswerDistribution` | Quantos escolheram cada alternativa; divulgada só na revelação (spec 009) | ✅ |
-| Placar | `Scoreboard` | Top 5 entre perguntas | 📝 |
+| Placar | `Scoreboard` | Fase depois da revelação de cada pergunta: os cinco primeiros, com apelido e total, e a seta em quem subiu de posição (spec 010) | ✅ (`scoreboardOf`) |
 | Pódio | `Podium` | Top 3 ao final | 📝 |
 | Equipe | `Team` | Grupo de jogadores; pontuação = média dos membros | 📝 |
 
