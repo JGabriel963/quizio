@@ -6,16 +6,18 @@ import { AnswerOption } from "./answer-option";
 import { ANSWER_SHAPES, answerShapeAt } from "./answer-shape";
 
 describe("answerShapeAt", () => {
-	it("follows Kahoot's fixed order: triangle, diamond, circle, square", () => {
+	it("six shapes in Kahoot order: triangle, diamond, circle, square, pentagon, inverted triangle", () => {
 		expect(ANSWER_SHAPES.map((_, index) => answerShapeAt(index))).toEqual([
 			"triangle",
 			"diamond",
 			"circle",
 			"square",
+			"pentagon",
+			"inverted-triangle",
 		]);
 	});
 
-	it.each([-1, 4])("rejects position %s", (index) => {
+	it.each([-1, 6])("rejects position %s", (index) => {
 		expect(() => answerShapeAt(index)).toThrow(RangeError);
 	});
 });
@@ -26,6 +28,8 @@ describe("AnswerOption", () => {
 		["diamond", "bg-answer-blue"],
 		["circle", "bg-answer-yellow"],
 		["square", "bg-answer-green"],
+		["pentagon", "bg-answer-teal"],
+		["inverted-triangle", "bg-answer-purple"],
 	] as const)("derives the %s color from its shape", (shape, colorClass) => {
 		render(<AnswerOption shape={shape}>Pedro</AnswerOption>);
 

@@ -1,11 +1,13 @@
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
-import { aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { aQuestion } from "@quizio/core/quiz/testing/a-question";
+import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { user } from "../../schema/auth";
 import { quiz as quizTable } from "../../schema/quiz";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
+import { createDrizzleQuestionRepository } from "../quiz/drizzle-question-repository";
 import { createDrizzleQuizRepository } from "../quiz/drizzle-quiz-repository";
 import { createDrizzleLibraryQuizQuery } from "./drizzle-library-quiz-query";
 
@@ -80,6 +82,48 @@ describe("DrizzleLibraryQuizQuery", () => {
 		expect(ids(await list("recent"))).toEqual(["active"]);
 		expect(ids(await list("drafts"))).toEqual(["active"]);
 		expect(ids(await list("trash"))).toEqual(["trashed"]);
+	});
+
+	it("drafts leave out published quizzes", async () => {
+		await seed(
+			aQuiz({ id: "draft", updatedAt: day(1) }),
+			aPublishedQuiz({ id: "published", updatedAt: day(2) }),
+			aPublishedQuiz({
+				id: "changed",
+				hasUnpublishedChanges: true,
+				updatedAt: day(3),
+			}),
+		);
+
+		expect(ids(await list("drafts"))).toEqual(["draft"]);
+		await expect(count("drafts")).resolves.toBe(1);
+		expect(ids(await list("recent"))).toEqual([
+			"changed",
+			"published",
+			"draft",
+		]);
+	});
+
+	it("returns hasUnpublishedChanges", async () => {
+		await seed(
+			aPublishedQuiz({ id: "published", updatedAt: day(1) }),
+			aPublishedQuiz({
+				id: "changed",
+				hasUnpublishedChanges: true,
+				updatedAt: day(2),
+			}),
+		);
+
+		expect(
+			(await list("recent")).map(({ id, status, hasUnpublishedChanges }) => ({
+				id,
+				status,
+				hasUnpublishedChanges,
+			})),
+		).toEqual([
+			{ id: "changed", status: "published", hasUnpublishedChanges: true },
+			{ id: "published", status: "published", hasUnpublishedChanges: false },
+		]);
 	});
 
 	it("orders by updatedAt desc and the trash by trashedAt desc", async () => {
@@ -196,10 +240,40 @@ describe("DrizzleLibraryQuizQuery", () => {
 				coverImageKey: "media/user-1/cover.png",
 				visibility: "unlisted",
 				status: "draft",
+				hasUnpublishedChanges: false,
 				questionCount: 0,
 				updatedAt: aQuiz().updatedAt,
 				trashedAt: null,
 			},
 		]);
+	});
+
+	it("records carry the real question count", async () => {
+		await seed(
+			aQuiz({ id: "quiz-1" }),
+			aQuiz({ id: "quiz-2", updatedAt: day(2) }),
+		);
+		await createDrizzleQuestionRepository(testDb.db).saveList("quiz-1", [
+			aQuestion({ id: "a" }),
+			aQuestion({ id: "b" }),
+			aQuestion({ id: "c" }),
+		]);
+
+		const records = await list("recent");
+
+		expect(
+			records.map(({ id, questionCount }) => ({ id, questionCount })),
+		).toEqual([
+			{ id: "quiz-2", questionCount: 0 },
+			{ id: "quiz-1", questionCount: 3 },
+		]);
+	});
+
+	it("a quiz without questions reports zero", async () => {
+		await seed(aQuiz());
+
+		const [record] = await list("recent");
+
+		expect(record?.questionCount).toBe(0);
 	});
 });

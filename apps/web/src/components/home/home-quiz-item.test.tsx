@@ -13,6 +13,7 @@ const quiz: HomeQuizView = {
 	coverImageUrl: null,
 	visibility: "private",
 	status: "draft",
+	hasUnpublishedChanges: false,
 	questionCount: 0,
 	updatedAt: "2026-04-15T12:00:00.000Z",
 	trashedAt: null,
@@ -44,5 +45,36 @@ describe("HomeQuizItem", () => {
 
 		await screen.findByRole("link", { name: "Bom de Bíblia (Junho)" });
 		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+	});
+});
+
+describe("HomeQuizItem status", () => {
+	it.each([
+		["a draft", {}, "Rascunho"],
+		[
+			"a published quiz with changes",
+			{ status: "published", hasUnpublishedChanges: true },
+			"Alterações não salvas",
+		],
+	] as const)("shows the status badge of %s", async (_, overrides, label) => {
+		renderWithRouter(
+			<HomeQuizItem quiz={{ ...quiz, ...overrides }} now={now} />,
+		);
+
+		expect(await screen.findByText(label)).toHaveAttribute(
+			"data-slot",
+			"badge",
+		);
+	});
+
+	it("a published quiz without changes has no status badge", async () => {
+		renderWithRouter(
+			<HomeQuizItem quiz={{ ...quiz, status: "published" }} now={now} />,
+		);
+
+		await screen.findByRole("link", { name: "Bom de Bíblia (Junho)" });
+		expect(screen.queryByText("Rascunho")).toBeNull();
+		expect(screen.queryByText("Alterações não salvas")).toBeNull();
+		expect(screen.queryByText("Publicado")).toBeNull();
 	});
 });

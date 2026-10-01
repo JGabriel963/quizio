@@ -43,7 +43,11 @@
 	--answer-blue: #1368ce;
 	--answer-yellow: #d89e00;
 	--answer-green: #26890c;
+	--answer-teal: #0c8582;
+	--answer-purple: #864cbf;
 	--answer-foreground: #ffffff;
+	/* The "correct" mark on an answer block: lighter than answer-green, so it shows on every color. */
+	--answer-correct: #66bf39;
 
 	--chart-1: var(--answer-red);
 	--chart-2: var(--answer-blue);
@@ -101,7 +105,10 @@
 	--color-answer-blue: var(--answer-blue);
 	--color-answer-yellow: var(--answer-yellow);
 	--color-answer-green: var(--answer-green);
+	--color-answer-teal: var(--answer-teal);
+	--color-answer-purple: var(--answer-purple);
 	--color-answer-foreground: var(--answer-foreground);
+	--color-answer-correct: var(--answer-correct);
 	--color-brand: var(--brand);
 	--color-brand-foreground: var(--brand-foreground);
 	--color-brand-strong: var(--brand-strong);

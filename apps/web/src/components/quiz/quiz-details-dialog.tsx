@@ -42,7 +42,6 @@ export interface QuizDetailsSubmitValues {
 export interface QuizDetailsDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	mode: "create" | "edit";
 	initialValues?: {
 		title: string | null;
 		description: string | null;
@@ -73,7 +72,6 @@ export function QuizDetailsDialog({
 }
 
 function QuizDetailsForm({
-	mode,
 	initialValues,
 	onSubmit,
 	uploadCover,
@@ -133,11 +131,9 @@ function QuizDetailsForm({
 			}}
 		>
 			<DialogHeader>
-				<DialogTitle>
-					{mode === "create" ? "Criar quiz" : "Editar dados do quiz"}
-				</DialogTitle>
+				<DialogTitle>Configurações do quiz</DialogTitle>
 				<DialogDescription>
-					Título, descrição, capa e visibilidade. As perguntas chegam no editor.
+					Título, descrição, capa e visibilidade.
 				</DialogDescription>
 			</DialogHeader>
 
@@ -235,7 +231,7 @@ function QuizDetailsForm({
 					Cancelar
 				</Button>
 				<Button type="submit" disabled={submitting}>
-					{mode === "create" ? "Criar quiz" : "Salvar"}
+					Salvar
 				</Button>
 			</DialogFooter>
 		</form>

@@ -15,6 +15,7 @@ const item: LibraryItemView = {
 	coverImageUrl: null,
 	visibility: "private",
 	status: "draft",
+	hasUnpublishedChanges: false,
 	questionCount: 0,
 	updatedAt: "2026-04-15T12:00:00.000Z",
 	trashedAt: null,
@@ -111,5 +112,46 @@ describe("QuizListItem", () => {
 		).toEqual(["Restaurar", "Excluir definitivamente"]);
 		await user.click(screen.getByRole("menuitem", { name: "Restaurar" }));
 		expect(actions.onRestore).toHaveBeenCalledWith(trashed);
+	});
+});
+
+describe("QuizListItem status", () => {
+	it.each([
+		["a draft", {}, "Rascunho"],
+		[
+			"a published quiz with changes",
+			{ status: "published", hasUnpublishedChanges: true },
+			"Alterações não salvas",
+		],
+	] as const)("shows the status badge of %s", async (_, overrides, label) => {
+		renderWithRouter(
+			<QuizListItem
+				item={{ ...item, ...overrides }}
+				section="recent"
+				now={now}
+				actions={fakeActions()}
+			/>,
+		);
+
+		expect(await screen.findByText(label)).toHaveAttribute(
+			"data-slot",
+			"badge",
+		);
+	});
+
+	it("a published quiz without changes has no status badge", async () => {
+		renderWithRouter(
+			<QuizListItem
+				item={{ ...item, status: "published" }}
+				section="recent"
+				now={now}
+				actions={fakeActions()}
+			/>,
+		);
+
+		await screen.findByRole("link", { name: "Bom de Bíblia (Junho)" });
+		expect(screen.queryByText("Rascunho")).toBeNull();
+		expect(screen.queryByText("Alterações não salvas")).toBeNull();
+		expect(screen.queryByText("Publicado")).toBeNull();
 	});
 });

@@ -2,12 +2,21 @@ import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
 import {
 	duplicateQuizTitle,
+	parseQuizDescription,
+	parseQuizTitle,
 	type QuizDetails,
 	type QuizVisibility,
 } from "./quiz-details";
 
-/** Only drafts exist until the editor feature adds publishing (spec 001, RN-11). */
-export type QuizStatus = "draft";
+/**
+ * A draft was never saved as playable; a published quiz has a playable
+ * version and never goes back to draft (spec 006, RN-02, RN-03).
+ */
+export const QUIZ_STATUSES = ["draft", "published"] as const;
+export type QuizStatus = (typeof QUIZ_STATUSES)[number];
+
+/** What the status badge shows (spec 006, RN-22, RN-30). */
+export type QuizPublishState = "draft" | "published" | "unpublishedChanges";
 
 export interface Quiz {
 	id: string;
@@ -17,6 +26,15 @@ export interface Quiz {
 	coverImageKey: string | null;
 	visibility: QuizVisibility;
 	status: QuizStatus;
+	/** Number of the playable version in force; null in a draft (spec 006, RN-04). */
+	publishedVersion: number | null;
+	/** When that version was saved. */
+	publishedAt: Date | null;
+	/**
+	 * The live question list differs from the playable version (RN-19). Derived
+	 * data, kept on the quiz so listings need no question content.
+	 */
+	hasUnpublishedChanges: boolean;
 	createdAt: Date;
 	updatedAt: Date;
 	trashedAt: Date | null;
@@ -38,6 +56,15 @@ export class InvalidCoverImageError extends DomainError {
 	readonly code = "QUIZ.INVALID_COVER";
 }
 
+/** Publishing needs a title, and a published quiz keeps one (spec 006, RN-12, RN-21). */
+export class QuizTitleRequiredError extends DomainError {
+	readonly code = "QUIZ.TITLE_REQUIRED";
+}
+
+export class QuizNotPublishedError extends DomainError {
+	readonly code = "QUIZ.NOT_PUBLISHED";
+}
+
 export function newQuiz(input: {
 	id: string;
 	ownerId: string;
@@ -53,6 +80,9 @@ export function newQuiz(input: {
 		coverImageKey: input.coverImageKey,
 		visibility: input.details.visibility,
 		status: "draft",
+		publishedVersion: null,
+		publishedAt: null,
+		hasUnpublishedChanges: false,
 		createdAt: input.now,
 		updatedAt: input.now,
 		trashedAt: null,
@@ -74,6 +104,7 @@ export function changeQuizDetails(
 	now: Date,
 ): Quiz {
 	assertQuizEditable(quiz);
+	assertKeepsTitle(quiz, change.details.title);
 	return {
 		...quiz,
 		title: change.details.title,
@@ -82,6 +113,83 @@ export function changeQuizDetails(
 		coverImageKey: change.coverImageKey,
 		updatedAt: now,
 	};
+}
+
+/** Every change made in the editor is an edit of the quiz (spec 003, RN-24). */
+export function touchQuiz(quiz: Quiz, now: Date): Quiz {
+	assertQuizEditable(quiz);
+	return { ...quiz, updatedAt: now };
+}
+
+/** Title typed in the editor header (spec 003, RN-18). */
+export function renameQuiz(
+	quiz: Quiz,
+	rawTitle: string | null,
+	now: Date,
+): Quiz {
+	const title = parseQuizTitle(rawTitle);
+	const touched = touchQuiz(quiz, now);
+	assertKeepsTitle(quiz, title);
+	return { ...touched, title };
+}
+
+function assertKeepsTitle(quiz: Quiz, title: string | null): void {
+	if (quiz.status === "published" && title === null) {
+		throw new QuizTitleRequiredError("A published quiz must keep a title");
+	}
+}
+
+/** Title and description typed in "Toques finais", right before publishing (spec 006, RN-12). */
+export function withFinishingTouches(
+	quiz: Quiz,
+	touches: { title: string | null; description: string | null },
+): Quiz {
+	assertQuizEditable(quiz);
+	return {
+		...quiz,
+		title: parseQuizTitle(touches.title),
+		description: parseQuizDescription(touches.description),
+	};
+}
+
+/**
+ * The quiz once its question list was frozen as the next version (spec 006,
+ * RN-15, RN-17). The caller checks the questions; the title is checked here.
+ */
+export function publishQuiz(quiz: Quiz, now: Date): Quiz {
+	assertQuizEditable(quiz);
+	if (quiz.title === null) {
+		throw new QuizTitleRequiredError("A quiz needs a title to be published");
+	}
+	return {
+		...quiz,
+		status: "published",
+		publishedVersion: (quiz.publishedVersion ?? 0) + 1,
+		publishedAt: now,
+		hasUnpublishedChanges: false,
+		updatedAt: now,
+	};
+}
+
+/** An edit of the questions: only a published quiz can have pending changes (RN-19). */
+export function markQuizChanges(
+	quiz: Quiz,
+	differsFromVersion: boolean,
+	now: Date,
+): Quiz {
+	return {
+		...touchQuiz(quiz, now),
+		hasUnpublishedChanges: quiz.status === "published" && differsFromVersion,
+	};
+}
+
+export function quizPublishState(
+	quiz: Pick<Quiz, "status" | "hasUnpublishedChanges">,
+): QuizPublishState {
+	if (quiz.status === "draft") {
+		return "draft";
+	}
+	return quiz.hasUnpublishedChanges ? "unpublishedChanges" : "published";
 }
 
 /** Moving to the trash is not an edit: updatedAt stays (RN-18). Idempotent. */

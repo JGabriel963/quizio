@@ -6,17 +6,17 @@ import { AppShell } from "@/components/layout/app-shell";
 import { CreateQuizContext } from "@/components/layout/create-quiz-context";
 import { renderWithRouter } from "@/testing/render-with-router";
 
-async function renderShell() {
-	const openCreateQuiz = vi.fn();
+async function renderShell({ creating = false } = {}) {
+	const createQuiz = vi.fn();
 	renderWithRouter(
-		<CreateQuizContext value={{ openCreateQuiz }}>
+		<CreateQuizContext value={{ createQuiz, creating }}>
 			<AppShell pathname="/">
 				<p>Conteúdo</p>
 			</AppShell>
 		</CreateQuizContext>,
 	);
 	await screen.findByRole("navigation", { name: "Navegação principal" });
-	return { openCreateQuiz, user: userEvent.setup() };
+	return { createQuiz, user: userEvent.setup() };
 }
 
 const navToggle = () => screen.getByRole("button", { name: "Navegação" });
@@ -57,11 +57,17 @@ describe("AppShell", () => {
 		expect(navToggle()).toHaveAttribute("aria-expanded", "false");
 	});
 
-	it("opens the create dialog from the top bar", async () => {
-		const { openCreateQuiz, user } = await renderShell();
+	it("Criar creates a quiz from the top bar", async () => {
+		const { createQuiz, user } = await renderShell();
 
 		await user.click(screen.getByRole("button", { name: "Criar" }));
 
-		expect(openCreateQuiz).toHaveBeenCalledOnce();
+		expect(createQuiz).toHaveBeenCalledOnce();
+	});
+
+	it("Criar is disabled while creating", async () => {
+		await renderShell({ creating: true });
+
+		expect(screen.getByRole("button", { name: "Criar" })).toBeDisabled();
 	});
 });

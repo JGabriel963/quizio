@@ -12,6 +12,16 @@ export class InMemoryQuizRepository implements QuizRepository {
 		this.#quizzes.set(quiz.id, quiz);
 	}
 
+	async markEdited(
+		id: string,
+		change: { updatedAt: Date; hasUnpublishedChanges: boolean },
+	): Promise<void> {
+		const quiz = this.#quizzes.get(id);
+		if (quiz) {
+			this.#quizzes.set(id, { ...quiz, ...change });
+		}
+	}
+
 	async delete(id: string): Promise<void> {
 		this.#quizzes.delete(id);
 	}

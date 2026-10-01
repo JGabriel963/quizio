@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
-import { QuizNotFoundError } from "../domain/quiz";
-import { aQuiz } from "../testing/a-quiz";
+import { QuizNotFoundError, trashQuiz } from "../domain/quiz";
+import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
+import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import { createRestoreQuiz, type RestoreQuiz } from "./restore-quiz";
 
@@ -18,6 +19,7 @@ describe("restoreQuiz", () => {
 		quizzes = new InMemoryQuizRepository();
 		restoreQuiz = createRestoreQuiz({
 			quizzes,
+			questions: new InMemoryQuestionRepository(),
 			storage: new InMemoryObjectStorage("https://media.test"),
 		});
 	});
@@ -32,6 +34,22 @@ describe("restoreQuiz", () => {
 
 		expect(view.trashedAt).toBeNull();
 		expect(await quizzes.findById("quiz-1")).toEqual(original);
+	});
+
+	it("trash and restore keep the version", async () => {
+		const published = aPublishedQuiz({ hasUnpublishedChanges: true });
+		await quizzes.save(
+			trashQuiz(published, new Date("2026-05-01T00:00:00.000Z")),
+		);
+
+		const view = await restoreQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(view).toMatchObject({
+			status: "published",
+			publishedVersion: 1,
+			hasUnpublishedChanges: true,
+		});
+		expect(await quizzes.findById("quiz-1")).toEqual(published);
 	});
 
 	it("is idempotent", async () => {

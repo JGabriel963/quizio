@@ -1,32 +1,36 @@
 import { beforeEach, describe, expect, it } from "vitest";
-
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
+import { blankQuestion } from "../domain/question";
 import { InvalidCoverImageError } from "../domain/quiz";
 import { QuizTitleTooLongError } from "../domain/quiz-details";
+import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import { type CreateQuiz, createCreateQuiz } from "./create-quiz";
 
 describe("createQuiz", () => {
 	let quizzes: InMemoryQuizRepository;
+	let questions: InMemoryQuestionRepository;
 	let storage: InMemoryObjectStorage;
 	let clock: FixedClock;
 	let createQuiz: CreateQuiz;
 
 	beforeEach(() => {
 		quizzes = new InMemoryQuizRepository();
+		questions = new InMemoryQuestionRepository();
 		storage = new InMemoryObjectStorage("https://media.test");
 		clock = new FixedClock("2026-06-01T12:00:00.000Z");
 		createQuiz = createCreateQuiz({
 			quizzes,
+			questions,
 			storage,
 			ids: new SequentialIdGenerator("quiz"),
 			clock,
 		});
 	});
 
-	it("creates a private draft with zero questions stamped now", async () => {
+	it("creates a private draft stamped now reporting one question", async () => {
 		const view = await createQuiz({
 			ownerId: "user-1",
 			title: "Bom de Bíblia (Junho)",
@@ -40,7 +44,10 @@ describe("createQuiz", () => {
 			coverImageUrl: null,
 			visibility: "private",
 			status: "draft",
-			questionCount: 0,
+			publishedVersion: null,
+			publishedAt: null,
+			hasUnpublishedChanges: false,
+			questionCount: 1,
 			createdAt: clock.now(),
 			updatedAt: clock.now(),
 			trashedAt: null,
@@ -48,6 +55,12 @@ describe("createQuiz", () => {
 		expect(quizzes.all()).toEqual([
 			expect.objectContaining({ id: "quiz-1", ownerId: "user-1" }),
 		]);
+	});
+
+	it("creates the quiz with one blank quiz question", async () => {
+		const view = await createQuiz({ ownerId: "user-1" });
+
+		expect(questions.listOf(view.id)).toEqual([blankQuestion("quiz-2")]);
 	});
 
 	it("stores an owned, uploaded cover", async () => {
@@ -73,6 +86,7 @@ describe("createQuiz", () => {
 			createQuiz({ ownerId: "user-1", coverImageKey }),
 		).rejects.toThrow(InvalidCoverImageError);
 		expect(quizzes.all()).toHaveLength(0);
+		expect(questions.listOf("quiz-1")).toHaveLength(0);
 	});
 
 	it("rejects titles above the limit without creating the quiz", async () => {

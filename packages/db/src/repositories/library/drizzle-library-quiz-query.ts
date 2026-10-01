@@ -8,14 +8,26 @@ import {
 	count as countRows,
 	desc,
 	eq,
+	getTableColumns,
 	isNotNull,
 	isNull,
 	like,
 	type SQL,
+	sql,
 } from "drizzle-orm";
 
-import { quiz as quizTable } from "../../schema/quiz";
+import {
+	question as questionTable,
+	quiz as quizTable,
+} from "../../schema/quiz";
 import type { Database } from "../../types";
+
+/**
+ * Real question count per quiz (spec 003, RN-26). Columns are qualified by
+ * hand: Drizzle renders them bare inside raw SQL, and a bare "id" in the
+ * subquery would resolve to question.id.
+ */
+const questionCount = sql<number>`(select count(*)::int from ${questionTable} where ${questionTable}.${sql.identifier(questionTable.quizId.name)} = ${quizTable}.${sql.identifier(quizTable.id.name)})`;
 
 /** Escapes LIKE wildcards so user input matches literally (Postgres' default escape is `\`). */
 const escapeLikePattern = (text: string) =>
@@ -52,7 +64,7 @@ export function createDrizzleLibraryQuizQuery(db: Database): LibraryQuizQuery {
 					? quizTable.trashedAt
 					: quizTable.updatedAt;
 			const query = db
-				.select()
+				.select({ ...getTableColumns(quizTable), questionCount })
 				.from(quizTable)
 				.where(and(...buildConditions(criteria)))
 				.orderBy(desc(newestFirst), asc(quizTable.id));
@@ -60,12 +72,14 @@ export function createDrizzleLibraryQuizQuery(db: Database): LibraryQuizQuery {
 				? query
 				: query.limit(criteria.limit));
 
-			// questionCount becomes a real count when questions exist (spec 003).
 			return rows.map(
-				({ createdAt: _createdAt, description: _description, ...row }) => ({
-					...row,
-					questionCount: 0,
-				}),
+				({
+					createdAt: _createdAt,
+					description: _description,
+					publishedVersion: _publishedVersion,
+					publishedAt: _publishedAt,
+					...row
+				}) => row,
 			);
 		},
 

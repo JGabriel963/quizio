@@ -11,7 +11,6 @@ function renderDialog(overrides: Partial<QuizDetailsDialogProps> = {}) {
 	const props: QuizDetailsDialogProps = {
 		open: true,
 		onOpenChange: vi.fn(),
-		mode: "create",
 		onSubmit: vi.fn(async () => ({ error: null })),
 		uploadCover: vi.fn(),
 		...overrides,
@@ -32,7 +31,7 @@ describe("QuizDetailsDialog", () => {
 		await user.paste("a".repeat(93));
 		await user.click(screen.getByLabelText("Descrição"));
 		await user.paste("d".repeat(501));
-		await user.click(screen.getByRole("button", { name: "Criar quiz" }));
+		await user.click(screen.getByRole("button", { name: "Salvar" }));
 
 		expect(
 			await screen.findByText("O título deve ter no máximo 95 caracteres."),
@@ -43,12 +42,12 @@ describe("QuizDetailsDialog", () => {
 		expect(props.onSubmit).not.toHaveBeenCalled();
 	});
 
-	it("creates a private quiz by default", async () => {
+	it("saves a quiz without details as private by default", async () => {
 		const user = userEvent.setup();
 		const props = renderDialog();
 
 		await user.type(screen.getByLabelText("Título"), "Geografia");
-		await user.click(screen.getByRole("button", { name: "Criar quiz" }));
+		await user.click(screen.getByRole("button", { name: "Salvar" }));
 
 		expect(props.onSubmit).toHaveBeenCalledWith({
 			title: "Geografia",
@@ -61,7 +60,6 @@ describe("QuizDetailsDialog", () => {
 	it("prefills the current details and saves the changes", async () => {
 		const user = userEvent.setup();
 		const props = renderDialog({
-			mode: "edit",
 			initialValues: {
 				title: "Bom de Bíblia",
 				description: "Atos 1 a 7",
@@ -90,7 +88,7 @@ describe("QuizDetailsDialog", () => {
 			})),
 		});
 
-		await user.click(screen.getByRole("button", { name: "Criar quiz" }));
+		await user.click(screen.getByRole("button", { name: "Salvar" }));
 
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"Não foi possível salvar o quiz.",

@@ -1,10 +1,14 @@
+import { quizPublishState } from "@quizio/core/quiz/domain/quiz";
 import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
-import { Button } from "@quizio/ui/components/button";
+import { Button, buttonVariants } from "@quizio/ui/components/button";
+import { Link } from "@tanstack/react-router";
+import { PencilIcon } from "lucide-react";
 import type { QuizDetailsData } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
 
 import { QuizCover } from "./quiz-cover";
+import { QuizStatusBadge } from "./quiz-status-badge";
 import { VisibilityBadge } from "./visibility-badge";
 
 export interface QuizDetailsActions {
@@ -48,6 +52,7 @@ export function QuizDetailsView({
 						</p>
 					)}
 					<div className="flex flex-wrap items-center gap-3 text-sm">
+						<QuizStatusBadge state={quizPublishState(quiz)} />
 						<VisibilityBadge visibility={quiz.visibility} />
 						<span className="font-semibold">
 							{questionCountLabel(quiz.questionCount)}
@@ -57,6 +62,12 @@ export function QuizDetailsView({
 							{formatRelativeTime(new Date(quiz.updatedAt), now)}
 						</span>
 					</div>
+					{/* Whether there is something to play, and since when (spec 006, RN-31). */}
+					<p className="text-muted-foreground text-sm">
+						{quiz.publishedAt
+							? `Versão jogável salva ${formatRelativeTime(new Date(quiz.publishedAt), now)}`
+							: "Ainda não foi salvo como jogável"}
+					</p>
 					<div className="flex flex-wrap gap-2 pt-2">
 						{inTrash ? (
 							<>
@@ -70,7 +81,18 @@ export function QuizDetailsView({
 							</>
 						) : (
 							<>
-								<Button onClick={actions.onEdit}>Editar dados</Button>
+								{/* The editor holds the questions (spec 003, RN-05). */}
+								<Link
+									to="/creator/$quizId"
+									params={{ quizId: quiz.id }}
+									className={buttonVariants()}
+								>
+									<PencilIcon data-icon="inline-start" />
+									Editar
+								</Link>
+								<Button variant="outline" onClick={actions.onEdit}>
+									Editar dados
+								</Button>
 								<Button variant="secondary" onClick={actions.onDuplicate}>
 									Duplicar
 								</Button>

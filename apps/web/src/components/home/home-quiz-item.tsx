@@ -1,7 +1,9 @@
+import { quizPublishState } from "@quizio/core/quiz/domain/quiz";
 import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
 import { Link } from "@tanstack/react-router";
 
 import { QuizCover } from "@/components/quiz/quiz-cover";
+import { QuizStatusBadge } from "@/components/quiz/quiz-status-badge";
 import type { HomeQuizView } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
@@ -36,6 +38,7 @@ export function HomeQuizItem({
 					<span>{formatRelativeTime(new Date(quiz.updatedAt), now)}</span>
 				</span>
 			</div>
+			<QuizStatusBadge state={quizPublishState(quiz)} />
 		</li>
 	);
 }

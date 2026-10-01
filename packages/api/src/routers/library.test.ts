@@ -22,9 +22,20 @@ describe("library router", () => {
 		expect(items.map((item) => item.id)).toEqual([mine.id]);
 		expect(items[0]).toMatchObject({
 			title: "Bom de Bíblia",
-			questionCount: 0,
+			questionCount: 1,
 			coverImageUrl: null,
 		});
+	});
+
+	it("library items carry the question count", async () => {
+		const api = createTestApi();
+		const ana = api.callerFor("user-1");
+		const created = await ana.quiz.create({ title: "Geografia" });
+		await ana.quiz.duplicate({ quizId: created.id });
+
+		const items = await ana.library.list({ section: "recent" });
+
+		expect(items.map((item) => item.questionCount)).toEqual([1, 1]);
 	});
 
 	it("passes the search through the library use case, ignoring accents", async () => {
@@ -82,7 +93,7 @@ describe("library router", () => {
 		expect(overview.quizzes).toHaveLength(6);
 		expect(overview.totalQuizCount).toBe(8);
 		expect(overview.quizzes[0]).toMatchObject({
-			questionCount: 0,
+			questionCount: 1,
 			coverImageUrl: null,
 		});
 	});

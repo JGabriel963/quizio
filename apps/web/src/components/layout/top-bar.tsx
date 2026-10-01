@@ -19,7 +19,7 @@ export function TopBar({
 	navId: string;
 }) {
 	const navigate = useNavigate();
-	const { openCreateQuiz } = useCreateQuiz();
+	const { createQuiz, creating } = useCreateQuiz();
 
 	return (
 		<header className="border-border border-b bg-card">
@@ -54,7 +54,7 @@ export function TopBar({
 				</div>
 
 				<div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0">
-					<Button onClick={openCreateQuiz}>
+					<Button onClick={createQuiz} disabled={creating}>
 						<PlusIcon data-icon="inline-start" />
 						Criar
 					</Button>

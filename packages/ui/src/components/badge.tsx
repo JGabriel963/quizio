@@ -23,6 +23,11 @@ const badgeVariants = cva(
 				// Entry point of a feature that is planned but not delivered yet
 				// (spec 002): dashed outline reads as "not here yet", not as a state.
 				soon: "border-border border-dashed text-muted-foreground",
+				// Quiz status (spec 006): a draft is quiet, a published quiz is
+				// settled, and pending changes use the editor's alert color.
+				draft: "border-border text-muted-foreground",
+				published: "bg-success/10 text-success",
+				unsaved: "bg-brand/10 text-brand",
 			},
 		},
 		defaultVariants: {

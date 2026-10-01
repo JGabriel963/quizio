@@ -6,9 +6,11 @@ import {
 	InvalidCoverImageError,
 	QuizInTrashError,
 	QuizNotFoundError,
+	QuizTitleRequiredError,
 } from "../domain/quiz";
 import { QuizDescriptionTooLongError } from "../domain/quiz-details";
-import { aQuiz } from "../testing/a-quiz";
+import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
+import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import {
 	createUpdateQuizDetails,
@@ -41,7 +43,12 @@ describe("updateQuizDetails", () => {
 		quizzes = new InMemoryQuizRepository();
 		storage = new InMemoryObjectStorage("https://media.test");
 		clock = new FixedClock("2026-06-01T12:00:00.000Z");
-		updateQuizDetails = createUpdateQuizDetails({ quizzes, storage, clock });
+		updateQuizDetails = createUpdateQuizDetails({
+			quizzes,
+			questions: new InMemoryQuestionRepository(),
+			storage,
+			clock,
+		});
 
 		await quizzes.save(aQuiz({ coverImageKey: OLD_COVER }));
 		storage.simulateUpload(OLD_COVER);
@@ -129,5 +136,32 @@ describe("updateQuizDetails", () => {
 		await expect(
 			updateQuizDetails(input({ ownerId: "user-2" })),
 		).rejects.toThrow(QuizNotFoundError);
+	});
+
+	it("refuses to clear the title of a published quiz", async () => {
+		await quizzes.save(
+			aPublishedQuiz({ title: "Geografia", coverImageKey: OLD_COVER }),
+		);
+
+		await expect(updateQuizDetails(input({ title: "  " }))).rejects.toThrow(
+			QuizTitleRequiredError,
+		);
+		expect((await quizzes.findById("quiz-1"))?.title).toBe("Geografia");
+		// A draft may still lose its title.
+		await quizzes.save(aQuiz({ coverImageKey: OLD_COVER }));
+		expect((await updateQuizDetails(input({ title: null }))).title).toBeNull();
+	});
+
+	it("changing the details of a published quiz keeps its version marks", async () => {
+		await quizzes.save(
+			aPublishedQuiz({ coverImageKey: OLD_COVER, hasUnpublishedChanges: true }),
+		);
+
+		expect(await updateQuizDetails(input())).toMatchObject({
+			title: "Geografia",
+			status: "published",
+			publishedVersion: 1,
+			hasUnpublishedChanges: true,
+		});
 	});
 });

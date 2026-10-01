@@ -19,6 +19,7 @@ function aRecord(
 		coverImageKey: null,
 		visibility: "private",
 		status: "draft",
+		hasUnpublishedChanges: false,
 		questionCount: 0,
 		updatedAt: day(1),
 		trashedAt: null,

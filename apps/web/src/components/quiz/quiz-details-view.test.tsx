@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { QuizDetailsData } from "@/lib/api-types";
+import { renderWithRouter } from "@/testing/render-with-router";
 
 import { type QuizDetailsActions, QuizDetailsView } from "./quiz-details-view";
 
@@ -15,6 +16,9 @@ const quiz: QuizDetailsData = {
 	coverImageUrl: null,
 	visibility: "private",
 	status: "draft",
+	publishedVersion: null,
+	publishedAt: null,
+	hasUnpublishedChanges: false,
 	questionCount: 0,
 	createdAt: "2026-04-01T12:00:00.000Z",
 	updatedAt: "2026-04-15T12:00:00.000Z",
@@ -34,10 +38,15 @@ function fakeActions(): QuizDetailsActions {
 describe("QuizDetailsView", () => {
 	it("shows cover, title, description, visibility, zero questions and last change with edit, duplicate and delete actions", async () => {
 		const actions = fakeActions();
-		render(<QuizDetailsView quiz={quiz} actions={actions} now={now} />);
+		renderWithRouter(
+			<QuizDetailsView quiz={quiz} actions={actions} now={now} />,
+		);
 
 		expect(
-			screen.getByRole("heading", { level: 1, name: "Bom de Bíblia (Junho)" }),
+			await screen.findByRole("heading", {
+				level: 1,
+				name: "Bom de Bíblia (Junho)",
+			}),
 		).toBeInTheDocument();
 		expect(screen.getByText("Atos 1 a 7")).toBeInTheDocument();
 		expect(screen.getByText("Privado")).toBeInTheDocument();
@@ -58,8 +67,19 @@ describe("QuizDetailsView", () => {
 		).toBeInTheDocument();
 	});
 
-	it("shows the untitled placeholder for quizzes without a title", () => {
-		render(
+	it("renders Editar linking to the quiz editor", async () => {
+		renderWithRouter(
+			<QuizDetailsView quiz={quiz} actions={fakeActions()} now={now} />,
+		);
+
+		expect(await screen.findByRole("link", { name: "Editar" })).toHaveAttribute(
+			"href",
+			"/creator/quiz-1",
+		);
+	});
+
+	it("shows the untitled placeholder for quizzes without a title", async () => {
+		renderWithRouter(
 			<QuizDetailsView
 				quiz={{ ...quiz, title: null, description: null }}
 				actions={fakeActions()}
@@ -68,13 +88,13 @@ describe("QuizDetailsView", () => {
 		);
 
 		expect(
-			screen.getByRole("heading", { level: 1, name: "Quiz sem título" }),
+			await screen.findByRole("heading", { level: 1, name: "Quiz sem título" }),
 		).toBeInTheDocument();
 	});
 
 	it("shows the trash notice with only restore and delete permanently", async () => {
 		const actions = fakeActions();
-		render(
+		renderWithRouter(
 			<QuizDetailsView
 				quiz={{ ...quiz, trashedAt: "2026-06-10T12:00:00.000Z" }}
 				actions={actions}
@@ -82,8 +102,11 @@ describe("QuizDetailsView", () => {
 			/>,
 		);
 
-		expect(screen.getByText("Este quiz está na lixeira.")).toBeInTheDocument();
+		expect(
+			await screen.findByText("Este quiz está na lixeira."),
+		).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "Editar dados" })).toBeNull();
+		expect(screen.queryByRole("link", { name: "Editar" })).toBeNull();
 		expect(screen.queryByRole("button", { name: "Duplicar" })).toBeNull();
 		await userEvent
 			.setup()
@@ -92,5 +115,63 @@ describe("QuizDetailsView", () => {
 		expect(
 			screen.getByRole("button", { name: "Excluir definitivamente" }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("QuizDetailsView status", () => {
+	it("a draft shows its badge and that it was never saved as playable", async () => {
+		renderWithRouter(
+			<QuizDetailsView quiz={quiz} actions={fakeActions()} now={now} />,
+		);
+
+		expect(await screen.findByText("Rascunho")).toHaveAttribute(
+			"data-slot",
+			"badge",
+		);
+		expect(
+			screen.getByText("Ainda não foi salvo como jogável"),
+		).toBeInTheDocument();
+	});
+
+	it("tells when the playable version was saved", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={{
+					...quiz,
+					status: "published",
+					publishedVersion: 1,
+					publishedAt: "2026-06-13T12:00:00.000Z",
+				}}
+				actions={fakeActions()}
+				now={now}
+			/>,
+		);
+
+		expect(
+			await screen.findByText("Versão jogável salva anteontem"),
+		).toBeInTheDocument();
+		expect(screen.queryByText("Rascunho")).toBeNull();
+		expect(screen.queryByText("Alterações não salvas")).toBeNull();
+	});
+
+	it("a published quiz with changes shows the badge", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={{
+					...quiz,
+					status: "published",
+					publishedVersion: 1,
+					publishedAt: "2026-06-13T12:00:00.000Z",
+					hasUnpublishedChanges: true,
+				}}
+				actions={fakeActions()}
+				now={now}
+			/>,
+		);
+
+		expect(await screen.findByText("Alterações não salvas")).toHaveAttribute(
+			"data-slot",
+			"badge",
+		);
 	});
 });

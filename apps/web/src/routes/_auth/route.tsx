@@ -1,17 +1,10 @@
-import {
-	createFileRoute,
-	Outlet,
-	redirect,
-	useRouterState,
-} from "@tanstack/react-router";
-
-import { AppShell } from "@/components/layout/app-shell";
-import { CreateQuizProvider } from "@/components/layout/create-quiz-context";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { getUser } from "@/functions/get-user";
 
+/** Guards every creator screen; the shell or the editor chrome comes below. */
 export const Route = createFileRoute("/_auth")({
-	component: AuthLayout,
+	component: Outlet,
 	beforeLoad: async ({ location }) => {
 		const session = await getUser();
 		if (!session) {
@@ -24,17 +17,3 @@ export const Route = createFileRoute("/_auth")({
 		return { session };
 	},
 });
-
-function AuthLayout() {
-	const pathname = useRouterState({
-		select: (state) => state.location.pathname,
-	});
-
-	return (
-		<CreateQuizProvider>
-			<AppShell pathname={pathname}>
-				<Outlet />
-			</AppShell>
-		</CreateQuizProvider>
-	);
-}

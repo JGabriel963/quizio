@@ -11,9 +11,22 @@ export function aQuiz(overrides: Partial<Quiz> = {}): Quiz {
 		coverImageKey: null,
 		visibility: "private",
 		status: "draft",
+		publishedVersion: null,
+		publishedAt: null,
+		hasUnpublishedChanges: false,
 		createdAt,
 		updatedAt: createdAt,
 		trashedAt: null,
 		...overrides,
 	};
+}
+
+/** Test builder: a quiz already saved as playable, version 1 by default. */
+export function aPublishedQuiz(overrides: Partial<Quiz> = {}): Quiz {
+	return aQuiz({
+		status: "published",
+		publishedVersion: 1,
+		publishedAt: new Date("2026-02-01T10:00:00.000Z"),
+		...overrides,
+	});
 }

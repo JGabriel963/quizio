@@ -66,6 +66,8 @@ Contextos se comunicam por **IDs** e por **casos de uso**, nunca importando o co
 
 `core/src/shared` é o *shared kernel*: `DomainError` e `NotFoundError`, portas transversais (`Clock`, `IdGenerator`, `ObjectStorage`, `RealtimePublisher`), utilidades puras usadas por vários contextos (`normalizeSearchText`, `characterCount`, chaves de mídia por dono) e seus fakes.
 
+**Conteúdo por tipo em JSONB.** Perguntas são linhas da tabela `question`, com colunas para o que todo tipo compartilha (posição, tipo, enunciado) e, a partir da spec 004, uma coluna `content jsonb` para o que é de cada tipo, validada por parsers puros no core ([ADR 0008](adr/0008-modelo-de-perguntas.md)). A versão jogável será um snapshot imutável (spec 006). Operações do editor marcam o quiz como editado com `QuizRepository.touch`, que grava só `updated_at`, para nunca sobrescrever uma alteração concorrente dos dados do quiz.
+
 ## Estrutura de um contexto
 
 ```

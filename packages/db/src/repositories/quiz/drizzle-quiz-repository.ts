@@ -26,6 +26,13 @@ export function createDrizzleQuizRepository(db: Database): QuizRepository {
 				.onConflictDoUpdate({ target: quizTable.id, set: changes });
 		},
 
+		async markEdited(id, { updatedAt, hasUnpublishedChanges }) {
+			await db
+				.update(quizTable)
+				.set({ updatedAt, hasUnpublishedChanges })
+				.where(eq(quizTable.id, id));
+		},
+
 		async delete(id) {
 			await db.delete(quizTable).where(eq(quizTable.id, id));
 		},

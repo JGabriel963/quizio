@@ -16,6 +16,7 @@ import {
 import { ANSWER_SHAPES } from "@quizio/ui/components/answer-shape";
 import { Badge } from "@quizio/ui/components/badge";
 import { Button } from "@quizio/ui/components/button";
+import { Checkbox } from "@quizio/ui/components/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -66,6 +67,8 @@ const sampleAnswers = [
 	"Campo do oleiro",
 	"Getsêmani",
 	"Monte das Oliveiras",
+	"Vale de Hinom",
+	"Betânia",
 ];
 const answerStates: AnswerOptionState[] = [
 	"idle",
@@ -143,7 +146,9 @@ function DesignSystemPage() {
 						<Badge variant="private">Privado</Badge>
 						<Badge variant="unlisted">Não listado</Badge>
 						<Badge variant="soon">Em breve</Badge>
-						<Badge>Rascunho</Badge>
+						<Badge variant="draft">Rascunho</Badge>
+						<Badge variant="published">Publicado</Badge>
+						<Badge variant="unsaved">Alterações não salvas</Badge>
 					</div>
 				</div>
 			</Section>
@@ -216,6 +221,26 @@ function DesignSystemPage() {
 							{state}
 						</AnswerOption>
 					))}
+				</div>
+				{/* Verdadeiro ou falso: blue diamond first, then red triangle (spec 005). */}
+				<div className="grid gap-3 sm:grid-cols-2">
+					<AnswerOption shape="diamond" size="lg">
+						Verdadeiro
+					</AnswerOption>
+					<AnswerOption shape="triangle" size="lg">
+						Falso
+					</AnswerOption>
+				</div>
+				<div className="flex items-center gap-3 rounded-md bg-answer-blue p-3">
+					<Checkbox variant="answer" aria-label="Correta (desmarcada)" />
+					<Checkbox
+						variant="answer"
+						defaultChecked
+						aria-label="Correta (marcada)"
+					/>
+					<span className="font-bold text-answer-foreground">
+						Checkbox variant="answer"
+					</span>
 				</div>
 			</Section>
 		</main>

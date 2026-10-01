@@ -17,6 +17,7 @@ function aRecord(
 		coverImageKey: null,
 		visibility: "private",
 		status: "draft",
+		hasUnpublishedChanges: false,
 		questionCount: 0,
 		updatedAt: day(1),
 		trashedAt: null,
@@ -83,6 +84,29 @@ describe("InMemoryLibraryQuizQuery", () => {
 				searchText: "biblia",
 			}),
 		).resolves.toBe(3);
+	});
+
+	it("drafts list only never-published quizzes", async () => {
+		const query = queryOver([
+			aRecord({ id: "draft", updatedAt: day(1) }),
+			aRecord({ id: "published", status: "published", updatedAt: day(2) }),
+			aRecord({
+				id: "changed",
+				status: "published",
+				hasUnpublishedChanges: true,
+				updatedAt: day(3),
+			}),
+		]);
+		const criteria = { ownerId: "user-1", searchText: null };
+
+		expect(ids(await query.list({ ...criteria, section: "drafts" }))).toEqual([
+			"draft",
+		]);
+		expect(ids(await query.list({ ...criteria, section: "recent" }))).toEqual([
+			"changed",
+			"published",
+			"draft",
+		]);
 	});
 
 	it("counts zero when nothing matches", async () => {

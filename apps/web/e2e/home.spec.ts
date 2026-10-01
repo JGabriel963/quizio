@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { createQuiz, quizList, signUp } from "./support";
+import {
+	createQuiz,
+	createQuizInEditor,
+	expectSaved,
+	quizList,
+	signUp,
+} from "./support";
 
 test("a visitor sees the public landing with sign-in actions and no main nav", async ({
 	page,
@@ -44,18 +50,14 @@ test("a signed-in creator lands on the dashboard and opens a quiz from it", asyn
 	).toBeVisible();
 });
 
-test("creating from the top bar opens the new quiz and puts it on top of the dashboard", async ({
+test("creating from the top bar opens the editor and puts the quiz on top of the dashboard", async ({
 	page,
 }) => {
 	await signUp(page);
 
-	await page.getByRole("button", { name: "Criar", exact: true }).click();
-	await page.getByLabel("Título").fill("Geografia");
-	await page.getByRole("button", { name: "Criar quiz" }).click();
-
-	await expect(
-		page.getByRole("heading", { level: 1, name: "Geografia" }),
-	).toBeVisible();
+	await createQuizInEditor(page);
+	await page.getByRole("textbox", { name: "Título do quiz" }).fill("Geografia");
+	await expectSaved(page);
 
 	await page.goto("/");
 	await expect(

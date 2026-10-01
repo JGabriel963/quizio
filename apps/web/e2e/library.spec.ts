@@ -19,7 +19,7 @@ test("creates a quiz with a PNG cover that tops Recentes and Rascunhos", async (
 	const first = quizList(page).getByRole("listitem").first();
 	await expect(first.getByRole("link")).toHaveText("Bom de Bíblia (Junho)");
 	await expect(first.locator("img")).toHaveAttribute("src", /\/media\//);
-	await expect(first.getByText("0 perguntas")).toBeVisible();
+	await expect(first.getByText("1 pergunta")).toBeVisible();
 	await expect(first.getByText("Privado")).toBeVisible();
 
 	await page.getByRole("link", { name: "Rascunhos" }).click();

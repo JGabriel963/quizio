@@ -15,6 +15,8 @@ export interface LibraryQuizRecord {
 	coverImageKey: string | null;
 	visibility: QuizVisibility;
 	status: QuizStatus;
+	/** A published quiz whose questions differ from its playable version (spec 006, RN-30). */
+	hasUnpublishedChanges: boolean;
 	questionCount: number;
 	updatedAt: Date;
 	trashedAt: Date | null;
@@ -32,7 +34,9 @@ export interface LibraryQuizCriteria {
 /**
  * Contract (spec 001):
  * - only quizzes of `ownerId`;
- * - `recent`: not trashed; `drafts`: not trashed and draft; `trash`: trashed;
+ * - `recent`: not trashed; `drafts`: not trashed and never published, even
+ *   when a published quiz has unpublished changes (spec 006, RN-29); `trash`:
+ *   trashed;
  * - `searchText` matches a substring of `searchTitle`;
  * - `recent`/`drafts` ordered by `updatedAt` desc, `trash` by `trashedAt` desc,
  *   ties broken by `id`;

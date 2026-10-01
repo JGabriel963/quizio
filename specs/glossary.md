@@ -39,19 +39,47 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Capa | `coverImageKey` / `coverImageUrl` | Imagem opcional do quiz, segue a política de mídia (spec 001) | ✅ |
 | Alteração de capa | `CoverChange` | `keep`, `set` (nova chave) ou `remove` ao editar os dados (spec 001) | ✅ |
 | Última modificação | `updatedAt` | Instante da criação ou da última alteração dos dados do quiz (spec 001) | ✅ |
-| Rascunho | `status: "draft"` | Quiz ainda não salvo como versão jogável | ✅ |
+| Rascunho | `status: "draft"` | Quiz que nunca foi salvo como versão jogável (spec 006) | ✅ |
 | Visibilidade | `QuizVisibility` | `private`, `unlisted` (spec 001); `public` com a descoberta pública | ✅ (`public` 📝) |
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
-| Pergunta | `Question` | Bloco interativo com texto (≤ 120), tipo, tempo limite e pontos | 📝 |
-| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | 📝 |
+| Pergunta | `Question` | Bloco interativo com texto (≤ 160), tipo, tempo limite e pontos | ✅ |
+| Enunciado | `text` | Texto da pergunta, ≤ 160 caracteres (120 no Kahoot); pode ficar vazio no rascunho (spec 003) | ✅ |
+| Pergunta em branco | `blankQuestion` | Pergunta Quiz recém-criada, sem enunciado; todo quiz novo nasce com uma (spec 003) | ✅ |
+| Posição | `position` | Ordem da pergunta no quiz, que é a ordem de apresentação na partida (spec 003) | ✅ |
+| Limite de perguntas | `QUIZ_MAX_QUESTIONS` | Máximo de 200 perguntas por quiz, configurável (spec 003) | ✅ |
+| Editor | `Creator` (rota `/creator/:id`) | Tela cheia onde o criador monta as perguntas de um quiz (spec 003) | ✅ |
+| Salvamento automático | `Autosave` | Toda alteração no editor é salva sem ação do criador; o cabeçalho mostra "Salvando…", "Salvo" ou a falha (spec 003) | ✅ (`SaveTracker`) |
+| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`, `trueFalse`; demais 📝) |
+| Verdadeiro ou falso | `trueFalse`, `TrueFalseQuestion` | Tipo de pergunta com duas alternativas fixas, "Verdadeiro" (azul, losango) e "Falso" (vermelho, triângulo), e exatamente uma correta; desmarcar a correta marca a outra (spec 005) | ✅ |
+| Seletor de tipo | `QuestionTypePicker` | Escolha do tipo ao adicionar uma pergunta; mostra só os tipos já entregues (spec 005) | ✅ |
+| Troca de tipo | `QuestionChange` `kind: "type"`, `changeQuestionType` | Mudar o tipo de uma pergunta existente: mantém enunciado, tempo, pontos e posição, e substitui as respostas pelas do novo tipo (spec 005) | ✅ |
+| Respostas lembradas | `RememberedContents`, `typeChangeFor` | O que a pergunta tinha em cada tipo, guardado só enquanto o criador está no editor, para desfazer uma troca de tipo; não é salvo (spec 005) | ✅ |
+| Conteúdo do tipo | `QuestionContent`, `questionContent` | A parte da pergunta que é própria do tipo: alternativas e seleção no Quiz, a correta no Verdadeiro ou falso (ADR 0008, spec 005) | ✅ |
 | Slide | `Slide` | Bloco só de conteúdo, com layout; sem resposta nem pontos | 📝 |
-| Alternativa | `AnswerOption` | Opção de resposta (texto ≤ 75 ou imagem) com flag de correta | 📝 (UI ✅) |
-| Forma da alternativa | `AnswerShape` | Triângulo, losango, círculo, quadrado — sempre com a cor correspondente | ✅ (UI) |
-| Modo de seleção | `SelectionMode` | `single` ou `multi` | 📝 |
-| Tempo limite | `TimeLimit` | Janela de resposta, 5–240 s conforme o tipo | 📝 |
+| Alternativa | `Choice` (`AnswerOption` na UI) | Opção de resposta (texto ≤ 75 ou imagem) com flag de correta; 4 ou 6 espaços em posições fixas, id = posição (spec 004) | ✅ (texto; imagem 📝) |
+| Resposta correta | `correct` | Marca da alternativa certa; alternativa vazia nunca é correta (spec 004) | ✅ |
+| Respostas extras | `extraChoices` | Espaços 5 e 6, mostrados e removidos juntos (spec 004) | ✅ |
+| Pontos da pergunta | `QuestionPoints` | `standard`, `double` ou `noPoints` (spec 004) | ✅ |
+| Mudança de pergunta | `QuestionChange`, `applyQuestionChange` | Uma edição de pergunta, aplicada com as regras do core no servidor e no cliente, com aviso opcional (`QuestionChangeNotice`) (spec 004) | ✅ |
+| Pergunta incompleta | `questionIssues`, `QuestionIssue` | Sem enunciado, com menos de 2 respostas ou sem correta; continua salva, com alerta na lista (spec 004) | ✅ |
+| Forma da alternativa | `AnswerShape` | Triângulo, losango, círculo, quadrado, pentágono e triângulo invertido — sempre com a cor correspondente | ✅ (UI) |
+| Opções de resposta | `SelectionMode` | `single` (seleção simples) ou `multiple` (múltipla escolha) (spec 004) | ✅ |
+| Tempo limite | `timeLimitSeconds`, `TIME_LIMITS_SECONDS` | Janela de resposta: 5, 10, 15, 20, 30, 45, 60, 90, 120, 180 ou 240 s; padrão 20 s (spec 004) | ✅ |
 | Tempo de leitura | `ReadTime` | Pergunta exibida sem alternativas antes da resposta (≥ 5 s) | 📝 |
 | Pontos da pergunta | `PointsMultiplier` | `standard` (1000), `double` (2000), `noPoints` (0) | ✅ |
-| Versão | `QuizVersion` / snapshot | Cópia imutável do quiz usada por uma partida | 📝 |
+| Versão jogável | `QuizVersion`, `newQuizVersion` (tabela `quiz_version`) | Cópia congelada da lista de perguntas, criada pelo Salvar do editor e numerada a partir de 1; é o que uma partida usa (spec 006) | ✅ |
+| Publicado | `status: "published"`, `publishedVersion`, `publishedAt` | Quiz que tem uma versão jogável; não volta a rascunho (spec 006) | ✅ |
+| Salvar (versão jogável) | `publishQuiz` | Ação do editor que confere título e perguntas e congela a versão jogável; diferente do salvamento automático (spec 006) | ✅ |
+| Alterações não salvas | `hasUnpublishedChanges`, `sameQuestionLists` | Quiz publicado cuja lista de perguntas atual difere, em ordem ou conteúdo, da versão jogável (spec 006) | ✅ |
+| Descartar alterações | `discardQuizChanges` | Fazer a lista de perguntas voltar a ser a da versão jogável (spec 006) | ✅ |
+| Estado de publicação | `QuizPublishState`, `quizPublishState` | O que o selo de status mostra: `draft` ("Rascunho"), `published` ("Publicado") ou `unpublishedChanges` ("Alterações não salvas") (spec 006) | ✅ |
+| Perguntas incompletas | `incompleteQuestions`, `missingAnswerCount` | Lista, na ordem do quiz, das perguntas que impedem o Salvar, com os motivos de cada uma (spec 006) | ✅ |
+| Toques finais | `withFinishingTouches` (`details` do `publishQuiz`) | Título e descrição pedidos pelo Salvar quando o quiz ainda não tem título (spec 006) | ✅ |
+| Imagem da pergunta | `QuestionImage` | Imagem opcional de uma pergunta de qualquer tipo, segue a política de mídia; faz parte da versão jogável (spec 007) | ✅ |
+| Posição da imagem | `placement` | `media` (ao centro, na área de mídia; padrão) ou `background` (fundo da pergunta inteira) (spec 007) | ✅ |
+| Recorte | `ImageCrop` | Enquadramento da imagem ao centro: forma `landscape` (3:2), `portrait` (2:3), `square` ou `circle`, com zoom e posição; não altera o arquivo (spec 007) | ✅ |
+| Texto alternativo | `altText` | Descrição opcional da imagem para leitores de tela, até 1000 caracteres (spec 007) | ✅ |
+| Imagens em uso | `imageKeysOf`, `releaseUnusedImages` | Os arquivos de imagem de um quiz: um só é apagado quando nenhuma pergunta viva e nenhuma versão guardada o usa (spec 007) | ✅ |
 
 ## Game (partida ao vivo)
 

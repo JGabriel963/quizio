@@ -1,4 +1,4 @@
-import { aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -57,6 +57,41 @@ describe("DrizzleQuizRepository", () => {
 
 		expect(await quizzes.findById("quiz-1")).toEqual(changed);
 		expect(await testDb.db.select().from(quizTable)).toHaveLength(1);
+	});
+
+	it("stores the published fields", async () => {
+		const quizzes = createDrizzleQuizRepository(testDb.db);
+		const published = aPublishedQuiz({
+			publishedVersion: 3,
+			publishedAt: new Date("2026-02-01T10:00:00.456Z"),
+			hasUnpublishedChanges: true,
+		});
+
+		await quizzes.save(published);
+
+		expect(await quizzes.findById("quiz-1")).toEqual(published);
+	});
+
+	it("markEdited writes only the edit marks", async () => {
+		const quizzes = createDrizzleQuizRepository(testDb.db);
+		await quizzes.save(aPublishedQuiz());
+		await testDb.db
+			.update(quizTable)
+			.set({ title: "Mudou em outra requisição" })
+			.where(eq(quizTable.id, "quiz-1"));
+		const later = new Date("2026-03-01T00:00:00.000Z");
+
+		await quizzes.markEdited("quiz-1", {
+			updatedAt: later,
+			hasUnpublishedChanges: true,
+		});
+
+		expect(await quizzes.findById("quiz-1")).toEqual({
+			...aPublishedQuiz(),
+			title: "Mudou em outra requisição",
+			updatedAt: later,
+			hasUnpublishedChanges: true,
+		});
 	});
 
 	it("deletes a quiz", async () => {

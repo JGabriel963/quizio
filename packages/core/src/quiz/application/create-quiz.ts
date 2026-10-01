@@ -1,9 +1,11 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import { blankQuestion } from "../domain/question";
 import { newQuiz } from "../domain/quiz";
 import { parseQuizDetails } from "../domain/quiz-details";
 import { assertUsableCover } from "./assert-usable-cover";
+import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
 import { type QuizDetailsView, toQuizDetailsView } from "./quiz-details-view";
 
@@ -20,6 +22,7 @@ export type CreateQuiz = (input: CreateQuizInput) => Promise<QuizDetailsView>;
 
 export function createCreateQuiz(deps: {
 	quizzes: QuizRepository;
+	questions: QuestionRepository;
 	storage: ObjectStorage;
 	ids: IdGenerator;
 	clock: Clock;
@@ -37,8 +40,11 @@ export function createCreateQuiz(deps: {
 			coverImageKey,
 			now: deps.clock.now(),
 		});
+		// Every quiz starts with a blank question to fill in (spec 003, RN-04).
+		const firstQuestion = blankQuestion(deps.ids.generate());
 		await deps.quizzes.save(quiz);
+		await deps.questions.saveList(quiz.id, [firstQuestion]);
 
-		return toQuizDetailsView(quiz, deps.storage);
+		return toQuizDetailsView(quiz, deps.storage, 1);
 	};
 }

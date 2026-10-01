@@ -15,6 +15,18 @@ describe("Badge", () => {
 		expect(badge).toHaveAttribute("data-variant", variant);
 	});
 
+	it.each([
+		["draft", "Rascunho"],
+		["published", "Publicado"],
+		["unsaved", "Alterações não salvas"],
+	] as const)("renders the quiz status variants: %s", (variant, label) => {
+		render(<Badge variant={variant}>{label}</Badge>);
+
+		const badge = screen.getByText(label);
+		expect(badge).toHaveAttribute("data-slot", "badge");
+		expect(badge).toHaveAttribute("data-variant", variant);
+	});
+
 	it("renders the soon variant for not yet available entry points", () => {
 		render(<Badge variant="soon">Em breve</Badge>);
 

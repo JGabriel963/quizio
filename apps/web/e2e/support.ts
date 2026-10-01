@@ -58,6 +58,44 @@ export function quizList(page: Page) {
 	return page.getByRole("list", { name: "Quizzes" });
 }
 
+/** Criar opens the editor of a new draft (spec 003, RN-04). */
+export async function createQuizInEditor(page: Page) {
+	await page.getByRole("button", { name: "Criar", exact: true }).click();
+	await expect(page).toHaveURL(/\/creator\//);
+	await expect(page.getByRole("textbox", { name: "Pergunta" })).toBeVisible();
+}
+
+/** "Adicionar" opens the type picker; the question list must be visible (spec 005, RN-02). */
+export async function pickNewQuestionType(
+	page: Page,
+	type: "Quiz" | "Verdadeiro ou falso" = "Quiz",
+) {
+	await page.getByRole("button", { name: "Adicionar", exact: true }).click();
+	await page.getByRole("menuitem", { name: type, exact: true }).click();
+}
+
+/** A property of the editor's right panel, chosen in its select (a combobox with a list of options). */
+export function propertySelect(page: Page, label: string) {
+	return page.getByRole("combobox", { name: label });
+}
+
+export async function chooseProperty(
+	page: Page,
+	label: string,
+	option: string,
+) {
+	await propertySelect(page, label).click();
+	await page.getByRole("option", { name: option, exact: true }).click();
+	await expect(page.getByRole("option")).toHaveCount(0);
+}
+
+/** Waits until the editor reports every change as saved. */
+export async function expectSaved(page: Page) {
+	await expect(
+		page.getByRole("status").filter({ hasText: "Salvo" }),
+	).toBeVisible();
+}
+
 export async function createQuiz(
 	page: Page,
 	{
@@ -66,24 +104,29 @@ export async function createQuiz(
 		withCover = false,
 	}: { title: string; description?: string; withCover?: boolean },
 ) {
-	await page.getByRole("button", { name: "Criar", exact: true }).click();
-	await page.getByLabel("Título").fill(title);
-	if (description) {
-		await page.getByLabel("Descrição").fill(description);
+	await createQuizInEditor(page);
+	await page.getByRole("textbox", { name: "Título do quiz" }).fill(title);
+	if (description || withCover) {
+		await page.getByRole("button", { name: "Configurações" }).click();
+		const dialog = page.getByRole("dialog");
+		await expect(dialog.getByLabel("Título")).toHaveValue(title);
+		if (description) {
+			await dialog.getByLabel("Descrição").fill(description);
+		}
+		if (withCover) {
+			await dialog.getByLabel("Enviar capa").setInputFiles({
+				name: "capa.png",
+				mimeType: "image/png",
+				buffer: PNG_1PX,
+			});
+			await expect(
+				dialog.getByRole("img", { name: "Capa do quiz" }),
+			).toBeVisible();
+		}
+		await dialog.getByRole("button", { name: "Salvar" }).click();
+		await expect(dialog).toBeHidden();
 	}
-	if (withCover) {
-		await page.getByLabel("Enviar capa").setInputFiles({
-			name: "capa.png",
-			mimeType: "image/png",
-			buffer: PNG_1PX,
-		});
-		await expect(page.getByRole("img", { name: "Capa do quiz" })).toBeVisible();
-	}
-	await page.getByRole("button", { name: "Criar quiz" }).click();
-	// Creating opens the new quiz (spec 002, RN-13); come back for the listing.
-	await expect(
-		page.getByRole("heading", { level: 1, name: title }),
-	).toBeVisible();
+	await expectSaved(page);
 	await goToLibrary(page);
 	await expect(quizList(page).getByRole("link", { name: title })).toBeVisible();
 }

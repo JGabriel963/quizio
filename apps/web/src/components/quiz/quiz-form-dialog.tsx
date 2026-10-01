@@ -1,4 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import type { QuizDetailsData } from "@/lib/api-types";
@@ -7,22 +6,20 @@ import { useQuizMutations, useUploadCover } from "@/lib/quiz-mutations";
 
 import { QuizDetailsDialog } from "./quiz-details-dialog";
 
-export type QuizFormDialogState =
-	| { mode: "create" }
-	| { mode: "edit"; quiz: QuizDetailsData }
-	| null;
+export type QuizFormDialogState = { quiz: QuizDetailsData } | null;
 
-/** Create/edit dialog wired to the quiz API. */
+/** Edit dialog for a quiz's details, wired to the quiz API ("Configurações"). */
 export function QuizFormDialog({
 	state,
 	onClose,
+	onSaved,
 }: {
 	state: QuizFormDialogState;
 	onClose: () => void;
+	onSaved?: (quiz: QuizDetailsData) => void;
 }) {
 	const mutations = useQuizMutations();
 	const uploadCover = useUploadCover();
-	const navigate = useNavigate();
 
 	return (
 		<QuizDetailsDialog
@@ -32,9 +29,8 @@ export function QuizFormDialog({
 					onClose();
 				}
 			}}
-			mode={state?.mode ?? "create"}
 			initialValues={
-				state?.mode === "edit"
+				state
 					? {
 							title: state.quiz.title,
 							description: state.quiz.description,
@@ -45,26 +41,17 @@ export function QuizFormDialog({
 			}
 			uploadCover={uploadCover}
 			onSubmit={async ({ cover, ...details }) => {
+				if (!state) {
+					return { error: null };
+				}
 				try {
-					if (state?.mode === "edit") {
-						await mutations.updateDetails.mutateAsync({
-							quizId: state.quiz.id,
-							...details,
-							cover,
-						});
-						toast.success("Dados do quiz salvos.");
-					} else {
-						const quiz = await mutations.create.mutateAsync({
-							...details,
-							coverImageKey: cover.type === "set" ? cover.key : null,
-						});
-						toast.success("Quiz criado.");
-						// Creating takes the creator straight into the new quiz (spec 002, RN-13).
-						await navigate({
-							to: "/quizzes/$quizId",
-							params: { quizId: quiz.id },
-						});
-					}
+					const quiz = await mutations.updateDetails.mutateAsync({
+						quizId: state.quiz.id,
+						...details,
+						cover,
+					});
+					toast.success("Dados do quiz salvos.");
+					onSaved?.(quiz);
 					return { error: null };
 				} catch (error) {
 					return { error: { message: quizErrorMessage(error) } };
