@@ -1,5 +1,9 @@
 import type { Clock } from "../../shared/application/ports/clock";
-import { parseQuestionText } from "../domain/question";
+import {
+	applyQuestionChange,
+	type QuestionChange,
+	type QuestionChangeNotice,
+} from "../domain/question-change";
 import { QuestionNotFoundError } from "../domain/question-list";
 import { loadEditableQuiz, markQuizEdited } from "./editable-quiz";
 import type { QuestionRepository } from "./ports/question-repository";
@@ -7,42 +11,37 @@ import type { QuizRepository } from "./ports/quiz-repository";
 import { type QuestionView, toQuestionView } from "./quiz-editor-view";
 import type { QuizReference } from "./quiz-reference";
 
-/** Partial on purpose: spec 004 adds time, points and choices here. */
-export interface QuestionChanges {
-	text?: string | null;
-}
-
 export interface UpdateQuestionInput extends QuizReference {
 	questionId: string;
-	changes: QuestionChanges;
+	change: QuestionChange;
 }
 
-/** Autosave of a question's fields (spec 003, RN-20). */
+export interface UpdateQuestionOutput {
+	question: QuestionView;
+	notice: QuestionChangeNotice | null;
+}
+
+/** Autosave of one question field (spec 003, RN-20; spec 004). */
 export type UpdateQuestion = (
 	input: UpdateQuestionInput,
-) => Promise<QuestionView>;
+) => Promise<UpdateQuestionOutput>;
 
 export function createUpdateQuestion(deps: {
 	quizzes: QuizRepository;
 	questions: QuestionRepository;
 	clock: Clock;
 }): UpdateQuestion {
-	return async ({ questionId, changes, ...ref }) => {
+	return async ({ questionId, change, ...ref }) => {
 		const { quiz, questions } = await loadEditableQuiz(deps, ref);
 		const current = questions.find((question) => question.id === questionId);
 		if (!current) {
 			throw new QuestionNotFoundError("Question not found in this quiz");
 		}
-		const updated = {
-			...current,
-			...(changes.text !== undefined && {
-				text: parseQuestionText(changes.text),
-			}),
-		};
+		const { question, notice } = applyQuestionChange(current, change);
 
-		await deps.questions.saveQuestion(quiz.id, updated);
+		await deps.questions.saveQuestion(quiz.id, question);
 		await markQuizEdited(deps, quiz);
 
-		return toQuestionView(updated);
+		return { question: toQuestionView(question), notice };
 	};
 }

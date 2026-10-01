@@ -16,6 +16,10 @@ import {
 	createAddQuestion,
 } from "@quizio/core/quiz/application/add-question";
 import {
+	type ApplyTimeLimitToAll,
+	createApplyTimeLimitToAll,
+} from "@quizio/core/quiz/application/apply-time-limit-to-all";
+import {
 	type CreateQuiz,
 	createCreateQuiz,
 } from "@quizio/core/quiz/application/create-quiz";
@@ -114,6 +118,7 @@ export interface Container extends Adapters {
 		deleteQuestion: DeleteQuestion;
 		restoreQuestion: RestoreQuestion;
 		updateQuestion: UpdateQuestion;
+		applyTimeLimitToAll: ApplyTimeLimitToAll;
 		listLibrary: ListLibrary;
 		getHomeOverview: GetHomeOverview;
 	};
@@ -143,6 +148,7 @@ export function createContainer(adapters: Adapters): Container {
 			deleteQuestion: createDeleteQuestion(adapters),
 			restoreQuestion: createRestoreQuestion(adapters),
 			updateQuestion: createUpdateQuestion(adapters),
+			applyTimeLimitToAll: createApplyTimeLimitToAll(adapters),
 			listLibrary: createListLibrary(adapters),
 			getHomeOverview: createGetHomeOverview(adapters),
 		},

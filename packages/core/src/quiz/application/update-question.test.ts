@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { QuestionTextTooLongError } from "../domain/question";
+import { EmptyChoiceCannotBeCorrectError } from "../domain/question-change";
 import { QuestionNotFoundError } from "../domain/question-list";
 import { aQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
@@ -31,14 +32,17 @@ describe("updateQuestion", () => {
 	});
 
 	it("saves the parsed text and touches updatedAt", async () => {
-		const view = await updateQuestion({
+		const result = await updateQuestion({
 			...ref,
-			changes: { text: "  Qual é a capital do Brasil? " },
+			change: { kind: "text", text: "  Qual é a capital do Brasil? " },
 		});
 
-		expect(view).toEqual({
-			...aQuestion({ id: "a" }),
-			text: "Qual é a capital do Brasil?",
+		expect(result).toEqual({
+			question: {
+				...aQuestion({ id: "a" }),
+				text: "Qual é a capital do Brasil?",
+			},
+			notice: null,
 		});
 		expect(questions.listOf("quiz-1")[0]?.text).toBe(
 			"Qual é a capital do Brasil?",
@@ -47,23 +51,92 @@ describe("updateQuestion", () => {
 	});
 
 	it("stores whitespace-only text as null", async () => {
-		await updateQuestion({ ...ref, changes: { text: "Capital?" } });
+		await updateQuestion({
+			...ref,
+			change: { kind: "text", text: "Capital?" },
+		});
 
-		const view = await updateQuestion({ ...ref, changes: { text: "   " } });
+		const { question } = await updateQuestion({
+			...ref,
+			change: { kind: "text", text: "   " },
+		});
 
-		expect(view.text).toBeNull();
+		expect(question.text).toBeNull();
 	});
 
 	it("refuses more than 120 characters", async () => {
 		await expect(
-			updateQuestion({ ...ref, changes: { text: "a".repeat(121) } }),
+			updateQuestion({
+				...ref,
+				change: { kind: "text", text: "a".repeat(121) },
+			}),
 		).rejects.toThrow(QuestionTextTooLongError);
 	});
 
 	it("refuses a question from another quiz with QuestionNotFoundError", async () => {
 		await expect(
-			updateQuestion({ ...ref, questionId: "other", changes: { text: "X" } }),
+			updateQuestion({
+				...ref,
+				questionId: "other",
+				change: { kind: "text", text: "X" },
+			}),
 		).rejects.toThrow(QuestionNotFoundError);
 		expect(questions.listOf("quiz-2")[0]?.text).not.toBe("X");
+	});
+
+	it("saves answers and returns the change's notice", async () => {
+		await updateQuestion({
+			...ref,
+			change: { kind: "choiceText", choiceId: "choice-1", text: "Brasília" },
+		});
+		await updateQuestion({
+			...ref,
+			change: { kind: "choiceText", choiceId: "choice-2", text: "Rio" },
+		});
+		await updateQuestion({
+			...ref,
+			change: { kind: "choiceCorrect", choiceId: "choice-1", correct: true },
+		});
+
+		const result = await updateQuestion({
+			...ref,
+			change: { kind: "choiceCorrect", choiceId: "choice-2", correct: true },
+		});
+
+		expect(result.notice).toEqual({ kind: "multipleEnabled" });
+		const stored = questions.listOf("quiz-1")[0];
+		expect(stored?.selection).toBe("multiple");
+		expect(stored?.choices.slice(0, 2)).toEqual([
+			{ id: "choice-1", text: "Brasília", correct: true },
+			{ id: "choice-2", text: "Rio", correct: true },
+		]);
+	});
+
+	it("saves time and points", async () => {
+		await updateQuestion({
+			...ref,
+			change: { kind: "timeLimit", seconds: 45 },
+		});
+		await updateQuestion({
+			...ref,
+			change: { kind: "points", points: "double" },
+		});
+
+		expect(questions.listOf("quiz-1")[0]).toMatchObject({
+			timeLimitSeconds: 45,
+			points: "double",
+		});
+	});
+
+	it("refuses an invalid change without saving", async () => {
+		await expect(
+			updateQuestion({
+				...ref,
+				change: { kind: "choiceCorrect", choiceId: "choice-1", correct: true },
+			}),
+		).rejects.toThrow(EmptyChoiceCannotBeCorrectError);
+		expect((await quizzes.findById("quiz-1"))?.updatedAt).not.toEqual(
+			clock.now(),
+		);
 	});
 });

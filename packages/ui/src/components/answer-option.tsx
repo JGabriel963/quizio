@@ -18,6 +18,8 @@ const answerOptionVariants = cva(
 				diamond: "bg-answer-blue",
 				circle: "bg-answer-yellow",
 				square: "bg-answer-green",
+				pentagon: "bg-answer-teal",
+				"inverted-triangle": "bg-answer-purple",
 			},
 			size: {
 				default: "min-h-16 text-base [&_[data-slot=answer-shape]]:size-7",

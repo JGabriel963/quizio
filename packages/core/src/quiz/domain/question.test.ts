@@ -16,6 +16,7 @@ import {
 	parseSelection,
 	parseTimeLimit,
 	QUESTION_TEXT_MAX_LENGTH,
+	type Question,
 	QuestionTextTooLongError,
 	TIME_LIMITS_SECONDS,
 } from "./question";
@@ -143,12 +144,12 @@ describe("parseQuizContent", () => {
 
 describe("copyQuestion", () => {
 	it("copies every field under a new id", () => {
-		const source = {
+		const source: Question = {
 			...blankQuestion("question-1"),
 			text: "Capital?",
 			timeLimitSeconds: 45,
-			points: "double" as const,
-			selection: "multiple" as const,
+			points: "double",
+			selection: "multiple",
 		};
 
 		const copy = copyQuestion(source, "question-2");

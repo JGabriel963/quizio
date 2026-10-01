@@ -1,3 +1,4 @@
+import { blankQuestion } from "@quizio/core/quiz/domain/question";
 import { TRPCError } from "@trpc/server";
 import { describe, expect, it } from "vitest";
 
@@ -55,7 +56,7 @@ describe("quiz router", () => {
 
 		expect(editor.quiz).toMatchObject({ id: created.id, title: "Geografia" });
 		expect(editor.questions).toEqual([
-			{ id: expect.any(String), type: "quiz", text: null },
+			blankQuestion(editor.questions[0]?.id ?? ""),
 		]);
 	});
 

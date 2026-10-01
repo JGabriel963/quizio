@@ -1,23 +1,21 @@
+import { blankQuestion } from "@quizio/core/quiz/domain/question";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { QuizEditorData } from "@/lib/api-types";
+import type { QuestionData, QuizEditorData } from "@/lib/api-types";
 import { SaveTrackerProvider } from "@/lib/save-tracker";
 import { renderWithRouter } from "@/testing/render-with-router";
 
 import { type EditorActions, QuizEditor } from "./quiz-editor";
 
-const question = (id: string, text: string | null) => ({
-	id,
-	type: "quiz" as const,
+const question = (id: string, text: string | null): QuestionData => ({
+	...blankQuestion(id),
 	text,
 });
 
-function editorData(
-	...questions: ReturnType<typeof question>[]
-): QuizEditorData {
+function editorData(...questions: QuestionData[]): QuizEditorData {
 	return {
 		quiz: {
 			id: "quiz-1",
@@ -42,7 +40,9 @@ async function renderEditor(
 	let setData: (data: QuizEditorData) => void = () => {};
 	const actions: EditorActions = {
 		saveTitle: vi.fn(async () => {}),
-		saveQuestionText: vi.fn(async () => {}),
+		saveQuestionField: vi.fn(async () => {}),
+		changeQuestion: vi.fn(),
+		applyTimeLimitToAll: vi.fn(),
 		// Like the real mutation: the cache (here, the harness state) gets the new list.
 		addQuestion: vi.fn(async () => {
 			if (afterAdd) {
@@ -146,5 +146,44 @@ describe("QuizEditor", () => {
 		expect(
 			within(document.body).getByRole("button", { name: "Propriedades" }),
 		).toHaveAttribute("aria-expanded", "false");
+	});
+
+	it("wires the canvas and the properties to the selected question", async () => {
+		const { actions, user } = await renderEditor(
+			editorData(question("a", "A?"), question("b", "B?")),
+		);
+		await user.click(screen.getByRole("button", { name: "Pergunta 2: B?" }));
+
+		await user.type(
+			screen.getByRole("textbox", { name: "Resposta 1" }),
+			"Brasília",
+		);
+		await user.tab();
+		await user.selectOptions(
+			screen.getByRole("combobox", { name: "Limite de tempo" }),
+			"45 segundos",
+		);
+		await user.click(
+			screen.getByRole("button", { name: "Aplicar a todas as perguntas" }),
+		);
+		await user.click(
+			screen.getByRole("button", { name: "Adicionar mais respostas" }),
+		);
+
+		expect(actions.saveQuestionField).toHaveBeenCalledWith("b", {
+			kind: "choiceText",
+			choiceId: "choice-1",
+			text: "Brasília",
+		});
+		expect(actions.changeQuestion).toHaveBeenCalledWith("b", {
+			kind: "timeLimit",
+			seconds: 45,
+		});
+		expect(actions.changeQuestion).toHaveBeenCalledWith("b", {
+			kind: "extraChoices",
+			visible: true,
+		});
+		// The harness does not apply the change, so the question still has 20 s.
+		expect(actions.applyTimeLimitToAll).toHaveBeenCalledWith(20);
 	});
 });

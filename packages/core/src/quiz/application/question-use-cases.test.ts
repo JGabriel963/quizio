@@ -9,6 +9,7 @@ import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import { createAddQuestion } from "./add-question";
+import { createApplyTimeLimitToAll } from "./apply-time-limit-to-all";
 import { createDeleteQuestion } from "./delete-question";
 import { createDuplicateQuestion } from "./duplicate-question";
 import { createMoveQuestion } from "./move-question";
@@ -65,7 +66,7 @@ const operations: [
 		(deps, ref) =>
 			createRestoreQuestion(deps)({
 				...ref,
-				question: { id: "c", type: "quiz", text: "C" },
+				question: aQuestion({ id: "c", text: "C" }),
 				index: 1,
 			}),
 	],
@@ -75,8 +76,12 @@ const operations: [
 			createUpdateQuestion(deps)({
 				...ref,
 				questionId: "a",
-				changes: { text: "Novo" },
+				change: { kind: "text", text: "Novo" },
 			}),
+	],
+	[
+		"applyTimeLimitToAll",
+		(deps, ref) => createApplyTimeLimitToAll(deps)({ ...ref, seconds: 45 }),
 	],
 	[
 		"rename",

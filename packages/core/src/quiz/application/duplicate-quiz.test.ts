@@ -95,6 +95,30 @@ describe("duplicateQuiz", () => {
 		]);
 	});
 
+	it("copies answers, corrects, selection, time and points", async () => {
+		await quizzes.save(aQuiz());
+		const original = aQuestion({
+			id: "a",
+			text: "Capital da França?",
+			selection: "multiple",
+			timeLimitSeconds: 45,
+			points: "double",
+			choices: [
+				{ id: "choice-1", text: "Paris", correct: true },
+				{ id: "choice-2", text: "Lyon", correct: false },
+				{ id: "choice-3", text: "Paris (FR)", correct: true },
+				{ id: "choice-4", text: null, correct: false },
+				{ id: "choice-5", text: "Nice", correct: false },
+				{ id: "choice-6", text: null, correct: false },
+			],
+		});
+		await questions.saveList("quiz-1", [original]);
+
+		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(questions.listOf(copy.id)).toEqual([{ ...original, id: "new-2" }]);
+	});
+
 	it("editing a copied question leaves the original intact", async () => {
 		await quizzes.save(aQuiz());
 		const original = aQuestion({ id: "a", text: "A" });

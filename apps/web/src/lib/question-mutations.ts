@@ -1,4 +1,10 @@
+import {
+	applyQuestionChange,
+	ChoiceNotFoundError,
+	type QuestionChange,
+} from "@quizio/core/quiz/domain/question-change";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 import type { EditorActions } from "@/components/editor/quiz-editor";
@@ -10,8 +16,10 @@ import {
 	withQuestionInserted,
 	withQuestionMoved,
 	withQuestionRemoved,
+	withTimeLimitForAll,
 } from "./editor-cache";
-import { quizErrorMessage } from "./quiz-error-messages";
+import { changeNoticeMessage, timeAppliedMessage } from "./question-labels";
+import { isDomainRefusal, quizErrorMessage } from "./quiz-error-messages";
 import { useInvalidateQuizzes } from "./quiz-mutations";
 import { useSaveTracker } from "./save-tracker";
 
@@ -23,10 +31,25 @@ const STRUCTURE = "structure";
  */
 const SEND_EVEN_OFFLINE = { networkMode: "always" } as const;
 
+/** Save-tracker key of a change: a newer change of the same field replaces an older failure. */
+function changeKey(questionId: string, change: QuestionChange): string {
+	const field =
+		change.kind === "choiceText" || change.kind === "choiceCorrect"
+			? `choice:${change.choiceId}:${change.kind}`
+			: change.kind;
+	return `question:${questionId}:${field}`;
+}
+
 /**
- * The editor's actions over tRPC (spec 003). Texts go through the autosave;
- * list changes are tracked too, but are not retried: a refused add or move is
- * rolled back and explained instead.
+ * The editor's actions over tRPC (specs 003, 004). Texts go through the
+ * autosave; list changes are tracked too, but are not retried: a refused add
+ * or move is rolled back and explained instead.
+ *
+ * The server rewrites whole question rows (and `saveList` the whole list), so
+ * every write goes through one queue: two writes never race and lose a change
+ * (plan 004, Riscos). Question changes are applied to the cache at once with
+ * the core's own rules, and the server's answer is kept once nothing else is
+ * queued.
  */
 export function useEditorActions(quizId: string): EditorActions {
 	const trpc = useTRPC();
@@ -69,6 +92,82 @@ export function useEditorActions(quizId: string): EditorActions {
 		...trpc.quiz.questions.restore.mutationOptions(),
 		...SEND_EVEN_OFFLINE,
 	});
+	const applyToAll = useMutation({
+		...trpc.quiz.questions.applyTimeLimitToAll.mutationOptions(),
+		...SEND_EVEN_OFFLINE,
+	});
+
+	const queue = useRef({
+		tail: Promise.resolve() as Promise<unknown>,
+		size: 0,
+	});
+	function enqueue<T>(run: () => Promise<T>): Promise<T> {
+		const current = queue.current;
+		current.size += 1;
+		const result = current.tail.then(run);
+		current.tail = result
+			.catch(() => {})
+			.finally(() => {
+				current.size -= 1;
+			});
+		return result;
+	}
+	const nothingElseQueued = () => queue.current.size === 1;
+
+	/**
+	 * Applies the change to the cache and returns how to send it, or null when
+	 * there is nothing to send: the question is gone, or the answer was
+	 * discarded with the extra answers (RN-03). Throws a refused change.
+	 */
+	function prepareChange(questionId: string, change: QuestionChange) {
+		const current = getData()?.questions.find(({ id }) => id === questionId);
+		if (!current) {
+			return null;
+		}
+		let result: ReturnType<typeof applyQuestionChange>;
+		try {
+			result = applyQuestionChange(current, change);
+		} catch (error) {
+			if (error instanceof ChoiceNotFoundError) {
+				return null;
+			}
+			throw error;
+		}
+		setData((data) => withQuestionChanged(data, result.question));
+		if (result.notice) {
+			toast(changeNoticeMessage(result.notice));
+		}
+		return () =>
+			enqueue(async () => {
+				const saved = await update.mutateAsync({
+					quizId,
+					questionId,
+					// The core just accepted it, so its raw values are the API's enums.
+					change: change as Parameters<typeof update.mutateAsync>[0]["change"],
+				});
+				if (nothingElseQueued()) {
+					setData((data) => withQuestionChanged(data, saved.question));
+				}
+			});
+	}
+
+	/**
+	 * A change saved at once is retried like a text when the connection fails;
+	 * one the server refuses is explained and the editor reloads its state.
+	 */
+	function track(key: string, send: () => Promise<unknown>) {
+		void tracker.track(key, async () => {
+			try {
+				await send();
+			} catch (error) {
+				if (!isDomainRefusal(error)) {
+					throw error;
+				}
+				toast.error(quizErrorMessage(error));
+				void queryClient.invalidateQueries({ queryKey: editorKey });
+			}
+		});
+	}
 
 	/** Runs a list change; on failure rolls the cache back and explains why. */
 	async function structural<T>(
@@ -81,7 +180,7 @@ export function useEditorActions(quizId: string): EditorActions {
 			STRUCTURE,
 			async () => {
 				try {
-					result = await run();
+					result = await enqueue(run);
 				} catch (error) {
 					failure = error;
 					throw error;
@@ -115,13 +214,31 @@ export function useEditorActions(quizId: string): EditorActions {
 			void invalidateListings();
 		},
 
-		saveQuestionText: async (questionId, text) => {
-			const question = await update.mutateAsync({
-				quizId,
-				questionId,
-				changes: { text },
+		saveQuestionField: async (questionId, change) => {
+			await prepareChange(questionId, change)?.();
+		},
+
+		changeQuestion: (questionId, change) => {
+			let send: ReturnType<typeof prepareChange>;
+			try {
+				send = prepareChange(questionId, change);
+			} catch (error) {
+				toast.error(quizErrorMessage(error));
+				return;
+			}
+			if (send) {
+				track(changeKey(questionId, change), send);
+			}
+		},
+
+		applyTimeLimitToAll: (seconds) => {
+			setData((data) => withTimeLimitForAll(data, seconds));
+			track("quiz:timeLimitForAll", async () => {
+				const { updatedCount } = await enqueue(() =>
+					applyToAll.mutateAsync({ quizId, seconds }),
+				);
+				toast(timeAppliedMessage(updatedCount));
 			});
-			setData((data) => withQuestionChanged(data, question));
 		},
 
 		addQuestion: (afterQuestionId) =>

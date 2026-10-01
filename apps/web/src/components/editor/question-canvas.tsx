@@ -1,35 +1,36 @@
-import { AnswerShape, answerShapeAt } from "@quizio/ui/components/answer-shape";
+import { MAX_CHOICE_COUNT } from "@quizio/core/quiz/domain/question";
+import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
+import {
+	missingAnswerHints,
+	questionIssues,
+} from "@quizio/core/quiz/domain/question-issues";
 import { Badge } from "@quizio/ui/components/badge";
-import { cn } from "@quizio/ui/lib/utils";
-import { ImageIcon } from "lucide-react";
+import { Button } from "@quizio/ui/components/button";
+import { ImageIcon, MinusIcon, PlusIcon } from "lucide-react";
 
 import type { QuestionData } from "@/lib/api-types";
+import { QUESTION_ISSUE_LABELS } from "@/lib/question-labels";
 
+import { ChoiceField } from "./choice-field";
 import { QuestionTextField } from "./question-text-field";
 
-const SHAPE_COLORS = [
-	"bg-answer-red",
-	"bg-answer-blue",
-	"bg-answer-yellow",
-	"bg-answer-green",
-] as const;
-
-/** Fixed answer slots; editing them arrives with spec 004. */
-const ANSWER_SLOTS = [
-	"Adicionar resposta 1",
-	"Adicionar resposta 2",
-	"Adicionar resposta 3 (opcional)",
-	"Adicionar resposta 4 (opcional)",
-];
-
-/** The selected question in the middle of the editor (spec 003). */
+/** The selected question in the middle of the editor (specs 003, 004). */
 export function QuestionCanvas({
 	question,
 	onSaveText,
+	onSaveChoiceText,
+	onChange,
 }: {
 	question: QuestionData;
 	onSaveText: (text: string | null) => Promise<unknown>;
+	onSaveChoiceText: (choiceId: string, text: string | null) => Promise<unknown>;
+	/** Changes saved at once: corrects and the extra answers. */
+	onChange: (change: QuestionChange) => void;
 }) {
+	const hints = missingAnswerHints(question);
+	const noCorrect = questionIssues(question).includes("noCorrectAnswer");
+	const extrasVisible = question.choices.length === MAX_CHOICE_COUNT;
+
 	return (
 		<div className="mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
 			{/* Keyed by question so switching questions never mixes their texts. */}
@@ -59,26 +60,49 @@ export function QuestionCanvas({
 					aria-label="Respostas"
 					className="grid grid-cols-1 gap-2 sm:grid-cols-2"
 				>
-					{ANSWER_SLOTS.map((label, index) => (
-						<li
-							key={label}
-							className="flex min-h-16 items-center gap-3 rounded-md bg-card p-2 text-muted-foreground shadow-press-light sm:min-h-20"
-						>
-							<span
-								className={cn(
-									"flex h-full min-h-12 w-10 shrink-0 items-center justify-center rounded-md text-answer-foreground",
-									SHAPE_COLORS[index],
-								)}
-							>
-								<AnswerShape shape={answerShapeAt(index)} className="size-5" />
-							</span>
-							{label}
-						</li>
+					{question.choices.map((choice, index) => (
+						<ChoiceField
+							key={`${question.id}:${choice.id}`}
+							questionId={question.id}
+							choice={choice}
+							index={index}
+							hint={hints.includes(index + 1)}
+							onSaveText={(text) => onSaveChoiceText(choice.id, text)}
+							onCorrectChange={(correct) =>
+								onChange({
+									kind: "choiceCorrect",
+									choiceId: choice.id,
+									correct,
+								})
+							}
+						/>
 					))}
 				</ul>
-				<Badge variant="soon" className="self-center">
-					Em breve
-				</Badge>
+				{noCorrect && (
+					<p className="text-center font-semibold text-sm text-white">
+						{QUESTION_ISSUE_LABELS.noCorrectAnswer}
+					</p>
+				)}
+				<Button
+					variant="secondary"
+					size="sm"
+					className="self-center"
+					onClick={() =>
+						onChange({ kind: "extraChoices", visible: !extrasVisible })
+					}
+				>
+					{extrasVisible ? (
+						<>
+							<MinusIcon data-icon="inline-start" />
+							Remover respostas extras
+						</>
+					) : (
+						<>
+							<PlusIcon data-icon="inline-start" />
+							Adicionar mais respostas
+						</>
+					)}
+				</Button>
 			</div>
 		</div>
 	);

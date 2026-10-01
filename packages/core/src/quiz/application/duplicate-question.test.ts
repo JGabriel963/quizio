@@ -23,7 +23,22 @@ describe("duplicateQuestion", () => {
 	let clock: FixedClock;
 	let duplicateQuestion: DuplicateQuestion;
 	const ref = { ownerId: "user-1", quizId: "quiz-1" };
-	const a = aQuestion({ id: "a", text: "Capital da França?" });
+	/** Every field set, so the copy proves it keeps them (spec 004, CA-15). */
+	const a = aQuestion({
+		id: "a",
+		text: "Capital da França?",
+		selection: "multiple",
+		timeLimitSeconds: 45,
+		points: "double",
+		choices: [
+			{ id: "choice-1", text: "Paris", correct: true },
+			{ id: "choice-2", text: "Lyon", correct: false },
+			{ id: "choice-3", text: "Paris (FR)", correct: true },
+			{ id: "choice-4", text: null, correct: false },
+			{ id: "choice-5", text: "Nice", correct: false },
+			{ id: "choice-6", text: null, correct: false },
+		],
+	});
 	const b = aQuestion({ id: "b", text: "B" });
 
 	beforeEach(async () => {
@@ -58,11 +73,9 @@ describe("duplicateQuestion", () => {
 	it("the copy is independent of the original", async () => {
 		await duplicateQuestion({ ...ref, questionId: "a" });
 
-		await questions.saveQuestion("quiz-1", {
-			...a,
-			id: "copy-1",
-			text: "Outra",
-		});
+		const [, copy = a] = questions.listOf("quiz-1");
+		copy.choices[0] = { id: "choice-1", text: "Mudou", correct: false };
+		await questions.saveQuestion("quiz-1", { ...copy, text: "Outra" });
 
 		expect(questions.listOf("quiz-1")[0]).toEqual(a);
 	});

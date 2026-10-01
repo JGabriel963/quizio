@@ -1,5 +1,5 @@
 import type { Clock } from "../../shared/application/ports/clock";
-import { parseQuestionText, type QuestionType } from "../domain/question";
+import { parseQuestion, type QuestionInput } from "../domain/question-change";
 import { restoreQuestionAt } from "../domain/question-list";
 import { loadEditableQuiz, markQuizEdited } from "./editable-quiz";
 import type { QuestionRepository } from "./ports/question-repository";
@@ -8,7 +8,7 @@ import type { QuizReference } from "./quiz-reference";
 
 export interface RestoreQuestionInput extends QuizReference {
 	/** What `deleteQuestion` returned; revalidated like any edit. */
-	question: { id: string; type: QuestionType; text: string | null };
+	question: QuestionInput;
 	index: number;
 }
 
@@ -27,11 +27,7 @@ export function createRestoreQuestion(deps: {
 }): RestoreQuestion {
 	return async ({ question, index, ...ref }) => {
 		const { quiz, questions } = await loadEditableQuiz(deps, ref);
-		const restored = {
-			id: question.id,
-			type: question.type,
-			text: parseQuestionText(question.text),
-		};
+		const restored = parseQuestion(question);
 		const result = restoreQuestionAt(questions, restored, index);
 		if (result.list === questions) {
 			// Already back: a repeated undo changes nothing.

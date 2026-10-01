@@ -1,3 +1,4 @@
+import { blankQuestion } from "@quizio/core/quiz/domain/question";
 import { describe, expect, it } from "vitest";
 
 import type { QuizEditorData } from "./api-types";
@@ -6,9 +7,10 @@ import {
 	withQuestionInserted,
 	withQuestionMoved,
 	withQuestionRemoved,
+	withTimeLimitForAll,
 } from "./editor-cache";
 
-const question = (id: string) => ({ id, type: "quiz" as const, text: id });
+const question = (id: string) => ({ ...blankQuestion(id), text: id });
 
 function editorWith(...ids: string[]): QuizEditorData {
 	return {
@@ -20,6 +22,14 @@ function editorWith(...ids: string[]): QuizEditorData {
 const idsOf = (data: QuizEditorData) => data.questions.map(({ id }) => id);
 
 describe("editor cache", () => {
+	it("sets every question's time limit", () => {
+		const after = withTimeLimitForAll(editorWith("a", "b"), 45);
+
+		expect(after.questions.map((item) => item.timeLimitSeconds)).toEqual([
+			45, 45,
+		]);
+	});
+
 	it("moves a question optimistically", () => {
 		expect(idsOf(withQuestionMoved(editorWith("a", "b", "c"), "c", 0))).toEqual(
 			["c", "a", "b"],

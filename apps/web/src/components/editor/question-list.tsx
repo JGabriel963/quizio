@@ -16,10 +16,28 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { questionIssues } from "@quizio/core/quiz/domain/question-issues";
+import {
+	ANSWER_COLOR_CLASSES,
+	answerShapeAt,
+} from "@quizio/ui/components/answer-shape";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@quizio/ui/components/tooltip";
 import { cn } from "@quizio/ui/lib/utils";
-import { CopyIcon, GripVerticalIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import {
+	CopyIcon,
+	GripVerticalIcon,
+	PlusIcon,
+	Trash2Icon,
+	TriangleAlertIcon,
+} from "lucide-react";
+import { useId } from "react";
 
 import type { QuestionData } from "@/lib/api-types";
+import { QUESTION_ISSUE_LABELS } from "@/lib/question-labels";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 
 import { ActionButton, questionActionReasons } from "./question-actions";
@@ -34,7 +52,10 @@ export interface QuestionListProps {
 	onMove: (questionId: string, toIndex: number) => void;
 }
 
-/** Left panel: the ordered questions, sortable by drag or keyboard (spec 003). */
+/**
+ * Left panel: the ordered questions, sortable by drag or keyboard (spec 003),
+ * with each one's time and an alert when incomplete (spec 004).
+ */
 export function QuestionList({
 	questions,
 	selectedId,
@@ -158,7 +179,10 @@ function QuestionListItem({
 				isDragging && "relative z-10 opacity-80",
 			)}
 		>
-			<p className="font-bold text-xs">{`${position} ${typeLabel}`}</p>
+			<div className="flex items-center gap-1">
+				<p className="font-bold text-xs">{`${position} ${typeLabel}`}</p>
+				<IncompleteAlert question={question} position={position} />
+			</div>
 			<div className="flex items-stretch gap-1">
 				<div className="flex flex-col items-center justify-center gap-1">
 					<button
@@ -203,17 +227,67 @@ function QuestionListItem({
 					<span className="w-full truncate text-center text-muted-foreground text-xs">
 						{question.text}
 					</span>
-					<span
-						aria-hidden="true"
-						className="h-6 w-10 rounded-sm border border-muted-foreground/40 border-dashed"
-					/>
+					<span aria-hidden="true" className="flex w-full items-center gap-1">
+						<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-bold text-[0.625rem]">
+							{question.timeLimitSeconds}
+						</span>
+						<span className="mx-auto h-6 w-10 rounded-sm border border-muted-foreground/40 border-dashed" />
+					</span>
 					<span aria-hidden="true" className="grid w-full grid-cols-2 gap-1">
-						{[0, 1, 2, 3].map((slot) => (
-							<span key={slot} className="h-1.5 rounded-sm bg-muted" />
+						{question.choices.map((choice, index) => (
+							<span
+								key={choice.id}
+								className={cn(
+									"h-1.5 rounded-sm",
+									choice.text === null
+										? "bg-muted"
+										: ANSWER_COLOR_CLASSES[answerShapeAt(index)],
+								)}
+							/>
 						))}
 					</span>
 				</button>
 			</div>
 		</li>
+	);
+}
+
+/** Warning icon of an incomplete question, its reasons in a tooltip and the description (RN-14, RN-15). */
+function IncompleteAlert({
+	question,
+	position,
+}: {
+	question: QuestionData;
+	position: number;
+}) {
+	const reasonsId = useId();
+	const issues = questionIssues(question);
+	if (issues.length === 0) {
+		return null;
+	}
+	const reasons = issues
+		.map((issue) => `${QUESTION_ISSUE_LABELS[issue]}.`)
+		.join(" ");
+	return (
+		<>
+			<Tooltip>
+				<TooltipTrigger
+					render={
+						<button
+							type="button"
+							aria-label={`Pergunta ${position} incompleta`}
+							aria-describedby={reasonsId}
+							className="ml-auto rounded-sm text-destructive focus-visible:ring-3 focus-visible:ring-ring/50"
+						/>
+					}
+				>
+					<TriangleAlertIcon aria-hidden="true" className="size-4" />
+				</TooltipTrigger>
+				<TooltipContent>{reasons}</TooltipContent>
+			</Tooltip>
+			<span id={reasonsId} hidden>
+				{reasons}
+			</span>
+		</>
 	);
 }

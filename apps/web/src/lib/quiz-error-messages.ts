@@ -1,9 +1,13 @@
-import { QUESTION_TEXT_MAX_LENGTH } from "@quizio/core/quiz/domain/question";
+import {
+	CHOICE_TEXT_MAX_LENGTH,
+	QUESTION_TEXT_MAX_LENGTH,
+} from "@quizio/core/quiz/domain/question";
 import { QUIZ_MAX_QUESTIONS } from "@quizio/core/quiz/domain/question-list";
 import {
 	QUIZ_DESCRIPTION_MAX_LENGTH,
 	QUIZ_TITLE_MAX_LENGTH,
 } from "@quizio/core/quiz/domain/quiz-details";
+import { DomainError } from "@quizio/core/shared/domain/domain-error";
 
 const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.NOT_FOUND": "Quiz não encontrado.",
@@ -20,17 +24,40 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.LAST_QUESTION": "Não é possível excluir todo o conteúdo.",
 	"QUIZ.INVALID_QUESTION_POSITION":
 		"Não foi possível mover a pergunta. Recarregue a página.",
+	"QUIZ.CHOICE_TEXT_TOO_LONG": `A resposta deve ter no máximo ${CHOICE_TEXT_MAX_LENGTH} caracteres.`,
+	"QUIZ.CHOICE_NOT_FOUND":
+		"Esta resposta não existe mais. Recarregue a página.",
+	"QUIZ.EMPTY_CHOICE_CORRECT":
+		"Escreva a resposta antes de marcá-la como correta.",
+	"QUIZ.INVALID_CHOICE_COUNT":
+		"Não foi possível restaurar a pergunta. Recarregue a página.",
+	"QUIZ.INVALID_TIME_LIMIT": "Escolha um limite de tempo da lista.",
+	"QUIZ.INVALID_POINTS": "Escolha uma opção de pontos da lista.",
+	"QUIZ.INVALID_SELECTION": "Escolha uma opção de resposta da lista.",
 	"MEDIA.UNSUPPORTED_TYPE":
 		"Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
 	"MEDIA.INVALID_SIZE": "Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
 };
 
-/** Portuguese message for a failed quiz call, based on the API's `data.domainCode`. */
+/** The API's `data.domainCode`, or the code of a rule the client applied itself. */
+function domainCodeOf(error: unknown): string | null {
+	if (error instanceof DomainError) {
+		return error.code;
+	}
+	return typeof error === "object" && error !== null && "data" in error
+		? ((error as { data?: { domainCode?: string | null } }).data?.domainCode ??
+				null)
+		: null;
+}
+
+/** A business rule refused the call: resending the same thing fails again. */
+export function isDomainRefusal(error: unknown): boolean {
+	return domainCodeOf(error) !== null;
+}
+
+/** Portuguese message for a failed quiz call, based on its domain code. */
 export function quizErrorMessage(error: unknown): string {
-	const domainCode =
-		typeof error === "object" && error !== null && "data" in error
-			? (error as { data?: { domainCode?: string | null } }).data?.domainCode
-			: null;
+	const domainCode = domainCodeOf(error);
 	return (
 		(domainCode && MESSAGES_BY_DOMAIN_CODE[domainCode]) ??
 		"Não foi possível concluir. Tente novamente."

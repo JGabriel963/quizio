@@ -1,3 +1,4 @@
+import { blankQuestion } from "@quizio/core/quiz/domain/question";
 import { QUIZ_MAX_QUESTIONS } from "@quizio/core/quiz/domain/question-list";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,10 +8,21 @@ import type { QuestionData } from "@/lib/api-types";
 
 import { QuestionList } from "./question-list";
 
-const question = (id: string, text: string | null): QuestionData => ({
-	id,
-	type: "quiz",
+/** A complete question unless overridden, so only the tests about issues see the alert. */
+const question = (
+	id: string,
+	text: string | null,
+	overrides: Partial<QuestionData> = {},
+): QuestionData => ({
+	...blankQuestion(id),
 	text,
+	choices: [
+		{ id: "choice-1", text: "Brasília", correct: true },
+		{ id: "choice-2", text: "Rio", correct: false },
+		{ id: "choice-3", text: null, correct: false },
+		{ id: "choice-4", text: null, correct: false },
+	],
+	...overrides,
 });
 
 function renderList(questions: QuestionData[], selectedId = questions[0]?.id) {
@@ -37,6 +49,31 @@ const items = () =>
 	);
 
 describe("QuestionList", () => {
+	it("shows each question's time limit in seconds", () => {
+		renderList([question("a", "A?", { timeLimitSeconds: 90 })]);
+
+		expect(
+			within(items()[0] as HTMLElement).getByText("90"),
+		).toBeInTheDocument();
+	});
+
+	it("flags an incomplete question with its reasons", () => {
+		renderList([
+			question("a", null, { choices: blankQuestion("a").choices }),
+			question("b", "B?"),
+		]);
+
+		const warning = screen.getByRole("button", {
+			name: "Pergunta 1 incompleta",
+		});
+		expect(warning).toHaveAccessibleDescription(
+			"Falta o texto da pergunta. Adicione pelo menos 2 respostas. Marque pelo menos 1 resposta correta.",
+		);
+		expect(
+			screen.queryByRole("button", { name: "Pergunta 2 incompleta" }),
+		).toBeNull();
+	});
+
 	it("shows position, type and the start of the text for each question", () => {
 		renderList([
 			question("a", "Qual é a capital do Brasil?"),

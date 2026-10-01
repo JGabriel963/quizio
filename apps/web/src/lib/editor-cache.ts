@@ -61,6 +61,20 @@ export function withQuestionChanged(
 	};
 }
 
+/** "Aplicar a todas as perguntas" before the server confirms (spec 004, RN-11). */
+export function withTimeLimitForAll(
+	data: QuizEditorData,
+	seconds: QuestionData["timeLimitSeconds"],
+): QuizEditorData {
+	return {
+		...data,
+		questions: data.questions.map((question) => ({
+			...question,
+			timeLimitSeconds: seconds,
+		})),
+	};
+}
+
 /**
  * After a removal, the question that took its place is selected, or the
  * previous one when the last was removed (spec 003, RN-14).

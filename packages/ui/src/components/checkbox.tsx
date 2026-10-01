@@ -2,21 +2,42 @@
 
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
 import { cn } from "@quizio/ui/lib/utils";
+import { cva, type VariantProps } from "class-variance-authority";
 import { CheckIcon } from "lucide-react";
 
-function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
+const checkboxVariants = cva(
+	"peer relative flex shrink-0 items-center justify-center outline-none transition-colors focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+	{
+		variants: {
+			variant: {
+				default:
+					"size-4 rounded-md border border-input after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-1 group-has-disabled/field:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 aria-invalid:aria-checked:border-primary data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:bg-input/30 dark:data-checked:bg-primary dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_[data-slot=checkbox-indicator]>svg]:size-3.5",
+				/** Kahoot's round "correct answer" mark on an answer block. */
+				answer:
+					"size-8 rounded-full border-4 border-answer-foreground bg-transparent text-answer-foreground focus-visible:ring-3 data-checked:border-success data-checked:bg-success [&_[data-slot=checkbox-indicator]>svg]:size-5 [&_[data-slot=checkbox-indicator]>svg]:stroke-3",
+			},
+		},
+		defaultVariants: {
+			variant: "default",
+		},
+	},
+);
+
+function Checkbox({
+	className,
+	variant = "default",
+	...props
+}: CheckboxPrimitive.Root.Props & VariantProps<typeof checkboxVariants>) {
 	return (
 		<CheckboxPrimitive.Root
 			data-slot="checkbox"
-			className={cn(
-				"peer relative flex size-4 shrink-0 items-center justify-center rounded-md border border-input outline-none transition-colors after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 group-has-disabled/field:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 aria-invalid:aria-checked:border-primary data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:bg-input/30 dark:data-checked:bg-primary dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-				className,
-			)}
+			data-variant={variant}
+			className={cn(checkboxVariants({ variant, className }))}
 			{...props}
 		>
 			<CheckboxPrimitive.Indicator
 				data-slot="checkbox-indicator"
-				className="grid place-content-center text-current transition-none [&>svg]:size-3.5"
+				className="grid place-content-center text-current transition-none"
 			>
 				<CheckIcon />
 			</CheckboxPrimitive.Indicator>
@@ -24,4 +45,4 @@ function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
 	);
 }
 
-export { Checkbox };
+export { Checkbox, checkboxVariants };

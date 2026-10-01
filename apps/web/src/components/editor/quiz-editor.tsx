@@ -1,3 +1,4 @@
+import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { Button } from "@quizio/ui/components/button";
 import { cn } from "@quizio/ui/lib/utils";
 import { ListIcon, SlidersHorizontalIcon } from "lucide-react";
@@ -16,13 +17,17 @@ export interface PlacedQuestionData {
 	index: number;
 }
 
-/** What the editor asks of the API; the route wires it to tRPC (spec 003). */
+/** What the editor asks of the API; the route wires it to tRPC (specs 003, 004). */
 export interface EditorActions {
 	saveTitle: (title: string | null) => Promise<unknown>;
-	saveQuestionText: (
+	/** Autosaved text fields (question and answers); rejects when it fails. */
+	saveQuestionField: (
 		questionId: string,
-		text: string | null,
+		change: QuestionChange,
 	) => Promise<unknown>;
+	/** Changes saved at once (corrects, time, points...), tracked by the action. */
+	changeQuestion: (questionId: string, change: QuestionChange) => void;
+	applyTimeLimitToAll: (seconds: QuestionData["timeLimitSeconds"]) => void;
 	/** Resolves the new question, or null when the server refused it. */
 	addQuestion: (afterQuestionId: string) => Promise<PlacedQuestionData | null>;
 	duplicateQuestion: (questionId: string) => Promise<PlacedQuestionData | null>;
@@ -144,7 +149,17 @@ export function QuizEditor({
 				<main className="min-w-0 flex-1 overflow-y-auto bg-linear-to-b from-brand to-brand-strong px-3 py-4 sm:px-6 sm:py-6">
 					<QuestionCanvas
 						question={selected}
-						onSaveText={(text) => actions.saveQuestionText(selected.id, text)}
+						onSaveText={(text) =>
+							actions.saveQuestionField(selected.id, { kind: "text", text })
+						}
+						onSaveChoiceText={(choiceId, text) =>
+							actions.saveQuestionField(selected.id, {
+								kind: "choiceText",
+								choiceId,
+								text,
+							})
+						}
+						onChange={(change) => actions.changeQuestion(selected.id, change)}
 					/>
 				</main>
 
@@ -159,6 +174,8 @@ export function QuizEditor({
 					<QuestionPropertiesPanel
 						question={selected}
 						questionCount={questions.length}
+						onChange={(change) => actions.changeQuestion(selected.id, change)}
+						onApplyTimeLimitToAll={actions.applyTimeLimitToAll}
 						onDelete={remove}
 						onDuplicate={duplicate}
 					/>
