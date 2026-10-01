@@ -21,6 +21,8 @@
 | `answer-blue` | `#1368ce` | Alternativa 2 — losango |
 | `answer-yellow` | `#d89e00` | Alternativa 3 — círculo |
 | `answer-green` | `#26890c` | Alternativa 4 — quadrado |
+| `answer-teal` | `#0c8582` | Alternativa 5 — pentágono |
+| `answer-purple` | `#864cbf` | Alternativa 6 — triângulo invertido |
 | `shadow-press` / `shadow-press-sm` / `shadow-press-light` | inset inferior | Efeito de botão pressionável |
 | `--radius` | `0.375rem` | Cantos levemente arredondados (primitivos passaram de `rounded-none` para `rounded-md`) |
 | Fonte | Montserrat Variable | `@fontsource-variable/montserrat` |
@@ -44,10 +46,16 @@ Abas para as seções de uma área (Recentes / Rascunhos / Lixeira na Biblioteca
 ### `AnswerOption` + `AnswerShape`
 
 - A **cor é derivada da forma** — impossível exibir um triângulo azul.
-- Ordem fixa: `answerShapeAt(0..3)` → triângulo, losango, círculo, quadrado.
-- O Kahoot aceita até **6 alternativas**; o par cor/forma da 5ª e 6ª não foi confirmado (`kahoot-reference §6.5`). Serão adicionadas ao `ANSWER_SHAPES` pela spec do editor.
+- Ordem fixa: `answerShapeAt(0..5)` → triângulo, losango, círculo, quadrado, pentágono, triângulo invertido.
+- A 5ª (turquesa, pentágono) e a 6ª (roxo, triângulo invertido) seguem a referência não confirmada adotada na spec 004 (RN-01; `kahoot-reference §6.5`).
+- `ANSWER_COLOR_CLASSES` é a fonte única do par forma → fundo para blocos que não são `AnswerOption` (campos do editor, miniaturas).
 - `state`: `idle`, `selected` (múltipla escolha; expõe `aria-pressed`), `correct` (ícone de check), `incorrect` (esmaecida + X).
 - `size`: `default` (celular do jogador), `lg`/`xl` (tela do host).
+
+### `Checkbox`
+
+- `variant="default"`: caixa de formulário.
+- `variant="answer"`: marcação redonda de "resposta correta" sobre um bloco de alternativa (spec 004); borda branca, verde quando marcada.
 
 ## Adicionando ou alterando componentes
 

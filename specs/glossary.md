@@ -42,7 +42,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Rascunho | `status: "draft"` | Quiz ainda não salvo como versão jogável | ✅ |
 | Visibilidade | `QuizVisibility` | `private`, `unlisted` (spec 001); `public` com a descoberta pública | ✅ (`public` 📝) |
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
-| Pergunta | `Question` | Bloco interativo com texto (≤ 120), tipo, tempo limite e pontos | ✅ (tipo e enunciado; tempo e pontos 📝) |
+| Pergunta | `Question` | Bloco interativo com texto (≤ 120), tipo, tempo limite e pontos | ✅ |
 | Enunciado | `text` | Texto da pergunta, ≤ 120 caracteres; pode ficar vazio no rascunho (spec 003) | ✅ |
 | Pergunta em branco | `blankQuestion` | Pergunta Quiz recém-criada, sem enunciado; todo quiz novo nasce com uma (spec 003) | ✅ |
 | Posição | `position` | Ordem da pergunta no quiz, que é a ordem de apresentação na partida (spec 003) | ✅ |
@@ -51,10 +51,15 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Salvamento automático | `Autosave` | Toda alteração no editor é salva sem ação do criador; o cabeçalho mostra "Salvando…", "Salvo" ou a falha (spec 003) | ✅ (`SaveTracker`) |
 | Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`; demais 📝) |
 | Slide | `Slide` | Bloco só de conteúdo, com layout; sem resposta nem pontos | 📝 |
-| Alternativa | `AnswerOption` | Opção de resposta (texto ≤ 75 ou imagem) com flag de correta | 📝 (UI ✅) |
-| Forma da alternativa | `AnswerShape` | Triângulo, losango, círculo, quadrado — sempre com a cor correspondente | ✅ (UI) |
-| Modo de seleção | `SelectionMode` | `single` ou `multi` | 📝 |
-| Tempo limite | `TimeLimit` | Janela de resposta, 5–240 s conforme o tipo | 📝 |
+| Alternativa | `Choice` (`AnswerOption` na UI) | Opção de resposta (texto ≤ 75 ou imagem) com flag de correta; 4 ou 6 espaços em posições fixas, id = posição (spec 004) | ✅ (texto; imagem 📝) |
+| Resposta correta | `correct` | Marca da alternativa certa; alternativa vazia nunca é correta (spec 004) | ✅ |
+| Respostas extras | `extraChoices` | Espaços 5 e 6, mostrados e removidos juntos (spec 004) | ✅ |
+| Pontos da pergunta | `QuestionPoints` | `standard`, `double` ou `noPoints` (spec 004) | ✅ |
+| Mudança de pergunta | `QuestionChange`, `applyQuestionChange` | Uma edição de pergunta, aplicada com as regras do core no servidor e no cliente, com aviso opcional (`QuestionChangeNotice`) (spec 004) | ✅ |
+| Pergunta incompleta | `questionIssues`, `QuestionIssue` | Sem enunciado, com menos de 2 respostas ou sem correta; continua salva, com alerta na lista (spec 004) | ✅ |
+| Forma da alternativa | `AnswerShape` | Triângulo, losango, círculo, quadrado, pentágono e triângulo invertido — sempre com a cor correspondente | ✅ (UI) |
+| Opções de resposta | `SelectionMode` | `single` (seleção simples) ou `multiple` (múltipla escolha) (spec 004) | ✅ |
+| Tempo limite | `timeLimitSeconds`, `TIME_LIMITS_SECONDS` | Janela de resposta: 5, 10, 15, 20, 30, 45, 60, 90, 120, 180 ou 240 s; padrão 20 s (spec 004) | ✅ |
 | Tempo de leitura | `ReadTime` | Pergunta exibida sem alternativas antes da resposta (≥ 5 s) | 📝 |
 | Pontos da pergunta | `PointsMultiplier` | `standard` (1000), `double` (2000), `noPoints` (0) | ✅ |
 | Versão | `QuizVersion` / snapshot | Cópia imutável do quiz usada por uma partida | 📝 |

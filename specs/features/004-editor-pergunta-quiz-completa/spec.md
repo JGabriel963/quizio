@@ -1,7 +1,7 @@
 ---
 id: "004"
 title: Editor 2/5 — Pergunta Quiz completa
-status: in-progress # draft | approved | planned | in-progress | done
+status: done # draft | approved | planned | in-progress | done
 contexts: [quiz]
 created: 2026-09-30
 ---
@@ -219,3 +219,4 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 ## Changelog
 
 - 2026-09-30 — spec criada e aprovada pelo usuário no mesmo pedido ("criar a spec e já parta para seu desenvolvimento"). Decisões do produto tomadas sem consulta prévia, registradas nas RNs 01, 03, 06, 09 e 14.
+- 2026-10-01 — implementada (tarefas T01 a T17).

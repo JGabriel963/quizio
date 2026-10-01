@@ -16,6 +16,7 @@ import {
 import { ANSWER_SHAPES } from "@quizio/ui/components/answer-shape";
 import { Badge } from "@quizio/ui/components/badge";
 import { Button } from "@quizio/ui/components/button";
+import { Checkbox } from "@quizio/ui/components/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -66,6 +67,8 @@ const sampleAnswers = [
 	"Campo do oleiro",
 	"Getsêmani",
 	"Monte das Oliveiras",
+	"Vale de Hinom",
+	"Betânia",
 ];
 const answerStates: AnswerOptionState[] = [
 	"idle",
@@ -216,6 +219,17 @@ function DesignSystemPage() {
 							{state}
 						</AnswerOption>
 					))}
+				</div>
+				<div className="flex items-center gap-3 rounded-md bg-answer-blue p-3">
+					<Checkbox variant="answer" aria-label="Correta (desmarcada)" />
+					<Checkbox
+						variant="answer"
+						defaultChecked
+						aria-label="Correta (marcada)"
+					/>
+					<span className="font-bold text-answer-foreground">
+						Checkbox variant="answer"
+					</span>
 				</div>
 			</Section>
 		</main>

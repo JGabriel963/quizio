@@ -15,7 +15,7 @@ Toda edição de uma pergunta passa a ser uma **mudança (`QuestionChange`)** di
 
 A incompletude (RN-14) também é uma função pura, `questionIssues`, calculada no cliente para a lista e as dicas. A spec 006 vai reutilizá-la no servidor para bloquear a publicação. Ela não é persistida.
 
-O cliente já envia uma requisição por campo. Esta etapa acrescenta uma **fila por pergunta** em `useEditorActions`: como o servidor regrava a linha inteira da pergunta, duas mudanças da mesma pergunta nunca ficam em voo ao mesmo tempo, o que evita perder a alteração de uma alternativa quando outra é salva junto.
+O cliente já envia uma requisição por campo. Esta etapa acrescenta uma **fila única de escritas** em `useEditorActions`: como o servidor regrava a linha inteira da pergunta (e `saveList` regrava a lista inteira), duas escritas nunca ficam em voo ao mesmo tempo, o que evita perder a alteração de uma alternativa quando outra é salva junto. *(Na implementação, a fila por pergunta prevista virou uma fila do editor inteiro, porque "Aplicar a todas" e as operações de lista também regravam perguntas.)*
 
 ## Linguagem ubíqua
 
@@ -156,7 +156,7 @@ content: jsonb("content").$type<unknown>().notNull().default({}),
 | `question-list.tsx` | Miniatura com o círculo do tempo, as barras das alternativas preenchidas e o alerta de incompleta (ícone com os motivos na descrição acessível e no tooltip) |
 | `lib/question-labels.ts` | Rótulos PT-BR: tempo ("20 segundos", "1 minuto 30 segundos"), pontos, opções, motivos de incompletude e avisos |
 
-`EditorActions` troca `saveQuestionText` por `changeQuestion(questionId, change)`, com atualização otimista via `applyQuestionChange` e o aviso em toast, e ganha `applyTimeLimitToAll(seconds)`. Em `useEditorActions`, as mudanças da mesma pergunta passam por uma fila (`Map<questionId, Promise>`).
+`EditorActions` troca `saveQuestionText` por `saveQuestionField(questionId, change)` (campos de texto autosalvos, que rejeitam na falha) e `changeQuestion(questionId, change)` (salvas na hora e acompanhadas pelo `SaveTracker`), as duas com atualização otimista via `applyQuestionChange` e o aviso em toast, e ganha `applyTimeLimitToAll(seconds)`. Em `useEditorActions`, todas as escritas passam por uma fila única; a resposta do servidor só substitui a pergunta no cache quando nada mais está na fila. Uma mudança recusada pelo servidor é explicada e o editor recarrega; uma falha de rede fica para "Tentar de novo".
 
 ## Estratégia de testes
 
@@ -186,6 +186,6 @@ content: jsonb("content").$type<unknown>().notNull().default({}),
 
 ## Riscos e decisões
 
-- **Mudanças simultâneas da mesma pergunta.** O servidor lê a pergunta, aplica a mudança e regrava a linha. Duas requisições simultâneas da mesma pergunta perderiam uma alteração. A fila por pergunta no cliente evita isso numa aba só. Duas abas continuam no "vale a última" aceito na spec 003.
+- **Mudanças simultâneas da mesma pergunta.** O servidor lê a pergunta, aplica a mudança e regrava a linha. Duas requisições simultâneas perderiam uma alteração. A fila única do editor evita isso numa aba só. Duas abas continuam no "vale a última" aceito na spec 003.
 - **JSON sem esquema no banco.** Aceito no ADR 0008. O parser tolerante na leitura e o core como única porta de escrita protegem os dados.
 - **Selects nativos** em vez de um primitivo de lista no design system. São mais simples, acessíveis e bons no celular. Se o visual incomodar, dá para trocar depois por um `Select` do base-ui na raiz de `packages/ui`.
