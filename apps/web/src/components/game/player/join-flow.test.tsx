@@ -1,17 +1,23 @@
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
+import type { PublicStage } from "@quizio/core/game/domain/public-stage";
 import { InMemoryRealtimeSubscriber } from "@quizio/realtime/testing/in-memory-realtime-subscriber";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { PlayerSessionData } from "@/lib/api-types";
+import type { PlayerResultData, PlayerSessionData } from "@/lib/api-types";
 import {
 	createPlayerSessionStore,
 	type StoredPlayerSession,
 } from "@/lib/player-session";
 import { RealtimeProvider } from "@/lib/realtime";
 
-import { type JoinApi, JoinFlow, SESSION_CHECK_INTERVAL_MS } from "./join-flow";
+import {
+	type JoinApi,
+	JoinFlow,
+	PLAY_CHECK_INTERVAL_MS,
+	SESSION_CHECK_INTERVAL_MS,
+} from "./join-flow";
 
 const PIN = "265914";
 const GAME = "game-1";
@@ -25,6 +31,18 @@ class FakeJoinApi implements JoinApi {
 	locked = false;
 	ended = false;
 	blocked = false;
+	finished = false;
+	/** The stage of a game in progress; null while in the lobby. */
+	stage: PublicStage | null = null;
+	/** What the server answers to an answer, when it refuses. */
+	answerRefusal: string | null = null;
+	readonly answers: {
+		playerId: string;
+		questionIndex: number;
+		choiceIds: string[];
+	}[] = [];
+	/** How each player did in the question being revealed. */
+	readonly results = new Map<string, PlayerResultData>();
 	readonly players = new Map<string, { nickname: string; removed: boolean }>();
 	readonly finds: string[] = [];
 
@@ -33,8 +51,11 @@ class FakeJoinApi implements JoinApi {
 		if (this.blocked) {
 			throw refusal("GAME.TOO_MANY_PIN_ATTEMPTS");
 		}
-		if (pin !== PIN || this.ended) {
+		if (pin !== PIN || this.ended || this.finished) {
 			throw refusal("GAME.PIN_NOT_RECOGNIZED");
+		}
+		if (this.stage) {
+			throw refusal("GAME.ALREADY_STARTED");
 		}
 		if (this.locked) {
 			throw refusal("GAME.LOCKED");
@@ -66,11 +87,49 @@ class FakeJoinApi implements JoinApi {
 		if (!player || input.secret !== `secret-${input.playerId}`) {
 			throw refusal("GAME.NOT_FOUND");
 		}
+		const { stage } = this;
+		const over = player.removed
+			? "removed"
+			: this.ended
+				? "ended"
+				: this.finished
+					? "finished"
+					: null;
+		const answered = this.answers.some(
+			(answer) =>
+				answer.playerId === input.playerId &&
+				answer.questionIndex === stage?.questionIndex,
+		);
 		return {
 			gameId: GAME,
 			nickname: player.nickname,
-			status: player.removed ? "removed" : this.ended ? "ended" : "waiting",
+			status: over ?? (stage ? "playing" : "waiting"),
+			stage:
+				over || !stage
+					? null
+					: {
+							...stage,
+							remainingMs: stage.durationMs,
+							answered,
+							result:
+								stage.phase === "results"
+									? (this.results.get(input.playerId) ?? "timeout")
+									: null,
+						},
 		};
+	}
+
+	async answer(
+		input: StoredPlayerSession & { questionIndex: number; choiceIds: string[] },
+	) {
+		if (this.answerRefusal) {
+			throw refusal(this.answerRefusal);
+		}
+		this.answers.push({
+			playerId: input.playerId,
+			questionIndex: input.questionIndex,
+			choiceIds: input.choiceIds,
+		});
 	}
 }
 
@@ -452,5 +511,295 @@ describe("JoinFlow: waiting (spec 008)", () => {
 			await screen.findByRole("textbox", { name: "Apelido" }),
 		).toBeInTheDocument();
 		expect(store.load(PIN)).toBeNull();
+	});
+});
+
+const stageOf = (
+	phase: PublicStage["phase"],
+	questionIndex = 0,
+): PublicStage => ({
+	questionIndex,
+	questionCount: 3,
+	phase,
+	durationMs:
+		phase === "results" ? null : phase === "answering" ? 20_000 : 5_000,
+	question:
+		phase === "gameIntro"
+			? null
+			: {
+					type: "quiz",
+					selection: "single",
+					choices: [0, 1, 2, 3].map((shapeIndex) => ({
+						id: `choice-${shapeIndex + 1}`,
+						shapeIndex,
+						label: null,
+					})),
+				},
+});
+
+describe("JoinFlow: playing (spec 009)", () => {
+	/** The host moves the game; the device hears of it by the event. */
+	function moveTo(flow: ReturnType<typeof renderFlow>, stage: PublicStage) {
+		flow.api.stage = stage;
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.stageChanged, {
+				status: "playing",
+				stage,
+			}),
+		);
+	}
+	const red = () => screen.getByRole("button", { name: "Triângulo vermelho" });
+	const answerButtons = () =>
+		document.querySelectorAll('[data-slot="answer-button"]');
+
+	it("a game in progress takes nobody new", async () => {
+		const api = new FakeJoinApi();
+		api.stage = stageOf("answering");
+		const { user } = renderFlow({ api });
+
+		await typePin(user, PIN);
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Este jogo já começou.",
+		);
+		expect(screen.queryByRole("textbox", { name: "Apelido" })).toBeNull();
+	});
+
+	it("follows the game from the lobby to the answer buttons", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+
+		moveTo(flow, stageOf("gameIntro"));
+		expect(screen.getByRole("heading", { name: "Prepare-se!" })).toBeVisible();
+
+		moveTo(flow, stageOf("questionIntro"));
+		expect(screen.getByRole("heading", { name: "Pergunta 1" })).toBeVisible();
+		expect(screen.getByText("Preparar…")).toBeVisible();
+		expect(answerButtons()).toHaveLength(0);
+
+		moveTo(flow, stageOf("answering"));
+		expect(answerButtons()).toHaveLength(4);
+		expect(red()).toBeVisible();
+	});
+
+	it("sends the answer for the question on screen and waits", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering", 2));
+
+		await flow.user.click(red());
+
+		expect(flow.api.answers).toEqual([
+			{ playerId: "p1", questionIndex: 2, choiceIds: ["choice-1"] },
+		]);
+		expect(await screen.findByRole("status")).toHaveTextContent(
+			"A competitividade está no ar?",
+		);
+		expect(answerButtons()).toHaveLength(0);
+	});
+
+	it("says the time is up when the answer arrives late", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+		flow.api.answerRefusal = "GAME.ANSWERS_CLOSED";
+
+		await flow.user.click(red());
+
+		expect(
+			await screen.findByRole("heading", { name: "Tempo esgotado" }),
+		).toBeVisible();
+		expect(answerButtons()).toHaveLength(0);
+	});
+
+	it("keeps the buttons when the answer could not be sent", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+		flow.api.answerRefusal = "NETWORK";
+
+		await flow.user.click(red());
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Não foi possível concluir. Tente novamente.",
+		);
+		expect(answerButtons()).toHaveLength(4);
+	});
+
+	it.each([
+		["correct", "Correto"],
+		["wrong", "Incorreto"],
+	] as const)("tells a %s answer at the results", async (result, title) => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+		await flow.user.click(red());
+		flow.api.results.set("p1", result);
+
+		moveTo(flow, stageOf("results"));
+
+		expect(await screen.findByRole("heading", { name: title })).toBeVisible();
+	});
+
+	it("tells who did not answer that the time is up", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+
+		moveTo(flow, stageOf("results"));
+
+		expect(
+			await screen.findByRole("heading", { name: "Tempo esgotado" }),
+		).toBeVisible();
+		expect(screen.getByText("Ainda não acabou!")).toBeVisible();
+	});
+
+	it("starts the next question with fresh buttons", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+		await flow.user.click(red());
+		moveTo(flow, stageOf("results"));
+		await screen.findByRole("heading", { name: "Tempo esgotado" });
+
+		moveTo(flow, stageOf("questionIntro", 1));
+		expect(screen.getByRole("heading", { name: "Pergunta 2" })).toBeVisible();
+
+		moveTo(flow, stageOf("answering", 1));
+		expect(answerButtons()).toHaveLength(4);
+	});
+
+	it("ignores an event that arrives late, after the game moved on", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.stageChanged, {
+				status: "playing",
+				stage: stageOf("questionIntro"),
+			}),
+		);
+
+		expect(answerButtons()).toHaveLength(4);
+	});
+
+	it("a reload during the answers brings the buttons back", async () => {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		api.stage = stageOf("answering");
+		first.unmount();
+
+		renderFlow({ api, store, pin: PIN });
+
+		expect(
+			await screen.findByRole("button", { name: "Triângulo vermelho" }),
+		).toBeVisible();
+		expect(api.players.size).toBe(1);
+	});
+
+	it("a reload after answering brings the waiting screen back", async () => {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		moveTo(first, stageOf("answering"));
+		await first.user.click(red());
+		first.unmount();
+
+		renderFlow({ api, store, pin: PIN });
+
+		expect(await screen.findByText("Resposta recebida!")).toBeVisible();
+		expect(answerButtons()).toHaveLength(0);
+	});
+
+	it("a reload at the results shows the result again", async () => {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		api.stage = stageOf("results");
+		api.results.set("p1", "correct");
+		first.unmount();
+
+		renderFlow({ api, store, pin: PIN });
+
+		expect(
+			await screen.findByRole("heading", { name: "Correto" }),
+		).toBeVisible();
+	});
+
+	it("catches up on a stage it missed, asking every few seconds while playing", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("questionIntro"));
+
+		// The answers opened, and the event never came.
+		flow.api.stage = stageOf("answering");
+		await act(() => vi.advanceTimersByTimeAsync(PLAY_CHECK_INTERVAL_MS));
+
+		expect(answerButtons()).toHaveLength(4);
+	});
+
+	it("shows the end of the game, which a reload keeps", async () => {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const flow = renderFlow({ api, store });
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("results"));
+
+		api.finished = true;
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.stageChanged, {
+				status: "finished",
+				stage: null,
+			}),
+		);
+
+		expect(screen.getByRole("heading", { name: "Fim do jogo" })).toBeVisible();
+		expect(screen.getByText("Obrigado por jogar!")).toBeVisible();
+
+		flow.unmount();
+		renderFlow({ api, store, pin: PIN });
+		expect(
+			await screen.findByRole("heading", { name: "Fim do jogo" }),
+		).toBeVisible();
+	});
+
+	it("a finished game does not keep its PIN from being typed again", async () => {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		api.finished = true;
+		first.unmount();
+
+		const { user } = renderFlow({ api, store });
+		await typePin(user, PIN);
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Não foi possível reconhecer o PIN do jogo. Verifique-o e tente de novo.",
+		);
+		expect(store.load(PIN)).toBeNull();
+	});
+
+	it("leaves with the message when the host ends the game in the middle", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.gameEnded, {
+				reason: "host",
+			}),
+		);
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"O anfitrião encerrou o jogo.",
+		);
+		expect(pinField()).toBeInTheDocument();
 	});
 });

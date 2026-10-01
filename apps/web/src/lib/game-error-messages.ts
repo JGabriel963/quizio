@@ -5,6 +5,9 @@ import { domainCodeOf } from "./quiz-error-messages";
 /** What the player's device shows after the host removes them (spec 008, RN-29). */
 export const REMOVED_FROM_GAME_MESSAGE = "Ah, não! Você foi expulso do jogo.";
 
+/** Shown to whoever tries to get into a game in progress (spec 009, RN-03). */
+export const GAME_ALREADY_STARTED_MESSAGE = "Este jogo já começou.";
+
 /** Shown to the players of a game that was ended (RN-32). */
 export const GAME_ENDED_MESSAGE = "O anfitrião encerrou o jogo.";
 
@@ -22,6 +25,12 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"GAME.INVALID_NICKNAME": `O apelido deve ter de 1 a ${NICKNAME_MAX_LENGTH} caracteres.`,
 	"GAME.NICKNAME_TAKEN": "Esse apelido já está em uso. Escolha outro.",
 	"GAME.ENDED": "Esta partida foi encerrada.",
+	"GAME.ALREADY_STARTED": GAME_ALREADY_STARTED_MESSAGE,
+	"GAME.NO_PLAYERS": "Espere ao menos um participante entrar para iniciar.",
+	"GAME.STAGE_NOT_DUE": "Ainda não é hora de avançar.",
+	"GAME.ANSWERS_CLOSED": "Tempo esgotado",
+	"GAME.ALREADY_ANSWERED": "Você já respondeu esta pergunta.",
+	"GAME.INVALID_ANSWER": "Resposta inválida.",
 };
 
 /** The `GAME.*` code of a failed call, or null for anything else. */

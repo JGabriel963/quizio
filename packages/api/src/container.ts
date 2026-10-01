@@ -1,4 +1,8 @@
 import {
+	type AdvanceGame,
+	createAdvanceGame,
+} from "@quizio/core/game/application/advance-game";
+import {
 	createEndGame,
 	type EndGame,
 } from "@quizio/core/game/application/end-game";
@@ -8,9 +12,9 @@ import {
 	type FindGameByPin,
 } from "@quizio/core/game/application/find-game-by-pin";
 import {
-	createGetHostLobby,
-	type GetHostLobby,
-} from "@quizio/core/game/application/get-host-lobby";
+	createGetHostGame,
+	type GetHostGame,
+} from "@quizio/core/game/application/get-host-game";
 import {
 	createGetPlayerSession,
 	type GetPlayerSession,
@@ -23,7 +27,9 @@ import {
 	createJoinGame,
 	type JoinGame,
 } from "@quizio/core/game/application/join-game";
+import type { AnswerRepository } from "@quizio/core/game/application/ports/answer-repository";
 import type { GamePinGenerator } from "@quizio/core/game/application/ports/game-pin-generator";
+import type { GameQuestionRepository } from "@quizio/core/game/application/ports/game-question-repository";
 import type { GameRepository } from "@quizio/core/game/application/ports/game-repository";
 import type { PlayableQuizQuery } from "@quizio/core/game/application/ports/playable-quiz-query";
 import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
@@ -35,6 +41,14 @@ import {
 	createSetGameLocked,
 	type SetGameLocked,
 } from "@quizio/core/game/application/set-game-locked";
+import {
+	createStartGame,
+	type StartGame,
+} from "@quizio/core/game/application/start-game";
+import {
+	createSubmitAnswer,
+	type SubmitAnswer,
+} from "@quizio/core/game/application/submit-answer";
 import {
 	createGetHomeOverview,
 	type GetHomeOverview,
@@ -143,6 +157,8 @@ export interface Adapters {
 	libraryQuizzes: LibraryQuizQuery;
 	games: GameRepository;
 	players: PlayerRepository;
+	gameQuestions: GameQuestionRepository;
+	answers: AnswerRepository;
 	playableQuizzes: PlayableQuizQuery;
 	pins: GamePinGenerator;
 	attempts: AttemptLimiter;
@@ -172,13 +188,16 @@ export interface Container extends Adapters {
 		listLibrary: ListLibrary;
 		getHomeOverview: GetHomeOverview;
 		hostGame: HostGame;
-		getHostLobby: GetHostLobby;
+		getHostGame: GetHostGame;
+		startGame: StartGame;
+		advanceGame: AdvanceGame;
 		setGameLocked: SetGameLocked;
 		removePlayer: RemovePlayer;
 		endGame: EndGame;
 		findGameByPin: FindGameByPin;
 		joinGame: JoinGame;
 		getPlayerSession: GetPlayerSession;
+		submitAnswer: SubmitAnswer;
 	};
 }
 
@@ -221,13 +240,16 @@ export function createContainer(adapters: Adapters): Container {
 			listLibrary: createListLibrary(adapters),
 			getHomeOverview: createGetHomeOverview(adapters),
 			hostGame: createHostGame(adapters),
-			getHostLobby: createGetHostLobby(adapters),
+			getHostGame: createGetHostGame(adapters),
+			startGame: createStartGame(adapters),
+			advanceGame: createAdvanceGame(adapters),
 			setGameLocked: createSetGameLocked(adapters),
 			removePlayer: createRemovePlayer(adapters),
 			endGame: createEndGame(adapters),
 			findGameByPin: createFindGameByPin(adapters),
 			joinGame: createJoinGame(adapters),
 			getPlayerSession: createGetPlayerSession(adapters),
+			submitAnswer: createSubmitAnswer(adapters),
 		},
 	};
 }

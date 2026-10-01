@@ -1,5 +1,6 @@
 import type { Game } from "../domain/game";
 import { GAME_TTL_MS } from "../domain/game";
+import type { GamePhase, PlayingGame } from "../domain/game-progress";
 import { nicknameKeyOf } from "../domain/nickname";
 import type { Player } from "../domain/player";
 
@@ -19,7 +20,32 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		expiresAt: new Date(createdAt.getTime() + GAME_TTL_MS),
 		endedAt: null,
 		endReason: null,
+		questionCount: 0,
+		progress: null,
 		...overrides,
+	};
+}
+
+/** Test builder: game-1 being played, at `phase` of a question. */
+export function aPlayingGame(
+	phase: GamePhase = "answering",
+	options: {
+		questionIndex?: number;
+		questionCount?: number;
+		/** When the phase started. */
+		since?: Date;
+	} = {},
+	overrides: Partial<Game> = {},
+): PlayingGame {
+	return {
+		...aGame(overrides),
+		status: "playing",
+		questionCount: options.questionCount ?? 3,
+		progress: {
+			questionIndex: options.questionIndex ?? 0,
+			phase,
+			phaseStartedAt: options.since ?? new Date("2026-06-01T12:00:00.000Z"),
+		},
 	};
 }
 

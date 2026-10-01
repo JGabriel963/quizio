@@ -1,10 +1,12 @@
-import { type Browser, expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import {
 	createQuizInEditor,
+	enterNickname,
 	expectSaved,
+	lobbyPin,
+	newParticipant,
 	signUp,
-	useUniqueClientIp,
 } from "./support";
 
 const readyDialog = (page: Page) =>
@@ -32,27 +34,6 @@ async function publishQuiz(page: Page, title: string) {
 	await expectSaved(page);
 	await page.getByRole("button", { name: "Salvar", exact: true }).click();
 	await expect(readyDialog(page)).toBeVisible();
-}
-
-/** The lobby is open: returns the PIN as the player types it. */
-async function lobbyPin(host: Page): Promise<string> {
-	await expect(host).toHaveURL(/\/host\//);
-	const pin = host.locator('[data-slot="game-pin"]');
-	await expect(pin).toHaveText(/^\d{3} \d{3}$/);
-	return ((await pin.textContent()) ?? "").replace(" ", "");
-}
-
-/** Each participant is another browser, as in a real game. */
-async function newParticipant(browser: Browser): Promise<Page> {
-	const context = await browser.newContext();
-	const page = await context.newPage();
-	await useUniqueClientIp(page);
-	return page;
-}
-
-async function enterNickname(player: Page, nickname: string) {
-	await player.getByRole("textbox", { name: "Apelido" }).fill(nickname);
-	await player.getByRole("button", { name: "Ok, vamos lá!" }).click();
 }
 
 /**

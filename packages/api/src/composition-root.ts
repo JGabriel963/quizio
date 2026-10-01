@@ -1,5 +1,7 @@
 import { authSettings } from "@quizio/auth";
 import { db } from "@quizio/db";
+import { createDrizzleAnswerRepository } from "@quizio/db/repositories/game/drizzle-answer-repository";
+import { createDrizzleGameQuestionRepository } from "@quizio/db/repositories/game/drizzle-game-question-repository";
 import { createDrizzleGameRepository } from "@quizio/db/repositories/game/drizzle-game-repository";
 import { createDrizzlePlayableQuizQuery } from "@quizio/db/repositories/game/drizzle-playable-quiz-query";
 import { createDrizzlePlayerRepository } from "@quizio/db/repositories/game/drizzle-player-repository";
@@ -48,6 +50,8 @@ export function createAdaptersFromEnv(): Adapters {
 		libraryQuizzes: createDrizzleLibraryQuizQuery(db),
 		games: createDrizzleGameRepository(db),
 		players: createDrizzlePlayerRepository(db),
+		gameQuestions: createDrizzleGameQuestionRepository(db),
+		answers: createDrizzleAnswerRepository(db),
 		playableQuizzes: createDrizzlePlayableQuizQuery(db),
 		pins: createRandomGamePinGenerator(),
 		attempts: createDrizzleAttemptLimiter(db),

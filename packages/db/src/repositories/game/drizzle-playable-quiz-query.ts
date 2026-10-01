@@ -1,7 +1,11 @@
 import type { PlayableQuizQuery } from "@quizio/core/game/application/ports/playable-quiz-query";
-import { eq } from "drizzle-orm";
+import { parseVersionQuestions } from "@quizio/core/quiz/domain/quiz-version";
+import { and, eq } from "drizzle-orm";
 
-import { quiz as quizTable } from "../../schema/quiz";
+import {
+	quiz as quizTable,
+	quizVersion as versionTable,
+} from "../../schema/quiz";
 import type { Database } from "../../types";
 
 /** Reads straight from the quiz table: the game context never loads the aggregate. */
@@ -26,6 +30,20 @@ export function createDrizzlePlayableQuizQuery(
 			}
 			const { trashedAt, ...quiz } = row;
 			return { ...quiz, trashed: trashedAt !== null };
+		},
+
+		async questions(quizId, version) {
+			const [row] = await db
+				.select({ questions: versionTable.questions })
+				.from(versionTable)
+				.where(
+					and(
+						eq(versionTable.quizId, quizId),
+						eq(versionTable.number, version),
+					),
+				)
+				.limit(1);
+			return row ? parseVersionQuestions(row.questions) : [];
 		},
 	};
 }

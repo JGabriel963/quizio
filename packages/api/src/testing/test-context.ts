@@ -1,3 +1,5 @@
+import { InMemoryAnswerRepository } from "@quizio/core/game/testing/in-memory-answer-repository";
+import { InMemoryGameQuestionRepository } from "@quizio/core/game/testing/in-memory-game-question-repository";
 import { InMemoryGameRepository } from "@quizio/core/game/testing/in-memory-game-repository";
 import { InMemoryPlayableQuizQuery } from "@quizio/core/game/testing/in-memory-playable-quiz-query";
 import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-player-repository";
@@ -36,7 +38,9 @@ export interface TestApi {
 	storage: InMemoryObjectStorage;
 	games: InMemoryGameRepository;
 	players: InMemoryPlayerRepository;
+	answers: InMemoryAnswerRepository;
 	realtime: InMemoryRealtimePublisher;
+	clock: FixedClock;
 }
 
 function toLibraryRecord(
@@ -65,12 +69,14 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const storage = new InMemoryObjectStorage("https://media.test");
 	const games = new InMemoryGameRepository();
 	const players = new InMemoryPlayerRepository();
+	const answers = new InMemoryAnswerRepository();
 	const realtime = new InMemoryRealtimePublisher();
+	const clock = new FixedClock("2026-06-01T12:00:00.000Z");
 	const adapters: Adapters = {
 		storage,
 		realtime,
 		ids: new SequentialIdGenerator("id"),
-		clock: new FixedClock("2026-06-01T12:00:00.000Z"),
+		clock,
 		quizzes,
 		questions,
 		versions,
@@ -79,14 +85,19 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		),
 		games,
 		players,
-		playableQuizzes: new InMemoryPlayableQuizQuery(() =>
-			quizzes.all().map((quiz) => ({
-				id: quiz.id,
-				ownerId: quiz.ownerId,
-				title: quiz.title,
-				version: quiz.publishedVersion,
-				trashed: quiz.trashedAt !== null,
-			})),
+		gameQuestions: new InMemoryGameQuestionRepository(),
+		answers,
+		playableQuizzes: new InMemoryPlayableQuizQuery(
+			() =>
+				quizzes.all().map((quiz) => ({
+					id: quiz.id,
+					ownerId: quiz.ownerId,
+					title: quiz.title,
+					version: quiz.publishedVersion,
+					trashed: quiz.trashedAt !== null,
+				})),
+			async (quizId, version) =>
+				(await versions.find(quizId, version))?.questions ?? [],
 		),
 		pins: new SequentialGamePinGenerator("265914"),
 		attempts: new InMemoryAttemptLimiter(),
@@ -111,6 +122,8 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		storage,
 		games,
 		players,
+		answers,
 		realtime,
+		clock,
 	};
 }

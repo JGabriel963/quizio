@@ -1,0 +1,254 @@
+import { expect, type Page, test } from "@playwright/test";
+
+import {
+	createQuizInEditor,
+	enterNickname,
+	expectSaved,
+	lobbyPin,
+	newParticipant,
+	pickNewQuestionType,
+	signUp,
+} from "./support";
+
+/** A phase lasts up to 5 s before the host's screen asks for the next one. */
+const NEXT_PHASE = { timeout: 15_000 };
+
+const readyDialog = (page: Page) =>
+	page.getByRole("dialog", { name: "O quiz está pronto" });
+const notice = (page: Page) => page.getByRole("alert");
+const heading = (page: Page, name: string) =>
+	page.getByRole("heading", { name, exact: true });
+const position = (host: Page) =>
+	host.locator('[data-slot="question-position"]');
+const answerCount = (host: Page) => host.locator('[data-slot="answer-count"]');
+const timeLeft = (host: Page) => host.locator('[data-slot="time-left"]');
+const stageAnswers = (host: Page) =>
+	host.getByRole("list", { name: "Respostas" }).getByRole("listitem");
+const bars = (host: Page) =>
+	host
+		.getByRole("list", { name: "Distribuição das respostas" })
+		.getByRole("listitem");
+const answerButtons = (player: Page) =>
+	player.locator('[data-slot="answer-button"]');
+const answerButton = (player: Page, name: string) =>
+	player.getByRole("button", { name, exact: true });
+
+/**
+ * A playable quiz of two questions, the first a Quiz of two answers and the
+ * second a true/false one, both with the default 20 seconds.
+ */
+async function publishTwoQuestionQuiz(page: Page, title: string) {
+	await createQuizInEditor(page);
+	await page.getByRole("textbox", { name: "Título do quiz" }).fill(title);
+	await page
+		.getByRole("textbox", { name: "Pergunta" })
+		.fill("Capital do Brasil?");
+	await page
+		.getByRole("textbox", { name: "Resposta 1", exact: true })
+		.fill("Brasília");
+	await page
+		.getByRole("textbox", { name: "Resposta 2", exact: true })
+		.fill("Rio de Janeiro");
+	await page.getByRole("textbox", { name: "Resposta 2", exact: true }).blur();
+	await page.getByRole("checkbox", { name: "Resposta 1 correta" }).click();
+	await expectSaved(page);
+
+	const listToggle = page.getByRole("button", { name: "Lista de perguntas" });
+	if (await listToggle.isVisible()) {
+		await listToggle.click();
+	}
+	await pickNewQuestionType(page, "Verdadeiro ou falso");
+	const question = page.getByRole("textbox", { name: "Pergunta" });
+	await expect(question).toHaveValue("");
+	await question.fill("Brasília é a capital do Brasil");
+	await question.blur();
+	await page.getByRole("checkbox", { name: "Verdadeiro correta" }).click();
+	await expectSaved(page);
+
+	await page.getByRole("button", { name: "Salvar", exact: true }).click();
+	await expect(readyDialog(page)).toBeVisible();
+}
+
+/** Hosts the quiz just published and brings the players in. */
+async function hostWithPlayers(
+	host: Page,
+	players: { page: Page; nickname: string }[],
+) {
+	await readyDialog(host)
+		.getByRole("button", { name: /Organizar ao vivo/ })
+		.click();
+	const pin = await lobbyPin(host);
+	for (const { page, nickname } of players) {
+		await page.goto(`/join/${pin}`);
+		await enterNickname(page, nickname);
+		await expect(
+			page.getByText("Pronto! Está vendo seu apelido na tela?"),
+		).toBeVisible();
+	}
+	await expect(host.locator('[data-slot="player-count"]')).toHaveText(
+		String(players.length),
+	);
+	return pin;
+}
+
+test.describe("ciclo da pergunta (spec 009)", () => {
+	test("uma partida do início ao fim, com dois jogadores", async ({
+		page: host,
+		browser,
+	}) => {
+		test.setTimeout(150_000);
+		await signUp(host);
+		await publishTwoQuestionQuiz(host, "Capitais");
+		const ana = await newParticipant(browser);
+		const bia = await newParticipant(browser);
+		const pin = await hostWithPlayers(host, [
+			{ page: ana, nickname: "Ana" },
+			{ page: bia, nickname: "Bia" },
+		]);
+
+		// CA-01: Iniciar opens the game on the three screens.
+		await host.getByRole("button", { name: "Iniciar" }).click();
+		await expect(heading(host, "Capitais")).toBeVisible();
+		await expect(heading(ana, "Prepare-se!")).toBeVisible();
+		await expect(heading(bia, "Prepare-se!")).toBeVisible();
+
+		// CA-04: nobody new gets in once it started.
+		const late = await newParticipant(browser);
+		await late.goto(`/join/${pin}`);
+		await expect(notice(late)).toHaveText("Este jogo já começou.");
+
+		// The intro of question 1: the question without its answers.
+		await expect(position(host)).toHaveText("1/2", NEXT_PHASE);
+		await expect(heading(host, "Capital do Brasil?")).toBeVisible();
+		await expect(host.getByRole("list", { name: "Respostas" })).toHaveCount(0);
+		await expect(heading(ana, "Pergunta 1")).toBeVisible();
+		await expect(ana.getByText("Preparar…")).toBeVisible();
+		await expect(answerButtons(ana)).toHaveCount(0);
+
+		// The answers open: texts on the host, colors and shapes on the phones.
+		await expect(stageAnswers(host)).toHaveText(
+			["Brasília", "Rio de Janeiro"],
+			NEXT_PHASE,
+		);
+		await expect(answerCount(host)).toHaveText("0");
+		await expect(answerButtons(ana)).toHaveCount(2);
+		await expect(ana.getByText("Brasília")).toHaveCount(0);
+		// CA-44: the buttons fill the phone, with nothing to scroll.
+		expect(
+			await ana.evaluate(() => {
+				const page = document.documentElement;
+				return (
+					page.scrollWidth <= page.clientWidth &&
+					page.scrollHeight <= page.clientHeight
+				);
+			}),
+		).toBe(true);
+
+		// CA-10: an answer goes in, and the player does not know how it went.
+		await answerButton(ana, "Triângulo vermelho").click();
+		await expect(ana.getByText("Resposta recebida!")).toBeVisible();
+		await expect(answerCount(host)).toHaveText("1");
+
+		// CA-39: a reload keeps who answered waiting, and who did not, answering.
+		await ana.reload();
+		await expect(ana.getByText("Resposta recebida!")).toBeVisible();
+		await expect(answerButtons(ana)).toHaveCount(0);
+		await bia.reload();
+		await expect(answerButtons(bia)).toHaveCount(2);
+
+		// CA-24: the last answer brings the results, without waiting for the time.
+		await answerButton(bia, "Losango azul").click();
+		await expect(host.getByRole("button", { name: "Avançar" })).toBeVisible();
+		await expect(
+			bars(host).locator('[data-slot="answer-bar-count"]'),
+		).toHaveText(["1", "1"]);
+		await expect(bars(host).first()).toHaveAttribute("data-correct", "true");
+		// CA-30: each player learns only how they did.
+		await expect(heading(ana, "Correto")).toBeVisible();
+		await expect(heading(bia, "Incorreto")).toBeVisible();
+		await expect(bia.getByText("Brasília")).toHaveCount(0);
+
+		// CA-34: Avançar opens the next question on the three screens.
+		await host.getByRole("button", { name: "Avançar" }).click();
+		await expect(position(host)).toHaveText("2/2");
+		await expect(heading(ana, "Pergunta 2")).toBeVisible();
+		await expect(heading(bia, "Pergunta 2")).toBeVisible();
+
+		// True/false: two buttons, the blue one (Verdadeiro) first.
+		await expect(stageAnswers(host)).toHaveText(
+			["Verdadeiro", "Falso"],
+			NEXT_PHASE,
+		);
+		await expect(answerButtons(ana)).toHaveCount(2);
+		await expect(answerButton(ana, "Falso")).toBeVisible();
+		await answerButton(ana, "Verdadeiro").click();
+		await expect(answerCount(host)).toHaveText("1");
+
+		// CA-41: a reload shows the time that is really left, not the whole time.
+		await expect(timeLeft(host)).not.toHaveText(/^(20|19|18)$/);
+		await host.reload();
+		await expect(timeLeft(host)).toBeVisible();
+		const left = Number(await timeLeft(host).textContent());
+		expect(left).toBeGreaterThan(0);
+		expect(left).toBeLessThan(18);
+		await expect(answerCount(host)).toHaveText("1");
+
+		// CA-25: skipping the timer reveals; who did not answer ran out of time.
+		await host.getByRole("button", { name: "Pular o cronômetro" }).click();
+		await expect(host.getByRole("button", { name: "Avançar" })).toBeVisible();
+		await expect(heading(ana, "Correto")).toBeVisible();
+		await expect(heading(bia, "Tempo esgotado")).toBeVisible();
+		await expect(bia.getByText("Ainda não acabou!")).toBeVisible();
+
+		// CA-40: a reload at the results shows the result again.
+		await ana.reload();
+		await expect(heading(ana, "Correto")).toBeVisible();
+
+		// CA-36: after the last question the game is over, and the PIN is free.
+		await host.getByRole("button", { name: "Avançar" }).click();
+		await expect(heading(host, "Fim do jogo")).toBeVisible();
+		await expect(
+			host.getByRole("link", { name: "Voltar ao quiz" }),
+		).toBeVisible();
+		await expect(heading(ana, "Fim do jogo")).toBeVisible();
+		await expect(bia.getByText("Obrigado por jogar!")).toBeVisible();
+		await late.goto(`/join/${pin}`);
+		await expect(notice(late)).toHaveText(
+			"Não foi possível reconhecer o PIN do jogo. Verifique-o e tente de novo.",
+		);
+
+		// The end survives a reload of the host's screen.
+		await host.reload();
+		await expect(heading(host, "Fim do jogo")).toBeVisible();
+	});
+
+	test("o tempo acaba sozinho, e o anfitrião encerra no meio do jogo", async ({
+		page: host,
+		browser,
+	}) => {
+		test.setTimeout(120_000);
+		await signUp(host);
+		await publishTwoQuestionQuiz(host, "Geografia");
+		const player = await newParticipant(browser);
+		await hostWithPlayers(host, [{ page: player, nickname: "ACT" }]);
+
+		await host.getByRole("button", { name: "Iniciar" }).click();
+		await expect(stageAnswers(host)).toHaveCount(2, NEXT_PHASE);
+
+		// CA-23: nobody answers, and the 20 seconds reveal by themselves.
+		await expect(host.getByRole("button", { name: "Avançar" })).toBeVisible({
+			timeout: 30_000,
+		});
+		await expect(heading(player, "Tempo esgotado")).toBeVisible();
+
+		// CA-42: ending in the middle sends the host to the quiz and the player out.
+		await host.getByRole("button", { name: "Sair" }).click();
+		await host
+			.getByRole("alertdialog", { name: "Encerrar o jogo?" })
+			.getByRole("button", { name: "Encerrar" })
+			.click();
+		await expect(host).toHaveURL(/\/quizzes\//);
+		await expect(notice(player)).toHaveText("O anfitrião encerrou o jogo.");
+		await expect(player.getByRole("textbox", { name: "PIN" })).toBeVisible();
+	});
+});

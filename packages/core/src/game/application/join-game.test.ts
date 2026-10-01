@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	GAME_MAX_PLAYERS,
 	GAME_TTL_MS,
+	GameAlreadyStartedError,
 	GameFullError,
 	GameLockedError,
 	GameNotFoundError,
@@ -15,6 +16,7 @@ import { PIN_ATTEMPT_LIMIT, PIN_ATTEMPT_WINDOW_MS } from "../domain/game-pin";
 import { InvalidNicknameError } from "../domain/nickname";
 import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps } from "../testing/game-deps";
+import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
 import { createFindGameByPin } from "./find-game-by-pin";
 import { createGetPlayerSession } from "./get-player-session";
@@ -258,6 +260,7 @@ describe("getPlayerSession (spec 008)", () => {
 			gameId: "game-1",
 			nickname: "ACT",
 			status: "waiting",
+			stage: null,
 		});
 	});
 
@@ -289,6 +292,31 @@ describe("getPlayerSession (spec 008)", () => {
 			{ ...session, gameId: "missing" },
 		]) {
 			await expect(getPlayerSession(wrong)).rejects.toThrow(GameNotFoundError);
+		}
+	});
+});
+
+describe("joining a game in progress (spec 009, RN-03)", () => {
+	it("a game in progress takes nobody new, by PIN or by nickname", async () => {
+		const { deps } = await createStartedGame();
+
+		await expect(
+			createFindGameByPin(deps)({ pin: "265914", clientKey: "ip" }),
+		).rejects.toThrow(GameAlreadyStartedError);
+		await expect(
+			createJoinGame(deps)({ gameId: "game-1", nickname: "Caio" }),
+		).rejects.toThrow(GameAlreadyStartedError);
+		expect(await deps.players.countActive("game-1")).toBe(2);
+	});
+
+	it("the PIN of a game in progress is not a wrong attempt", async () => {
+		const { deps } = await createStartedGame();
+		const find = createFindGameByPin(deps);
+
+		for (let attempt = 0; attempt < PIN_ATTEMPT_LIMIT + 1; attempt++) {
+			await expect(find({ pin: "265914", clientKey: "ip" })).rejects.toThrow(
+				GameAlreadyStartedError,
+			);
 		}
 	});
 });

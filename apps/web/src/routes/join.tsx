@@ -6,7 +6,8 @@ import { browserPlayerSessionStore } from "@/lib/player-session";
 import { useTRPCClient } from "@/utils/trpc";
 
 /**
- * The player's way in, public and without an account (spec 008, RN-35).
+ * The player's screen, public and without an account (spec 008, RN-35): the
+ * way in and, once the host starts, the game itself (spec 009).
  * `/join` asks for the PIN and `/join/{PIN}` is the join link; both are this
  * one screen, which stays mounted while the address follows the flow.
  */
@@ -24,6 +25,7 @@ function JoinPage() {
 			find: (gamePin) => client.game.join.find.mutate({ pin: gamePin }),
 			enter: (input) => client.game.join.enter.mutate(input),
 			session: (input) => client.game.join.session.query(input),
+			answer: (input) => client.game.join.answer.mutate(input),
 		}),
 		[client],
 	);

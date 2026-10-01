@@ -5,7 +5,7 @@ import { GAME_EVENTS, gameChannel } from "../domain/game-events";
 import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps } from "../testing/game-deps";
 import { createEndGame } from "./end-game";
-import { createGetHostLobby } from "./get-host-lobby";
+import { createGetHostGame } from "./get-host-game";
 import { createRemovePlayer } from "./remove-player";
 import { createSetGameLocked } from "./set-game-locked";
 
@@ -17,7 +17,7 @@ async function lobby(game = aGame()) {
 	return deps;
 }
 
-describe("getHostLobby (spec 008)", () => {
+describe("getHostGame (spec 008)", () => {
 	it("shows the PIN and the active players in order of arrival", async () => {
 		const deps = await lobby();
 		await deps.players.add(aPlayer({ id: "p1", nickname: "Ana" }));
@@ -26,7 +26,7 @@ describe("getHostLobby (spec 008)", () => {
 			aPlayer({ id: "p3", nickname: "Caio", removedAt: new Date() }),
 		);
 
-		const view = await createGetHostLobby(deps)(mine);
+		const view = await createGetHostGame(deps)(mine);
 
 		expect(view).toEqual({
 			gameId: "game-1",
@@ -40,6 +40,8 @@ describe("getHostLobby (spec 008)", () => {
 				{ id: "p1", nickname: "Ana" },
 				{ id: "p2", nickname: "Bia" },
 			],
+			questionCount: 0,
+			stage: null,
 		});
 	});
 
@@ -47,20 +49,20 @@ describe("getHostLobby (spec 008)", () => {
 		const deps = await lobby();
 		await deps.players.add(aPlayer({ secret: "s3cret" }));
 
-		const view = await createGetHostLobby(deps)(mine);
+		const view = await createGetHostGame(deps)(mine);
 
 		expect(JSON.stringify(view)).not.toContain("s3cret");
 	});
 
 	it("is not found for another creator", async () => {
 		const deps = await lobby();
-		const getHostLobby = createGetHostLobby(deps);
+		const getHostGame = createGetHostGame(deps);
 
 		await expect(
-			getHostLobby({ ownerId: "user-2", gameId: "game-1" }),
+			getHostGame({ ownerId: "user-2", gameId: "game-1" }),
 		).rejects.toThrow(GameNotFoundError);
 		await expect(
-			getHostLobby({ ownerId: "user-1", gameId: "missing" }),
+			getHostGame({ ownerId: "user-1", gameId: "missing" }),
 		).rejects.toThrow(GameNotFoundError);
 	});
 
@@ -68,7 +70,7 @@ describe("getHostLobby (spec 008)", () => {
 		const deps = await lobby();
 		deps.clock.advanceBy(GAME_TTL_MS);
 
-		const view = await createGetHostLobby(deps)(mine);
+		const view = await createGetHostGame(deps)(mine);
 
 		expect(view).toMatchObject({ status: "ended", endReason: "expired" });
 		expect(await deps.games.findById("game-1")).toMatchObject({

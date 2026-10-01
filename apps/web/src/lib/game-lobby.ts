@@ -1,6 +1,6 @@
 import type { GameEndReason } from "@quizio/core/game/domain/game";
 
-import type { HostLobbyData } from "./api-types";
+import type { HostGameData } from "./api-types";
 
 /** What the game's channel tells the host's lobby (spec 008; ADR 0009). */
 export type LobbyEvent =
@@ -14,9 +14,9 @@ export type LobbyEvent =
  * repeat what a refetch already brought, so each one is safe to apply twice.
  */
 export function applyLobbyEvent(
-	view: HostLobbyData,
+	view: HostGameData,
 	event: LobbyEvent,
-): HostLobbyData {
+): HostGameData {
 	switch (event.type) {
 		case "playerJoined":
 			return view.players.some((player) => player.id === event.player.id)

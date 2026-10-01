@@ -1,3 +1,4 @@
+import type { Question } from "../../quiz/domain/question";
 import type {
 	PlayableQuiz,
 	PlayableQuizQuery,
@@ -5,10 +6,20 @@ import type {
 
 export class InMemoryPlayableQuizQuery implements PlayableQuizQuery {
 	/** Reads from the source on every call, so tests see later changes. */
-	constructor(private readonly source: () => readonly PlayableQuiz[]) {}
+	constructor(
+		private readonly source: () => readonly PlayableQuiz[],
+		private readonly versionQuestions: (
+			quizId: string,
+			version: number,
+		) => Promise<readonly Question[]> | readonly Question[] = () => [],
+	) {}
 
 	async find(quizId: string): Promise<PlayableQuiz | null> {
 		return this.source().find((quiz) => quiz.id === quizId) ?? null;
+	}
+
+	async questions(quizId: string, version: number): Promise<Question[]> {
+		return [...(await this.versionQuestions(quizId, version))];
 	}
 }
 

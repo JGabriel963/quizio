@@ -122,7 +122,9 @@ A Vercel não mantém WebSockets nem processos vivos entre requisições. Por is
 - **Clientes nunca publicam.** Jogador responde via mutation tRPC → caso de uso grava e calcula → `RealtimePublisher` notifica host e jogadores.
 - **Sem timers no servidor.** O prazo da pergunta é derivado de `perguntaAbertaEm + limite`. A tela do host dispara a transição ("tempo esgotado", "próxima"), e o servidor valida que a transição é permitida (idempotente). Respostas após o prazo (com pequena tolerância de latência definida na spec do jogo) são rejeitadas.
 - **Um canal público por partida**, `game-{gameId}` ([ADR 0009](adr/0009-partida-ao-vivo.md)). Nada individual vai por evento: o que é de um jogador só é buscado por uma chamada autenticada pelo segredo dele.
-- **Evento é aviso; a consulta é a verdade.** Cada tela tem uma consulta que devolve o estado inteiro (`game.lobby`, `game.join.session`), refeita ao reconectar, ao voltar o foco e a cada 15 segundos. Casos de uso gravam primeiro e publicam depois.
+- **Evento é aviso; a consulta é a verdade.** Cada tela tem uma consulta que devolve o estado inteiro (`game.view`, `game.join.session`), refeita ao reconectar, ao voltar o foco e periodicamente (15 segundos no lobby, 5 durante o jogo). Casos de uso gravam primeiro e publicam depois.
+- **Transições condicionais.** Cada mudança de fase é pedida com a fase de onde parte e gravada com `saveIfAt`, um `UPDATE` condicionado a essa fase: de dois pedidos iguais, um grava e o outro não faz nada (spec 009).
+- **A correta não sai do servidor antes da revelação**, nem para a tela do anfitrião, que é projetada. O jogador recebe só cor e forma das alternativas, e o próprio resultado.
 - **Jogador anônimo**: `playerId` público e um segredo guardado no navegador, sem Better Auth.
 
 Se o deploy mudar para um host com processos persistentes (VPS, Fly) ou para Cloudflare (Durable Objects), apenas os adapters de real-time e a composition root mudam.

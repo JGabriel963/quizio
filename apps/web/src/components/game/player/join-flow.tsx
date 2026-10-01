@@ -2,17 +2,19 @@ import {
 	GAME_EVENTS,
 	gameChannel,
 	type PlayerRemovedPayload,
+	type StageChangedPayload,
 } from "@quizio/core/game/domain/game-events";
 import { parseGamePin } from "@quizio/core/game/domain/game-pin";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
-import type { PlayerSessionData } from "@/lib/api-types";
+import type { PlayerSessionData, PlayerStageData } from "@/lib/api-types";
 import {
 	GAME_ENDED_MESSAGE,
 	gameErrorCode,
 	gameErrorMessage,
 	REMOVED_FROM_GAME_MESSAGE,
 } from "@/lib/game-error-messages";
+import { stageOrder } from "@/lib/game-stage";
 import type {
 	PlayerSessionStore,
 	StoredPlayerSession,
@@ -25,8 +27,9 @@ import {
 	PinForm,
 	WaitingScreen,
 } from "./join-forms";
+import { PlayerStage } from "./player-stage";
 
-/** What the player's flow asks of the API; the route wires it to tRPC (spec 008). */
+/** What the player's flow asks of the API; the route wires it to tRPC (specs 008, 009). */
 export interface JoinApi {
 	find(pin: string): Promise<{ gameId: string; pin: string }>;
 	enter(input: {
@@ -34,11 +37,22 @@ export interface JoinApi {
 		nickname: string;
 	}): Promise<{ playerId: string; secret: string; nickname: string }>;
 	session(input: StoredPlayerSession): Promise<PlayerSessionData>;
+	answer(
+		input: StoredPlayerSession & { questionIndex: number; choiceIds: string[] },
+	): Promise<unknown>;
 }
 
 interface FoundGame {
 	gameId: string;
 	pin: string;
+}
+
+/** The game after the lobby, as this device last knew it (spec 009). */
+interface PlayView {
+	finished: boolean;
+	stage: PlayerStageData | null;
+	/** This device's clock when the stage arrived: countdowns start from it. */
+	receivedAt: number;
 }
 
 type Step =
@@ -47,14 +61,18 @@ type Step =
 	| { kind: "resolving" }
 	| { kind: "nickname"; game: FoundGame; error: string | null }
 	| {
+			/** In the game: waiting in the lobby while `play` is null, playing after. */
 			kind: "waiting";
 			game: FoundGame;
 			session: StoredPlayerSession;
 			nickname: string;
+			play: PlayView | null;
 	  };
 
 /** How often a waiting device asks the server where it stands (ADR 0009). */
 export const SESSION_CHECK_INTERVAL_MS = 15_000;
+/** During the game the phases are short, so the device asks more often (spec 009, RN-33). */
+export const PLAY_CHECK_INTERVAL_MS = 5_000;
 
 const PIN_NOT_RECOGNIZED = "GAME.PIN_NOT_RECOGNIZED";
 
@@ -64,10 +82,65 @@ const pinStep = (notice: string | null = null, invalid = false): Step => ({
 	invalid,
 });
 
+/** What the session says about the game after the lobby; null while still in it. */
+function toPlay(view: PlayerSessionData): PlayView | null {
+	if (view.status !== "playing" && view.status !== "finished") {
+		return null;
+	}
+	return {
+		finished: view.status === "finished",
+		stage: view.stage,
+		receivedAt: Date.now(),
+	};
+}
+
+/** A game only goes forward: whether `next` is ahead of what the device shows. */
+function isAhead(current: PlayView | null, next: PlayView): boolean {
+	if (!current || current.finished) {
+		return !current;
+	}
+	if (next.finished || !current.stage || !next.stage) {
+		return true;
+	}
+	return stageOrder(next.stage) > stageOrder(current.stage);
+}
+
 /**
- * The player's way in: PIN, nickname, then waiting (spec 008, RN-35 to RN-46).
- * The PIN in the address (`/join/{PIN}`) skips the first step and, with the
- * session the browser kept, brings a reload back to the waiting screen.
+ * What the session said, over what the device shows. The answer may be older
+ * than what an event already showed (it left before the game moved on), and
+ * may not know yet of an answer just sent.
+ */
+function mergePlay(
+	current: PlayView | null,
+	next: PlayView | null,
+): PlayView | null {
+	if (!next || !current) {
+		return next ?? current;
+	}
+	if (current.finished) {
+		return current;
+	}
+	if (next.finished || !current.stage || !next.stage) {
+		return next;
+	}
+	if (stageOrder(next.stage) < stageOrder(current.stage)) {
+		return current;
+	}
+	const sameQuestion = next.stage.questionIndex === current.stage.questionIndex;
+	return {
+		...next,
+		stage: {
+			...next.stage,
+			answered: next.stage.answered || (sameQuestion && current.stage.answered),
+		},
+	};
+}
+
+/**
+ * The player's way in and through the game: PIN, nickname, waiting, then the
+ * game itself (spec 008, RN-35 to RN-46; spec 009). The PIN in the address
+ * (`/join/{PIN}`) skips the first step and, with the session the browser kept,
+ * brings a reload back to where the player was.
  */
 export function JoinFlow({
 	pin,
@@ -86,11 +159,22 @@ export function JoinFlow({
 		pin ? { kind: "resolving" } : pinStep(),
 	);
 	const [busy, setBusy] = useState(false);
+	/** The question whose answer the server refused for being late (spec 009, RN-20). */
+	const [lateFor, setLateFor] = useState<number | null>(null);
+	/** A failure to send the answer to that question. */
+	const [answerFailure, setAnswerFailure] = useState<{
+		questionIndex: number;
+		message: string;
+	} | null>(null);
 	/** The PIN the current step came from, so the address following it is not resolved again. */
 	const resolvedPin = useRef<string | null>(null);
 
-	/** Where a PIN leads: back to the waiting screen, to the nickname, or nowhere. */
-	async function resolve(rawPin: string): Promise<Step> {
+	/**
+	 * Where a PIN leads: back into the game, to the nickname, or nowhere.
+	 * `typed` is a PIN the player has just written: a game that is over is not
+	 * what they are after.
+	 */
+	async function resolve(rawPin: string, typed: boolean): Promise<Step> {
 		const parsed = parseGamePin(rawPin);
 		if (!parsed) {
 			return pinStep(
@@ -103,20 +187,25 @@ export function JoinFlow({
 		if (stored) {
 			try {
 				const view = await api.session(stored);
-				if (view.status === "waiting") {
+				const inGame = view.status === "waiting" || view.status === "playing";
+				// A reload after the last question still shows the end of the game.
+				if (inGame || (view.status === "finished" && !typed)) {
 					return {
 						kind: "waiting",
 						game: { gameId: stored.gameId, pin: parsed },
 						session: stored,
 						nickname: view.nickname,
+						play: toPlay(view),
 					};
 				}
 				store.clear(parsed);
-				return pinStep(
-					view.status === "removed"
-						? REMOVED_FROM_GAME_MESSAGE
-						: GAME_ENDED_MESSAGE,
-				);
+				if (view.status !== "finished") {
+					return pinStep(
+						view.status === "removed"
+							? REMOVED_FROM_GAME_MESSAGE
+							: GAME_ENDED_MESSAGE,
+					);
+				}
 			} catch (error) {
 				if (gameErrorCode(error) !== "GAME.NOT_FOUND") {
 					return pinStep(gameErrorMessage(error));
@@ -149,7 +238,7 @@ export function JoinFlow({
 
 	const followAddress = useEffectEvent(
 		async (addressPin: string, isCancelled: () => boolean) => {
-			const next = await resolve(addressPin);
+			const next = await resolve(addressPin, false);
 			if (!isCancelled()) {
 				show(next, parseGamePin(addressPin));
 			}
@@ -179,9 +268,19 @@ export function JoinFlow({
 		show(pinStep(notice), null);
 	}
 
+	/** Changes what is known of the game, if the player is still in it. */
+	function updatePlay(change: (play: PlayView | null) => PlayView | null) {
+		setStep((current) =>
+			current.kind === "waiting"
+				? { ...current, play: change(current.play) }
+				: current,
+		);
+	}
+
 	const waiting = step.kind === "waiting" ? step : null;
 	const channel = waiting ? gameChannel(waiting.game.gameId) : null;
 	const playerId = waiting?.session.playerId ?? null;
+	const playing = waiting?.play != null && !waiting.play.finished;
 
 	useRealtimeEvent<PlayerRemovedPayload>(
 		channel,
@@ -195,7 +294,6 @@ export function JoinFlow({
 	useRealtimeEvent(channel, GAME_EVENTS.gameEnded, () =>
 		leave(GAME_ENDED_MESSAGE),
 	);
-
 	// Events are hints: the device also asks, for what it missed while offline.
 	const checkSession = useEffectEvent(async () => {
 		if (!waiting) {
@@ -207,6 +305,9 @@ export function JoinFlow({
 				leave(REMOVED_FROM_GAME_MESSAGE);
 			} else if (view.status === "ended") {
 				leave(GAME_ENDED_MESSAGE);
+			} else {
+				const next = toPlay(view);
+				updatePlay((current) => mergePlay(current, next));
 			}
 		} catch (error) {
 			// The game is gone with its quiz; a network failure just waits for the next check.
@@ -216,6 +317,49 @@ export function JoinFlow({
 		}
 	});
 
+	// The event has the buttons to show; what is this player's alone (did they
+	// answer, were they right) comes from the session.
+	useRealtimeEvent<StageChangedPayload>(
+		channel,
+		GAME_EVENTS.stageChanged,
+		({ status, stage }) => {
+			const receivedAt = Date.now();
+			if (status === "finished") {
+				updatePlay(() => ({ finished: true, stage: null, receivedAt }));
+				return;
+			}
+			if (status !== "playing" || !stage) {
+				return;
+			}
+			const next: PlayView = {
+				finished: false,
+				stage: {
+					...stage,
+					remainingMs: stage.durationMs,
+					// Still the same question: the answer already sent stands.
+					answered: false,
+					result: null,
+				},
+				receivedAt,
+			};
+			updatePlay((current) => {
+				if (!isAhead(current, next) || !next.stage) {
+					return current;
+				}
+				const answered =
+					current?.stage?.questionIndex === next.stage.questionIndex &&
+					current.stage.answered;
+				return { ...next, stage: { ...next.stage, answered } };
+			});
+			if (stage.phase === "results") {
+				void checkSession();
+			}
+		},
+	);
+
+	const checkInterval = playing
+		? PLAY_CHECK_INTERVAL_MS
+		: SESSION_CHECK_INTERVAL_MS;
 	useEffect(() => {
 		if (!playerId) {
 			return;
@@ -226,7 +370,7 @@ export function JoinFlow({
 				check();
 			}
 		};
-		const timer = setInterval(check, SESSION_CHECK_INTERVAL_MS);
+		const timer = setInterval(check, checkInterval);
 		window.addEventListener("online", check);
 		window.addEventListener("focus", check);
 		document.addEventListener("visibilitychange", whenVisible);
@@ -236,11 +380,11 @@ export function JoinFlow({
 			window.removeEventListener("focus", check);
 			document.removeEventListener("visibilitychange", whenVisible);
 		};
-	}, [playerId]);
+	}, [playerId, checkInterval]);
 
 	async function submitPin(rawPin: string) {
 		setBusy(true);
-		const next = await resolve(rawPin);
+		const next = await resolve(rawPin, true);
 		setBusy(false);
 		show(next, parseGamePin(rawPin));
 	}
@@ -255,7 +399,13 @@ export function JoinFlow({
 				secret: joined.secret,
 			};
 			store.save(game.pin, session);
-			setStep({ kind: "waiting", game, session, nickname: joined.nickname });
+			setStep({
+				kind: "waiting",
+				game,
+				session,
+				nickname: joined.nickname,
+				play: null,
+			});
 		} catch (error) {
 			if (gameErrorCode(error) === PIN_NOT_RECOGNIZED) {
 				// The game ended while the nickname was being typed.
@@ -265,6 +415,45 @@ export function JoinFlow({
 			}
 		} finally {
 			setBusy(false);
+		}
+	}
+
+	/** Marks the question as answered, or not, on this device. */
+	function markAnswered(questionIndex: number, answered: boolean) {
+		updatePlay((current) =>
+			current?.stage?.questionIndex === questionIndex
+				? { ...current, stage: { ...current.stage, answered } }
+				: current,
+		);
+	}
+
+	/**
+	 * Sends the answer. The waiting screen shows at once; the server may still
+	 * refuse it for arriving late, which the player is told (spec 009, RN-20).
+	 */
+	async function submitAnswer(choiceIds: string[]) {
+		const stage = waiting?.play?.stage;
+		if (!waiting || !stage) {
+			return;
+		}
+		const { questionIndex } = stage;
+		setAnswerFailure(null);
+		markAnswered(questionIndex, true);
+		try {
+			await api.answer({ ...waiting.session, questionIndex, choiceIds });
+		} catch (error) {
+			const code = gameErrorCode(error);
+			if (code === "GAME.ALREADY_ANSWERED") {
+				return;
+			}
+			markAnswered(questionIndex, false);
+			if (code === "GAME.ANSWERS_CLOSED") {
+				setLateFor(questionIndex);
+			} else if (code === "GAME.NOT_FOUND") {
+				void checkSession();
+			} else {
+				setAnswerFailure({ questionIndex, message: gameErrorMessage(error) });
+			}
 		}
 	}
 
@@ -288,7 +477,27 @@ export function JoinFlow({
 					onSubmit={(nickname) => submitNickname(step.game, nickname)}
 				/>
 			);
-		case "waiting":
-			return <WaitingScreen nickname={step.nickname} />;
+		case "waiting": {
+			const { play } = step;
+			if (!play) {
+				return <WaitingScreen nickname={step.nickname} />;
+			}
+			const questionIndex = play.stage?.questionIndex ?? null;
+			return (
+				<PlayerStage
+					nickname={step.nickname}
+					finished={play.finished}
+					stage={play.stage}
+					receivedAt={play.receivedAt}
+					late={questionIndex !== null && lateFor === questionIndex}
+					notice={
+						answerFailure?.questionIndex === questionIndex
+							? answerFailure.message
+							: null
+					}
+					onAnswer={submitAnswer}
+				/>
+			);
+		}
 	}
 }

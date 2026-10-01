@@ -1,0 +1,126 @@
+import { describe, expect, it } from "vitest";
+
+import type { HostGameData } from "./api-types";
+import {
+	answerShapeName,
+	applyAnswerCount,
+	showsStage,
+	stageOrder,
+	waitingPhrase,
+} from "./game-stage";
+
+const answering: HostGameData = {
+	gameId: "game-1",
+	quizId: "quiz-1",
+	title: "Capitais",
+	pin: "265914",
+	status: "playing",
+	endReason: null,
+	locked: false,
+	players: [{ id: "p1", nickname: "Ana" }],
+	questionCount: 3,
+	stage: {
+		questionIndex: 1,
+		phase: "answering",
+		remainingMs: 12_000,
+		durationMs: 20_000,
+		question: null,
+		answerCount: 2,
+		distribution: null,
+	},
+};
+
+const publicStage = (
+	questionIndex: number,
+	phase: "questionIntro" | "answering" | "results",
+) => ({
+	questionIndex,
+	questionCount: 3,
+	phase,
+	durationMs: null,
+	question: null,
+});
+
+describe("stage events on the host's view (spec 009)", () => {
+	it("orders stages by question, then by phase", () => {
+		const order = [
+			{ questionIndex: 0, phase: "gameIntro" },
+			{ questionIndex: 0, phase: "questionIntro" },
+			{ questionIndex: 0, phase: "answering" },
+			{ questionIndex: 0, phase: "results" },
+			{ questionIndex: 1, phase: "questionIntro" },
+		] as const;
+
+		const values = order.map(stageOrder);
+
+		expect(values).toEqual([...values].sort((a, b) => a - b));
+		expect(new Set(values).size).toBe(order.length);
+	});
+
+	it("knows when the view already shows the stage of an event", () => {
+		expect(
+			showsStage(answering, {
+				status: "playing",
+				stage: publicStage(1, "answering"),
+			}),
+		).toBe(true);
+		// An event that arrives late, after the view moved on.
+		expect(
+			showsStage(answering, {
+				status: "playing",
+				stage: publicStage(1, "questionIntro"),
+			}),
+		).toBe(true);
+	});
+
+	it("knows when the view is behind", () => {
+		expect(
+			showsStage(answering, {
+				status: "playing",
+				stage: publicStage(1, "results"),
+			}),
+		).toBe(false);
+		expect(showsStage(answering, { status: "finished", stage: null })).toBe(
+			false,
+		);
+		expect(
+			showsStage(
+				{ ...answering, status: "lobby", stage: null },
+				{ status: "playing", stage: publicStage(0, "questionIntro") },
+			),
+		).toBe(false);
+	});
+
+	it("raises the total of answers of the question on screen", () => {
+		expect(
+			applyAnswerCount(answering, { questionIndex: 1, count: 3 }).stage
+				?.answerCount,
+		).toBe(3);
+	});
+
+	it("ignores a total that is older, or of another question", () => {
+		expect(applyAnswerCount(answering, { questionIndex: 1, count: 1 })).toBe(
+			answering,
+		);
+		expect(applyAnswerCount(answering, { questionIndex: 0, count: 9 })).toBe(
+			answering,
+		);
+	});
+});
+
+describe("player texts (spec 009)", () => {
+	it("keeps one waiting phrase per question", () => {
+		expect(waitingPhrase(0)).toBe("Resposta recebida!");
+		expect(waitingPhrase(1)).toBe("Será que acertou?");
+		expect(waitingPhrase(3)).toBe(waitingPhrase(0));
+	});
+
+	it("names each button by shape and color", () => {
+		expect([0, 1, 2, 3].map(answerShapeName)).toEqual([
+			"Triângulo vermelho",
+			"Losango azul",
+			"Círculo amarelo",
+			"Quadrado verde",
+		]);
+	});
+});

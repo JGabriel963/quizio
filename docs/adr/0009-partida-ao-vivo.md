@@ -22,7 +22,7 @@ Toda a partida fica no Postgres: tabela `game` (quiz, versão, título, PIN, est
 Nada "acontece" sozinho no servidor. Todo prazo é um instante guardado, comparado com o relógio a cada acesso:
 
 - **Validade da partida:** `expiresAt = createdAt + 8 h`. Uma partida vencida é tratada como encerrada por qualquer caso de uso que a carregue, que aproveita para gravar o encerramento. Não há job de limpeza.
-- **Prazo da pergunta (spec 009):** `answersOpenedAt + limite`. A tela do anfitrião pede a transição ("tempo esgotado", "avançar"); o servidor confere, pelo relógio dele, se ela é permitida, e a aplica uma única vez. Uma resposta só vale se chegar antes do prazo, com uma tolerância de latência definida na spec.
+- **Prazo de cada fase (spec 009):** a partida guarda o andamento (`questionIndex`, `phase`, `phaseStartedAt`), e o prazo é `phaseStartedAt` mais a duração da fase. A tela do anfitrião pede a transição, dizendo de que fase ela parte; o servidor confere, pelo relógio dele, se ela é permitida, e a grava com uma atualização condicionada a essa fase (`saveIfAt`). De dois pedidos iguais, repetidos ou de duas abas, um grava e o outro não muda nada. Uma resposta só vale se chegar antes do prazo, com meio segundo de tolerância de latência.
 
 ### 2. O jogador anônimo é um `playerId` público e um segredo
 
@@ -45,22 +45,28 @@ O canal é `game-{gameId}`, sem autorização: o `gameId` é um UUID, e o que pa
 
 Um evento perdido não pode deixar uma tela errada. Por isso:
 
-- Cada tela tem uma **consulta** que devolve o estado inteiro dela (`game.lobby` para o anfitrião, `game.join.session` para o jogador).
+- Cada tela tem uma **consulta** que devolve o estado inteiro dela (`game.view` para o anfitrião, `game.join.session` para o jogador).
 - O evento serve para atualizar a tela na hora. Ele é aplicado ao cache da consulta, ou só a invalida.
-- A consulta é refeita ao reconectar, ao voltar o foco da aba e a cada 15 segundos. Se o serviço de tempo real cair, a partida continua, com atraso.
+- A consulta é refeita ao reconectar, ao voltar o foco da aba e a cada 15 segundos (5 segundos durante o jogo, em que as fases são curtas). Se o serviço de tempo real cair, a partida continua, com atraso.
+- A mudança de fase (`stage-changed`) leva o **palco público**: número da pergunta, fase, duração e as formas das alternativas. Assim o celular mostra os botões sem consultar. Enunciado, textos, correta e contagem por alternativa nunca vão por evento.
+- O tempo que resta de uma fase vai como duração (`remainingMs`), nunca como instante: cada aparelho conta a partir do momento em que recebeu, sem depender do próprio relógio.
 - Os casos de uso gravam primeiro e publicam depois. Uma falha ao publicar não desfaz a gravação.
 
 ### 5. Concorrência resolvida por restrições do banco
 
 - **PIN único entre partidas abertas:** índice único parcial em `pin` para linhas não encerradas. A criação sorteia, tenta gravar e, em conflito, sorteia de novo.
 - **Apelido único na partida:** índice único em `(game_id, nickname_key)`. O jogador removido mantém a linha, o que também bloqueia o apelido dele (spec 008, RN-30).
+- **Uma resposta por jogador por pergunta:** chave primária em `(game_id, question_index, player_id)` na tabela `game_answer` (spec 009).
+- **Uma transição por fase:** a atualização condicional do item 1.
 - **Limite de jogadores:** conferido por contagem antes de inserir. Duas entradas simultâneas podem passar do limite por um ou dois jogadores, o que é aceitável para um limite técnico.
 
 ## Consequências
 
 - Qualquer tela pode ser recarregada a qualquer momento e volta ao estado certo.
 - Cada ação é uma requisição HTTP e uma escrita no banco. Serve para centenas de jogadores por partida (ADR 0002).
-- A consulta periódica custa uma leitura a cada 15 segundos por tela aberta. Para 200 jogadores, são cerca de 13 leituras por segundo, todas por chave primária.
+- A consulta periódica custa uma leitura a cada 15 segundos por tela aberta, e a cada 5 segundos durante o jogo. Para 200 jogadores jogando, são cerca de 40 consultas por segundo, todas por chave primária.
+- Um evento de mudança de fase perdido custa tempo de resposta ao jogador, até a consulta seguinte.
+- Se a tela do anfitrião estiver fechada, a partida não avança: o prazo das respostas continua valendo, mas a revelação espera ele voltar.
 - O segredo fica no `localStorage`: quem tem acesso ao navegador do jogador joga como ele. O dano é uma pontuação num jogo de perguntas.
 - Trocar de aparelho no meio da partida cria outro jogador. A spec 012 decide se oferece outro caminho.
 - Uma partida vencida só é marcada como encerrada quando alguém a acessa. Até lá, a linha fica como aberta e vencida, e o sorteio do PIN precisa tratá-la.

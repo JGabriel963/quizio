@@ -1,4 +1,3 @@
-import { Badge } from "@quizio/ui/components/badge";
 import { Button } from "@quizio/ui/components/button";
 import {
 	Tooltip,
@@ -6,20 +5,13 @@ import {
 	TooltipTrigger,
 } from "@quizio/ui/components/tooltip";
 import { cn } from "@quizio/ui/lib/utils";
-import {
-	LockIcon,
-	LockOpenIcon,
-	MaximizeIcon,
-	MinimizeIcon,
-	UserIcon,
-	XIcon,
-} from "lucide-react";
+import { LockIcon, LockOpenIcon } from "lucide-react";
 import { useState } from "react";
 
-import type { HostLobbyData, LobbyPlayerData } from "@/lib/api-types";
-import { useFullscreen } from "@/lib/use-fullscreen";
+import type { HostGameData, LobbyPlayerData } from "@/lib/api-types";
 
 import { GameScreen, Wordmark } from "../game-screen";
+import { GameHeader } from "./game-header";
 import { JoinInstructions } from "./join-instructions";
 import { EndGameDialog, RemovePlayerDialog } from "./lobby-dialogs";
 import { PlayerGrid } from "./player-grid";
@@ -27,6 +19,8 @@ import { PlayerGrid } from "./player-grid";
 /** What the lobby asks of the API; the route wires it to tRPC (spec 008). */
 export interface HostLobbyActions {
 	setLocked: (locked: boolean) => void;
+	/** "Iniciar": the game leaves the lobby (spec 009, RN-01). */
+	start: () => void;
 	removePlayer: (playerId: string) => void;
 	end: () => void;
 }
@@ -39,44 +33,23 @@ export function HostLobby({
 	lobby,
 	origin,
 	actions,
+	starting = false,
 }: {
-	lobby: HostLobbyData;
+	lobby: HostGameData;
 	origin: string;
 	actions: HostLobbyActions;
+	/** Iniciar was pressed and the server has not answered yet. */
+	starting?: boolean;
 }) {
-	const fullscreen = useFullscreen();
 	const [removing, setRemoving] = useState<LobbyPlayerData | null>(null);
 	const [ending, setEnding] = useState(false);
 
 	return (
 		<GameScreen className="flex flex-col">
-			<header className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center bg-black/40 px-2">
-				<Button
-					variant="ghost"
-					size="icon"
-					aria-label="Sair"
-					className="justify-self-start"
-					onClick={() => setEnding(true)}
-				>
-					<XIcon />
-				</Button>
-				<Wordmark className="text-2xl" />
-				<div className="flex items-center gap-1 justify-self-end">
-					<p className="flex items-center gap-1.5 px-2 font-bold">
-						<UserIcon aria-hidden="true" className="size-4" />
-						<span className="sr-only">Jogadores:</span>
-						<span data-slot="player-count">{lobby.players.length}</span>
-					</p>
-					<Button
-						variant="ghost"
-						size="icon"
-						aria-label={fullscreen.active ? "Sair da tela cheia" : "Tela cheia"}
-						onClick={fullscreen.toggle}
-					>
-						{fullscreen.active ? <MinimizeIcon /> : <MaximizeIcon />}
-					</Button>
-				</div>
-			</header>
+			<GameHeader
+				playerCount={lobby.players.length}
+				onExit={() => setEnding(true)}
+			/>
 
 			<main className="flex flex-1 flex-col items-center gap-8 p-4 sm:p-6">
 				<div className="grid w-full grid-cols-1 items-end gap-4 lg:grid-cols-[1fr_auto_1fr]">
@@ -90,6 +63,8 @@ export function HostLobby({
 					<LobbyControls
 						locked={lobby.locked}
 						onToggleLock={() => actions.setLocked(!lobby.locked)}
+						canStart={lobby.players.length > 0 && !starting}
+						onStart={actions.start}
 					/>
 				</div>
 
@@ -121,13 +96,20 @@ export function HostLobby({
 	);
 }
 
-/** The padlock and Iniciar, side by side as in Kahoot (RN-22, RN-23). */
+/**
+ * The padlock and Iniciar, side by side as in Kahoot (spec 008, RN-23).
+ * Iniciar needs at least one player (spec 009, RN-01).
+ */
 function LobbyControls({
 	locked,
 	onToggleLock,
+	canStart,
+	onStart,
 }: {
 	locked: boolean;
 	onToggleLock: () => void;
+	canStart: boolean;
+	onStart: () => void;
 }) {
 	const tip = locked ? UNLOCK_TIP : LOCK_TIP;
 
@@ -156,12 +138,8 @@ function LobbyControls({
 				</TooltipTrigger>
 				<TooltipContent side="bottom">{tip}</TooltipContent>
 			</Tooltip>
-			{/* Starts working with the question cycle (spec 009). */}
-			<Button variant="secondary" disabled className="gap-2">
+			<Button variant="secondary" disabled={!canStart} onClick={onStart}>
 				Iniciar
-				<Badge variant="soon" className="border-neutral-400 text-neutral-600">
-					Em breve
-				</Badge>
 			</Button>
 		</div>
 	);

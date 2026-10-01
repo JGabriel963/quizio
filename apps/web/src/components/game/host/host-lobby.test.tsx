@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { HostLobbyData } from "@/lib/api-types";
+import type { HostGameData } from "@/lib/api-types";
 import { renderWithRouter } from "@/testing/render-with-router";
 
 import { GameUnavailable } from "./game-unavailable";
@@ -10,7 +10,7 @@ import { HostLobby, type HostLobbyActions } from "./host-lobby";
 
 const ORIGIN = "https://quizio.app";
 
-const empty: HostLobbyData = {
+const empty: HostGameData = {
 	gameId: "game-1",
 	quizId: "quiz-1",
 	title: "Capitais",
@@ -19,13 +19,16 @@ const empty: HostLobbyData = {
 	endReason: null,
 	locked: false,
 	players: [],
+	questionCount: 0,
+	stage: null,
 };
 const act = { id: "p1", nickname: "ACT" };
 const bia = { id: "p2", nickname: "Bia" };
 
-function renderLobby(lobby: HostLobbyData = empty) {
+function renderLobby(lobby: HostGameData = empty) {
 	const actions: HostLobbyActions = {
 		setLocked: vi.fn(),
+		start: vi.fn(),
 		removePlayer: vi.fn(),
 		end: vi.fn(),
 	};
@@ -33,7 +36,7 @@ function renderLobby(lobby: HostLobbyData = empty) {
 	const view = render(
 		<HostLobby lobby={lobby} origin={ORIGIN} actions={actions} />,
 	);
-	const rerender = (next: HostLobbyData) =>
+	const rerender = (next: HostGameData) =>
 		view.rerender(<HostLobby lobby={next} origin={ORIGIN} actions={actions} />);
 	return { actions, user, rerender };
 }
@@ -127,12 +130,35 @@ describe("HostLobby (spec 008)", () => {
 		expect(screen.getByText("Bia entrou")).toHaveAttribute("role", "status");
 	});
 
-	it("Iniciar is there, marked as coming soon", () => {
-		renderLobby({ ...empty, players: [act] });
+	it("Iniciar waits for the first player", async () => {
+		const { actions, user, rerender } = renderLobby();
+		const start = () => screen.getByRole("button", { name: "Iniciar" });
 
-		const start = screen.getByRole("button", { name: /Iniciar/ });
-		expect(start).toBeDisabled();
-		expect(start).toHaveTextContent("Em breve");
+		expect(start()).toBeDisabled();
+
+		rerender({ ...empty, players: [act] });
+		await user.click(start());
+
+		expect(actions.start).toHaveBeenCalledTimes(1);
+	});
+
+	it("Iniciar cannot be pressed twice while the game is starting", () => {
+		const actions: HostLobbyActions = {
+			setLocked: vi.fn(),
+			start: vi.fn(),
+			removePlayer: vi.fn(),
+			end: vi.fn(),
+		};
+		render(
+			<HostLobby
+				lobby={{ ...empty, players: [act] }}
+				origin={ORIGIN}
+				actions={actions}
+				starting
+			/>,
+		);
+
+		expect(screen.getByRole("button", { name: "Iniciar" })).toBeDisabled();
 	});
 
 	it("locks the game", async () => {

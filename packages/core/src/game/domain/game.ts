@@ -1,8 +1,12 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
+import type { GameProgress } from "./game-progress";
 
-/** `playing` and `finished` come with the question cycle (specs 009 and 011). */
-export const GAME_STATUSES = ["lobby", "ended"] as const;
+/**
+ * `lobby` and `playing` are open. `finished` played every question (spec 009,
+ * RN-30); `ended` was closed before that, for a reason.
+ */
+export const GAME_STATUSES = ["lobby", "playing", "finished", "ended"] as const;
 export type GameStatus = (typeof GAME_STATUSES)[number];
 
 /**
@@ -39,8 +43,14 @@ export interface Game {
 	locked: boolean;
 	createdAt: Date;
 	expiresAt: Date;
+	/** Set when the game is finished or ended: it frees the PIN. */
 	endedAt: Date | null;
+	/** Null for a finished game. */
 	endReason: GameEndReason | null;
+	/** How many questions the game has; 0 until it starts (spec 009). */
+	questionCount: number;
+	/** Where the game is; null in the lobby and once it is over. */
+	progress: GameProgress | null;
 }
 
 export class GameNotFoundError extends NotFoundError {
@@ -78,6 +88,11 @@ export class GameEndedError extends DomainError {
 	readonly code = "GAME.ENDED";
 }
 
+/** Nobody new gets into a game in progress (spec 009, RN-03). */
+export class GameAlreadyStartedError extends DomainError {
+	readonly code = "GAME.ALREADY_STARTED";
+}
+
 /** In use, or blocked because its player was removed (RN-30, RN-42). */
 export class NicknameTakenError extends DomainError {
 	readonly code = "GAME.NICKNAME_TAKEN";
@@ -105,11 +120,14 @@ export function newGame(input: {
 		expiresAt: new Date(input.now.getTime() + GAME_TTL_MS),
 		endedAt: null,
 		endReason: null,
+		questionCount: 0,
+		progress: null,
 	};
 }
 
+/** In the lobby or being played: it holds its PIN and can still be ended. */
 export function isGameOpen(game: Game): boolean {
-	return game.status !== "ended";
+	return game.status === "lobby" || game.status === "playing";
 }
 
 /** Ending twice keeps the first reason and instant (RN-31, RN-32). */
@@ -149,10 +167,13 @@ export function setGameLocked(game: Game, locked: boolean): Game {
 	return { ...game, locked };
 }
 
-/** What a player needs to get in: an open game that is not locked. */
+/** What a player needs to get in: a lobby that is not locked. */
 export function assertJoinable(game: Game | null): asserts game is Game {
 	if (!game || !isGameOpen(game)) {
 		throw new GamePinNotRecognizedError("No open game has this PIN");
+	}
+	if (game.status !== "lobby") {
+		throw new GameAlreadyStartedError("The game has already started");
 	}
 	if (game.locked) {
 		throw new GameLockedError("The game is locked");

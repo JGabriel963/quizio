@@ -10,7 +10,11 @@ import {
 	GAME_EVENTS,
 	type GameEndedPayload,
 	gameChannel,
+	type StageChangedPayload,
 } from "../domain/game-events";
+import { isPlaying } from "../domain/game-progress";
+import type { GameQuestion } from "../domain/game-question";
+import { publicStageOf } from "../domain/public-stage";
 import type { GameRepository } from "./ports/game-repository";
 
 /**
@@ -52,6 +56,27 @@ export async function publishToGame<TPayload>(
 	} catch {
 		// Deliberately ignored.
 	}
+}
+
+/**
+ * Tells the screens where the game went (spec 009): the public part of the
+ * stage, or none once the game is finished. `question` is the one of the
+ * game's stage.
+ */
+export async function publishStage(
+	realtime: RealtimePublisher,
+	game: Game,
+	question: GameQuestion | null,
+): Promise<void> {
+	await publishToGame<StageChangedPayload>(
+		realtime,
+		game.id,
+		GAME_EVENTS.stageChanged,
+		{
+			status: game.status,
+			stage: isPlaying(game) ? publicStageOf(game, question) : null,
+		},
+	);
 }
 
 /** Ends an open game and tells its screens; a game already ended is left alone. */

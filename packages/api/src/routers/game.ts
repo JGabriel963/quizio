@@ -1,9 +1,16 @@
+import { GAME_PHASES } from "@quizio/core/game/domain/game-progress";
+import { MAX_CHOICE_COUNT } from "@quizio/core/quiz/domain/question";
 import { z } from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../index";
 
 // Shapes only: PIN, nickname and ownership rules are enforced by the game use cases.
 const gameReference = z.object({ gameId: z.string().min(1) });
+const playerReference = gameReference.extend({
+	playerId: z.string().min(1),
+	secret: z.string().min(1),
+});
+const questionIndex = z.number().int().min(0);
 
 /**
  * What a player's device calls. No account: the player proves who they are
@@ -25,13 +32,18 @@ const joinRouter = router({
 		.mutation(({ ctx, input }) => ctx.container.useCases.joinGame(input)),
 
 	session: publicProcedure
+		.input(playerReference)
+		.query(({ ctx, input }) => ctx.container.useCases.getPlayerSession(input)),
+
+	/** The time and the correctness are the server's: the device sends only the choice (spec 009, RN-18). */
+	answer: publicProcedure
 		.input(
-			gameReference.extend({
-				playerId: z.string().min(1),
-				secret: z.string().min(1),
+			playerReference.extend({
+				questionIndex,
+				choiceIds: z.array(z.string().min(1).max(32)).max(MAX_CHOICE_COUNT),
 			}),
 		)
-		.query(({ ctx, input }) => ctx.container.useCases.getPlayerSession(input)),
+		.mutation(({ ctx, input }) => ctx.container.useCases.submitAnswer(input)),
 });
 
 export const gameRouter = router({
@@ -47,13 +59,36 @@ export const gameRouter = router({
 			}),
 		),
 
-	/** Everything the host's lobby screen shows. */
-	lobby: protectedProcedure.input(gameReference).query(({ ctx, input }) =>
-		ctx.container.useCases.getHostLobby({
+	/** Everything the host's screen shows, in the lobby and during the game. */
+	view: protectedProcedure.input(gameReference).query(({ ctx, input }) =>
+		ctx.container.useCases.getHostGame({
 			ownerId: ctx.session.user.id,
 			...input,
 		}),
 	),
+
+	/** "Iniciar" (spec 009, RN-01). */
+	start: protectedProcedure.input(gameReference).mutation(({ ctx, input }) =>
+		ctx.container.useCases.startGame({
+			ownerId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
+	/** The host's screen asks for each transition, saying where it is (RN-12). */
+	advance: protectedProcedure
+		.input(
+			gameReference.extend({
+				from: z.object({ questionIndex, phase: z.enum(GAME_PHASES) }),
+				skip: z.boolean().optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.advanceGame({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
 
 	setLocked: protectedProcedure
 		.input(gameReference.extend({ locked: z.boolean() }))

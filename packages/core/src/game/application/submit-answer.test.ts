@@ -1,0 +1,173 @@
+import { describe, expect, it } from "vitest";
+
+import {
+	AlreadyAnsweredError,
+	AnswersClosedError,
+	InvalidAnswerError,
+} from "../domain/answer";
+import { GameNotFoundError } from "../domain/game";
+import { GAME_EVENTS } from "../domain/game-events";
+import { createStartedGame } from "../testing/started-game";
+import { createRemovePlayer } from "./remove-player";
+
+const fromPlayer = (
+	number: number,
+	choiceIds: string[],
+	questionIndex = 0,
+) => ({
+	gameId: "game-1",
+	playerId: `p${number}`,
+	secret: `s${number}`,
+	questionIndex,
+	choiceIds,
+});
+
+async function answering(players = ["Ana", "Bia"]) {
+	const game = await createStartedGame({ players });
+	await game.reach("answering");
+	return game;
+}
+
+describe("submitAnswer (spec 009)", () => {
+	it("stores the answer with the server's time and its correctness", async () => {
+		const { deps, answer } = await answering();
+		deps.clock.advanceBy(4_200);
+
+		await answer(1, "choice-1");
+
+		expect(await deps.answers.listByQuestion("game-1", 0)).toEqual([
+			{
+				gameId: "game-1",
+				questionIndex: 0,
+				playerId: "p1",
+				choiceIds: ["choice-1"],
+				responseTimeMs: 4_200,
+				correctness: "correct",
+				receivedAt: deps.clock.now(),
+			},
+		]);
+	});
+
+	it("tells the host only how many answered", async () => {
+		const { deps, answer } = await answering();
+
+		await answer(1, "choice-2");
+
+		expect(deps.realtime.messages.at(-1)).toEqual({
+			channel: "game-game-1",
+			event: GAME_EVENTS.answerCount,
+			payload: { questionIndex: 0, count: 1 },
+		});
+	});
+
+	it("takes one answer per question", async () => {
+		const { deps, answer } = await answering();
+		await answer(1, "choice-2");
+
+		await expect(answer(1, "choice-1")).rejects.toThrow(AlreadyAnsweredError);
+
+		expect(await deps.answers.find("game-1", 0, "p1")).toMatchObject({
+			choiceIds: ["choice-2"],
+			correctness: "wrong",
+		});
+	});
+
+	it("accepts an answer within the grace and refuses one past it", async () => {
+		const { deps, answer } = await answering();
+		deps.clock.advanceBy(20_300);
+		await answer(1, "choice-1");
+		expect(await deps.answers.find("game-1", 0, "p1")).toMatchObject({
+			responseTimeMs: 20_000,
+		});
+
+		deps.clock.advanceBy(700);
+		await expect(answer(2, "choice-1")).rejects.toThrow(AnswersClosedError);
+		expect(await deps.answers.countByQuestion("game-1", 0)).toBe(1);
+	});
+
+	it("refuses an answer outside the answers phase", async () => {
+		const { submitAnswer, reach } = await createStartedGame();
+
+		await reach("questionIntro");
+		await expect(submitAnswer(fromPlayer(1, ["choice-1"]))).rejects.toThrow(
+			AnswersClosedError,
+		);
+
+		await reach("results");
+		await expect(submitAnswer(fromPlayer(1, ["choice-1"]))).rejects.toThrow(
+			AnswersClosedError,
+		);
+	});
+
+	it("refuses an answer for a question that is not the one being asked", async () => {
+		const { submitAnswer, reach } = await createStartedGame();
+		await reach("answering", 1);
+
+		await expect(submitAnswer(fromPlayer(1, ["choice-1"], 0))).rejects.toThrow(
+			AnswersClosedError,
+		);
+	});
+
+	it("refuses a wrong secret, a removed player and a player of another game", async () => {
+		const { deps, host, submitAnswer } = await answering([
+			"Ana",
+			"Bia",
+			"Caio",
+		]);
+		await createRemovePlayer(deps)({ ...host, playerId: "p2" });
+
+		await expect(
+			submitAnswer({ ...fromPlayer(1, ["choice-1"]), secret: "guess" }),
+		).rejects.toThrow(GameNotFoundError);
+		await expect(submitAnswer(fromPlayer(2, ["choice-1"]))).rejects.toThrow(
+			GameNotFoundError,
+		);
+		await expect(
+			submitAnswer({ ...fromPlayer(1, ["choice-1"]), gameId: "game-9" }),
+		).rejects.toThrow(GameNotFoundError);
+		expect(await deps.answers.countByQuestion("game-1", 0)).toBe(0);
+	});
+
+	it("refuses an answer that is not of the question", async () => {
+		const { answer } = await answering();
+
+		await expect(answer(1, "choice-9")).rejects.toThrow(InvalidAnswerError);
+		await expect(answer(1, "choice-1", "choice-2")).rejects.toThrow(
+			InvalidAnswerError,
+		);
+	});
+
+	it("closes the answers when everybody answered", async () => {
+		const { deps, answer, stage } = await answering();
+		deps.clock.advanceBy(5_000);
+		await answer(1, "choice-1");
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "answering" });
+
+		await answer(2, "choice-3");
+
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
+		expect(deps.realtime.messages.at(-1)).toMatchObject({
+			event: GAME_EVENTS.stageChanged,
+			payload: { status: "playing", stage: { phase: "results" } },
+		});
+	});
+
+	it("does not wait for a player who was removed", async () => {
+		const { deps, host, answer, stage } = await answering();
+		await createRemovePlayer(deps)({ ...host, playerId: "p2" });
+
+		await answer(1, "choice-1");
+
+		expect((await stage()).phase).toBe("results");
+	});
+
+	it("a finished game takes no answer", async () => {
+		const { host, advance, submitAnswer, reach } = await createStartedGame();
+		await reach("results", 1);
+		await advance({ ...host, from: { questionIndex: 1, phase: "results" } });
+
+		await expect(submitAnswer(fromPlayer(1, ["true"], 1))).rejects.toThrow(
+			AnswersClosedError,
+		);
+	});
+});

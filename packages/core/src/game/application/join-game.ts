@@ -11,7 +11,7 @@ import { GAME_EVENTS, type PlayerJoinedPayload } from "../domain/game-events";
 import { parseNickname } from "../domain/nickname";
 import { newPlayer } from "../domain/player";
 import { loadGame, publishToGame } from "./game-lifecycle";
-import { toLobbyPlayerView } from "./host-lobby-view";
+import { toLobbyPlayerView } from "./host-game-view";
 import type { GameRepository } from "./ports/game-repository";
 import type { PlayerRepository } from "./ports/player-repository";
 

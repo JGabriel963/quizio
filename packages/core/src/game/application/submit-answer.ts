@@ -1,0 +1,114 @@
+import type { Clock } from "../../shared/application/ports/clock";
+import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
+import {
+	AlreadyAnsweredError,
+	AnswersClosedError,
+	correctnessOf,
+	parseAnswerChoices,
+} from "../domain/answer";
+import { GameNotFoundError } from "../domain/game";
+import { type AnswerCountPayload, GAME_EVENTS } from "../domain/game-events";
+import {
+	acceptsAnswers,
+	closeAnswers,
+	isPlaying,
+	responseTimeOf,
+} from "../domain/game-progress";
+import { hasPlayerSecret, isActivePlayer } from "../domain/player";
+import { loadGame, publishStage, publishToGame } from "./game-lifecycle";
+import type { AnswerRepository } from "./ports/answer-repository";
+import type { GameQuestionRepository } from "./ports/game-question-repository";
+import type { GameRepository } from "./ports/game-repository";
+import type { PlayerRepository } from "./ports/player-repository";
+
+export type SubmitAnswer = (input: {
+	gameId: string;
+	playerId: string;
+	secret: string;
+	/** The question the device was showing: a late tap never lands on the next one. */
+	questionIndex: number;
+	choiceIds: string[];
+}) => Promise<void>;
+
+/**
+ * A player's answer (spec 009, RN-14 to RN-21). The time and the correctness
+ * are worked out here, on receipt; nothing the device says about either is
+ * read, and nothing about them goes back.
+ */
+export function createSubmitAnswer(deps: {
+	games: GameRepository;
+	players: Pick<PlayerRepository, "findById" | "countActive">;
+	gameQuestions: Pick<GameQuestionRepository, "find">;
+	answers: Pick<AnswerRepository, "add" | "countByQuestion">;
+	clock: Clock;
+	realtime: RealtimePublisher;
+}): SubmitAnswer {
+	return async ({ gameId, playerId, secret, questionIndex, choiceIds }) => {
+		const game = await loadGame(deps, gameId);
+		const player = await deps.players.findById(playerId);
+		if (
+			!game ||
+			!player ||
+			player.gameId !== game.id ||
+			!hasPlayerSecret(player, secret) ||
+			!isActivePlayer(player)
+		) {
+			throw new GameNotFoundError("Player session not found");
+		}
+
+		const closed = () =>
+			new AnswersClosedError("This question is not taking answers");
+		if (!isPlaying(game)) {
+			throw closed();
+		}
+		const question = await deps.gameQuestions.find(game.id, questionIndex);
+		const now = deps.clock.now();
+		if (
+			!question ||
+			!acceptsAnswers(game, {
+				questionIndex,
+				timeLimitSeconds: question.timeLimitSeconds,
+				now,
+			})
+		) {
+			throw closed();
+		}
+
+		const chosen = parseAnswerChoices(question, choiceIds);
+		const added = await deps.answers.add({
+			gameId: game.id,
+			questionIndex,
+			playerId: player.id,
+			choiceIds: chosen,
+			responseTimeMs: responseTimeOf(
+				game.progress,
+				question.timeLimitSeconds,
+				now,
+			),
+			correctness: correctnessOf(question, chosen),
+			receivedAt: now,
+		});
+		if (added === "alreadyAnswered") {
+			throw new AlreadyAnsweredError(
+				"The player already answered this question",
+			);
+		}
+
+		const count = await deps.answers.countByQuestion(game.id, questionIndex);
+		await publishToGame<AnswerCountPayload>(
+			deps.realtime,
+			game.id,
+			GAME_EVENTS.answerCount,
+			{ questionIndex, count },
+		);
+
+		// Everybody answered: the results do not wait for the time (RN-10).
+		if (count >= (await deps.players.countActive(game.id))) {
+			const results = closeAnswers(game, now);
+			const from = { questionIndex, phase: "answering" as const };
+			if (await deps.games.saveIfAt(results, from)) {
+				await publishStage(deps.realtime, results, question);
+			}
+		}
+	};
+}

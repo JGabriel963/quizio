@@ -17,9 +17,14 @@ export type HomeQuizView = HomeOverviewView["quizzes"][number];
 export type QuizEditorData = RouterOutputs["quiz"]["editor"];
 export type QuestionData = QuizEditorData["questions"][number];
 
-/** The host's lobby (spec 008). */
-export type HostLobbyData = RouterOutputs["game"]["lobby"];
-export type LobbyPlayerData = HostLobbyData["players"][number];
+/** The host's screen: the lobby and the game in progress (specs 008, 009). */
+export type HostGameData = RouterOutputs["game"]["view"];
+export type LobbyPlayerData = HostGameData["players"][number];
+export type HostStageData = NonNullable<HostGameData["stage"]>;
+export type HostQuestionData = NonNullable<HostStageData["question"]>;
 
-/** What a player's device should be showing (spec 008). */
+/** What a player's device should be showing (specs 008, 009). */
 export type PlayerSessionData = RouterOutputs["game"]["join"]["session"];
+export type PlayerStageData = NonNullable<PlayerSessionData["stage"]>;
+export type PlayerQuestionData = NonNullable<PlayerStageData["question"]>;
+export type PlayerResultData = NonNullable<PlayerStageData["result"]>;

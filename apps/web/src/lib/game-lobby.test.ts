@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { HostLobbyData } from "./api-types";
+import type { HostGameData } from "./api-types";
 import { applyLobbyEvent } from "./game-lobby";
 
-const lobby: HostLobbyData = {
+const lobby: HostGameData = {
 	gameId: "game-1",
 	quizId: "quiz-1",
 	title: "Capitais",
@@ -12,6 +12,8 @@ const lobby: HostLobbyData = {
 	endReason: null,
 	locked: false,
 	players: [{ id: "p1", nickname: "Ana" }],
+	questionCount: 0,
+	stage: null,
 };
 
 describe("applyLobbyEvent (spec 008)", () => {

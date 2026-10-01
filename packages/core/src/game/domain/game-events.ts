@@ -1,4 +1,5 @@
-import type { GameEndReason } from "./game";
+import type { GameEndReason, GameStatus } from "./game";
+import type { PublicStage } from "./public-stage";
 
 /**
  * One public channel per game (ADR 0009): what goes through it is already on
@@ -13,6 +14,8 @@ export const GAME_EVENTS = {
 	playerRemoved: "player-removed",
 	lockChanged: "lock-changed",
 	gameEnded: "game-ended",
+	stageChanged: "stage-changed",
+	answerCount: "answer-count",
 } as const;
 
 export interface PlayerJoinedPayload {
@@ -29,4 +32,20 @@ export interface LockChangedPayload {
 
 export interface GameEndedPayload {
 	reason: GameEndReason;
+}
+
+/**
+ * The game started, changed phase or finished (spec 009). The stage is the
+ * public one: what is personal or secret comes from each screen's query.
+ */
+export interface StageChangedPayload {
+	status: GameStatus;
+	/** Null once the game is finished. */
+	stage: PublicStage | null;
+}
+
+/** Only the total: the count per answer waits for the results (RN-21). */
+export interface AnswerCountPayload {
+	questionIndex: number;
+	count: number;
 }

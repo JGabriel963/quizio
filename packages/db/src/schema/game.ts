@@ -1,11 +1,15 @@
+import { CORRECTNESS } from "@quizio/core/game/domain/answer";
 import { GAME_END_REASONS, GAME_STATUSES } from "@quizio/core/game/domain/game";
+import { GAME_PHASES } from "@quizio/core/game/domain/game-progress";
 import { sql } from "drizzle-orm";
 import {
 	boolean,
 	index,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
+	primaryKey,
 	text,
 	timestamp,
 	uniqueIndex,
@@ -16,6 +20,8 @@ import { quiz } from "./quiz";
 
 export const gameStatus = pgEnum("game_status", GAME_STATUSES);
 export const gameEndReason = pgEnum("game_end_reason", GAME_END_REASONS);
+export const gamePhase = pgEnum("game_phase", GAME_PHASES);
+export const answerCorrectness = pgEnum("answer_correctness", CORRECTNESS);
 
 /**
  * A live game (spec 008; ADR 0009). The whole state is here: no request
@@ -42,6 +48,16 @@ export const game = pgTable(
 		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 		endedAt: timestamp("ended_at", { withTimezone: true }),
 		endReason: gameEndReason("end_reason"),
+		/** 0 until the game starts (spec 009). */
+		questionCount: integer("question_count").notNull().default(0),
+		/**
+		 * Where a game in progress is: the three are set together, and are null in
+		 * the lobby and once the game is over. The phase's deadline is this
+		 * instant plus its duration (ADR 0009).
+		 */
+		questionIndex: integer("question_index"),
+		phase: gamePhase("phase"),
+		phaseStartedAt: timestamp("phase_started_at", { withTimezone: true }),
 	},
 	(table) => [
 		/** A PIN is unique among the games that were not ended (RN-09, RN-12). */
@@ -73,5 +89,46 @@ export const gamePlayer = pgTable(
 	(table) => [
 		uniqueIndex("game_player_nickname_idx").on(table.gameId, table.nicknameKey),
 		index("game_player_joined_idx").on(table.gameId, table.joinedAt),
+	],
+);
+
+/**
+ * The questions of a game, copied from the playable version when it starts
+ * (spec 009, RN-29): the game never reads the quiz again.
+ */
+export const gameQuestion = pgTable(
+	"game_question",
+	{
+		gameId: text("game_id")
+			.notNull()
+			.references(() => game.id, { onDelete: "cascade" }),
+		index: integer("index").notNull(),
+		/** Read through `parseStoredGameQuestion`. */
+		question: jsonb("question").$type<unknown>().notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.gameId, table.index] })],
+);
+
+/** One answer per player per question: the key is the rule (spec 009, RN-17). */
+export const gameAnswer = pgTable(
+	"game_answer",
+	{
+		gameId: text("game_id")
+			.notNull()
+			.references(() => game.id, { onDelete: "cascade" }),
+		questionIndex: integer("question_index").notNull(),
+		playerId: text("player_id")
+			.notNull()
+			.references(() => gamePlayer.id, { onDelete: "cascade" }),
+		choiceIds: jsonb("choice_ids").$type<string[]>().notNull(),
+		/** Measured by the server, from the answers opening (RN-18). */
+		responseTimeMs: integer("response_time_ms").notNull(),
+		correctness: answerCorrectness("correctness").notNull(),
+		receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.gameId, table.questionIndex, table.playerId],
+		}),
 	],
 );
