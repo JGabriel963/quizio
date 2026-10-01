@@ -149,5 +149,6 @@ describe("QuestionList", () => {
 				"Limite de 200 perguntas atingido",
 			);
 		}
-	});
+		// 200 sortable items are slow to render and query in jsdom.
+	}, 15_000);
 });
