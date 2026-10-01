@@ -5,7 +5,7 @@ import type {
 import type { QuestionChangeNotice } from "@quizio/core/quiz/domain/question-change";
 import type { QuestionIssue } from "@quizio/core/quiz/domain/question-issues";
 
-/** PT-BR labels of the question editor (spec 004). */
+/** PT-BR labels of the question editor (specs 004, 005). */
 
 function plural(count: number, singular: string, pluralForm: string): string {
 	return `${count} ${count === 1 ? singular : pluralForm}`;
@@ -37,7 +37,21 @@ export const QUESTION_ISSUE_LABELS: Record<QuestionIssue, string> = {
 	missingText: "Falta o texto da pergunta",
 	notEnoughAnswers: "Adicione pelo menos 2 respostas",
 	noCorrectAnswer: "Marque pelo menos 1 resposta correta",
+	noCorrectTrueFalse: "Marque a resposta correta",
 };
+
+/** The two fixed answers of a true/false question (spec 005, RN-06). */
+export const TRUE_FALSE_LABELS = {
+	true: "Verdadeiro",
+	false: "Falso",
+} as const;
+
+/** The hints beside the fields of a question the creator came back to (spec 004, RN-16). */
+export const MISSING_QUESTION_TEXT_HINT = "Nenhuma pergunta foi adicionada.";
+
+export function missingAnswerHint(position: number): string {
+	return `A resposta ${position} não foi adicionada`;
+}
 
 /** Answers 1 and 2 are required, the others optional (RN-02). */
 export function answerPlaceholder(index: number): string {
@@ -55,6 +69,8 @@ export function changeNoticeMessage(notice: QuestionChangeNotice): string {
 				"resposta desmarcada",
 				"respostas desmarcadas",
 			);
+		case "quizAnswersKept":
+			return "As respostas do Quiz voltam se você retornar para Quiz antes de sair do editor";
 	}
 }
 

@@ -388,3 +388,5 @@ Referência para as próximas specs, **não implementada aqui**:
   - os testes do Criar ficaram em `app-shell.test.tsx`, não num `top-bar.test.tsx`;
   - o hook de ações se chama `useEditorActions` (`lib/question-mutations.ts`) e não tem teste unitário, porque depende do tRPC. Os componentes recebem `EditorActions` por props e são testados com fakes; o E2E cobre a ligação real.
 - **Ambiente Windows:** com `core.autocrlf=true`, `pnpm check` converte CRLF → LF em todos os arquivos. Nesta entrega o Biome rodou só nos arquivos alterados.
+
+> **Atualização de 2026-10-01:** o "Desfazer" da exclusão de pergunta foi removido (spec, RN-14). `restoreQuestion`, `quiz.questions.restore` e `restoreQuestionAt`, descritos acima, não existem mais no código, e `deleteQuestion` passou a não devolver nada.

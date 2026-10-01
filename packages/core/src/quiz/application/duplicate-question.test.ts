@@ -8,7 +8,7 @@ import {
 	QuestionLimitReachedError,
 	QuestionNotFoundError,
 } from "../domain/question-list";
-import { aQuestion } from "../testing/a-question";
+import { aQuestion, asQuiz, aTrueFalseQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
@@ -73,11 +73,29 @@ describe("duplicateQuestion", () => {
 	it("the copy is independent of the original", async () => {
 		await duplicateQuestion({ ...ref, questionId: "a" });
 
-		const [, copy = a] = questions.listOf("quiz-1");
+		const copy = asQuiz(questions.listOf("quiz-1")[1]);
 		copy.choices[0] = { id: "choice-1", text: "Mudou", correct: false };
 		await questions.saveQuestion("quiz-1", { ...copy, text: "Outra" });
 
 		expect(questions.listOf("quiz-1")[0]).toEqual(a);
+	});
+
+	it("copies a true/false question with its correct answer", async () => {
+		const statement = aTrueFalseQuestion({
+			id: "tf",
+			correct: true,
+			timeLimitSeconds: 10,
+			points: "noPoints",
+		});
+		await questions.saveList("quiz-1", [statement, b]);
+
+		const result = await duplicateQuestion({ ...ref, questionId: "tf" });
+
+		expect(result.question).toEqual({ ...statement, id: "copy-1" });
+		expect(questions.listOf("quiz-1")[1]).toEqual({
+			...statement,
+			id: "copy-1",
+		});
 	});
 
 	it("refuses a question that is not in the quiz", async () => {

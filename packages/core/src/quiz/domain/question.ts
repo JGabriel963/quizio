@@ -1,8 +1,8 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { characterCount } from "../../shared/domain/text-length";
 
-/** "trueFalse" arrives with spec 005. */
-export const QUESTION_TYPES = ["quiz"] as const;
+/** The types the editor offers (spec 005, RN-01). */
+export const QUESTION_TYPES = ["quiz", "trueFalse"] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 /** Time limit choices of the editor, in seconds (spec 004, RN-10). */
@@ -20,7 +20,8 @@ export type QuestionPoints = (typeof QUESTION_POINTS)[number];
 export const SELECTION_MODES = ["single", "multiple"] as const;
 export type SelectionMode = (typeof SELECTION_MODES)[number];
 
-export const QUESTION_TEXT_MAX_LENGTH = 120;
+/** A little above Kahoot's 120 (spec 003, RN-10). */
+export const QUESTION_TEXT_MAX_LENGTH = 160;
 export const CHOICE_TEXT_MAX_LENGTH = 75;
 /** Answer slots shown by default, and with the extra answers (spec 004, RN-02, RN-03). */
 export const DEFAULT_CHOICE_COUNT = 4;
@@ -37,26 +38,42 @@ export interface Choice {
 	correct: boolean;
 }
 
-/**
- * A question of a quiz. Its position is not an attribute: it is the index in
- * the quiz's ordered question list (spec 003).
- */
-export interface Question {
+/** What every question type shares (ADR 0008). */
+interface QuestionBase {
 	id: string;
-	type: QuestionType;
 	/** Null means no text yet, which drafts allow (spec 003, RN-09). */
 	text: string | null;
 	timeLimitSeconds: TimeLimitSeconds;
 	points: QuestionPoints;
+}
+
+export interface QuizQuestion extends QuestionBase {
+	type: "quiz";
 	selection: SelectionMode;
 	/** 4 or 6 slots, in position order. */
 	choices: Choice[];
 }
 
-/** Type-specific part stored as jsonb (ADR 0008). */
-export interface QuizContent {
-	selection: SelectionMode;
-	choices: Choice[];
+/** Two fixed answers, "Verdadeiro" and "Falso" (spec 005, RN-06). */
+export interface TrueFalseQuestion extends QuestionBase {
+	type: "trueFalse";
+	/** Which one is right; null until the creator marks it (RN-07). */
+	correct: boolean | null;
+}
+
+/**
+ * A question of a quiz. Its position is not an attribute: it is the index in
+ * the quiz's ordered question list (spec 003).
+ */
+export type Question = QuizQuestion | TrueFalseQuestion;
+
+/** The part of a question that belongs to its type (ADR 0008). */
+export type QuizContent = Pick<QuizQuestion, "type" | "selection" | "choices">;
+export type TrueFalseContent = Pick<TrueFalseQuestion, "type" | "correct">;
+export type QuestionContent = QuizContent | TrueFalseContent;
+
+export class InvalidQuestionTypeError extends DomainError {
+	readonly code = "QUIZ.INVALID_TYPE";
 }
 
 export class QuestionTextTooLongError extends DomainError {
@@ -91,17 +108,62 @@ export function emptyChoices(count: number): Choice[] {
 	}));
 }
 
-/** A fresh quiz question (spec 003, RN-09; spec 004, RN-02). */
-export function blankQuestion(id: string): Question {
+/** What a question of the type starts with (spec 004, RN-02; spec 005, RN-07). */
+export function blankContent(type: QuestionType): QuestionContent {
+	switch (type) {
+		case "quiz":
+			return {
+				type,
+				selection: "single",
+				choices: emptyChoices(DEFAULT_CHOICE_COUNT),
+			};
+		case "trueFalse":
+			return { type, correct: null };
+	}
+}
+
+/** A fresh question, a quiz one unless told otherwise (spec 003, RN-09; spec 005, RN-03). */
+export function blankQuestion(id: string, type?: "quiz"): QuizQuestion;
+export function blankQuestion(id: string, type: "trueFalse"): TrueFalseQuestion;
+export function blankQuestion(id: string, type: QuestionType): Question;
+export function blankQuestion(
+	id: string,
+	type: QuestionType = "quiz",
+): Question {
 	return {
 		id,
-		type: "quiz",
 		text: null,
 		timeLimitSeconds: DEFAULT_TIME_LIMIT_SECONDS,
 		points: "standard",
-		selection: "single",
-		choices: emptyChoices(DEFAULT_CHOICE_COUNT),
+		...blankContent(type),
 	};
+}
+
+/**
+ * Nothing written or marked yet: the editor does not warn about a question the
+ * creator has just started (spec 004, RN-16).
+ */
+export function isBlankQuestion(question: Question): boolean {
+	if (question.text !== null) {
+		return false;
+	}
+	switch (question.type) {
+		case "quiz":
+			return question.choices.every((choice) => choice.text === null);
+		case "trueFalse":
+			return question.correct === null;
+	}
+}
+
+/**
+ * Marking one answer unmarks the other, and unmarking the marked one marks the
+ * other: once answered, a true/false question always has a correct answer (RN-07).
+ */
+export function toggledTrueFalseCorrect(
+	current: boolean | null,
+	clicked: boolean,
+): boolean {
+	return current === clicked ? !clicked : clicked;
 }
 
 function parseLimitedText(
@@ -152,6 +214,15 @@ function isOneOf<T extends string | number>(
 	return (values as readonly unknown[]).includes(value);
 }
 
+export function parseQuestionType(type: string): QuestionType {
+	if (!isOneOf(QUESTION_TYPES, type)) {
+		throw new InvalidQuestionTypeError(
+			`Question type "${type}" is not supported`,
+		);
+	}
+	return type;
+}
+
 export function parseTimeLimit(seconds: number): TimeLimitSeconds {
 	if (!isOneOf(TIME_LIMITS_SECONDS, seconds)) {
 		throw new InvalidTimeLimitError(
@@ -179,6 +250,12 @@ export function parseSelection(selection: string): SelectionMode {
 	return selection;
 }
 
+function asRecord(raw: unknown): Record<string, unknown> {
+	return typeof raw === "object" && raw !== null
+		? (raw as Record<string, unknown>)
+		: {};
+}
+
 function isStoredChoice(
 	value: unknown,
 ): value is { text: string | null; correct: boolean } {
@@ -195,11 +272,8 @@ function isStoredChoice(
  * Reads stored quiz content tolerantly: anything missing or malformed falls
  * back to the blank question's content, so a bad row never breaks the editor.
  */
-export function parseQuizContent(raw: unknown): QuizContent {
-	const stored =
-		typeof raw === "object" && raw !== null
-			? (raw as Record<string, unknown>)
-			: {};
+export function parseQuizContent(raw: unknown): Omit<QuizContent, "type"> {
+	const stored = asRecord(raw);
 	const selection = isOneOf(SELECTION_MODES, stored.selection)
 		? stored.selection
 		: "single";
@@ -223,11 +297,42 @@ export function parseQuizContent(raw: unknown): QuizContent {
 	};
 }
 
-/** An independent copy under a new id (spec 003, RN-12; spec 004, RN-18). */
-export function copyQuestion(source: Question, id: string): Question {
-	return {
-		...source,
-		id,
-		choices: source.choices.map((choice) => ({ ...choice })),
-	};
+/** Reads the stored content of a question of `type`, as tolerantly as `parseQuizContent`. */
+export function parseStoredContent(
+	type: QuestionType,
+	raw: unknown,
+): QuestionContent {
+	switch (type) {
+		case "quiz":
+			return { type, ...parseQuizContent(raw) };
+		case "trueFalse": {
+			const { correct } = asRecord(raw);
+			return { type, correct: typeof correct === "boolean" ? correct : null };
+		}
+	}
+}
+
+/** The type-specific part of a question, detached from it. */
+export function questionContent(question: Question): QuestionContent {
+	switch (question.type) {
+		case "quiz":
+			return {
+				type: question.type,
+				selection: question.selection,
+				choices: question.choices.map((choice) => ({ ...choice })),
+			};
+		case "trueFalse":
+			return { type: question.type, correct: question.correct };
+	}
+}
+
+/** What goes into the jsonb column: the content without its type, which is a column. */
+export function storedContent(question: Question): Record<string, unknown> {
+	const { type: _type, ...content } = questionContent(question);
+	return content;
+}
+
+/** An independent copy under a new id (spec 003, RN-12; spec 004, RN-18; spec 005, RN-21). */
+export function copyQuestion<T extends Question>(source: T, id: string): T {
+	return { ...source, ...questionContent(source), id };
 }

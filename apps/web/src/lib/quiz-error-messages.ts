@@ -30,10 +30,13 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.EMPTY_CHOICE_CORRECT":
 		"Escreva a resposta antes de marcá-la como correta.",
 	"QUIZ.INVALID_CHOICE_COUNT":
-		"Não foi possível restaurar a pergunta. Recarregue a página.",
+		"Não foi possível recuperar as respostas. Recarregue a página.",
 	"QUIZ.INVALID_TIME_LIMIT": "Escolha um limite de tempo da lista.",
 	"QUIZ.INVALID_POINTS": "Escolha uma opção de pontos da lista.",
 	"QUIZ.INVALID_SELECTION": "Escolha uma opção de resposta da lista.",
+	"QUIZ.INVALID_TYPE": "Escolha um tipo de pergunta da lista.",
+	"QUIZ.CHANGE_NOT_APPLICABLE":
+		"Esta alteração não vale para o tipo da pergunta. Recarregue a página.",
 	"MEDIA.UNSUPPORTED_TYPE":
 		"Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
 	"MEDIA.INVALID_SIZE": "Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",

@@ -1,4 +1,7 @@
-import { CHOICE_TEXT_MAX_LENGTH } from "@quizio/core/quiz/domain/question";
+import {
+	CHOICE_TEXT_MAX_LENGTH,
+	type Choice,
+} from "@quizio/core/quiz/domain/question";
 import { truncateCharacters } from "@quizio/core/shared/domain/text-length";
 import {
 	ANSWER_COLOR_CLASSES,
@@ -9,11 +12,10 @@ import { Checkbox } from "@quizio/ui/components/checkbox";
 import { cn } from "@quizio/ui/lib/utils";
 import { useId } from "react";
 
-import type { QuestionData } from "@/lib/api-types";
-import { answerPlaceholder } from "@/lib/question-labels";
+import { answerPlaceholder, missingAnswerHint } from "@/lib/question-labels";
 import { useDebouncedAutosave } from "@/lib/use-debounced-autosave";
 
-type ChoiceData = QuestionData["choices"][number];
+import { EditorHint } from "./editor-hint";
 
 /**
  * One answer block (spec 004): color and shape of its position, the autosaved
@@ -29,7 +31,7 @@ export function ChoiceField({
 	onCorrectChange,
 }: {
 	questionId: string;
-	choice: ChoiceData;
+	choice: Choice;
 	index: number;
 	/** Shows "A resposta N não foi adicionada" while the field is empty (RN-16). */
 	hint: boolean;
@@ -97,9 +99,9 @@ export function ChoiceField({
 				/>
 			</div>
 			{showHint && (
-				<p id={hintId} className="px-1 font-semibold text-sm text-white">
-					{`A resposta ${position} não foi adicionada`}
-				</p>
+				<EditorHint id={hintId} className="-mt-2.5">
+					{missingAnswerHint(position)}
+				</EditorHint>
 			)}
 		</li>
 	);

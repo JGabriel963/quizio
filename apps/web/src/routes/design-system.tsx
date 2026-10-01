@@ -220,6 +220,15 @@ function DesignSystemPage() {
 						</AnswerOption>
 					))}
 				</div>
+				{/* Verdadeiro ou falso: blue diamond first, then red triangle (spec 005). */}
+				<div className="grid gap-3 sm:grid-cols-2">
+					<AnswerOption shape="diamond" size="lg">
+						Verdadeiro
+					</AnswerOption>
+					<AnswerOption shape="triangle" size="lg">
+						Falso
+					</AnswerOption>
+				</div>
 				<div className="flex items-center gap-3 rounded-md bg-answer-blue p-3">
 					<Checkbox variant="answer" aria-label="Correta (desmarcada)" />
 					<Checkbox

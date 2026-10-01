@@ -42,6 +42,7 @@ async function renderEditor(
 		saveTitle: vi.fn(async () => {}),
 		saveQuestionField: vi.fn(async () => {}),
 		changeQuestion: vi.fn(),
+		changeQuestionType: vi.fn(),
 		applyTimeLimitToAll: vi.fn(),
 		// Like the real mutation: the cache (here, the harness state) gets the new list.
 		addQuestion: vi.fn(async () => {
@@ -112,11 +113,118 @@ describe("QuizEditor", () => {
 		);
 
 		await user.click(screen.getByRole("button", { name: "Adicionar" }));
+		await user.click(
+			await screen.findByRole("menuitem", { name: "Verdadeiro ou falso" }),
+		);
 
-		expect(actions.addQuestion).toHaveBeenCalledWith("a");
+		expect(actions.addQuestion).toHaveBeenCalledExactlyOnceWith(
+			"a",
+			"trueFalse",
+		);
 		expect(
 			await screen.findByRole("button", { name: "Pergunta 2: sem texto" }),
 		).toHaveAttribute("aria-current", "true");
+	});
+
+	it("changing the type asks the action for the selected question", async () => {
+		const { actions, user } = await renderEditor(
+			editorData(question("a", "A?"), question("b", "B?")),
+		);
+		await user.click(screen.getByRole("button", { name: "Pergunta 2: B?" }));
+
+		await user.click(
+			screen.getByRole("combobox", { name: "Tipo de pergunta" }),
+		);
+		await user.click(
+			await screen.findByRole("option", { name: "Verdadeiro ou falso" }),
+		);
+
+		expect(actions.changeQuestionType).toHaveBeenCalledExactlyOnceWith(
+			"b",
+			"trueFalse",
+		);
+	});
+
+	it("shows a true/false question with its fixed answers and marks the correct one", async () => {
+		const { actions, user } = await renderEditor(
+			editorData({ ...blankQuestion("tf", "trueFalse"), text: "O céu é azul" }),
+		);
+
+		expect(screen.getByRole("list", { name: "Perguntas" })).toHaveTextContent(
+			"1 Verdadeiro ou falso",
+		);
+		await user.click(
+			screen.getByRole("checkbox", { name: "Verdadeiro correta" }),
+		);
+
+		expect(actions.changeQuestion).toHaveBeenCalledExactlyOnceWith("tf", {
+			kind: "trueFalseCorrect",
+			correct: true,
+		});
+	});
+	it("a blank question gets no warnings until the creator leaves it and comes back", async () => {
+		const { user } = await renderEditor(
+			editorData(question("a", null), question("b", "B?")),
+		);
+		const hints = () => document.querySelectorAll("[data-slot=editor-hint]");
+
+		// Just opened on a blank question: nothing is pointed out yet.
+		expect(hints()).toHaveLength(0);
+		expect(
+			screen.queryByRole("button", { name: "Pergunta 1 incompleta" }),
+		).toBeNull();
+		// The other question was not started now, so it is flagged as usual.
+		expect(
+			screen.getByRole("button", { name: "Pergunta 2 incompleta" }),
+		).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Pergunta 2: B?" }));
+		expect(
+			screen.getByRole("button", { name: "Pergunta 1 incompleta" }),
+		).toBeInTheDocument();
+
+		await user.click(
+			screen.getByRole("button", { name: "Pergunta 1: sem texto" }),
+		);
+		expect(
+			screen.getByText("Nenhuma pergunta foi adicionada."),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText("A resposta 1 não foi adicionada"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText("Marque pelo menos 1 resposta correta"),
+		).toBeInTheDocument();
+	});
+
+	it("a question opened with something already written is warned about at once", async () => {
+		await renderEditor(editorData(question("a", "Capital?")));
+
+		expect(
+			screen.getByRole("button", { name: "Pergunta 1 incompleta" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText("A resposta 1 não foi adicionada"),
+		).toBeInTheDocument();
+	});
+
+	it("a question just added starts without warnings, and the one left gets them", async () => {
+		const { user } = await renderEditor(editorData(question("a", null)), {
+			afterAdd: editorData(question("a", null), question("new", null)),
+		});
+
+		await user.click(screen.getByRole("button", { name: "Adicionar" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Quiz" }));
+
+		expect(
+			await screen.findByRole("button", { name: "Pergunta 1 incompleta" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Pergunta 2 incompleta" }),
+		).toBeNull();
+		expect(document.querySelectorAll("[data-slot=editor-hint]")).toHaveLength(
+			0,
+		);
 	});
 
 	it("deleting selects the question that took its place", async () => {
@@ -128,9 +236,57 @@ describe("QuizEditor", () => {
 		await user.click(
 			screen.getByRole("button", { name: "Excluir pergunta 2" }),
 		);
+		// Nothing is deleted before the creator confirms (spec 003, RN-14).
+		const dialog = await screen.findByRole("alertdialog", {
+			name: "Excluir pergunta",
+		});
+		expect(dialog).toHaveTextContent(
+			"Tem certeza de que quer excluir a pergunta 2? Essa ação não pode ser desfeita.",
+		);
+		expect(actions.deleteQuestion).not.toHaveBeenCalled();
+		await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
 
-		expect(actions.deleteQuestion).toHaveBeenCalledWith("b");
+		expect(actions.deleteQuestion).toHaveBeenCalledExactlyOnceWith("b");
 		expect(questionText()).toHaveValue("C?");
+		await vi.waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).toBeNull(),
+		);
+	});
+
+	it("cancelling the confirmation keeps the question", async () => {
+		const { actions, user } = await renderEditor(
+			editorData(question("a", "A?"), question("b", "B?")),
+		);
+
+		await user.click(
+			screen.getByRole("button", { name: "Excluir pergunta 2" }),
+		);
+		const dialog = await screen.findByRole("alertdialog");
+		await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+
+		await vi.waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).toBeNull(),
+		);
+		expect(actions.deleteQuestion).not.toHaveBeenCalled();
+		expect(
+			screen.getByRole("button", { name: "Pergunta 2: B?" }),
+		).toBeInTheDocument();
+	});
+
+	it("Excluir in the properties panel asks about the selected question", async () => {
+		const { actions, user } = await renderEditor(
+			editorData(question("a", "A?"), question("b", "B?")),
+		);
+		await user.click(screen.getByRole("button", { name: "Pergunta 2: B?" }));
+
+		await user.click(screen.getByRole("button", { name: "Excluir" }));
+		const dialog = await screen.findByRole("alertdialog");
+		expect(dialog).toHaveTextContent(
+			"Tem certeza de que quer excluir a pergunta 2?",
+		);
+		await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
+
+		expect(actions.deleteQuestion).toHaveBeenCalledExactlyOnceWith("b");
 	});
 
 	it("the list and properties open from buttons on narrow screens", async () => {
@@ -159,9 +315,9 @@ describe("QuizEditor", () => {
 			"Brasília",
 		);
 		await user.tab();
-		await user.selectOptions(
-			screen.getByRole("combobox", { name: "Limite de tempo" }),
-			"45 segundos",
+		await user.click(screen.getByRole("combobox", { name: "Limite de tempo" }));
+		await user.click(
+			await screen.findByRole("option", { name: "45 segundos" }),
 		);
 		await user.click(
 			screen.getByRole("button", { name: "Aplicar a todas as perguntas" }),

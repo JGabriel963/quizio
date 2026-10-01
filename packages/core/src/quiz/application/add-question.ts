@@ -1,6 +1,6 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
-import { blankQuestion } from "../domain/question";
+import { blankQuestion, parseQuestionType } from "../domain/question";
 import { insertQuestionAfter } from "../domain/question-list";
 import { loadEditableQuiz, markQuizEdited } from "./editable-quiz";
 import type { QuestionRepository } from "./ports/question-repository";
@@ -11,6 +11,8 @@ import type { QuizReference } from "./quiz-reference";
 export interface AddQuestionInput extends QuizReference {
 	/** The selected question; null adds at the end. */
 	afterQuestionId: string | null;
+	/** Chosen in the type picker; validated here (spec 005, RN-03). */
+	type: string;
 }
 
 export interface PlacedQuestion {
@@ -26,9 +28,10 @@ export function createAddQuestion(deps: {
 	ids: IdGenerator;
 	clock: Clock;
 }): AddQuestion {
-	return async ({ afterQuestionId, ...ref }) => {
+	return async ({ afterQuestionId, type, ...ref }) => {
+		const questionType = parseQuestionType(type);
 		const { quiz, questions } = await loadEditableQuiz(deps, ref);
-		const question = blankQuestion(deps.ids.generate());
+		const question = blankQuestion(deps.ids.generate(), questionType);
 		const { list, index } = insertQuestionAfter(
 			questions,
 			afterQuestionId,

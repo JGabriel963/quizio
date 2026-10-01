@@ -74,7 +74,8 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 | --- | --- | --- |
 | RN-14 | Uma pergunta Quiz está **incompleta** quando: (a) não tem enunciado, (b) tem **menos de 2** alternativas com texto, ou (c) não tem **nenhuma** alternativa correta. | kahoot-reference §3.6 (a: inferido, adotado como decisão do produto de 2026-09-30) |
 | RN-15 | Uma pergunta incompleta **continua sendo salva** normalmente. Ela ganha um **alerta na lista** de perguntas, que explica os motivos, e isso vai impedir salvar a versão jogável (spec 006). | kahoot-reference §3.6 |
-| RN-16 | Enquanto houver menos de 2 alternativas com texto, cada um dos espaços 1 e 2 que estiver vazio mostra a dica **"A resposta N não foi adicionada"**. Sem nenhuma correta, o editor mostra **"Marque pelo menos 1 resposta correta"**. | referência visual do Kahoot (2026-09-25) |
+| RN-16 | O editor aponta o que falta com **balões junto aos campos**: sem enunciado, **"Nenhuma pergunta foi adicionada."**; enquanto houver menos de 2 alternativas com texto, **"A resposta N não foi adicionada"** em cada um dos espaços 1 e 2 que estiver vazio; sem nenhuma correta, **"Marque pelo menos 1 resposta correta"**. | referência visual do Kahoot (2026-09-25, 2026-10-01) |
+| RN-16a | Os avisos **não aparecem numa pergunta que o criador acabou de começar**: a pergunta recém-adicionada, ou a pergunta em branco com que o editor abre. Quando ele **sai dela**, o item da lista ganha o alerta (RN-15); quando **volta**, aparecem os balões (RN-16). As demais perguntas são avisadas normalmente. Isso vale enquanto o editor está aberto e não é salvo. | comportamento do Kahoot informado pelo usuário (2026-10-01) |
 | RN-17 | O item da lista mostra o limite de tempo da pergunta, em segundos, na miniatura. | referência visual do Kahoot |
 | RN-18 | Duplicar uma pergunta (spec 003, RN-12) copia também alternativas, corretas, opções de resposta, tempo e pontos. O mesmo vale para duplicar um quiz. | spec 003, RN-12, RN-27 |
 | RN-19 | Todos os textos das telas desta feature são em português do Brasil. | constituição, artigo IX |
@@ -164,7 +165,7 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 
 #### CA-12 — Alerta na lista
 
-- **Dado** uma pergunta sem enunciado, sem alternativas e sem correta
+- **Dado** uma pergunta sem enunciado, sem alternativas e sem correta, da qual o criador já saiu
 - **Quando** o criador olha a lista de perguntas
 - **Então** o item dela tem um alerta que lista "Falta o texto da pergunta", "Adicione pelo menos 2 respostas" e "Marque pelo menos 1 resposta correta"
 - **Quando** ele preenche o enunciado, duas alternativas e marca uma correta
@@ -172,9 +173,9 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 
 #### CA-13 — Dicas junto às alternativas
 
-- **Dado** uma pergunta sem nenhuma alternativa escrita
-- **Quando** o criador olha as alternativas
-- **Então** vê "A resposta 1 não foi adicionada" e "A resposta 2 não foi adicionada"
+- **Dado** uma pergunta sem enunciado e sem nenhuma alternativa escrita, à qual o criador voltou depois de sair
+- **Quando** o criador olha a pergunta
+- **Então** vê os balões "Nenhuma pergunta foi adicionada.", "A resposta 1 não foi adicionada" e "A resposta 2 não foi adicionada"
 - **E** com "Brasília" na resposta 1 e "Rio" na resposta 3, as dicas somem
 
 #### CA-14 — Incompleta continua salva
@@ -182,6 +183,16 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 - **Dado** uma pergunta incompleta
 - **Quando** o criador sai do editor e volta
 - **Então** tudo o que ele escreveu está lá, e o alerta continua
+
+#### CA-14a — Pergunta recém-começada não é avisada
+
+- **Dado** um quiz novo, aberto na pergunta em branco
+- **Quando** o criador olha a pergunta e a lista
+- **Então** não há balões nem alerta no item da lista
+- **Quando** ele adiciona outra pergunta
+- **Então** o item da primeira ganha o alerta, e a pergunta nova não tem avisos
+- **Quando** ele volta à primeira pergunta
+- **Então** os balões aparecem junto ao enunciado e às respostas 1 e 2
 
 ### Cópias
 
@@ -193,9 +204,9 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 
 ## Experiência (telas e estados)
 
-- **Centro**: abaixo da área de mídia (ainda "Em breve", spec 007), uma grade de 2 colunas (1 coluna no celular) com as alternativas. Cada uma tem o bloco colorido com a forma à esquerda, o campo de texto e, à direita, a marcação redonda de correta (visível quando há texto). Abaixo de cada espaço obrigatório vazio aparece a dica da RN-16. Embaixo da grade fica a ação "Adicionar mais respostas" ou "Remover respostas extras".
-- **Painel de propriedades**: "Tipo de pergunta" (Quiz, só leitura até a spec 005); "Limite de tempo" (lista) com o link "Aplicar a todas as perguntas"; "Pontos" (lista); "Opções de resposta" (lista); Excluir e Duplicar no rodapé.
-- **Lista**: a miniatura mostra o tempo em um círculo, o começo do enunciado, as barras das alternativas preenchidas e, quando incompleta, um ícone de alerta com os motivos.
+- **Centro**: abaixo da área de mídia (ainda "Em breve", spec 007), uma grade de 2 colunas (1 coluna no celular) com as alternativas. Cada uma tem o bloco colorido com a forma à esquerda, o campo de texto e, à direita, a marcação redonda de correta (visível quando há texto). Os avisos da RN-16 aparecem como balões roxos com uma seta, sobrepostos à borda de baixo do campo a que se referem (enunciado e espaços obrigatórios vazios), como no Kahoot. Embaixo da grade fica a ação "Adicionar mais respostas" ou "Remover respostas extras".
+- **Painel de propriedades**: os campos de lista usam o seletor do design system, não o do navegador. "Tipo de pergunta" (Quiz, só leitura até a spec 005); "Limite de tempo" (lista) com o link "Aplicar a todas as perguntas"; "Pontos" (lista); "Opções de resposta" (lista); Excluir e Duplicar no rodapé.
+- **Lista**: o card segue o do Kahoot: o começo do enunciado em cima (ou "Pergunta", se vazio), o tempo em um círculo à esquerda do espaço da mídia, e embaixo uma barra em contorno por alternativa, com um ponto verde à direita nas corretas. Quando incompleta, um círculo roxo com "!" na lateral direita do card mostra os motivos.
 - **Avisos**: "Múltipla escolha ativada", "N resposta(s) desmarcada(s)" e "Tempo aplicado a N perguntas" aparecem como avisos passageiros.
 
 ## Divergências intencionais do Kahoot
@@ -220,3 +231,5 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 
 - 2026-09-30 — spec criada e aprovada pelo usuário no mesmo pedido ("criar a spec e já parta para seu desenvolvimento"). Decisões do produto tomadas sem consulta prévia, registradas nas RNs 01, 03, 06, 09 e 14.
 - 2026-10-01 — implementada (tarefas T01 a T17).
+- 2026-10-01 — ajustes de layout pedidos pelo usuário: as dicas viraram balões junto aos campos, com a nova dica do enunciado (RN-16); avisos só depois que o criador sai da pergunta e volta (RN-16a, CA-12, CA-13, CA-14a); listas do painel com o seletor do design system.
+- 2026-10-01 — card da lista realinhado como o do Kahoot, por pedido do usuário: barras em contorno com ponto verde nas corretas e alerta na lateral do card; marcação de correta em verde-claro com anel branco.

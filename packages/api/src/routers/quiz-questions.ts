@@ -16,6 +16,18 @@ const position = z.number().int().min(0);
 const seconds = z.number().int();
 const choiceId = z.string().min(1);
 
+/** The type-specific part of a question, as clients send it back in a type change (spec 005). */
+const content = z.discriminatedUnion("type", [
+	z.object({
+		type: z.literal("quiz"),
+		selection: z.enum(SELECTION_MODES),
+		choices: z
+			.array(z.object({ text: z.string().nullable(), correct: z.boolean() }))
+			.max(16),
+	}),
+	z.object({ type: z.literal("trueFalse"), correct: z.boolean().nullable() }),
+]);
+
 const change = z.discriminatedUnion("kind", [
 	z.object({ kind: z.literal("text"), text: z.string().nullable() }),
 	z.object({ kind: z.literal("timeLimit"), seconds }),
@@ -35,25 +47,22 @@ const change = z.discriminatedUnion("kind", [
 		correct: z.boolean(),
 	}),
 	z.object({ kind: z.literal("extraChoices"), visible: z.boolean() }),
+	z.object({ kind: z.literal("trueFalseCorrect"), correct: z.boolean() }),
+	z.object({
+		kind: z.literal("type"),
+		type: z.enum(QUESTION_TYPES),
+		remembered: content.nullable(),
+	}),
 ]);
 
-const question = z.object({
-	id: z.string().min(1),
-	type: z.enum(QUESTION_TYPES),
-	text: z.string().nullable(),
-	timeLimitSeconds: seconds,
-	points: z.enum(QUESTION_POINTS),
-	selection: z.enum(SELECTION_MODES),
-	choices: z
-		.array(z.object({ text: z.string().nullable(), correct: z.boolean() }))
-		.max(16),
-});
-
-/** Question list and autosave of the editor (specs 003, 004), mounted as `quiz.questions`. */
+/** Question list and autosave of the editor (specs 003 to 005), mounted as `quiz.questions`. */
 export const quizQuestionsRouter = router({
 	add: protectedProcedure
 		.input(
-			quizReference.extend({ afterQuestionId: z.string().min(1).nullable() }),
+			quizReference.extend({
+				afterQuestionId: z.string().min(1).nullable(),
+				type: z.enum(QUESTION_TYPES),
+			}),
 		)
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.addQuestion({
@@ -84,20 +93,6 @@ export const quizQuestionsRouter = router({
 		.input(questionReference)
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.deleteQuestion({
-				ownerId: ctx.session.user.id,
-				...input,
-			}),
-		),
-
-	restore: protectedProcedure
-		.input(
-			quizReference.extend({
-				question,
-				index: position,
-			}),
-		)
-		.mutation(({ ctx, input }) =>
-			ctx.container.useCases.restoreQuestion({
 				ownerId: ctx.session.user.id,
 				...input,
 			}),

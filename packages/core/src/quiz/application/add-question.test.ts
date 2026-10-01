@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
-import { blankQuestion } from "../domain/question";
+import { blankQuestion, InvalidQuestionTypeError } from "../domain/question";
 import {
 	QUIZ_MAX_QUESTIONS,
 	QuestionLimitReachedError,
@@ -41,7 +41,11 @@ describe("addQuestion", () => {
 	const storedIds = () => questions.listOf("quiz-1").map(({ id }) => id);
 
 	it("adds a blank question right after the selected one", async () => {
-		const result = await addQuestion({ ...ref, afterQuestionId: "b" });
+		const result = await addQuestion({
+			...ref,
+			afterQuestionId: "b",
+			type: "quiz",
+		});
 
 		expect(result).toEqual({
 			question: blankQuestion("new-1"),
@@ -50,15 +54,47 @@ describe("addQuestion", () => {
 		expect(storedIds()).toEqual(["a", "b", "new-1", "c"]);
 	});
 
+	it("adds a blank true/false question after the selected one", async () => {
+		const result = await addQuestion({
+			...ref,
+			afterQuestionId: "a",
+			type: "trueFalse",
+		});
+
+		expect(result).toEqual({
+			question: blankQuestion("new-1", "trueFalse"),
+			index: 1,
+		});
+		expect(questions.listOf("quiz-1")[1]).toEqual({
+			id: "new-1",
+			type: "trueFalse",
+			text: null,
+			timeLimitSeconds: 20,
+			points: "standard",
+			correct: null,
+		});
+	});
+
+	it("refuses an unknown type", async () => {
+		await expect(
+			addQuestion({ ...ref, afterQuestionId: "a", type: "slider" }),
+		).rejects.toThrow(InvalidQuestionTypeError);
+		expect(storedIds()).toEqual(["a", "b", "c"]);
+	});
+
 	it("adds at the end when nothing is selected", async () => {
-		const result = await addQuestion({ ...ref, afterQuestionId: null });
+		const result = await addQuestion({
+			...ref,
+			afterQuestionId: null,
+			type: "quiz",
+		});
 
 		expect(result.index).toBe(3);
 		expect(storedIds()).toEqual(["a", "b", "c", "new-1"]);
 	});
 
 	it("touches the quiz's updatedAt", async () => {
-		await addQuestion({ ...ref, afterQuestionId: "a" });
+		await addQuestion({ ...ref, afterQuestionId: "a", type: "quiz" });
 
 		expect((await quizzes.findById("quiz-1"))?.updatedAt).toEqual(clock.now());
 	});
@@ -82,7 +118,7 @@ describe("addQuestion", () => {
 			clock,
 		});
 
-		await racingAdd({ ...ref, afterQuestionId: "a" });
+		await racingAdd({ ...ref, afterQuestionId: "a", type: "quiz" });
 
 		const quiz = await quizzes.findById("quiz-1");
 		expect(quiz?.title).toBe("Renomeado durante a adição");
@@ -96,7 +132,7 @@ describe("addQuestion", () => {
 		await questions.saveList("quiz-1", full);
 
 		await expect(
-			addQuestion({ ...ref, afterQuestionId: null }),
+			addQuestion({ ...ref, afterQuestionId: null, type: "quiz" }),
 		).rejects.toThrow(QuestionLimitReachedError);
 		expect(questions.listOf("quiz-1")).toHaveLength(QUIZ_MAX_QUESTIONS);
 	});

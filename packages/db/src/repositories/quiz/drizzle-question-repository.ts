@@ -1,9 +1,10 @@
 import type { QuestionRepository } from "@quizio/core/quiz/application/ports/question-repository";
 import {
 	DEFAULT_TIME_LIMIT_SECONDS,
-	parseQuizContent,
+	parseStoredContent,
 	QUESTION_POINTS,
 	type Question,
+	storedContent,
 	TIME_LIMITS_SECONDS,
 } from "@quizio/core/quiz/domain/question";
 import { and, asc, count, eq, notInArray, sql } from "drizzle-orm";
@@ -18,10 +19,8 @@ type QuestionRow = Pick<
 
 /** Tolerant on read: a value the core no longer accepts falls back to the default. */
 function toQuestion(row: QuestionRow): Question {
-	const { selection, choices } = parseQuizContent(row.content);
 	return {
 		id: row.id,
-		type: row.type,
 		text: row.text,
 		timeLimitSeconds: (TIME_LIMITS_SECONDS as readonly number[]).includes(
 			row.timeLimitSeconds,
@@ -29,8 +28,7 @@ function toQuestion(row: QuestionRow): Question {
 			? (row.timeLimitSeconds as Question["timeLimitSeconds"])
 			: DEFAULT_TIME_LIMIT_SECONDS,
 		points: QUESTION_POINTS.includes(row.points) ? row.points : "standard",
-		selection,
-		choices,
+		...parseStoredContent(row.type, row.content),
 	};
 }
 
@@ -41,7 +39,7 @@ function toColumns(question: Question) {
 		text: question.text,
 		timeLimitSeconds: question.timeLimitSeconds,
 		points: question.points,
-		content: { selection: question.selection, choices: question.choices },
+		content: storedContent(question),
 	};
 }
 

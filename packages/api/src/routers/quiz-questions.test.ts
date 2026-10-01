@@ -1,3 +1,4 @@
+import { asQuiz } from "@quizio/core/quiz/testing/a-question";
 import { describe, expect, it } from "vitest";
 
 import { createTestApi } from "../testing/test-context";
@@ -11,7 +12,7 @@ const failureOf = (promise: Promise<unknown>) =>
 	);
 
 describe("quiz.questions router", () => {
-	it("add, duplicate, move, delete and restore round-trip through quiz.editor", async () => {
+	it("add, duplicate, move and delete round-trip through quiz.editor", async () => {
 		const ana = createTestApi().callerFor("user-1");
 		const { id: quizId } = await ana.quiz.create({});
 		const {
@@ -27,6 +28,7 @@ describe("quiz.questions router", () => {
 		const added = await ana.quiz.questions.add({
 			quizId,
 			afterQuestionId: firstId,
+			type: "quiz",
 		});
 		const copy = await ana.quiz.questions.duplicate({
 			quizId,
@@ -37,31 +39,29 @@ describe("quiz.questions router", () => {
 			questionId: added.question.id,
 			toIndex: 0,
 		});
-		const deleted = await ana.quiz.questions.delete({
+		const beforeDelete = await ana.quiz.editor({ quizId });
+		await ana.quiz.questions.delete({
 			quizId,
 			questionId: copy.question.id,
 		});
 		const afterDelete = await ana.quiz.editor({ quizId });
-		await ana.quiz.questions.restore({ quizId, ...deleted });
-		const afterRestore = await ana.quiz.editor({ quizId });
 
 		expect(added.index).toBe(1);
 		expect(copy).toEqual({
 			question: { ...first, id: expect.any(String), text: "Capital?" },
 			index: 1,
 		});
-		expect(afterDelete.questions.map(({ id }) => id)).toEqual([
-			added.question.id,
-			firstId,
-		]);
-		// The copy sat at index 2 after the move, so the undo puts it back there.
-		expect(deleted.index).toBe(2);
-		expect(afterRestore.questions.map(({ id }) => id)).toEqual([
+		expect(beforeDelete.questions.map(({ id }) => id)).toEqual([
 			added.question.id,
 			firstId,
 			copy.question.id,
 		]);
-		expect(afterRestore.quiz.questionCount).toBe(3);
+		expect(beforeDelete.quiz.questionCount).toBe(3);
+		expect(afterDelete.questions.map(({ id }) => id)).toEqual([
+			added.question.id,
+			firstId,
+		]);
+		expect(afterDelete.quiz.questionCount).toBe(2);
 	});
 
 	it("update saves answers, corrects, time and points and returns the notice", async () => {
@@ -106,11 +106,132 @@ describe("quiz.questions router", () => {
 			timeLimitSeconds: 90,
 			points: "double",
 		});
-		expect(after[0]?.choices).toHaveLength(6);
-		expect(after[0]?.choices.slice(0, 2)).toEqual([
+		const { choices } = asQuiz(after[0]);
+		expect(choices).toHaveLength(6);
+		expect(choices.slice(0, 2)).toEqual([
 			{ id: "choice-1", text: "Brasília", correct: true },
 			{ id: "choice-2", text: "Rio", correct: true },
 		]);
+	});
+
+	it("adds a true/false question, marks its answer and applies time to every type", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		const { id: quizId } = await ana.quiz.create({});
+		const { questions } = await ana.quiz.editor({ quizId });
+
+		const added = await ana.quiz.questions.add({
+			quizId,
+			afterQuestionId: questions[0]?.id ?? "",
+			type: "trueFalse",
+		});
+		await ana.quiz.questions.update({
+			quizId,
+			questionId: added.question.id,
+			change: { kind: "trueFalseCorrect", correct: false },
+		});
+		await ana.quiz.questions.applyTimeLimitToAll({ quizId, seconds: 10 });
+		const after = await ana.quiz.editor({ quizId });
+
+		expect(added).toEqual({
+			question: {
+				id: expect.any(String),
+				type: "trueFalse",
+				text: null,
+				timeLimitSeconds: 20,
+				points: "standard",
+				correct: null,
+			},
+			index: 1,
+		});
+		expect(after.questions[1]).toEqual({
+			...added.question,
+			timeLimitSeconds: 10,
+			correct: false,
+		});
+		expect(after.questions[0]?.type).toBe("quiz");
+	});
+
+	it("changes the type and back with the remembered answers", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		const { id: quizId } = await ana.quiz.create({});
+		const { questions } = await ana.quiz.editor({ quizId });
+		const ref = { quizId, questionId: questions[0]?.id ?? "" };
+		await ana.quiz.questions.update({
+			...ref,
+			change: { kind: "choiceText", choiceId: "choice-1", text: "Sim" },
+		});
+		const { question: written } = await ana.quiz.questions.update({
+			...ref,
+			change: { kind: "choiceCorrect", choiceId: "choice-1", correct: true },
+		});
+
+		const toTrueFalse = await ana.quiz.questions.update({
+			...ref,
+			change: { kind: "type", type: "trueFalse", remembered: null },
+		});
+		const back = await ana.quiz.questions.update({
+			...ref,
+			change: { kind: "type", type: "quiz", remembered: asQuiz(written) },
+		});
+		const after = await ana.quiz.editor({ quizId });
+
+		expect(toTrueFalse).toEqual({
+			question: {
+				id: ref.questionId,
+				type: "trueFalse",
+				text: null,
+				timeLimitSeconds: 20,
+				points: "standard",
+				correct: null,
+			},
+			notice: { kind: "quizAnswersKept" },
+		});
+		expect(back).toEqual({ question: written, notice: null });
+		expect(after.questions).toEqual([written]);
+	});
+
+	it("refuses an unknown type at the boundary", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		const { id: quizId } = await ana.quiz.create({});
+		const { questions } = await ana.quiz.editor({ quizId });
+
+		const changed = await failureOf(
+			ana.quiz.questions.update({
+				quizId,
+				questionId: questions[0]?.id ?? "",
+				change: { kind: "type", type: "slider" as never, remembered: null },
+			}),
+		);
+		const added = await failureOf(
+			ana.quiz.questions.add({
+				quizId,
+				afterQuestionId: null,
+				type: "slider" as never,
+			}),
+		);
+
+		expect(changed).toMatchObject({ code: "BAD_REQUEST" });
+		expect(added).toMatchObject({ code: "BAD_REQUEST" });
+		expect((await ana.quiz.editor({ quizId })).questions).toEqual(questions);
+	});
+
+	it("a change of another type is BAD_REQUEST with its domainCode", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		const { id: quizId } = await ana.quiz.create({});
+		const { questions } = await ana.quiz.editor({ quizId });
+
+		const error = await failureOf(
+			ana.quiz.questions.update({
+				quizId,
+				questionId: questions[0]?.id ?? "",
+				change: { kind: "trueFalseCorrect", correct: true },
+			}),
+		);
+
+		expect(error).toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "QUIZ.CHANGE_NOT_APPLICABLE" },
+		});
 	});
 
 	it("update refuses an answer over 75 characters with its domainCode", async () => {
@@ -139,8 +260,16 @@ describe("quiz.questions router", () => {
 	it("applyTimeLimitToAll sets every question's time and returns the count", async () => {
 		const ana = createTestApi().callerFor("user-1");
 		const { id: quizId } = await ana.quiz.create({});
-		await ana.quiz.questions.add({ quizId, afterQuestionId: null });
-		await ana.quiz.questions.add({ quizId, afterQuestionId: null });
+		await ana.quiz.questions.add({
+			quizId,
+			afterQuestionId: null,
+			type: "quiz",
+		});
+		await ana.quiz.questions.add({
+			quizId,
+			afterQuestionId: null,
+			type: "quiz",
+		});
 
 		const result = await ana.quiz.questions.applyTimeLimitToAll({
 			quizId,
@@ -207,7 +336,7 @@ describe("quiz.questions router", () => {
 		const error = await failureOf(
 			api
 				.callerFor("user-2")
-				.quiz.questions.add({ quizId, afterQuestionId: null }),
+				.quiz.questions.add({ quizId, afterQuestionId: null, type: "quiz" }),
 		);
 
 		expect(error).toMatchObject({

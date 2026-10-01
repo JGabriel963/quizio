@@ -1,10 +1,21 @@
 import {
 	QUESTION_POINTS,
+	QUESTION_TYPES,
+	type QuestionType,
 	SELECTION_MODES,
 	TIME_LIMITS_SECONDS,
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { Button } from "@quizio/ui/components/button";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@quizio/ui/components/select";
 import {
 	ClockIcon,
 	CopyIcon,
@@ -24,15 +35,17 @@ import {
 import { questionTypeLabel } from "@/lib/quiz-labels";
 
 import { ActionButton, questionActionReasons } from "./question-actions";
+import { QuestionTypeIcon } from "./question-type-icon";
 
 /**
- * Right panel (spec 004): type (read-only until spec 005), time limit with
- * "apply to all", points and answer options, each saved when chosen.
+ * Right panel (specs 004, 005): type, time limit with "apply to all", points
+ * and, for quiz questions, the answer options, each saved when chosen.
  */
 export function QuestionPropertiesPanel({
 	question,
 	questionCount,
 	onChange,
+	onChangeType,
 	onApplyTimeLimitToAll,
 	onDelete,
 	onDuplicate,
@@ -40,6 +53,7 @@ export function QuestionPropertiesPanel({
 	question: QuestionData;
 	questionCount: number;
 	onChange: (change: QuestionChange) => void;
+	onChangeType: (type: QuestionType) => void;
 	onApplyTimeLimitToAll: (seconds: QuestionData["timeLimitSeconds"]) => void;
 	onDelete: (questionId: string) => void;
 	onDuplicate: (questionId: string) => void;
@@ -52,15 +66,44 @@ export function QuestionPropertiesPanel({
 				Propriedades da pergunta
 			</h2>
 
-			<div className="flex flex-col gap-2">
-				<span className="flex items-center gap-2 font-bold text-sm">
-					<ListChecksIcon aria-hidden="true" className="size-4" />
-					Tipo de pergunta
-				</span>
-				<span className="rounded-md border border-input bg-muted px-3 py-2 font-semibold text-sm">
-					{questionTypeLabel(question.type)}
-				</span>
-			</div>
+			<PropertyField
+				label="Tipo de pergunta"
+				icon={<ListChecksIcon aria-hidden="true" className="size-4" />}
+			>
+				{(labelId) => (
+					<Select
+						value={question.type}
+						onValueChange={(type) => onChangeType(type as QuestionType)}
+					>
+						<SelectTrigger aria-labelledby={labelId} className="h-12">
+							<SelectValue>
+								{(type: QuestionType) => (
+									<>
+										<QuestionTypeIcon type={type} className="h-7 w-5.5" />
+										{questionTypeLabel(type)}
+									</>
+								)}
+							</SelectValue>
+						</SelectTrigger>
+						{/* Cards grouped like Kahoot's type list (spec 005, RN-14). */}
+						<SelectContent className="p-3">
+							<SelectGroup>
+								<SelectLabel className="px-0 pt-0">
+									Testar conhecimento
+								</SelectLabel>
+								<div className="grid grid-cols-2 gap-2">
+									{QUESTION_TYPES.map((type) => (
+										<SelectItem key={type} value={type} variant="tile">
+											<QuestionTypeIcon type={type} />
+											{questionTypeLabel(type)}
+										</SelectItem>
+									))}
+								</div>
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				)}
+			</PropertyField>
 
 			<PropertySelect
 				label="Limite de tempo"
@@ -95,16 +138,18 @@ export function QuestionPropertiesPanel({
 				onChange={(points) => onChange({ kind: "points", points })}
 			/>
 
-			<PropertySelect
-				label="Opções de resposta"
-				icon={<SquareCheckIcon aria-hidden="true" className="size-4" />}
-				value={question.selection}
-				options={SELECTION_MODES.map((selection) => ({
-					value: selection,
-					label: SELECTION_LABELS[selection],
-				}))}
-				onChange={(selection) => onChange({ kind: "selection", selection })}
-			/>
+			{question.type === "quiz" && (
+				<PropertySelect
+					label="Opções de resposta"
+					icon={<SquareCheckIcon aria-hidden="true" className="size-4" />}
+					value={question.selection}
+					options={SELECTION_MODES.map((selection) => ({
+						value: selection,
+						label: SELECTION_LABELS[selection],
+					}))}
+					onChange={(selection) => onChange({ kind: "selection", selection })}
+				/>
+			)}
 
 			<div className="mt-auto flex justify-center gap-2 border-border border-t pt-4">
 				<ActionButton
@@ -128,7 +173,29 @@ export function QuestionPropertiesPanel({
 	);
 }
 
-/** Native select: simple, accessible and good on phones (plan 004). */
+/** A labelled property; the label's id names the control it wraps. */
+function PropertyField({
+	label,
+	icon,
+	children,
+}: {
+	label: string;
+	icon: ReactNode;
+	children: (labelId: string) => ReactNode;
+}) {
+	const labelId = useId();
+	return (
+		<div className="flex flex-col gap-2">
+			<span id={labelId} className="flex items-center gap-2 font-bold text-sm">
+				{icon}
+				{label}
+			</span>
+			{children(labelId)}
+		</div>
+	);
+}
+
+/** A property chosen from a short list, with the design system's Select. */
 function PropertySelect({
 	label,
 	icon,
@@ -144,26 +211,29 @@ function PropertySelect({
 	onChange: (value: string) => void;
 	children?: ReactNode;
 }) {
-	const id = useId();
 	return (
-		<div className="flex flex-col gap-2">
-			<label htmlFor={id} className="flex items-center gap-2 font-bold text-sm">
-				{icon}
-				{label}
-			</label>
-			<select
-				id={id}
-				value={value}
-				onChange={(event) => onChange(event.target.value)}
-				className="h-10 rounded-md border border-input bg-card px-3 font-semibold text-sm shadow-press-light outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-			>
-				{options.map((option) => (
-					<option key={option.value} value={option.value}>
-						{option.label}
-					</option>
-				))}
-			</select>
-			{children}
-		</div>
+		<PropertyField label={label} icon={icon}>
+			{(labelId) => (
+				<>
+					<Select
+						items={options}
+						value={value}
+						onValueChange={(next) => onChange(next as string)}
+					>
+						<SelectTrigger aria-labelledby={labelId}>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{options.map((option) => (
+								<SelectItem key={option.value} value={option.value}>
+									{option.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					{children}
+				</>
+			)}
+		</PropertyField>
 	);
 }

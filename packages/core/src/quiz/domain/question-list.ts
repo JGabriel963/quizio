@@ -76,36 +76,14 @@ export function moveQuestion(
 	return insertAt(without, list[from] as Question, toIndex);
 }
 
-/** RN-14, RN-15: the removed question and its index feed the undo. */
+/** RN-14, RN-15: a quiz never loses its last question. */
 export function removeQuestion(
 	list: QuestionList,
 	questionId: string,
-): { list: QuestionList; removed: Question; index: number } {
+): QuestionList {
 	const index = indexOfQuestion(list, questionId);
 	if (list.length === 1) {
 		throw new LastQuestionError("A quiz must keep at least one question");
 	}
-	return {
-		list: list.filter((_, position) => position !== index),
-		removed: list[index] as Question,
-		index,
-	};
-}
-
-/**
- * Undo of a removal (RN-14): puts the question back at `index`, clamped to the
- * list. Idempotent, so a repeated undo never fails or duplicates.
- */
-export function restoreQuestionAt(
-	list: QuestionList,
-	question: Question,
-	index: number,
-): { list: QuestionList; index: number } {
-	const existing = list.findIndex((item) => item.id === question.id);
-	if (existing !== -1) {
-		return { list, index: existing };
-	}
-	assertRoomForOneMore(list);
-	const at = Math.min(Math.max(index, 0), list.length);
-	return { list: insertAt(list, question, at), index: at };
+	return list.filter((_, position) => position !== index);
 }

@@ -73,7 +73,7 @@ export const question = pgTable(
 			.notNull()
 			.default(DEFAULT_TIME_LIMIT_SECONDS),
 		points: questionPoints("points").notNull().default("standard"),
-		/** Read through `parseQuizContent`, so legacy `{}` rows get defaults. */
+		/** Read through `parseStoredContent`, so legacy `{}` rows get defaults. */
 		content: jsonb("content").$type<unknown>().notNull().default({}),
 	},
 	(table) => [

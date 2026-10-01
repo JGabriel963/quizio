@@ -16,11 +16,9 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { QuestionType } from "@quizio/core/quiz/domain/question";
 import { questionIssues } from "@quizio/core/quiz/domain/question-issues";
-import {
-	ANSWER_COLOR_CLASSES,
-	answerShapeAt,
-} from "@quizio/ui/components/answer-shape";
+
 import {
 	Tooltip,
 	TooltipContent,
@@ -30,9 +28,8 @@ import { cn } from "@quizio/ui/lib/utils";
 import {
 	CopyIcon,
 	GripVerticalIcon,
-	PlusIcon,
+	ImageIcon,
 	Trash2Icon,
-	TriangleAlertIcon,
 } from "lucide-react";
 import { useId } from "react";
 
@@ -41,12 +38,17 @@ import { QUESTION_ISSUE_LABELS } from "@/lib/question-labels";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 
 import { ActionButton, questionActionReasons } from "./question-actions";
+import { QuestionTypePicker } from "./question-type-picker";
+import { TRUE_FALSE_ANSWERS } from "./true-false-answers";
 
 export interface QuestionListProps {
 	questions: QuestionData[];
 	selectedId: string;
+	/** Questions the creator has just started: no incomplete alert yet (spec 004, RN-16). */
+	quietIds: ReadonlySet<string>;
 	onSelect: (questionId: string) => void;
-	onAdd: () => void;
+	/** The type chosen in the picker (spec 005). */
+	onAdd: (type: QuestionType) => void;
 	onDuplicate: (questionId: string) => void;
 	onDelete: (questionId: string) => void;
 	onMove: (questionId: string, toIndex: number) => void;
@@ -54,11 +56,13 @@ export interface QuestionListProps {
 
 /**
  * Left panel: the ordered questions, sortable by drag or keyboard (spec 003),
- * with each one's time and an alert when incomplete (spec 004).
+ * with each one's time and an alert when incomplete (spec 004), and the type
+ * picker to add one (spec 005).
  */
 export function QuestionList({
 	questions,
 	selectedId,
+	quietIds,
 	onSelect,
 	onAdd,
 	onDuplicate,
@@ -115,6 +119,7 @@ export function QuestionList({
 								question={question}
 								position={index + 1}
 								selected={question.id === selectedId}
+								quiet={quietIds.has(question.id)}
 								deleteReason={deleteReason}
 								duplicateReason={growReason}
 								onSelect={onSelect}
@@ -126,10 +131,7 @@ export function QuestionList({
 				</SortableContext>
 			</DndContext>
 
-			<ActionButton unavailableReason={growReason} onClick={onAdd}>
-				<PlusIcon data-icon="inline-start" />
-				Adicionar
-			</ActionButton>
+			<QuestionTypePicker unavailableReason={growReason} onPick={onAdd} />
 		</div>
 	);
 }
@@ -143,6 +145,7 @@ function QuestionListItem({
 	question,
 	position,
 	selected,
+	quiet,
 	deleteReason,
 	duplicateReason,
 	onSelect,
@@ -152,6 +155,7 @@ function QuestionListItem({
 	question: QuestionData;
 	position: number;
 	selected: boolean;
+	quiet: boolean;
 	deleteReason: string | null;
 	duplicateReason: string | null;
 	onSelect: (questionId: string) => void;
@@ -179,10 +183,7 @@ function QuestionListItem({
 				isDragging && "relative z-10 opacity-80",
 			)}
 		>
-			<div className="flex items-center gap-1">
-				<p className="font-bold text-xs">{`${position} ${typeLabel}`}</p>
-				<IncompleteAlert question={question} position={position} />
-			</div>
+			<p className="font-bold text-xs">{`${position} ${typeLabel}`}</p>
 			<div className="flex items-stretch gap-1">
 				<div className="flex flex-col items-center justify-center gap-1">
 					<button
@@ -214,42 +215,81 @@ function QuestionListItem({
 						<Trash2Icon />
 					</ActionButton>
 				</div>
-				<button
-					type="button"
-					aria-label={`Pergunta ${position}: ${question.text ?? "sem texto"}`}
-					aria-current={selected ? "true" : undefined}
-					onClick={() => onSelect(question.id)}
-					className={cn(
-						"flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-md border-2 bg-card p-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-						selected ? "border-primary" : "border-border hover:border-input",
+				{/* The card and, on its right edge, the alert of an incomplete question. */}
+				<div className="relative flex min-w-0 flex-1">
+					{!quiet && (
+						<IncompleteAlert question={question} position={position} />
 					)}
-				>
-					<span className="w-full truncate text-center text-muted-foreground text-xs">
-						{question.text}
-					</span>
-					<span aria-hidden="true" className="flex w-full items-center gap-1">
-						<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-bold text-[0.625rem]">
-							{question.timeLimitSeconds}
+					<button
+						type="button"
+						aria-label={`Pergunta ${position}: ${question.text ?? "sem texto"}`}
+						aria-current={selected ? "true" : undefined}
+						onClick={() => onSelect(question.id)}
+						className={cn(
+							"flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-md border-2 bg-card p-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+							selected ? "border-primary" : "border-border hover:border-input",
+						)}
+					>
+						{/* Same height with or without text, so every card lines up. */}
+						<span
+							className={cn(
+								"h-4 w-full truncate text-center text-xs leading-4",
+								question.text === null
+									? "text-muted-foreground/70"
+									: "font-semibold text-foreground/80",
+							)}
+						>
+							{question.text ?? "Pergunta"}
 						</span>
-						<span className="mx-auto h-6 w-10 rounded-sm border border-muted-foreground/40 border-dashed" />
-					</span>
-					<span aria-hidden="true" className="grid w-full grid-cols-2 gap-1">
-						{question.choices.map((choice, index) => (
-							<span
-								key={choice.id}
-								className={cn(
-									"h-1.5 rounded-sm",
-									choice.text === null
-										? "bg-muted"
-										: ANSWER_COLOR_CLASSES[answerShapeAt(index)],
-								)}
-							/>
-						))}
-					</span>
-				</button>
+						{/* The media placeholder sits in the middle of the card; the time, at its left. */}
+						<span
+							aria-hidden="true"
+							className="relative flex h-7 w-full items-center justify-center"
+						>
+							<span className="absolute left-0 flex size-6 items-center justify-center rounded-full border border-border bg-card font-bold text-[0.625rem] text-muted-foreground">
+								{question.timeLimitSeconds}
+							</span>
+							<span className="flex h-7 w-10 items-center justify-center rounded-sm border border-muted-foreground/40 border-dashed">
+								<ImageIcon className="size-3.5 text-muted-foreground/60" />
+							</span>
+						</span>
+						<span aria-hidden="true" className="grid w-full grid-cols-2 gap-1">
+							{answerBars(question).map((bar) => (
+								<span
+									key={bar.key}
+									data-slot="answer-bar"
+									className="flex h-2.5 items-center justify-end rounded-sm border border-border bg-card pr-0.5"
+								>
+									{bar.correct && (
+										<span
+											data-slot="answer-bar-correct"
+											className="size-1.5 rounded-full bg-answer-correct"
+										/>
+									)}
+								</span>
+							))}
+						</span>
+					</button>
+				</div>
 			</div>
 		</li>
 	);
+}
+
+/** The thumbnail's answer bars, one per answer slot, with a dot on the correct ones (as in Kahoot). */
+function answerBars(
+	question: QuestionData,
+): { key: string; correct: boolean }[] {
+	if (question.type === "trueFalse") {
+		return TRUE_FALSE_ANSWERS.map(({ label, value }) => ({
+			key: label,
+			correct: question.correct === value,
+		}));
+	}
+	return question.choices.map((choice) => ({
+		key: choice.id,
+		correct: choice.correct,
+	}));
 }
 
 /** Warning icon of an incomplete question, its reasons in a tooltip and the description (RN-14, RN-15). */
@@ -277,11 +317,11 @@ function IncompleteAlert({
 							type="button"
 							aria-label={`Pergunta ${position} incompleta`}
 							aria-describedby={reasonsId}
-							className="ml-auto rounded-sm text-destructive focus-visible:ring-3 focus-visible:ring-ring/50"
+							className="absolute top-1/2 -right-2 z-10 flex size-5 -translate-y-1/2 items-center justify-center rounded-full bg-brand font-bold text-brand-foreground text-xs shadow-sm ring-2 ring-card focus-visible:ring-3 focus-visible:ring-ring/50"
 						/>
 					}
 				>
-					<TriangleAlertIcon aria-hidden="true" className="size-4" />
+					<span aria-hidden="true">!</span>
 				</TooltipTrigger>
 				<TooltipContent>{reasons}</TooltipContent>
 			</Tooltip>

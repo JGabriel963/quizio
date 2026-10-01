@@ -61,10 +61,7 @@ import {
 	createRenameQuiz,
 	type RenameQuiz,
 } from "@quizio/core/quiz/application/rename-quiz";
-import {
-	createRestoreQuestion,
-	type RestoreQuestion,
-} from "@quizio/core/quiz/application/restore-question";
+
 import {
 	createRestoreQuiz,
 	type RestoreQuiz,
@@ -116,7 +113,6 @@ export interface Container extends Adapters {
 		duplicateQuestion: DuplicateQuestion;
 		moveQuestion: MoveQuestion;
 		deleteQuestion: DeleteQuestion;
-		restoreQuestion: RestoreQuestion;
 		updateQuestion: UpdateQuestion;
 		applyTimeLimitToAll: ApplyTimeLimitToAll;
 		listLibrary: ListLibrary;
@@ -146,7 +142,6 @@ export function createContainer(adapters: Adapters): Container {
 			duplicateQuestion: createDuplicateQuestion(adapters),
 			moveQuestion: createMoveQuestion(adapters),
 			deleteQuestion: createDeleteQuestion(adapters),
-			restoreQuestion: createRestoreQuestion(adapters),
 			updateQuestion: createUpdateQuestion(adapters),
 			applyTimeLimitToAll: createApplyTimeLimitToAll(adapters),
 			listLibrary: createListLibrary(adapters),

@@ -5,7 +5,7 @@ import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-sto
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { blankQuestion } from "../domain/question";
 import { QuizInTrashError, QuizNotFoundError } from "../domain/quiz";
-import { aQuestion } from "../testing/a-question";
+import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
@@ -117,6 +117,16 @@ describe("duplicateQuiz", () => {
 		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
 
 		expect(questions.listOf(copy.id)).toEqual([{ ...original, id: "new-2" }]);
+	});
+
+	it("copies a true/false question with its correct answer", async () => {
+		await quizzes.save(aQuiz());
+		const statement = aTrueFalseQuestion({ id: "tf", correct: false });
+		await questions.saveList("quiz-1", [statement]);
+
+		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(questions.listOf(copy.id)).toEqual([{ ...statement, id: "new-2" }]);
 	});
 
 	it("editing a copied question leaves the original intact", async () => {

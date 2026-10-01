@@ -4,7 +4,7 @@ import { FixedClock } from "../../shared/testing/fixed-clock";
 import { QuestionTextTooLongError } from "../domain/question";
 import { EmptyChoiceCannotBeCorrectError } from "../domain/question-change";
 import { QuestionNotFoundError } from "../domain/question-list";
-import { aQuestion } from "../testing/a-question";
+import { aQuestion, asQuiz, aTrueFalseQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
@@ -64,11 +64,11 @@ describe("updateQuestion", () => {
 		expect(question.text).toBeNull();
 	});
 
-	it("refuses more than 120 characters", async () => {
+	it("refuses more than 160 characters", async () => {
 		await expect(
 			updateQuestion({
 				...ref,
-				change: { kind: "text", text: "a".repeat(121) },
+				change: { kind: "text", text: "a".repeat(161) },
 			}),
 		).rejects.toThrow(QuestionTextTooLongError);
 	});
@@ -104,12 +104,38 @@ describe("updateQuestion", () => {
 		});
 
 		expect(result.notice).toEqual({ kind: "multipleEnabled" });
-		const stored = questions.listOf("quiz-1")[0];
-		expect(stored?.selection).toBe("multiple");
-		expect(stored?.choices.slice(0, 2)).toEqual([
+		const stored = asQuiz(questions.listOf("quiz-1")[0]);
+		expect(stored.selection).toBe("multiple");
+		expect(stored.choices.slice(0, 2)).toEqual([
 			{ id: "choice-1", text: "Brasília", correct: true },
 			{ id: "choice-2", text: "Rio", correct: true },
 		]);
+	});
+
+	it("changes the type and saves the new content", async () => {
+		const result = await updateQuestion({
+			...ref,
+			questionId: "b",
+			change: { kind: "type", type: "trueFalse", remembered: null },
+		});
+
+		const expected = aTrueFalseQuestion({
+			id: "b",
+			text: "Qual é a capital do Brasil?",
+		});
+		expect(result).toEqual({ question: expected, notice: null });
+		expect(questions.listOf("quiz-1")[1]).toEqual(expected);
+
+		await updateQuestion({
+			...ref,
+			questionId: "b",
+			change: { kind: "trueFalseCorrect", correct: true },
+		});
+
+		expect(questions.listOf("quiz-1")[1]).toEqual({
+			...expected,
+			correct: true,
+		});
 	});
 
 	it("saves time and points", async () => {

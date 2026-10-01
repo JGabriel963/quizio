@@ -24,15 +24,11 @@ describe("deleteQuestion", () => {
 		await quizzes.save(aQuiz());
 	});
 
-	it("removes the question and returns it with its index", async () => {
+	it("removes the question and touches the quiz", async () => {
 		await questions.saveList("quiz-1", [aQuestion({ id: "a" }), b]);
 
-		const result = await deleteQuestion({ ...ref, questionId: "b" });
+		await deleteQuestion({ ...ref, questionId: "b" });
 
-		expect(result).toEqual({
-			question: b,
-			index: 1,
-		});
 		expect(questions.listOf("quiz-1").map(({ id }) => id)).toEqual(["a"]);
 		expect((await quizzes.findById("quiz-1"))?.updatedAt).toEqual(clock.now());
 	});

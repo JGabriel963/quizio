@@ -42,14 +42,19 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Rascunho | `status: "draft"` | Quiz ainda não salvo como versão jogável | ✅ |
 | Visibilidade | `QuizVisibility` | `private`, `unlisted` (spec 001); `public` com a descoberta pública | ✅ (`public` 📝) |
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
-| Pergunta | `Question` | Bloco interativo com texto (≤ 120), tipo, tempo limite e pontos | ✅ |
-| Enunciado | `text` | Texto da pergunta, ≤ 120 caracteres; pode ficar vazio no rascunho (spec 003) | ✅ |
+| Pergunta | `Question` | Bloco interativo com texto (≤ 160), tipo, tempo limite e pontos | ✅ |
+| Enunciado | `text` | Texto da pergunta, ≤ 160 caracteres (120 no Kahoot); pode ficar vazio no rascunho (spec 003) | ✅ |
 | Pergunta em branco | `blankQuestion` | Pergunta Quiz recém-criada, sem enunciado; todo quiz novo nasce com uma (spec 003) | ✅ |
 | Posição | `position` | Ordem da pergunta no quiz, que é a ordem de apresentação na partida (spec 003) | ✅ |
 | Limite de perguntas | `QUIZ_MAX_QUESTIONS` | Máximo de 200 perguntas por quiz, configurável (spec 003) | ✅ |
 | Editor | `Creator` (rota `/creator/:id`) | Tela cheia onde o criador monta as perguntas de um quiz (spec 003) | ✅ |
 | Salvamento automático | `Autosave` | Toda alteração no editor é salva sem ação do criador; o cabeçalho mostra "Salvando…", "Salvo" ou a falha (spec 003) | ✅ (`SaveTracker`) |
-| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`; demais 📝) |
+| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`, `trueFalse`; demais 📝) |
+| Verdadeiro ou falso | `trueFalse`, `TrueFalseQuestion` | Tipo de pergunta com duas alternativas fixas, "Verdadeiro" (azul, losango) e "Falso" (vermelho, triângulo), e exatamente uma correta; desmarcar a correta marca a outra (spec 005) | ✅ |
+| Seletor de tipo | `QuestionTypePicker` | Escolha do tipo ao adicionar uma pergunta; mostra só os tipos já entregues (spec 005) | 📝 |
+| Troca de tipo | `QuestionChange` `kind: "type"`, `changeQuestionType` | Mudar o tipo de uma pergunta existente: mantém enunciado, tempo, pontos e posição, e substitui as respostas pelas do novo tipo (spec 005) | ✅ |
+| Respostas lembradas | `RememberedContents`, `typeChangeFor` | O que a pergunta tinha em cada tipo, guardado só enquanto o criador está no editor, para desfazer uma troca de tipo; não é salvo (spec 005) | ✅ |
+| Conteúdo do tipo | `QuestionContent`, `questionContent` | A parte da pergunta que é própria do tipo: alternativas e seleção no Quiz, a correta no Verdadeiro ou falso (ADR 0008, spec 005) | ✅ |
 | Slide | `Slide` | Bloco só de conteúdo, com layout; sem resposta nem pontos | 📝 |
 | Alternativa | `Choice` (`AnswerOption` na UI) | Opção de resposta (texto ≤ 75 ou imagem) com flag de correta; 4 ou 6 espaços em posições fixas, id = posição (spec 004) | ✅ (texto; imagem 📝) |
 | Resposta correta | `correct` | Marca da alternativa certa; alternativa vazia nunca é correta (spec 004) | ✅ |

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InvalidTimeLimitError } from "../domain/question";
-import { aQuestion } from "../testing/a-question";
+import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
@@ -43,6 +43,23 @@ describe("applyTimeLimitToAll", () => {
 		]);
 		expect(stored.map(({ id }) => id)).toEqual(["a", "b", "c"]);
 		expect(stored[1]?.points).toBe("double");
+	});
+
+	it("applies to questions of every type", async () => {
+		await questions.saveList("quiz-1", [
+			aQuestion({ id: "a" }),
+			aTrueFalseQuestion({ id: "tf-1", correct: true }),
+			aTrueFalseQuestion({ id: "tf-2" }),
+		]);
+
+		const result = await applyTimeLimitToAll({ ...ref, seconds: 45 });
+
+		expect(result).toEqual({ updatedCount: 3 });
+		expect(questions.listOf("quiz-1")).toEqual([
+			aQuestion({ id: "a", timeLimitSeconds: 45 }),
+			aTrueFalseQuestion({ id: "tf-1", correct: true, timeLimitSeconds: 45 }),
+			aTrueFalseQuestion({ id: "tf-2", timeLimitSeconds: 45 }),
+		]);
 	});
 
 	it("refuses an invalid time", async () => {

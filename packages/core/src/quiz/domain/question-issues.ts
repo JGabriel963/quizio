@@ -1,14 +1,15 @@
-import type { Question } from "./question";
+import type { Question, QuizQuestion } from "./question";
 
-/** Why a quiz question is incomplete (spec 004, RN-14). */
+/** Why a question is incomplete (spec 004, RN-14; spec 005, RN-11). */
 export type QuestionIssue =
 	| "missingText"
 	| "notEnoughAnswers"
-	| "noCorrectAnswer";
+	| "noCorrectAnswer"
+	| "noCorrectTrueFalse";
 
 export const MIN_ANSWERS = 2;
 
-function answeredCount(question: Question): number {
+function answeredCount(question: QuizQuestion): number {
 	return question.choices.filter((choice) => choice.text !== null).length;
 }
 
@@ -21,6 +22,12 @@ export function questionIssues(question: Question): QuestionIssue[] {
 	if (question.text === null) {
 		issues.push("missingText");
 	}
+	if (question.type === "trueFalse") {
+		if (question.correct === null) {
+			issues.push("noCorrectTrueFalse");
+		}
+		return issues;
+	}
 	if (answeredCount(question) < MIN_ANSWERS) {
 		issues.push("notEnoughAnswers");
 	}
@@ -30,9 +37,9 @@ export function questionIssues(question: Question): QuestionIssue[] {
 	return issues;
 }
 
-/** Positions (1 and 2) that get "A resposta N não foi adicionada" (RN-16). */
+/** Positions (1 and 2) of a quiz question that get "A resposta N não foi adicionada" (RN-16). */
 export function missingAnswerHints(question: Question): number[] {
-	if (answeredCount(question) >= MIN_ANSWERS) {
+	if (question.type !== "quiz" || answeredCount(question) >= MIN_ANSWERS) {
 		return [];
 	}
 	return question.choices

@@ -2,6 +2,7 @@ import {
 	applyQuestionChange,
 	ChoiceNotFoundError,
 	type QuestionChange,
+	QuestionChangeNotApplicableError,
 } from "@quizio/core/quiz/domain/question-change";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
@@ -19,6 +20,10 @@ import {
 	withTimeLimitForAll,
 } from "./editor-cache";
 import { changeNoticeMessage, timeAppliedMessage } from "./question-labels";
+import {
+	createRememberedContents,
+	typeChangeFor,
+} from "./question-type-change";
 import { isDomainRefusal, quizErrorMessage } from "./quiz-error-messages";
 import { useInvalidateQuizzes } from "./quiz-mutations";
 import { useSaveTracker } from "./save-tracker";
@@ -41,7 +46,7 @@ function changeKey(questionId: string, change: QuestionChange): string {
 }
 
 /**
- * The editor's actions over tRPC (specs 003, 004). Texts go through the
+ * The editor's actions over tRPC (specs 003 to 005). Texts go through the
  * autosave; list changes are tracked too, but are not retried: a refused add
  * or move is rolled back and explained instead.
  *
@@ -88,10 +93,7 @@ export function useEditorActions(quizId: string): EditorActions {
 		...trpc.quiz.questions.delete.mutationOptions(),
 		...SEND_EVEN_OFFLINE,
 	});
-	const restore = useMutation({
-		...trpc.quiz.questions.restore.mutationOptions(),
-		...SEND_EVEN_OFFLINE,
-	});
+
 	const applyToAll = useMutation({
 		...trpc.quiz.questions.applyTimeLimitToAll.mutationOptions(),
 		...SEND_EVEN_OFFLINE,
@@ -114,6 +116,9 @@ export function useEditorActions(quizId: string): EditorActions {
 	}
 	const nothingElseQueued = () => queue.current.size === 1;
 
+	/** Lives as long as the editor is open: a reload forgets it (spec 005, RN-18). */
+	const remembered = useRef(createRememberedContents());
+
 	/**
 	 * Applies the change to the cache and returns how to send it, or null when
 	 * there is nothing to send: the question is gone, or the answer was
@@ -128,7 +133,11 @@ export function useEditorActions(quizId: string): EditorActions {
 		try {
 			result = applyQuestionChange(current, change);
 		} catch (error) {
-			if (error instanceof ChoiceNotFoundError) {
+			if (
+				error instanceof ChoiceNotFoundError ||
+				// A late save of a field the question lost with its type (spec 005).
+				error instanceof QuestionChangeNotApplicableError
+			) {
 				return null;
 			}
 			throw error;
@@ -199,13 +208,21 @@ export function useEditorActions(quizId: string): EditorActions {
 		return result;
 	}
 
-	const restoreQuestion = (
-		deleted: Awaited<ReturnType<typeof remove.mutateAsync>>,
-	) =>
-		structural(async () => {
-			const { index } = await restore.mutateAsync({ quizId, ...deleted });
-			setData((data) => withQuestionInserted(data, deleted.question, index));
-		});
+	const changeQuestion: EditorActions["changeQuestion"] = (
+		questionId,
+		change,
+	) => {
+		let send: ReturnType<typeof prepareChange>;
+		try {
+			send = prepareChange(questionId, change);
+		} catch (error) {
+			toast.error(quizErrorMessage(error));
+			return;
+		}
+		if (send) {
+			track(changeKey(questionId, change), send);
+		}
+	};
 
 	return {
 		saveTitle: async (title) => {
@@ -218,16 +235,14 @@ export function useEditorActions(quizId: string): EditorActions {
 			await prepareChange(questionId, change)?.();
 		},
 
-		changeQuestion: (questionId, change) => {
-			let send: ReturnType<typeof prepareChange>;
-			try {
-				send = prepareChange(questionId, change);
-			} catch (error) {
-				toast.error(quizErrorMessage(error));
-				return;
-			}
-			if (send) {
-				track(changeKey(questionId, change), send);
+		changeQuestion,
+
+		changeQuestionType: (questionId, type) => {
+			const current = getData()?.questions.find(({ id }) => id === questionId);
+			const change =
+				current && typeChangeFor(remembered.current, current, type);
+			if (change) {
+				changeQuestion(questionId, change);
 			}
 		},
 
@@ -241,9 +256,13 @@ export function useEditorActions(quizId: string): EditorActions {
 			});
 		},
 
-		addQuestion: (afterQuestionId) =>
+		addQuestion: (afterQuestionId, type) =>
 			structural(async () => {
-				const placed = await add.mutateAsync({ quizId, afterQuestionId });
+				const placed = await add.mutateAsync({
+					quizId,
+					afterQuestionId,
+					type,
+				});
 				setData((data) =>
 					withQuestionInserted(data, placed.question, placed.index),
 				);
@@ -271,20 +290,11 @@ export function useEditorActions(quizId: string): EditorActions {
 		deleteQuestion: (questionId) => {
 			const previous = getData();
 			setData((data) => withQuestionRemoved(data, questionId));
+			// The editor asked for confirmation first; there is no undo (spec 003, RN-14).
 			void structural(
 				() => remove.mutateAsync({ quizId, questionId }),
 				previous,
-			).then((deleted) => {
-				if (deleted) {
-					// Deleting is reversible, so no confirmation (spec 003, RN-14).
-					toast("Pergunta excluída.", {
-						action: {
-							label: "Desfazer",
-							onClick: () => void restoreQuestion(deleted),
-						},
-					});
-				}
-			});
+			);
 		},
 	};
 }

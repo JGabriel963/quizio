@@ -65,6 +65,30 @@ export async function createQuizInEditor(page: Page) {
 	await expect(page.getByRole("textbox", { name: "Pergunta" })).toBeVisible();
 }
 
+/** "Adicionar" opens the type picker; the question list must be visible (spec 005, RN-02). */
+export async function pickNewQuestionType(
+	page: Page,
+	type: "Quiz" | "Verdadeiro ou falso" = "Quiz",
+) {
+	await page.getByRole("button", { name: "Adicionar", exact: true }).click();
+	await page.getByRole("menuitem", { name: type, exact: true }).click();
+}
+
+/** A property of the editor's right panel, chosen in its select (a combobox with a list of options). */
+export function propertySelect(page: Page, label: string) {
+	return page.getByRole("combobox", { name: label });
+}
+
+export async function chooseProperty(
+	page: Page,
+	label: string,
+	option: string,
+) {
+	await propertySelect(page, label).click();
+	await page.getByRole("option", { name: option, exact: true }).click();
+	await expect(page.getByRole("option")).toHaveCount(0);
+}
+
 /** Waits until the editor reports every change as saved. */
 export async function expectSaved(page: Page) {
 	await expect(

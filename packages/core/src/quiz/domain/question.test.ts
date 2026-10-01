@@ -1,24 +1,34 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	blankContent,
 	blankQuestion,
 	CHOICE_TEXT_MAX_LENGTH,
 	ChoiceTextTooLongError,
 	choiceIdAt,
 	copyQuestion,
 	InvalidQuestionPointsError,
+	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
 	InvalidTimeLimitError,
+	isBlankQuestion,
 	parseChoiceText,
 	parsePoints,
 	parseQuestionText,
+	parseQuestionType,
 	parseQuizContent,
 	parseSelection,
+	parseStoredContent,
 	parseTimeLimit,
 	QUESTION_TEXT_MAX_LENGTH,
+	QUESTION_TYPES,
 	type Question,
 	QuestionTextTooLongError,
+	type QuizQuestion,
+	questionContent,
+	storedContent,
 	TIME_LIMITS_SECONDS,
+	toggledTrueFalseCorrect,
 } from "./question";
 
 const emptyChoices = (count: number) =>
@@ -51,6 +61,116 @@ describe("blankQuestion", () => {
 	});
 });
 
+describe("true/false question", () => {
+	it("a blank true/false question has no correct answer", () => {
+		expect(blankQuestion("question-1", "trueFalse")).toEqual({
+			id: "question-1",
+			type: "trueFalse",
+			text: null,
+			timeLimitSeconds: 20,
+			points: "standard",
+			correct: null,
+		});
+	});
+
+	it("offers quiz and true/false, and rejects an unknown question type", () => {
+		expect(QUESTION_TYPES).toEqual(["quiz", "trueFalse"]);
+		expect(parseQuestionType("trueFalse")).toBe("trueFalse");
+		expect(() => parseQuestionType("slider")).toThrow(InvalidQuestionTypeError);
+	});
+
+	it("toggling the marked answer marks the other one", () => {
+		expect(toggledTrueFalseCorrect(null, true)).toBe(true);
+		expect(toggledTrueFalseCorrect(null, false)).toBe(false);
+		expect(toggledTrueFalseCorrect(true, false)).toBe(false);
+		expect(toggledTrueFalseCorrect(false, false)).toBe(true);
+		expect(toggledTrueFalseCorrect(true, true)).toBe(false);
+	});
+
+	it("reads stored true/false content tolerantly", () => {
+		expect(parseStoredContent("trueFalse", { correct: false })).toEqual({
+			type: "trueFalse",
+			correct: false,
+		});
+		for (const malformed of [null, {}, { correct: "yes" }, { choices: [] }]) {
+			expect(parseStoredContent("trueFalse", malformed)).toEqual({
+				type: "trueFalse",
+				correct: null,
+			});
+		}
+	});
+
+	it("stores only what is specific to the type", () => {
+		expect(
+			storedContent({ ...blankQuestion("q", "trueFalse"), correct: true }),
+		).toEqual({ correct: true });
+		expect(storedContent(blankQuestion("q"))).toEqual({
+			selection: "single",
+			choices: emptyChoices(4),
+		});
+		expect(parseStoredContent("quiz", {})).toEqual({
+			type: "quiz",
+			selection: "single",
+			choices: emptyChoices(4),
+		});
+	});
+
+	it("gives a detached copy of the type's content", () => {
+		const question = blankQuestion("q");
+
+		const content = questionContent(question);
+
+		expect(content).toEqual({
+			type: "quiz",
+			selection: "single",
+			choices: emptyChoices(4),
+		});
+		expect(content.type === "quiz" && content.choices[0]).not.toBe(
+			question.choices[0],
+		);
+		expect(blankContent("trueFalse")).toEqual({
+			type: "trueFalse",
+			correct: null,
+		});
+	});
+});
+
+describe("isBlankQuestion", () => {
+	it("is true while nothing was written or marked, whatever the time and points", () => {
+		expect(isBlankQuestion(blankQuestion("q"))).toBe(true);
+		expect(isBlankQuestion(blankQuestion("q", "trueFalse"))).toBe(true);
+		expect(
+			isBlankQuestion({
+				...blankQuestion("q"),
+				timeLimitSeconds: 45,
+				points: "double",
+				selection: "multiple",
+				choices: emptyChoices(6),
+			}),
+		).toBe(true);
+	});
+
+	it("is false once there is a text, an answer or a correct mark", () => {
+		expect(isBlankQuestion({ ...blankQuestion("q"), text: "Capital?" })).toBe(
+			false,
+		);
+		expect(
+			isBlankQuestion({
+				...blankQuestion("q"),
+				choices: [
+					{ id: "choice-1", text: null, correct: false },
+					{ id: "choice-2", text: "Rio", correct: false },
+					{ id: "choice-3", text: null, correct: false },
+					{ id: "choice-4", text: null, correct: false },
+				],
+			}),
+		).toBe(false);
+		expect(
+			isBlankQuestion({ ...blankQuestion("q", "trueFalse"), correct: false }),
+		).toBe(false);
+	});
+});
+
 describe("parseQuestionText", () => {
 	it("trims the text and stores whitespace-only text as null", () => {
 		expect(parseQuestionText("  Capital do Brasil?  ")).toBe(
@@ -60,13 +180,14 @@ describe("parseQuestionText", () => {
 		expect(parseQuestionText(null)).toBeNull();
 	});
 
-	it("accepts 120 characters counting accents and emoji as one", () => {
+	it("accepts 160 characters counting accents and emoji as one", () => {
+		expect(QUESTION_TEXT_MAX_LENGTH).toBe(160);
 		const text = `${"á".repeat(QUESTION_TEXT_MAX_LENGTH - 1)}🎉`;
 
 		expect(parseQuestionText(text)).toBe(text);
 	});
 
-	it("refuses 121 characters with QuestionTextTooLongError", () => {
+	it("refuses 161 characters with QuestionTextTooLongError", () => {
 		const text = "a".repeat(QUESTION_TEXT_MAX_LENGTH + 1);
 
 		expect(() => parseQuestionText(text)).toThrow(QuestionTextTooLongError);
@@ -144,7 +265,7 @@ describe("parseQuizContent", () => {
 
 describe("copyQuestion", () => {
 	it("copies every field under a new id", () => {
-		const source: Question = {
+		const source: QuizQuestion = {
 			...blankQuestion("question-1"),
 			text: "Capital?",
 			timeLimitSeconds: 45,
@@ -157,5 +278,20 @@ describe("copyQuestion", () => {
 		expect(copy).toEqual({ ...source, id: "question-2" });
 		expect(copy.choices).not.toBe(source.choices);
 		expect(copy.choices[0]).not.toBe(source.choices[0]);
+	});
+
+	it("copies a true/false question under a new id", () => {
+		const source: Question = {
+			...blankQuestion("question-1", "trueFalse"),
+			text: "A capital do Brasil é Brasília",
+			timeLimitSeconds: 10,
+			points: "noPoints",
+			correct: true,
+		};
+
+		expect(copyQuestion(source, "question-2")).toEqual({
+			...source,
+			id: "question-2",
+		});
 	});
 });

@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import {
 	createQuizInEditor,
 	expectSaved,
+	pickNewQuestionType,
 	quizList,
 	signIn,
 	signUp,
@@ -37,7 +38,7 @@ async function writeQuestion(page: Page, text: string) {
 async function addQuestion(page: Page, text: string) {
 	await openQuestionList(page);
 	const count = await questionItems(page).count();
-	await page.getByRole("button", { name: "Adicionar", exact: true }).click();
+	await pickNewQuestionType(page);
 	await expect(questionItems(page)).toHaveCount(count + 1);
 	await expect(questionText(page)).toHaveValue("");
 	await writeQuestion(page, text);
@@ -168,18 +169,32 @@ test("moves a question with the keyboard", async ({ page }) => {
 	await expectOrder(page, ["Pergunta B", "Pergunta A", "Pergunta C"]);
 });
 
-test("deletes and undoes", async ({ page }) => {
+test("deletes after confirming, and cancelling keeps the question", async ({
+	page,
+}) => {
 	await quizWithQuestionsABC(page);
 
+	// Deleting asks first; cancelling keeps the question (RN-14).
 	await page.getByRole("button", { name: "Excluir pergunta 2" }).click();
+	const confirmation = page.getByRole("alertdialog", {
+		name: "Excluir pergunta",
+	});
+	await expect(confirmation).toContainText(
+		"Tem certeza de que quer excluir a pergunta 2? Essa ação não pode ser desfeita.",
+	);
+	await confirmation.getByRole("button", { name: "Cancelar" }).click();
+	await expect(confirmation).toBeHidden();
+	await expectOrder(page, ["Pergunta A", "Pergunta B", "Pergunta C"]);
+
+	await page.getByRole("button", { name: "Excluir pergunta 2" }).click();
+	await confirmation.getByRole("button", { name: "Excluir" }).click();
 	await expectOrder(page, ["Pergunta A", "Pergunta C"]);
 	await expect(questionText(page)).toHaveValue("Pergunta C");
-
-	await page.getByRole("button", { name: "Desfazer" }).click();
-	await expectOrder(page, ["Pergunta A", "Pergunta B", "Pergunta C"]);
+	// No undo after the confirmation (RN-14).
+	await expect(page.getByRole("button", { name: "Desfazer" })).toHaveCount(0);
 	await expectSaved(page);
 	await page.reload();
-	await expectOrder(page, ["Pergunta A", "Pergunta B", "Pergunta C"]);
+	await expectOrder(page, ["Pergunta A", "Pergunta C"]);
 });
 
 test("the only question cannot be deleted", async ({ page }) => {

@@ -12,7 +12,6 @@ import {
 	QuestionLimitReachedError,
 	QuestionNotFoundError,
 	removeQuestion,
-	restoreQuestionAt,
 } from "./question-list";
 
 const a = aQuestion({ id: "a", text: "A" });
@@ -82,12 +81,8 @@ describe("moveQuestion", () => {
 });
 
 describe("removeQuestion", () => {
-	it("removes a question returning it with its index", () => {
-		const result = removeQuestion([a, b, c], "b");
-
-		expect(ids(result.list)).toEqual(["a", "c"]);
-		expect(result.removed).toEqual(b);
-		expect(result.index).toBe(1);
+	it("removes a question keeping the order of the others", () => {
+		expect(ids(removeQuestion([a, b, c], "b"))).toEqual(["a", "c"]);
 	});
 
 	it("refuses to remove the only question", () => {
@@ -98,36 +93,5 @@ describe("removeQuestion", () => {
 		expect(() => removeQuestion([a, b], "missing")).toThrow(
 			QuestionNotFoundError,
 		);
-	});
-});
-
-describe("restoreQuestionAt", () => {
-	it("restores a removed question at its former index", () => {
-		const result = restoreQuestionAt([a, c], b, 1);
-
-		expect(ids(result.list)).toEqual(["a", "b", "c"]);
-		expect(result.index).toBe(1);
-	});
-
-	it("clamps a restore index beyond the end", () => {
-		const result = restoreQuestionAt([a, b], c, 7);
-
-		expect(ids(result.list)).toEqual(["a", "b", "c"]);
-		expect(result.index).toBe(2);
-	});
-
-	it("ignores a restore of a question already in the list", () => {
-		const list = [a, b, c];
-
-		const result = restoreQuestionAt(list, b, 0);
-
-		expect(result.list).toBe(list);
-		expect(result.index).toBe(1);
-	});
-
-	it("refuses a restore that would exceed the limit", () => {
-		expect(() =>
-			restoreQuestionAt(listOf(QUIZ_MAX_QUESTIONS), blankQuestion("back"), 0),
-		).toThrow(QuestionLimitReachedError);
 	});
 });

@@ -8,7 +8,7 @@ import { SaveTrackerProvider } from "@/lib/save-tracker";
 
 import { QuestionCanvas } from "./question-canvas";
 
-function renderCanvas(question: QuestionData) {
+function renderCanvas(question: QuestionData, showHints = true) {
 	const handlers = {
 		onSaveText: vi.fn(async () => {}),
 		onSaveChoiceText: vi.fn(async () => {}),
@@ -16,7 +16,7 @@ function renderCanvas(question: QuestionData) {
 	};
 	render(
 		<SaveTrackerProvider>
-			<QuestionCanvas question={question} {...handlers} />
+			<QuestionCanvas question={question} showHints={showHints} {...handlers} />
 		</SaveTrackerProvider>,
 	);
 	return { handlers, user: userEvent.setup() };
@@ -62,6 +62,33 @@ describe("QuestionCanvas", () => {
 		expect(screen.getAllByText("Em breve")).toHaveLength(1);
 	});
 
+	it("a true/false question shows its two fixed answers and no extra answers action", async () => {
+		const { handlers, user } = renderCanvas({
+			...blankQuestion("a", "trueFalse"),
+			text: "O céu é azul",
+		});
+
+		expect(screen.getByRole("textbox", { name: "Pergunta" })).toHaveValue(
+			"O céu é azul",
+		);
+		expect(
+			within(screen.getByRole("list", { name: "Respostas" }))
+				.getAllByRole("listitem")
+				.map((answer) => answer.textContent),
+		).toEqual(["Verdadeiro", "Falso"]);
+		expect(
+			screen.queryByRole("button", { name: "Adicionar mais respostas" }),
+		).not.toBeInTheDocument();
+		expect(screen.getByText("Marque a resposta correta")).toBeInTheDocument();
+
+		await user.click(screen.getByRole("checkbox", { name: "Falso correta" }));
+
+		expect(handlers.onChange).toHaveBeenCalledExactlyOnceWith({
+			kind: "trueFalseCorrect",
+			correct: false,
+		});
+	});
+
 	it("Adicionar mais respostas shows the extra answers", async () => {
 		const { handlers, user } = renderCanvas(blankQuestion("a"));
 
@@ -103,6 +130,27 @@ describe("QuestionCanvas", () => {
 		expect(
 			screen.getByText("Marque pelo menos 1 resposta correta"),
 		).toBeInTheDocument();
+	});
+
+	it("hints the missing question text until it is written", async () => {
+		const { user } = renderCanvas(blankQuestion("a"));
+
+		expect(
+			screen.getByText("Nenhuma pergunta foi adicionada."),
+		).toBeInTheDocument();
+		await user.type(screen.getByRole("textbox", { name: "Pergunta" }), "C");
+
+		expect(screen.queryByText("Nenhuma pergunta foi adicionada.")).toBeNull();
+	});
+
+	it("shows no hints at all while the question is just started", () => {
+		renderCanvas(blankQuestion("a"), false);
+		expect(document.querySelector("[data-slot=editor-hint]")).toBeNull();
+	});
+
+	it("shows no hint on a just started true/false question", () => {
+		renderCanvas(blankQuestion("a", "trueFalse"), false);
+		expect(document.querySelector("[data-slot=editor-hint]")).toBeNull();
 	});
 
 	it("no hints for a complete question", () => {

@@ -15,7 +15,6 @@ import { createDuplicateQuestion } from "./duplicate-question";
 import { createMoveQuestion } from "./move-question";
 import type { QuizReference } from "./quiz-reference";
 import { createRenameQuiz } from "./rename-quiz";
-import { createRestoreQuestion } from "./restore-question";
 import { createUpdateQuestion } from "./update-question";
 
 /** Rules every editor operation shares (spec 003, RN-02, RN-03, RN-24). */
@@ -46,7 +45,8 @@ const operations: [
 ][] = [
 	[
 		"add",
-		(deps, ref) => createAddQuestion(deps)({ ...ref, afterQuestionId: "a" }),
+		(deps, ref) =>
+			createAddQuestion(deps)({ ...ref, afterQuestionId: "a", type: "quiz" }),
 	],
 	[
 		"duplicate",
@@ -61,15 +61,7 @@ const operations: [
 		"delete",
 		(deps, ref) => createDeleteQuestion(deps)({ ...ref, questionId: "b" }),
 	],
-	[
-		"restore",
-		(deps, ref) =>
-			createRestoreQuestion(deps)({
-				...ref,
-				question: aQuestion({ id: "c", text: "C" }),
-				index: 1,
-			}),
-	],
+
 	[
 		"update",
 		(deps, ref) =>

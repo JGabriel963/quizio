@@ -1,4 +1,7 @@
-import { TIME_LIMITS_SECONDS } from "@quizio/core/quiz/domain/question";
+import {
+	QUESTION_TYPES,
+	TIME_LIMITS_SECONDS,
+} from "@quizio/core/quiz/domain/question";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,9 +10,11 @@ import {
 	POINTS_LABELS,
 	QUESTION_ISSUE_LABELS,
 	SELECTION_LABELS,
+	TRUE_FALSE_LABELS,
 	timeAppliedMessage,
 	timeLimitLabel,
 } from "./question-labels";
+import { questionTypeLabel } from "./quiz-labels";
 
 describe("question labels", () => {
 	it("names every time limit in Portuguese", () => {
@@ -45,7 +50,19 @@ describe("question labels", () => {
 			missingText: "Falta o texto da pergunta",
 			notEnoughAnswers: "Adicione pelo menos 2 respostas",
 			noCorrectAnswer: "Marque pelo menos 1 resposta correta",
+			noCorrectTrueFalse: "Marque a resposta correta",
 		});
+	});
+
+	it("names the question types and the kept answers notice", () => {
+		expect(QUESTION_TYPES.map(questionTypeLabel)).toEqual([
+			"Quiz",
+			"Verdadeiro ou falso",
+		]);
+		expect(TRUE_FALSE_LABELS).toEqual({ true: "Verdadeiro", false: "Falso" });
+		expect(changeNoticeMessage({ kind: "quizAnswersKept" })).toBe(
+			"As respostas do Quiz voltam se você retornar para Quiz antes de sair do editor",
+		);
 	});
 
 	it("marks answers 3 to 6 as optional", () => {

@@ -1,6 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { createQuizInEditor, expectSaved, signUp } from "./support";
+import {
+	chooseProperty,
+	createQuizInEditor,
+	expectSaved,
+	pickNewQuestionType,
+	signUp,
+} from "./support";
 
 const questionText = (page: Page) =>
 	page.getByRole("textbox", { name: "Pergunta" });
@@ -42,9 +48,7 @@ async function closePanels(page: Page) {
 
 async function choose(page: Page, label: string, option: string) {
 	await openPanel(page, "Propriedades");
-	await page.getByRole("combobox", { name: label }).selectOption({
-		label: option,
-	});
+	await chooseProperty(page, label, option);
 	await expectSaved(page);
 }
 
@@ -67,14 +71,34 @@ test.beforeEach(async ({ page }) => {
 test("answers and corrects are saved, a second correct turns on multiple choice and the incomplete alert goes away", async ({
 	page,
 }) => {
+	// A question just started is not warned about (spec 004, RN-16)...
+	await expect(page.getByText(/não foi adicionada/)).toHaveCount(0);
 	await openPanel(page, "Lista de perguntas");
 	await expect(
 		page.getByRole("button", { name: "Pergunta 1 incompleta" }),
+	).toHaveCount(0);
+	// ...leaving it flags it in the list...
+	await pickNewQuestionType(page);
+	await expectSaved(page);
+	await expect(
+		page.getByRole("button", { name: "Pergunta 1 incompleta" }),
 	).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "Pergunta 2 incompleta" }),
+	).toHaveCount(0);
+	// ...and coming back shows what is missing, beside each field.
+	await page.getByRole("button", { name: /^Pergunta 1:/ }).click();
 	await closePanels(page);
+	await expect(
+		page.getByText("Nenhuma pergunta foi adicionada."),
+	).toBeVisible();
 	await expect(page.getByText("A resposta 1 não foi adicionada")).toBeVisible();
+	await expect(page.getByText("A resposta 2 não foi adicionada")).toBeVisible();
 
 	await questionText(page).fill("Qual é a capital do Brasil?");
+	await expect(page.getByText("Nenhuma pergunta foi adicionada.")).toHaveCount(
+		0,
+	);
 	await writeAnswer(page, 1, "Brasília");
 	await writeAnswer(page, 2, "Rio");
 	await expect(page.getByText(/não foi adicionada/)).toHaveCount(0);
@@ -87,7 +111,7 @@ test("answers and corrects are saved, a second correct turns on multiple choice 
 	await openPanel(page, "Propriedades");
 	await expect(
 		page.getByRole("combobox", { name: "Opções de resposta" }),
-	).toHaveValue("multiple");
+	).toHaveText("Múltipla escolha");
 	await openPanel(page, "Lista de perguntas");
 	await expect(
 		page.getByRole("button", { name: "Pergunta 1 incompleta" }),
@@ -141,7 +165,7 @@ test("time limit shows in the list, applies to every question, and points persis
 	await openPanel(page, "Propriedades");
 	await expect(
 		page.getByRole("combobox", { name: "Limite de tempo" }),
-	).toHaveValue("20");
+	).toHaveText("20 segundos");
 	await choose(page, "Limite de tempo", "1 minuto 30 segundos");
 	await choose(page, "Pontos", "Pontos em dobro");
 	await openPanel(page, "Lista de perguntas");
@@ -149,7 +173,7 @@ test("time limit shows in the list, applies to every question, and points persis
 
 	for (const _ of [1, 2]) {
 		await openPanel(page, "Lista de perguntas");
-		await page.getByRole("button", { name: "Adicionar", exact: true }).click();
+		await pickNewQuestionType(page);
 		await expectSaved(page);
 	}
 	await openPanel(page, "Lista de perguntas");
@@ -171,7 +195,7 @@ test("time limit shows in the list, applies to every question, and points persis
 		await expect(questionItems(page).nth(index)).toContainText("45");
 	}
 	await openPanel(page, "Propriedades");
-	await expect(page.getByRole("combobox", { name: "Pontos" })).toHaveValue(
-		"double",
+	await expect(page.getByRole("combobox", { name: "Pontos" })).toHaveText(
+		"Pontos em dobro",
 	);
 });

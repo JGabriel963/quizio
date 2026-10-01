@@ -1,3 +1,7 @@
+import {
+	isBlankQuestion,
+	type QuestionType,
+} from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { Button } from "@quizio/ui/components/button";
 import { cn } from "@quizio/ui/lib/utils";
@@ -7,6 +11,7 @@ import { useId, useState } from "react";
 import type { QuestionData, QuizEditorData } from "@/lib/api-types";
 import { selectionAfterRemoval } from "@/lib/editor-cache";
 
+import { DeleteQuestionDialog } from "./delete-question-dialog";
 import { EditorHeader } from "./editor-header";
 import { QuestionCanvas } from "./question-canvas";
 import { QuestionList } from "./question-list";
@@ -17,7 +22,7 @@ export interface PlacedQuestionData {
 	index: number;
 }
 
-/** What the editor asks of the API; the route wires it to tRPC (specs 003, 004). */
+/** What the editor asks of the API; the route wires it to tRPC (specs 003 to 005). */
 export interface EditorActions {
 	saveTitle: (title: string | null) => Promise<unknown>;
 	/** Autosaved text fields (question and answers); rejects when it fails. */
@@ -27,9 +32,14 @@ export interface EditorActions {
 	) => Promise<unknown>;
 	/** Changes saved at once (corrects, time, points...), tracked by the action. */
 	changeQuestion: (questionId: string, change: QuestionChange) => void;
+	/** Keeps the question and swaps its answers for the other type's (spec 005). */
+	changeQuestionType: (questionId: string, type: QuestionType) => void;
 	applyTimeLimitToAll: (seconds: QuestionData["timeLimitSeconds"]) => void;
 	/** Resolves the new question, or null when the server refused it. */
-	addQuestion: (afterQuestionId: string) => Promise<PlacedQuestionData | null>;
+	addQuestion: (
+		afterQuestionId: string,
+		type: QuestionType,
+	) => Promise<PlacedQuestionData | null>;
 	duplicateQuestion: (questionId: string) => Promise<PlacedQuestionData | null>;
 	moveQuestion: (questionId: string, toIndex: number) => void;
 	deleteQuestion: (questionId: string) => void;
@@ -55,10 +65,21 @@ export function QuizEditor({
 	onExit: () => void;
 }) {
 	const { questions } = data;
-	const [selectedId, setSelectedId] = useState(questions[0]?.id ?? "");
+	// `quietIds`: questions the creator has just started, which get no warnings
+	// until they are left once (spec 004, RN-16).
+	const [{ selectedId, quietIds }, setSelection] = useState(() => {
+		const first = questions[0];
+		return {
+			selectedId: first?.id ?? "",
+			quietIds: new Set(
+				first && isBlankQuestion(first) ? [first.id] : [],
+			) as ReadonlySet<string>,
+		};
+	});
 	const [openPanel, setOpenPanel] = useState<"list" | "properties" | null>(
 		null,
 	);
+	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const panelIds = { list: useId(), properties: useId() };
 	// A question removed elsewhere (or not in the cache yet) falls back to the first.
 	const selected =
@@ -68,25 +89,45 @@ export function QuizEditor({
 		return null;
 	}
 
+	/** Leaving a question ends its quiet start; a newly added one begins quiet. */
+	const moveSelection = (questionId: string, startsQuiet = false) =>
+		setSelection((current) => {
+			if (questionId === current.selectedId) {
+				return current;
+			}
+			const quiet = new Set(current.quietIds);
+			quiet.delete(current.selectedId);
+			if (startsQuiet) {
+				quiet.add(questionId);
+			}
+			return { selectedId: questionId, quietIds: quiet };
+		});
 	const select = (questionId: string) => {
-		setSelectedId(questionId);
+		moveSelection(questionId);
 		setOpenPanel(null);
 	};
-	const selectPlaced = (placed: PlacedQuestionData | null) => {
-		if (placed) {
-			setSelectedId(placed.question.id);
-		}
-	};
+	/** Deleting asks first (spec 003, RN-14); this runs once the creator confirms. */
 	const remove = (questionId: string) => {
 		const index = questions.findIndex(({ id }) => id === questionId);
 		const remaining = questions.filter(({ id }) => id !== questionId);
 		if (questionId === selected.id) {
-			setSelectedId(selectionAfterRemoval(remaining, index) ?? "");
+			moveSelection(selectionAfterRemoval(remaining, index) ?? "");
 		}
 		actions.deleteQuestion(questionId);
 	};
-	const duplicate = async (questionId: string) =>
-		selectPlaced(await actions.duplicateQuestion(questionId));
+	const deletingIndex = questions.findIndex(({ id }) => id === deletingId);
+	const add = async (type: QuestionType) => {
+		const placed = await actions.addQuestion(selected.id, type);
+		if (placed) {
+			moveSelection(placed.question.id, true);
+		}
+	};
+	const duplicate = async (questionId: string) => {
+		const placed = await actions.duplicateQuestion(questionId);
+		if (placed) {
+			moveSelection(placed.question.id);
+		}
+	};
 	const toggle = (panel: "list" | "properties") =>
 		setOpenPanel((open) => (open === panel ? null : panel));
 
@@ -136,12 +177,11 @@ export function QuizEditor({
 					<QuestionList
 						questions={questions}
 						selectedId={selected.id}
+						quietIds={quietIds}
 						onSelect={select}
-						onAdd={async () =>
-							selectPlaced(await actions.addQuestion(selected.id))
-						}
+						onAdd={add}
 						onDuplicate={duplicate}
-						onDelete={remove}
+						onDelete={setDeletingId}
 						onMove={actions.moveQuestion}
 					/>
 				</aside>
@@ -149,6 +189,7 @@ export function QuizEditor({
 				<main className="min-w-0 flex-1 overflow-y-auto bg-linear-to-b from-brand to-brand-strong px-3 py-4 sm:px-6 sm:py-6">
 					<QuestionCanvas
 						question={selected}
+						showHints={!quietIds.has(selected.id)}
 						onSaveText={(text) =>
 							actions.saveQuestionField(selected.id, { kind: "text", text })
 						}
@@ -175,12 +216,25 @@ export function QuizEditor({
 						question={selected}
 						questionCount={questions.length}
 						onChange={(change) => actions.changeQuestion(selected.id, change)}
+						onChangeType={(type) =>
+							actions.changeQuestionType(selected.id, type)
+						}
 						onApplyTimeLimitToAll={actions.applyTimeLimitToAll}
-						onDelete={remove}
+						onDelete={setDeletingId}
 						onDuplicate={duplicate}
 					/>
 				</aside>
 			</div>
+			<DeleteQuestionDialog
+				position={deletingIndex === -1 ? null : deletingIndex + 1}
+				onCancel={() => setDeletingId(null)}
+				onConfirm={() => {
+					if (deletingId) {
+						remove(deletingId);
+					}
+					setDeletingId(null);
+				}}
+			/>
 		</div>
 	);
 }

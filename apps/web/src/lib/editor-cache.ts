@@ -33,7 +33,7 @@ export function withQuestionRemoved(
 	data: QuizEditorData,
 	questionId: string,
 ): QuizEditorData {
-	return withQuestions(data, removeQuestion(data.questions, questionId).list);
+	return withQuestions(data, removeQuestion(data.questions, questionId));
 }
 
 export function withQuestionInserted(

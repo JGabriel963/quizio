@@ -1,24 +1,41 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
 import {
+	blankContent,
 	type Choice,
 	choiceIdAt,
 	DEFAULT_CHOICE_COUNT,
 	emptyChoices,
+	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
 	MAX_CHOICE_COUNT,
 	parseChoiceText,
 	parsePoints,
 	parseQuestionText,
+	parseQuestionType,
 	parseSelection,
 	parseTimeLimit,
 	type Question,
-	type QuestionType,
+	type QuestionContent,
+	type QuizQuestion,
+	type TrueFalseQuestion,
 } from "./question";
 
 /**
- * One edit of a question (spec 004). Values arrive raw (from the API or the
- * optimistic client) and are validated here.
+ * The type-specific part of a question as a client sends it back: what the
+ * editor remembered before a type change (spec 005).
+ */
+export type QuestionContentInput =
+	| {
+			type: "quiz";
+			selection: string;
+			choices: { text: string | null; correct: boolean }[];
+	  }
+	| { type: "trueFalse"; correct: boolean | null };
+
+/**
+ * One edit of a question (specs 004, 005). Values arrive raw (from the API or
+ * the optimistic client) and are validated here.
  */
 export type QuestionChange =
 	| { kind: "text"; text: string | null }
@@ -27,12 +44,16 @@ export type QuestionChange =
 	| { kind: "selection"; selection: string }
 	| { kind: "choiceText"; choiceId: string; text: string | null }
 	| { kind: "choiceCorrect"; choiceId: string; correct: boolean }
-	| { kind: "extraChoices"; visible: boolean };
+	| { kind: "extraChoices"; visible: boolean }
+	| { kind: "trueFalseCorrect"; correct: boolean }
+	/** `remembered` is what the question had in that type earlier in the session (RN-17). */
+	| { kind: "type"; type: string; remembered: QuestionContentInput | null };
 
-/** What the editor tells the creator after a change (RN-08, RN-09). */
+/** What the editor tells the creator after a change (spec 004, RN-08, RN-09; spec 005, RN-19). */
 export type QuestionChangeNotice =
 	| { kind: "multipleEnabled" }
-	| { kind: "correctsCleared"; count: number };
+	| { kind: "correctsCleared"; count: number }
+	| { kind: "quizAnswersKept" };
 
 export interface QuestionChangeResult {
 	question: Question;
@@ -51,22 +72,21 @@ export class InvalidChoiceCountError extends DomainError {
 	readonly code = "QUIZ.INVALID_CHOICE_COUNT";
 }
 
-/** A whole question as a client sends it back (the "Desfazer" of a deletion). */
-export interface QuestionInput {
-	id: string;
-	type: QuestionType;
-	text: string | null;
-	timeLimitSeconds: number;
-	points: string;
-	selection: string;
-	choices: { text: string | null; correct: boolean }[];
+/** An edit that the question's type does not have (spec 005). */
+export class QuestionChangeNotApplicableError extends DomainError {
+	readonly code = "QUIZ.CHANGE_NOT_APPLICABLE";
 }
 
 /**
- * Validates a whole question with the same rules as the edits. Answer ids are
- * the positions', whatever the client sent.
+ * Validates type-specific content with the same rules as the edits. Answer ids
+ * are the positions', whatever the client sent.
  */
-export function parseQuestion(input: QuestionInput): Question {
+export function parseQuestionContent(
+	input: QuestionContentInput,
+): QuestionContent {
+	if (input.type === "trueFalse") {
+		return { type: input.type, correct: input.correct };
+	}
 	if (
 		input.choices.length !== DEFAULT_CHOICE_COUNT &&
 		input.choices.length !== MAX_CHOICE_COUNT
@@ -93,26 +113,36 @@ export function parseQuestion(input: QuestionInput): Question {
 			"Single selection allows one correct answer",
 		);
 	}
-	return {
-		id: input.id,
-		type: input.type,
-		text: parseQuestionText(input.text),
-		timeLimitSeconds: parseTimeLimit(input.timeLimitSeconds),
-		points: parsePoints(input.points),
-		selection,
-		choices,
-	};
+	return { type: input.type, selection, choices };
 }
 
 function unchanged(question: Question): QuestionChangeResult {
 	return { question, notice: null };
 }
 
+function requireQuiz(question: Question): QuizQuestion {
+	if (question.type !== "quiz") {
+		throw new QuestionChangeNotApplicableError(
+			"This change only applies to quiz questions",
+		);
+	}
+	return question;
+}
+
+function requireTrueFalse(question: Question): TrueFalseQuestion {
+	if (question.type !== "trueFalse") {
+		throw new QuestionChangeNotApplicableError(
+			"This change only applies to true/false questions",
+		);
+	}
+	return question;
+}
+
 function replaceChoice(
-	question: Question,
+	question: QuizQuestion,
 	choiceId: string,
 	update: (choice: Choice) => Choice,
-): Question {
+): QuizQuestion {
 	const index = question.choices.findIndex((choice) => choice.id === choiceId);
 	if (index === -1) {
 		throw new ChoiceNotFoundError("Answer not found in this question");
@@ -126,7 +156,7 @@ function replaceChoice(
 }
 
 function markCorrect(
-	question: Question,
+	question: QuizQuestion,
 	choiceId: string,
 	correct: boolean,
 ): QuestionChangeResult {
@@ -152,7 +182,7 @@ function markCorrect(
 }
 
 function changeSelection(
-	question: Question,
+	question: QuizQuestion,
 	rawSelection: string,
 ): QuestionChangeResult {
 	const selection = parseSelection(rawSelection);
@@ -176,7 +206,7 @@ function changeSelection(
 }
 
 function setExtraChoices(
-	question: Question,
+	question: QuizQuestion,
 	visible: boolean,
 ): QuestionChangeResult {
 	// RN-03: slots 5 and 6 come and go together; hiding them discards them.
@@ -191,7 +221,43 @@ function setExtraChoices(
 	});
 }
 
-/** Applies one edit, keeping the question's invariants (spec 004). */
+/**
+ * Spec 005, RN-14 to RN-19: the question keeps what every type shares and gets
+ * the new type's content, blank or what the editor remembered.
+ */
+function changeType(
+	question: Question,
+	rawType: string,
+	remembered: QuestionContentInput | null,
+): QuestionChangeResult {
+	const type = parseQuestionType(rawType);
+	if (type === question.type) {
+		return unchanged(question);
+	}
+	if (remembered && remembered.type !== type) {
+		throw new InvalidQuestionTypeError(
+			`Remembered content is of type "${remembered.type}", not "${type}"`,
+		);
+	}
+	const content = remembered
+		? parseQuestionContent(remembered)
+		: blankContent(type);
+	const answersSetAside =
+		question.type === "quiz" &&
+		question.choices.some((choice) => choice.text !== null);
+	return {
+		question: {
+			id: question.id,
+			text: question.text,
+			timeLimitSeconds: question.timeLimitSeconds,
+			points: question.points,
+			...content,
+		},
+		notice: answersSetAside ? { kind: "quizAnswersKept" } : null,
+	};
+}
+
+/** Applies one edit, keeping the question's invariants (specs 004, 005). */
 export function applyQuestionChange(
 	question: Question,
 	change: QuestionChange,
@@ -207,12 +273,12 @@ export function applyQuestionChange(
 		case "points":
 			return unchanged({ ...question, points: parsePoints(change.points) });
 		case "selection":
-			return changeSelection(question, change.selection);
+			return changeSelection(requireQuiz(question), change.selection);
 		case "choiceText": {
 			const text = parseChoiceText(change.text);
 			// RN-06: an empty answer is never correct.
 			return unchanged(
-				replaceChoice(question, change.choiceId, (choice) => ({
+				replaceChoice(requireQuiz(question), change.choiceId, (choice) => ({
 					...choice,
 					text,
 					correct: choice.correct && text !== null,
@@ -220,8 +286,19 @@ export function applyQuestionChange(
 			);
 		}
 		case "choiceCorrect":
-			return markCorrect(question, change.choiceId, change.correct);
+			return markCorrect(
+				requireQuiz(question),
+				change.choiceId,
+				change.correct,
+			);
 		case "extraChoices":
-			return setExtraChoices(question, change.visible);
+			return setExtraChoices(requireQuiz(question), change.visible);
+		case "trueFalseCorrect":
+			return unchanged({
+				...requireTrueFalse(question),
+				correct: change.correct,
+			});
+		case "type":
+			return changeType(question, change.type, change.remembered);
 	}
 }

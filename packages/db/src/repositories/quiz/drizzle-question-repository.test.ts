@@ -1,4 +1,7 @@
-import { aQuestion } from "@quizio/core/quiz/testing/a-question";
+import {
+	aQuestion,
+	aTrueFalseQuestion,
+} from "@quizio/core/quiz/testing/a-question";
 import { aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -171,10 +174,63 @@ describe("DrizzleQuestionRepository", () => {
 		]);
 	});
 
+	it("round-trips a true/false question", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const unanswered = aTrueFalseQuestion({ id: "tf-1", text: null });
+		const answered = aTrueFalseQuestion({
+			id: "tf-2",
+			correct: false,
+			timeLimitSeconds: 10,
+			points: "noPoints",
+		});
+
+		await questions.saveList("quiz-1", [unanswered, a, answered]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([
+			unanswered,
+			a,
+			answered,
+		]);
+		const [row] = await testDb.db
+			.select({ content: questionTable.content })
+			.from(questionTable)
+			.where(eq(questionTable.id, "tf-2"));
+		expect(row?.content).toEqual({ correct: false });
+	});
+
+	it("saveQuestion changes a question's type and content", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		await questions.saveList("quiz-1", [a]);
+		const converted = aTrueFalseQuestion({ id: "a", text: "A", correct: true });
+
+		await questions.saveQuestion("quiz-1", converted);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([converted]);
+	});
+
+	it("reads a true/false row with malformed content as unanswered", async () => {
+		await testDb.db.insert(questionTable).values({
+			id: "odd",
+			quizId: "quiz-1",
+			position: 0,
+			type: "trueFalse",
+			text: "?",
+			content: { selection: "single", choices: [] },
+		});
+
+		expect(
+			await createDrizzleQuestionRepository(testDb.db).listByQuiz("quiz-1"),
+		).toEqual([aTrueFalseQuestion({ id: "odd", text: "?" })]);
+	});
+
 	it("reads legacy rows with defaults", async () => {
-		await testDb.db
-			.insert(questionTable)
-			.values({ id: "old", quizId: "quiz-1", position: 0, type: "quiz", text: "?" });
+		await testDb.db.insert(questionTable).values({
+			id: "old",
+			quizId: "quiz-1",
+			position: 0,
+			type: "quiz",
+			text: "?",
+		});
 
 		expect(
 			await createDrizzleQuestionRepository(testDb.db).listByQuiz("quiz-1"),

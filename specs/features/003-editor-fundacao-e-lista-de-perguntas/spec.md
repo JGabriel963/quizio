@@ -65,11 +65,11 @@ Jogadores e anfitriões não aparecem nesta feature.
 | RN-07 | Um quiz tem uma **lista ordenada de perguntas (`Question`)**. Nesta etapa toda pergunta é do tipo **Quiz (`quiz`)**; Verdadeiro ou falso chega na spec 005. | kahoot-reference §2, §4.1.1 |
 | RN-08 | Todo quiz aberto no editor tem **pelo menos uma pergunta**. Um quiz que ainda não tem nenhuma (os criados antes desta feature) ganha uma pergunta Quiz em branco ao ser aberto no editor. | decisão do produto (2026-09-25) |
 | RN-09 | Uma **pergunta em branco** tem enunciado vazio e, a partir da spec 004, os valores padrão de tempo e pontos. Pergunta em branco é permitida no rascunho: ela só impede salvar a versão jogável (spec 006). | kahoot-reference §3.6 |
-| RN-10 | O **enunciado (`text`)** tem no máximo **120 caracteres**, contados como caracteres percebidos (acentos e emoji contam 1). O campo não aceita digitar além disso, e o que é colado é cortado no limite. Espaços nas pontas são ignorados ao salvar; um enunciado só com espaços conta como vazio. | kahoot-reference §4 (regras comuns), §4.1.1 |
+| RN-10 | O **enunciado (`text`)** tem no máximo **160 caracteres**, contados como caracteres percebidos (acentos e emoji contam 1). O campo não aceita digitar além disso, e o que é colado é cortado no limite. Espaços nas pontas são ignorados ao salvar; um enunciado só com espaços conta como vazio. Com o campo em foco, o editor mostra quantos caracteres ainda cabem. | kahoot-reference §4 (regras comuns), §4.1.1 · limite de 160: decisão do produto (2026-10-01) |
 | RN-11 | **Adicionar** cria uma pergunta Quiz em branco **logo depois da pergunta selecionada** e a seleciona. | kahoot-reference §3.2 · decisão do produto (2026-09-25) |
 | RN-12 | **Duplicar** cria uma cópia da pergunta **logo depois da original**, com todo o conteúdo dela, e seleciona a cópia. A cópia é independente da original. | kahoot-reference §3.2 |
 | RN-13 | **Reordenar** é feito arrastando uma pergunta na lista, ou pelo teclado (mover para cima / para baixo). A nova ordem é salva e é a ordem em que as perguntas serão apresentadas na partida. | kahoot-reference §3.2 · constituição, artigo VIII (acessibilidade) |
-| RN-14 | **Excluir** remove a pergunta na hora, sem pedir confirmação, e oferece **"Desfazer"**, que a devolve com o mesmo conteúdo e na mesma posição. Depois de excluir, fica selecionada a pergunta que ocupou a posição dela, ou a anterior se ela era a última. | kahoot-reference §3.2 · decisão do produto (2026-09-25) |
+| RN-14 | **Excluir** pede confirmação antes ("Excluir pergunta — Tem certeza de que quer excluir a pergunta N? Essa ação não pode ser desfeita.", com **Cancelar** e **Excluir**). Confirmada, a pergunta é removida de vez: **não há "Desfazer"**. Cancelar não muda nada. Depois de excluir, fica selecionada a pergunta que ocupou a posição dela, ou a anterior se ela era a última. | kahoot-reference §3.2 · decisão do produto (2026-09-25) · confirmação: referência visual do Kahoot e pedido do usuário (2026-10-01) |
 | RN-15 | **Não é possível excluir a única pergunta do quiz.** A ação fica indisponível e explica o motivo: "Não é possível excluir todo o conteúdo". | referência visual do Kahoot (2026-09-25) |
 | RN-16 | Um quiz tem no máximo **200 perguntas**. Com 200, Adicionar e Duplicar ficam indisponíveis e explicam o motivo. O limite existe por razão técnica (tamanho da partida e da versão salva) e é configurável. | kahoot-reference §3.2 · constituição, artigo VI |
 | RN-17 | Cada item da lista mostra o número da posição, o tipo ("Quiz"), o começo do enunciado (ou nada, se vazio) e uma miniatura no formato da pergunta. A pergunta selecionada fica destacada. | kahoot-reference §3.2 · referência visual do Kahoot |
@@ -186,13 +186,14 @@ Jogadores e anfitriões não aparecem nesta feature.
 - **Quando** o criador usa a ação de mover B para cima
 - **Então** a lista fica B, A, C e o foco continua em B
 
-#### CA-13 — Excluir e desfazer
+#### CA-13 — Excluir com confirmação
 
 - **Dado** um quiz com as perguntas A, B e C, com B selecionada
-- **Quando** o criador exclui B
-- **Então** a lista fica A, C, com C selecionada, e aparece a opção "Desfazer"
-- **Quando** ele aciona "Desfazer"
-- **Então** a lista volta a ser A, B, C, com o conteúdo de B intacto
+- **Quando** o criador aciona excluir em B
+- **Então** aparece a confirmação "Excluir pergunta", e a lista continua A, B, C
+- **Quando** ele confirma em "Excluir"
+- **Então** a lista fica A, C, com C selecionada, sem opção de desfazer, e continua assim ao recarregar
+- **E** se, na confirmação, ele escolhe "Cancelar", a lista continua A, B, C
 
 #### CA-14 — Excluir a última da lista seleciona a anterior
 
@@ -229,12 +230,13 @@ Jogadores e anfitriões não aparecem nesta feature.
 - **Então** o item da lista passa a mostrar esse enunciado
 - **E** depois que ele para de digitar, o estado passa a "Salvo", e ao recarregar a página o enunciado continua lá
 
-#### CA-19 — Limite de 120 caracteres
+#### CA-19 — Limite de 160 caracteres
 
 - **Dado** uma pergunta selecionada
-- **Quando** o criador digita ou cola um texto de 130 caracteres
-- **Então** o enunciado fica com os 120 primeiros e não aceita mais nenhum
-- **E** um texto de exatamente 120 caracteres, incluindo acentos e emoji contados como 1, é aceito inteiro
+- **Quando** o criador digita ou cola um texto de 170 caracteres
+- **Então** o enunciado fica com os 160 primeiros e não aceita mais nenhum
+- **E** um texto de exatamente 160 caracteres, incluindo acentos e emoji contados como 1, é aceito inteiro
+- **E** enquanto o campo está em foco, o canto dele mostra quantos caracteres restam ("155" com "teste" escrito); fora do foco, a contagem some
 
 #### CA-20 — Enunciado só com espaços
 
@@ -326,7 +328,7 @@ Jogadores e anfitriões não aparecem nesta feature.
   - à direita, a ação **Sair**. O espaço do botão **Salvar** fica reservado para a spec 006.
 - **Lista de perguntas (esquerda)**: cada item com o número e o tipo ("1 Quiz"), a miniatura com o começo do enunciado e, ao lado, as ações duplicar e excluir. A selecionada fica destacada. Abaixo da lista, o botão **Adicionar**. Os itens podem ser arrastados.
 - **Pergunta (centro)**, sobre o fundo do editor:
-  - o enunciado, em destaque no topo, com o texto de apoio "Comece a digitar a pergunta" e a contagem de caracteres restantes quando o texto se aproxima do limite;
+  - o enunciado, em destaque no topo, com o texto de apoio "Comece a digitar a pergunta" e, no canto superior direito, a contagem de caracteres restantes enquanto o campo está em foco;
   - abaixo, a área de mídia, marcada "Em breve" (spec 007);
   - abaixo, as quatro alternativas com cor e forma ("Adicionar resposta 1", "Adicionar resposta 2", "Adicionar resposta 3 (opcional)", "Adicionar resposta 4 (opcional)"), visíveis mas ainda não editáveis, marcadas "Em breve" (spec 004).
 - **Painel de propriedades (direita)**: título "Propriedades da pergunta"; "Tipo de pergunta: Quiz", só leitura nesta etapa (spec 005); tempo, pontos e opções de resposta chegam na spec 004. No rodapé, as ações **Excluir** e **Duplicar** da pergunta selecionada, com as mesmas regras da lista.
@@ -336,10 +338,11 @@ Jogadores e anfitriões não aparecem nesta feature.
 
 ## Divergências intencionais do Kahoot
 
-- **Excluir sem confirmação, com "Desfazer"** (RN-14). O Kahoot pede confirmação; o Quizio já usa "Desfazer" nas ações da biblioteca e mantém o padrão, que é mais rápido e igualmente seguro.
 - **Quiz na lixeira não abre no editor** (RN-03). No Kahoot rascunhos não vão para a lixeira; no Quizio vão (spec 001, RN-21), então é preciso definir o que acontece.
 - **Sem "Crie" (IA), sem as abas Procurar / Gerar / Importar, sem Temas, sem pré-visualização e sem "Faça upgrade"**. IA, banco de perguntas e importação ficam para as features 016 e 017; temas e pré-visualização para a 017; "upgrade" não existe no Quizio (constituição, artigo VI).
 - **Limite de 200 perguntas é configurável** (RN-16). O valor é o do Kahoot, mas no Quizio ele é uma decisão técnica, não de plano.
+
+- **Enunciado com até 160 caracteres** (RN-10). O Kahoot limita a 120; o Quizio dá um pouco mais de espaço, por decisão do produto.
 
 ## Fora de escopo
 
@@ -367,3 +370,6 @@ Jogadores e anfitriões não aparecem nesta feature.
   - "Salvando…" aparece na primeira tecla, então fechar a aba antes do envio sempre pede confirmação (RN-23);
   - offline, o salvamento falha visivelmente em vez de ficar pendente (CA-24);
   - Configurações só abre depois de salvar o título digitado.
+- 2026-10-01 — excluir uma pergunta passou a pedir confirmação, como no Kahoot, a pedido do usuário; o "Desfazer" foi mantido (RN-14, CA-13).
+- 2026-10-01 — o "Desfazer" da exclusão de pergunta foi removido por decisão do usuário: com a confirmação, a exclusão é definitiva, como no Kahoot (RN-14, CA-13). O caso de uso `restoreQuestion`, a procedure `quiz.questions.restore` e as funções `restoreQuestionAt` e `parseQuestion` foram removidos; `deleteQuestion` não devolve mais a pergunta excluída.
+- 2026-10-01 — o limite do enunciado subiu de 120 para 160 caracteres e a contagem de caracteres restantes passou a aparecer só com o campo em foco, a pedido do usuário (RN-10, CA-19).

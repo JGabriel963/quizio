@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { aQuestion } from "../testing/a-question";
+import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
 import { blankQuestion, type Question } from "./question";
 import { missingAnswerHints, questionIssues } from "./question-issues";
 
@@ -46,6 +46,26 @@ describe("questionIssues", () => {
 				withChoices([null, "Brasília", null, null, null, "Rio"], [5]),
 			),
 		).toEqual([]);
+	});
+});
+
+describe("questionIssues of a true/false question", () => {
+	it("misses its text and its correct answer", () => {
+		expect(
+			questionIssues(aTrueFalseQuestion({ text: null, correct: null })),
+		).toEqual(["missingText", "noCorrectTrueFalse"]);
+		expect(questionIssues(aTrueFalseQuestion({ correct: null }))).toEqual([
+			"noCorrectTrueFalse",
+		]);
+	});
+
+	it("is complete with a text and either answer marked", () => {
+		expect(questionIssues(aTrueFalseQuestion({ correct: false }))).toEqual([]);
+		expect(questionIssues(aTrueFalseQuestion({ correct: true }))).toEqual([]);
+	});
+
+	it("has no answer hints", () => {
+		expect(missingAnswerHints(aTrueFalseQuestion())).toEqual([]);
 	});
 });
 

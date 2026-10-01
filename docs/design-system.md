@@ -23,6 +23,7 @@
 | `answer-green` | `#26890c` | Alternativa 4 — quadrado |
 | `answer-teal` | `#0c8582` | Alternativa 5 — pentágono |
 | `answer-purple` | `#864cbf` | Alternativa 6 — triângulo invertido |
+| `answer-correct` | `#66bf39` | Marcação de "resposta correta" sobre um bloco de alternativa |
 | `shadow-press` / `shadow-press-sm` / `shadow-press-light` | inset inferior | Efeito de botão pressionável |
 | `--radius` | `0.375rem` | Cantos levemente arredondados (primitivos passaram de `rounded-none` para `rounded-md`) |
 | Fonte | Montserrat Variable | `@fontsource-variable/montserrat` |
@@ -43,11 +44,16 @@ Além das variantes de visibilidade do quiz (`private`, `unlisted`), a variante 
 
 Abas para as seções de uma área (Recentes / Rascunhos / Lixeira na Biblioteca). **São links, nunca `role="tablist"`**: a seção mora na URL, então voltar/avançar do navegador e abrir em nova aba precisam funcionar. Use `render={<Link …/>}` no `TabNavItem` e `current` para marcar a seção aberta (`aria-current="page"`). O trilho é `inline-flex`: dentro de uma coluna `flex`, envolva num `div` para ele não esticar.
 
+### `Select`
+
+Lista de opções sobre `@base-ui/react/select`, usada no lugar do `<select>` do navegador (painel de propriedades do editor). `SelectTrigger` tem o visual dos campos do Kahoot (borda, `shadow-press-light`) e ocupa a largura do contêiner; `SelectContent` abre abaixo do campo, com a largura dele. Dê nome ao campo com `aria-labelledby` no `SelectTrigger`. `SelectItem` tem `variant="tile"` para cartões com ícone em cima e nome embaixo (lista de tipos de pergunta), dentro de um `SelectGroup` com `SelectLabel`.
+
 ### `AnswerOption` + `AnswerShape`
 
 - A **cor é derivada da forma** — impossível exibir um triângulo azul.
 - Ordem fixa: `answerShapeAt(0..5)` → triângulo, losango, círculo, quadrado, pentágono, triângulo invertido.
 - A 5ª (turquesa, pentágono) e a 6ª (roxo, triângulo invertido) seguem a referência não confirmada adotada na spec 004 (RN-01; `kahoot-reference §6.5`).
+- **Verdadeiro ou falso** (spec 005, RN-06) não segue a ordem das posições: "Verdadeiro" é o losango azul e "Falso" o triângulo vermelho, nessa ordem. O par mora em `TRUE_FALSE_ANSWERS` (`apps/web/src/components/editor/true-false-answers.tsx`).
 - `ANSWER_COLOR_CLASSES` é a fonte única do par forma → fundo para blocos que não são `AnswerOption` (campos do editor, miniaturas).
 - `state`: `idle`, `selected` (múltipla escolha; expõe `aria-pressed`), `correct` (ícone de check), `incorrect` (esmaecida + X).
 - `size`: `default` (celular do jogador), `lg`/`xl` (tela do host).
@@ -55,7 +61,7 @@ Abas para as seções de uma área (Recentes / Rascunhos / Lixeira na Biblioteca
 ### `Checkbox`
 
 - `variant="default"`: caixa de formulário.
-- `variant="answer"`: marcação redonda de "resposta correta" sobre um bloco de alternativa (spec 004); borda branca, verde quando marcada.
+- `variant="answer"`: marcação redonda de "resposta correta" sobre um bloco de alternativa (spec 004); anel branco, preenchida de verde-claro (`answer-correct`) com o check branco quando marcada, para aparecer também sobre a alternativa verde.
 
 ## Adicionando ou alterando componentes
 
