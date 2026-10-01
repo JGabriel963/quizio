@@ -11,6 +11,7 @@ import { aQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
+import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
 import { type AddQuestion, createAddQuestion } from "./add-question";
 
 describe("addQuestion", () => {
@@ -27,6 +28,7 @@ describe("addQuestion", () => {
 		addQuestion = createAddQuestion({
 			quizzes,
 			questions,
+			versions: new InMemoryQuizVersionRepository(),
 			ids: new SequentialIdGenerator("new"),
 			clock,
 		});
@@ -71,6 +73,7 @@ describe("addQuestion", () => {
 			text: null,
 			timeLimitSeconds: 20,
 			points: "standard",
+			image: null,
 			correct: null,
 		});
 	});
@@ -114,6 +117,7 @@ describe("addQuestion", () => {
 		const racingAdd = createAddQuestion({
 			quizzes,
 			questions: racingQuestions,
+			versions: new InMemoryQuizVersionRepository(),
 			ids: new SequentialIdGenerator("new"),
 			clock,
 		});

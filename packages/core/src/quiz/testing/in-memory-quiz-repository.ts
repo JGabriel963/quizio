@@ -12,10 +12,13 @@ export class InMemoryQuizRepository implements QuizRepository {
 		this.#quizzes.set(quiz.id, quiz);
 	}
 
-	async touch(id: string, updatedAt: Date): Promise<void> {
+	async markEdited(
+		id: string,
+		change: { updatedAt: Date; hasUnpublishedChanges: boolean },
+	): Promise<void> {
 		const quiz = this.#quizzes.get(id);
 		if (quiz) {
-			this.#quizzes.set(id, { ...quiz, updatedAt });
+			this.#quizzes.set(id, { ...quiz, ...change });
 		}
 	}
 

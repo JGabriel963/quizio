@@ -75,11 +75,25 @@ describe("QuestionList", () => {
 			name: "Pergunta 1 incompleta",
 		});
 		expect(warning).toHaveAccessibleDescription(
-			"Falta o texto da pergunta. Adicione pelo menos 2 respostas. Marque pelo menos 1 resposta correta.",
+			"Pergunta ausente. 2 respostas faltando. Resposta correta não selecionada.",
 		);
 		expect(
 			screen.queryByRole("button", { name: "Pergunta 2 incompleta" }),
 		).toBeNull();
+	});
+
+	it("tells how many answers are missing", () => {
+		renderList([
+			question("a", "A?", {
+				choices: blankQuestion("a").choices.map((choice, index) =>
+					index === 0 ? { ...choice, text: "Brasília", correct: true } : choice,
+				),
+			}),
+		]);
+
+		expect(
+			screen.getByRole("button", { name: "Pergunta 1 incompleta" }),
+		).toHaveAccessibleDescription("1 resposta faltando.");
 	});
 
 	it("does not flag a question the creator has just started", () => {
@@ -129,7 +143,7 @@ describe("QuestionList", () => {
 		expect(
 			screen.getByRole("button", { name: "Pergunta 2 incompleta" }),
 		).toHaveAccessibleDescription(
-			"Falta o texto da pergunta. Marque a resposta correta.",
+			"Pergunta ausente. Resposta correta não selecionada.",
 		);
 		expect(third).toHaveTextContent("3 Verdadeiro ou falso");
 		expect(

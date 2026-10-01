@@ -4,7 +4,7 @@ import { CheckIcon, CloudOffIcon, LoaderCircleIcon } from "lucide-react";
 
 import type { SaveStatus as SaveStatusValue } from "@/lib/save-tracker";
 
-/** Header indicator of the autosave (spec 003, RN-21). */
+/** Header indicator of the autosave (spec 003, RN-21). Narrow screens keep only the icon. */
 export function SaveStatus({
 	status,
 	onRetry,
@@ -26,19 +26,19 @@ export function SaveStatus({
 						aria-hidden="true"
 						className="size-4 animate-spin"
 					/>
-					Salvando…
+					<span className="max-sm:sr-only">Salvando…</span>
 				</>
 			)}
 			{status === "saved" && (
 				<>
 					<CheckIcon aria-hidden="true" className="size-4" />
-					Salvo
+					<span className="max-sm:sr-only">Salvo</span>
 				</>
 			)}
 			{status === "failed" && (
 				<>
 					<CloudOffIcon aria-hidden="true" className="size-4" />
-					Não foi possível salvar
+					<span className="max-sm:sr-only">Não foi possível salvar</span>
 					<Button variant="link" size="sm" className="px-1" onClick={onRetry}>
 						Tentar de novo
 					</Button>

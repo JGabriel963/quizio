@@ -12,6 +12,7 @@ import { aQuestion, asQuiz, aTrueFalseQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
+import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
 import {
 	createDuplicateQuestion,
 	type DuplicateQuestion,
@@ -48,6 +49,7 @@ describe("duplicateQuestion", () => {
 		duplicateQuestion = createDuplicateQuestion({
 			quizzes,
 			questions,
+			versions: new InMemoryQuizVersionRepository(),
 			ids: new SequentialIdGenerator("copy"),
 			clock,
 		});

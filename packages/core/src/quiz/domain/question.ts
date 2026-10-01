@@ -1,5 +1,6 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { characterCount } from "../../shared/domain/text-length";
+import { copyImage, type QuestionImage } from "./question-image";
 
 /** The types the editor offers (spec 005, RN-01). */
 export const QUESTION_TYPES = ["quiz", "trueFalse"] as const;
@@ -45,6 +46,8 @@ interface QuestionBase {
 	text: string | null;
 	timeLimitSeconds: TimeLimitSeconds;
 	points: QuestionPoints;
+	/** Optional, whatever the type (spec 007, RN-01). */
+	image: QuestionImage | null;
 }
 
 export interface QuizQuestion extends QuestionBase {
@@ -135,16 +138,17 @@ export function blankQuestion(
 		text: null,
 		timeLimitSeconds: DEFAULT_TIME_LIMIT_SECONDS,
 		points: "standard",
+		image: null,
 		...blankContent(type),
 	};
 }
 
 /**
- * Nothing written or marked yet: the editor does not warn about a question the
- * creator has just started (spec 004, RN-16).
+ * Nothing written, marked or inserted yet: the editor does not warn about a
+ * question the creator has just started (spec 004, RN-16).
  */
 export function isBlankQuestion(question: Question): boolean {
-	if (question.text !== null) {
+	if (question.text !== null || question.image !== null) {
 		return false;
 	}
 	switch (question.type) {
@@ -334,5 +338,10 @@ export function storedContent(question: Question): Record<string, unknown> {
 
 /** An independent copy under a new id (spec 003, RN-12; spec 004, RN-18; spec 005, RN-21). */
 export function copyQuestion<T extends Question>(source: T, id: string): T {
-	return { ...source, ...questionContent(source), id };
+	return {
+		...source,
+		...questionContent(source),
+		image: copyImage(source.image),
+		id,
+	};
 }

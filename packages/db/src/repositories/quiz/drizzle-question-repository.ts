@@ -7,6 +7,7 @@ import {
 	storedContent,
 	TIME_LIMITS_SECONDS,
 } from "@quizio/core/quiz/domain/question";
+import { parseStoredImage } from "@quizio/core/quiz/domain/question-image";
 import { and, asc, count, eq, notInArray, sql } from "drizzle-orm";
 
 import { question as questionTable } from "../../schema/quiz";
@@ -14,7 +15,7 @@ import type { Database } from "../../types";
 
 type QuestionRow = Pick<
 	typeof questionTable.$inferSelect,
-	"id" | "type" | "text" | "timeLimitSeconds" | "points" | "content"
+	"id" | "type" | "text" | "timeLimitSeconds" | "points" | "content" | "image"
 >;
 
 /** Tolerant on read: a value the core no longer accepts falls back to the default. */
@@ -28,6 +29,7 @@ function toQuestion(row: QuestionRow): Question {
 			? (row.timeLimitSeconds as Question["timeLimitSeconds"])
 			: DEFAULT_TIME_LIMIT_SECONDS,
 		points: QUESTION_POINTS.includes(row.points) ? row.points : "standard",
+		image: parseStoredImage(row.image),
 		...parseStoredContent(row.type, row.content),
 	};
 }
@@ -40,6 +42,7 @@ function toColumns(question: Question) {
 		timeLimitSeconds: question.timeLimitSeconds,
 		points: question.points,
 		content: storedContent(question),
+		image: question.image,
 	};
 }
 
@@ -58,6 +61,7 @@ export function createDrizzleQuestionRepository(
 					timeLimitSeconds: questionTable.timeLimitSeconds,
 					points: questionTable.points,
 					content: questionTable.content,
+					image: questionTable.image,
 				})
 				.from(questionTable)
 				.where(ofQuiz(quizId))
@@ -107,6 +111,7 @@ export function createDrizzleQuestionRepository(
 							),
 							points: sql.raw(`excluded.${questionTable.points.name}`),
 							content: sql.raw(`excluded.${questionTable.content.name}`),
+							image: sql.raw(`excluded.${questionTable.image.name}`),
 						},
 						// Ids come back from clients on undo: an id owned by another
 						// quiz must never be taken over.

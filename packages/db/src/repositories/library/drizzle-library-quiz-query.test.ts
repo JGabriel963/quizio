@@ -1,7 +1,7 @@
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
 import { aQuestion } from "@quizio/core/quiz/testing/a-question";
-import { aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { user } from "../../schema/auth";
@@ -82,6 +82,48 @@ describe("DrizzleLibraryQuizQuery", () => {
 		expect(ids(await list("recent"))).toEqual(["active"]);
 		expect(ids(await list("drafts"))).toEqual(["active"]);
 		expect(ids(await list("trash"))).toEqual(["trashed"]);
+	});
+
+	it("drafts leave out published quizzes", async () => {
+		await seed(
+			aQuiz({ id: "draft", updatedAt: day(1) }),
+			aPublishedQuiz({ id: "published", updatedAt: day(2) }),
+			aPublishedQuiz({
+				id: "changed",
+				hasUnpublishedChanges: true,
+				updatedAt: day(3),
+			}),
+		);
+
+		expect(ids(await list("drafts"))).toEqual(["draft"]);
+		await expect(count("drafts")).resolves.toBe(1);
+		expect(ids(await list("recent"))).toEqual([
+			"changed",
+			"published",
+			"draft",
+		]);
+	});
+
+	it("returns hasUnpublishedChanges", async () => {
+		await seed(
+			aPublishedQuiz({ id: "published", updatedAt: day(1) }),
+			aPublishedQuiz({
+				id: "changed",
+				hasUnpublishedChanges: true,
+				updatedAt: day(2),
+			}),
+		);
+
+		expect(
+			(await list("recent")).map(({ id, status, hasUnpublishedChanges }) => ({
+				id,
+				status,
+				hasUnpublishedChanges,
+			})),
+		).toEqual([
+			{ id: "changed", status: "published", hasUnpublishedChanges: true },
+			{ id: "published", status: "published", hasUnpublishedChanges: false },
+		]);
 	});
 
 	it("orders by updatedAt desc and the trash by trashedAt desc", async () => {
@@ -198,6 +240,7 @@ describe("DrizzleLibraryQuizQuery", () => {
 				coverImageKey: "media/user-1/cover.png",
 				visibility: "unlisted",
 				status: "draft",
+				hasUnpublishedChanges: false,
 				questionCount: 0,
 				updatedAt: aQuiz().updatedAt,
 				trashedAt: null,

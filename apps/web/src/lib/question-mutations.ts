@@ -13,12 +13,15 @@ import { useTRPC } from "@/utils/trpc";
 
 import type { QuizEditorData } from "./api-types";
 import {
+	withImageUrl,
 	withQuestionChanged,
 	withQuestionInserted,
 	withQuestionMoved,
 	withQuestionRemoved,
+	withQuizPublished,
 	withTimeLimitForAll,
 } from "./editor-cache";
+import { IMAGE_UPLOAD_FAILED_MESSAGE } from "./question-image-upload";
 import { changeNoticeMessage, timeAppliedMessage } from "./question-labels";
 import {
 	createRememberedContents,
@@ -27,6 +30,7 @@ import {
 import { isDomainRefusal, quizErrorMessage } from "./quiz-error-messages";
 import { useInvalidateQuizzes } from "./quiz-mutations";
 import { useSaveTracker } from "./save-tracker";
+import { uploadFile } from "./upload-file";
 
 const STRUCTURE = "structure";
 
@@ -96,6 +100,18 @@ export function useEditorActions(quizId: string): EditorActions {
 
 	const applyToAll = useMutation({
 		...trpc.quiz.questions.applyTimeLimitToAll.mutationOptions(),
+		...SEND_EVEN_OFFLINE,
+	});
+	const publish = useMutation({
+		...trpc.quiz.publish.mutationOptions(),
+		...SEND_EVEN_OFFLINE,
+	});
+	const discard = useMutation({
+		...trpc.quiz.discardChanges.mutationOptions(),
+		...SEND_EVEN_OFFLINE,
+	});
+	const requestUpload = useMutation({
+		...trpc.media.requestUpload.mutationOptions(),
 		...SEND_EVEN_OFFLINE,
 	});
 
@@ -224,9 +240,45 @@ export function useEditorActions(quizId: string): EditorActions {
 		}
 	};
 
+	/**
+	 * Salvar and Descartar (spec 006) wait for their turn in the queue, after
+	 * every write already on its way. A refusal means the editor's copy was
+	 * stale, so it is reloaded.
+	 */
+	async function settle(run: () => Promise<void>): Promise<string | null> {
+		try {
+			await enqueue(run);
+			void invalidateListings();
+			return null;
+		} catch (error) {
+			if (isDomainRefusal(error)) {
+				void queryClient.invalidateQueries({ queryKey: editorKey });
+			}
+			return quizErrorMessage(error);
+		}
+	}
+
 	return {
+		current: getData,
+
+		publish: (details) =>
+			settle(async () => {
+				const quiz = await publish.mutateAsync({ quizId, details });
+				setData((data) => withQuizPublished(data, quiz));
+			}),
+
+		discardChanges: () =>
+			settle(async () => {
+				const editor = await discard.mutateAsync({ quizId });
+				// What the creator typed in other types belonged to the discarded list.
+				remembered.current = createRememberedContents();
+				queryClient.setQueryData(editorKey, editor);
+			}),
+
 		saveTitle: async (title) => {
-			const quiz = await rename.mutateAsync({ quizId, title });
+			// In the queue with the question writes: the server rewrites the whole
+			// quiz row, and must not undo a mark of unpublished changes (plan 006).
+			const quiz = await enqueue(() => rename.mutateAsync({ quizId, title }));
 			setData((data) => ({ ...data, quiz: { ...data.quiz, ...quiz } }));
 			void invalidateListings();
 		},
@@ -236,6 +288,38 @@ export function useEditorActions(quizId: string): EditorActions {
 		},
 
 		changeQuestion,
+
+		// Tracked like a save, so the header says "Salvando" and leaving waits for
+		// it (spec 007, RN-12). A failure is told next to the media area, not as a
+		// failed save: there is nothing to retry without the file.
+		uploadQuestionImage: async (questionId, file, onProgress) => {
+			let failure: string | null = null;
+			await tracker.track(
+				`question:${questionId}:upload`,
+				async () => {
+					try {
+						const upload = await requestUpload.mutateAsync({
+							contentType: file.type,
+							sizeBytes: file.size,
+						});
+						await uploadFile({ file, upload, onProgress });
+						setData((data) => withImageUrl(data, upload.key, upload.publicUrl));
+						await prepareChange(questionId, {
+							kind: "image",
+							key: upload.key,
+						})?.();
+					} catch (error) {
+						failure = isDomainRefusal(error)
+							? quizErrorMessage(error)
+							: IMAGE_UPLOAD_FAILED_MESSAGE;
+						// The image may already be in the cache: go back to what was saved.
+						void queryClient.invalidateQueries({ queryKey: editorKey });
+					}
+				},
+				{ retryable: false },
+			);
+			return failure;
+		},
 
 		changeQuestionType: (questionId, type) => {
 			const current = getData()?.questions.find(({ id }) => id === questionId);

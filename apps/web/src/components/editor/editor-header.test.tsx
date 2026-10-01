@@ -1,3 +1,4 @@
+import type { QuizPublishState } from "@quizio/core/quiz/domain/quiz";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -7,13 +8,22 @@ import { renderWithRouter } from "@/testing/render-with-router";
 
 import { EditorHeader } from "./editor-header";
 
-async function renderHeader() {
+async function renderHeader({
+	publishState = "draft",
+	publishing = false,
+}: {
+	publishState?: QuizPublishState;
+	publishing?: boolean;
+} = {}) {
 	const tracker = createSaveTracker();
 	const props = {
 		title: "Geografia",
+		publishState,
+		publishing,
 		onSaveTitle: vi.fn(async (_title: string | null): Promise<void> => {}),
 		onOpenSettings: vi.fn(),
 		onExit: vi.fn(),
+		onPublish: vi.fn(),
 	};
 	renderWithRouter(
 		<SaveTrackerProvider tracker={tracker}>
@@ -67,7 +77,69 @@ describe("EditorHeader", () => {
 		expect(props.onExit).not.toHaveBeenCalled();
 		finish();
 
-		await vi.waitFor(() => expect(props.onExit).toHaveBeenCalledOnce());
+		await vi.waitFor(() =>
+			expect(props.onExit).toHaveBeenCalledExactlyOnceWith("library"),
+		);
+	});
+
+	it("the brand asks to leave to the home page", async () => {
+		const { props, user } = await renderHeader();
+
+		await user.click(screen.getByRole("link", { name: "Quizio" }));
+
+		await vi.waitFor(() =>
+			expect(props.onExit).toHaveBeenCalledExactlyOnceWith("home"),
+		);
+	});
+
+	it.each([
+		["draft", "Rascunho"],
+		["published", "Publicado"],
+		["unpublishedChanges", "Alterações não salvas"],
+	] as const)("shows the status badge: %s", async (publishState, label) => {
+		await renderHeader({ publishState });
+
+		expect(screen.getByText(label)).toHaveAttribute("data-slot", "badge");
+	});
+
+	it("Salvar waits for the autosave", async () => {
+		const { props, tracker, user } = await renderHeader();
+		let finish!: () => void;
+		void tracker.track(
+			"question:a:text",
+			() => new Promise<void>((resolve) => (finish = resolve)),
+		);
+
+		await user.click(screen.getByRole("button", { name: "Salvar" }));
+		expect(props.onPublish).not.toHaveBeenCalled();
+		finish();
+
+		await vi.waitFor(() => expect(props.onPublish).toHaveBeenCalledOnce());
+	});
+
+	it("a failed autosave stops Salvar", async () => {
+		const { props, tracker, user } = await renderHeader();
+		await tracker.track("question:a:text", async () => {
+			throw new Error("offline");
+		});
+
+		await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+		expect(props.onPublish).not.toHaveBeenCalled();
+		expect(screen.getByRole("status")).toHaveTextContent(
+			"Não foi possível salvar",
+		);
+	});
+
+	it("Salvar is busy while publishing", async () => {
+		const { props, user } = await renderHeader({ publishing: true });
+		const save = screen.getByRole("button", { name: "Salvar" });
+
+		expect(save).toBeDisabled();
+		expect(save).toHaveAttribute("aria-busy", "true");
+		await user.click(save);
+
+		expect(props.onPublish).not.toHaveBeenCalled();
 	});
 
 	it("Sair stays when a save failed", async () => {

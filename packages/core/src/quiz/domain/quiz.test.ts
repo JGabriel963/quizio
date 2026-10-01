@@ -5,18 +5,26 @@ import {
 	assertPermanentlyDeletable,
 	changeQuizDetails,
 	copyQuiz,
+	markQuizChanges,
 	newQuiz,
+	publishQuiz,
 	type Quiz,
 	QuizInTrashError,
 	QuizNotFoundError,
 	QuizNotInTrashError,
+	QuizTitleRequiredError,
+	quizPublishState,
 	renameQuiz,
 	requireOwnedQuiz,
 	restoreQuiz,
 	touchQuiz,
 	trashQuiz,
+	withFinishingTouches,
 } from "./quiz";
-import { QuizTitleTooLongError } from "./quiz-details";
+import {
+	QuizDescriptionTooLongError,
+	QuizTitleTooLongError,
+} from "./quiz-details";
 
 const createdAt = new Date("2026-01-01T10:00:00.000Z");
 const oneDayLater = new Date("2026-01-02T10:00:00.000Z");
@@ -57,10 +65,123 @@ describe("newQuiz", () => {
 			coverImageKey: null,
 			visibility: "private",
 			status: "draft",
+			publishedVersion: null,
+			publishedAt: null,
+			hasUnpublishedChanges: false,
 			createdAt,
 			updatedAt: createdAt,
 			trashedAt: null,
 		});
+	});
+});
+
+describe("publishing", () => {
+	const published = () => publishQuiz(aQuiz(), oneDayLater);
+
+	it("publishing numbers the versions", () => {
+		expect(published()).toEqual({
+			...aQuiz(),
+			status: "published",
+			publishedVersion: 1,
+			publishedAt: oneDayLater,
+			hasUnpublishedChanges: false,
+			updatedAt: oneDayLater,
+		});
+
+		const again = publishQuiz(
+			{ ...published(), hasUnpublishedChanges: true },
+			twoDaysLater,
+		);
+
+		expect(again).toMatchObject({
+			status: "published",
+			publishedVersion: 2,
+			publishedAt: twoDaysLater,
+			hasUnpublishedChanges: false,
+		});
+	});
+
+	it("publishing needs a title", () => {
+		expect(() => publishQuiz(aQuiz({ title: null }), oneDayLater)).toThrow(
+			QuizTitleRequiredError,
+		);
+	});
+
+	it("a trashed quiz is not published", () => {
+		expect(() =>
+			publishQuiz(aQuiz({ trashedAt: oneDayLater }), twoDaysLater),
+		).toThrow(QuizInTrashError);
+	});
+
+	it("a published quiz keeps its title", () => {
+		expect(() => renameQuiz(published(), "  ", twoDaysLater)).toThrow(
+			QuizTitleRequiredError,
+		);
+		expect(() =>
+			changeQuizDetails(
+				published(),
+				{
+					details: { title: null, description: null, visibility: "private" },
+					coverImageKey: null,
+				},
+				twoDaysLater,
+			),
+		).toThrow(QuizTitleRequiredError);
+		expect(renameQuiz(published(), "Geografia", twoDaysLater).title).toBe(
+			"Geografia",
+		);
+	});
+
+	it("finishing touches set the title and the description", () => {
+		expect(
+			withFinishingTouches(aQuiz({ title: null, description: null }), {
+				title: "  Capitais do mundo ",
+				description: "  Para a aula de geografia ",
+			}),
+		).toMatchObject({
+			title: "Capitais do mundo",
+			description: "Para a aula de geografia",
+			updatedAt: createdAt,
+		});
+		expect(() =>
+			withFinishingTouches(aQuiz(), {
+				title: "a".repeat(96),
+				description: null,
+			}),
+		).toThrow(QuizTitleTooLongError);
+		expect(() =>
+			withFinishingTouches(aQuiz(), {
+				title: "Ok",
+				description: "a".repeat(501),
+			}),
+		).toThrow(QuizDescriptionTooLongError);
+	});
+
+	it("only a published quiz has pending changes", () => {
+		expect(markQuizChanges(aQuiz(), true, oneDayLater)).toEqual({
+			...aQuiz(),
+			updatedAt: oneDayLater,
+		});
+		expect(markQuizChanges(published(), true, twoDaysLater)).toEqual({
+			...published(),
+			hasUnpublishedChanges: true,
+			updatedAt: twoDaysLater,
+		});
+		expect(
+			markQuizChanges(
+				{ ...published(), hasUnpublishedChanges: true },
+				false,
+				twoDaysLater,
+			).hasUnpublishedChanges,
+		).toBe(false);
+	});
+
+	it("publish state of a quiz", () => {
+		expect(quizPublishState(aQuiz())).toBe("draft");
+		expect(quizPublishState(published())).toBe("published");
+		expect(
+			quizPublishState({ ...published(), hasUnpublishedChanges: true }),
+		).toBe("unpublishedChanges");
 	});
 });
 
@@ -159,9 +280,32 @@ describe("copyQuiz", () => {
 			coverImageKey: "media/user-1/copy.png",
 			visibility: "unlisted",
 			status: "draft",
+			publishedVersion: null,
+			publishedAt: null,
+			hasUnpublishedChanges: false,
 			createdAt: twoDaysLater,
 			updatedAt: twoDaysLater,
 			trashedAt: null,
+		});
+	});
+
+	it("a copy is always a draft", () => {
+		const source = {
+			...publishQuiz(aQuiz(), oneDayLater),
+			hasUnpublishedChanges: true,
+		};
+
+		expect(
+			copyQuiz(source, {
+				id: "quiz-2",
+				coverImageKey: null,
+				now: twoDaysLater,
+			}),
+		).toMatchObject({
+			status: "draft",
+			publishedVersion: null,
+			publishedAt: null,
+			hasUnpublishedChanges: false,
 		});
 	});
 

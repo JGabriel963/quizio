@@ -3,6 +3,7 @@ import { parseTimeLimit } from "../domain/question";
 import { loadEditableQuiz, markQuizEdited } from "./editable-quiz";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
+import type { QuizVersionRepository } from "./ports/quiz-version-repository";
 import type { QuizReference } from "./quiz-reference";
 
 export interface ApplyTimeLimitToAllInput extends QuizReference {
@@ -17,6 +18,7 @@ export type ApplyTimeLimitToAll = (
 export function createApplyTimeLimitToAll(deps: {
 	quizzes: QuizRepository;
 	questions: QuestionRepository;
+	versions: Pick<QuizVersionRepository, "find">;
 	clock: Clock;
 }): ApplyTimeLimitToAll {
 	return async ({ seconds, ...ref }) => {
@@ -28,7 +30,7 @@ export function createApplyTimeLimitToAll(deps: {
 		}));
 
 		await deps.questions.saveList(quiz.id, list);
-		await markQuizEdited(deps, quiz);
+		await markQuizEdited(deps, quiz, list);
 
 		return { updatedCount: list.length };
 	};

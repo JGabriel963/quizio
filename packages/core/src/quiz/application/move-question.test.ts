@@ -6,6 +6,7 @@ import { aQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
+import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
 import { createMoveQuestion, type MoveQuestion } from "./move-question";
 
 describe("moveQuestion", () => {
@@ -19,7 +20,12 @@ describe("moveQuestion", () => {
 		quizzes = new InMemoryQuizRepository();
 		questions = new InMemoryQuestionRepository();
 		clock = new FixedClock("2026-06-01T12:00:00.000Z");
-		moveQuestion = createMoveQuestion({ quizzes, questions, clock });
+		moveQuestion = createMoveQuestion({
+			quizzes,
+			questions,
+			versions: new InMemoryQuizVersionRepository(),
+			clock,
+		});
 		await quizzes.save(aQuiz());
 		await questions.saveList("quiz-1", [
 			aQuestion({ id: "a" }),

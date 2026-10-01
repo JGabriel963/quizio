@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
 import { blankQuestion, type Question } from "./question";
-import { missingAnswerHints, questionIssues } from "./question-issues";
+import {
+	incompleteQuestions,
+	missingAnswerCount,
+	missingAnswerHints,
+	questionIssues,
+} from "./question-issues";
 
 function withChoices(
 	texts: (string | null)[],
@@ -86,5 +91,44 @@ describe("missingAnswerHints", () => {
 		expect(
 			missingAnswerHints(withChoices(["Brasília", null, "Rio", null])),
 		).toEqual([]);
+	});
+});
+
+describe("incompleteQuestions", () => {
+	it("lists incomplete questions in order with their issues", () => {
+		const complete = withChoices(["Brasília", "Rio", null, null], [0]);
+		const noCorrect = withChoices(["Brasília", "Rio", null, null]);
+		const blank = blankQuestion("blank");
+
+		expect(incompleteQuestions([complete, noCorrect, blank])).toEqual([
+			{ question: noCorrect, position: 2, issues: ["noCorrectAnswer"] },
+			{
+				question: blank,
+				position: 3,
+				issues: ["missingText", "notEnoughAnswers", "noCorrectAnswer"],
+			},
+		]);
+		expect(incompleteQuestions([complete])).toEqual([]);
+	});
+
+	it("a true/false question without a correct answer", () => {
+		const question = aTrueFalseQuestion({ correct: null });
+
+		expect(incompleteQuestions([question])).toEqual([
+			{ question, position: 1, issues: ["noCorrectTrueFalse"] },
+		]);
+	});
+});
+
+describe("missingAnswerCount", () => {
+	it("counts the missing answers", () => {
+		expect(missingAnswerCount(blankQuestion("q"))).toBe(2);
+		expect(
+			missingAnswerCount(withChoices([null, null, "Rio", null], [2])),
+		).toBe(1);
+		expect(
+			missingAnswerCount(withChoices(["Brasília", "Rio", "Recife", null])),
+		).toBe(0);
+		expect(missingAnswerCount(aTrueFalseQuestion())).toBe(0);
 	});
 });

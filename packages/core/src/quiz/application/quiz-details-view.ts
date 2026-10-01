@@ -11,6 +11,10 @@ export interface QuizDetailsView {
 	coverImageUrl: string | null;
 	visibility: QuizVisibility;
 	status: QuizStatus;
+	/** Null in a draft (spec 006). */
+	publishedVersion: number | null;
+	publishedAt: Date | null;
+	hasUnpublishedChanges: boolean;
 	questionCount: number;
 	createdAt: Date;
 	updatedAt: Date;
@@ -31,6 +35,9 @@ export function toQuizDetailsView(
 			: null,
 		visibility: quiz.visibility,
 		status: quiz.status,
+		publishedVersion: quiz.publishedVersion,
+		publishedAt: quiz.publishedAt,
+		hasUnpublishedChanges: quiz.hasUnpublishedChanges,
 		questionCount,
 		createdAt: quiz.createdAt,
 		updatedAt: quiz.updatedAt,

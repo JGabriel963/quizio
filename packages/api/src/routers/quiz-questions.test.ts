@@ -139,6 +139,7 @@ describe("quiz.questions router", () => {
 				text: null,
 				timeLimitSeconds: 20,
 				points: "standard",
+				image: null,
 				correct: null,
 			},
 			index: 1,
@@ -182,6 +183,7 @@ describe("quiz.questions router", () => {
 				text: null,
 				timeLimitSeconds: 20,
 				points: "standard",
+				image: null,
 				correct: null,
 			},
 			notice: { kind: "quizAnswersKept" },
@@ -254,6 +256,87 @@ describe("quiz.questions router", () => {
 		expect(error).toMatchObject({
 			code: "BAD_REQUEST",
 			cause: { code: "QUIZ.CHOICE_TEXT_TOO_LONG" },
+		});
+	});
+
+	describe("question image (spec 007)", () => {
+		async function quizWithUpload() {
+			const api = createTestApi();
+			const ana = api.callerFor("user-1");
+			const { id: quizId } = await ana.quiz.create({});
+			const { questions } = await ana.quiz.editor({ quizId });
+			const upload = await ana.media.requestUpload({
+				contentType: "image/png",
+				sizeBytes: 2048,
+			});
+			api.storage.simulateUpload(upload.key);
+			const update = (
+				change: Parameters<typeof ana.quiz.questions.update>[0]["change"],
+			) =>
+				ana.quiz.questions.update({
+					quizId,
+					questionId: questions[0]?.id ?? "",
+					change,
+				});
+			return { api, ana, quizId, upload, update };
+		}
+
+		it("sets, adjusts and removes a question image", async () => {
+			const { api, ana, quizId, upload, update } = await quizWithUpload();
+
+			await update({ kind: "image", key: upload.key });
+			await update({ kind: "imagePlacement", placement: "background" });
+			await update({
+				kind: "imageCrop",
+				crop: { shape: "circle", zoom: 1.5, x: 0, y: 1 },
+			});
+			await update({ kind: "imageAltText", altText: " Ponte " });
+			const withImage = await ana.quiz.editor({ quizId });
+			const { question: removed } = await update({ kind: "image", key: null });
+
+			expect(withImage.questions[0]?.image).toEqual({
+				key: upload.key,
+				placement: "background",
+				crop: { shape: "circle", zoom: 1.5, x: 0, y: 1 },
+				altText: "Ponte",
+			});
+			expect(withImage.imageUrls).toEqual({ [upload.key]: upload.publicUrl });
+			expect(removed.image).toBeNull();
+			expect(api.storage.keys()).toEqual([]);
+		});
+
+		it("refuses someone else's upload with its domainCode", async () => {
+			const { api, update } = await quizWithUpload();
+			api.storage.simulateUpload("media/user-2/segredo.png");
+
+			const error = await failureOf(
+				update({ kind: "image", key: "media/user-2/segredo.png" }),
+			);
+
+			expect(error).toMatchObject({
+				code: "BAD_REQUEST",
+				cause: { code: "QUIZ.INVALID_IMAGE" },
+			});
+		});
+
+		it("refuses a crop out of range and an adjustment without image", async () => {
+			const { upload, update } = await quizWithUpload();
+
+			const noImage = await failureOf(
+				update({ kind: "imageAltText", altText: "Ponte" }),
+			);
+			await update({ kind: "image", key: upload.key });
+			const badCrop = await failureOf(
+				update({
+					kind: "imageCrop",
+					crop: { shape: "square", zoom: 9, x: 0.5, y: 0.5 },
+				}),
+			);
+
+			expect(noImage).toMatchObject({ cause: { code: "QUIZ.NO_IMAGE" } });
+			expect(badCrop).toMatchObject({
+				cause: { code: "QUIZ.INVALID_IMAGE_CROP" },
+			});
 		});
 	});
 

@@ -1,18 +1,22 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
+import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { QuestionTextTooLongError } from "../domain/question";
 import { EmptyChoiceCannotBeCorrectError } from "../domain/question-change";
 import { QuestionNotFoundError } from "../domain/question-list";
+import { newQuizVersion } from "../domain/quiz-version";
 import { aQuestion, asQuiz, aTrueFalseQuestion } from "../testing/a-question";
-import { aQuiz } from "../testing/a-quiz";
+import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
+import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
 import { createUpdateQuestion, type UpdateQuestion } from "./update-question";
 
 describe("updateQuestion", () => {
 	let quizzes: InMemoryQuizRepository;
 	let questions: InMemoryQuestionRepository;
+	let versions: InMemoryQuizVersionRepository;
 	let clock: FixedClock;
 	let updateQuestion: UpdateQuestion;
 	const ref = { ownerId: "user-1", quizId: "quiz-1", questionId: "a" };
@@ -20,8 +24,15 @@ describe("updateQuestion", () => {
 	beforeEach(async () => {
 		quizzes = new InMemoryQuizRepository();
 		questions = new InMemoryQuestionRepository();
+		versions = new InMemoryQuizVersionRepository();
 		clock = new FixedClock("2026-06-01T12:00:00.000Z");
-		updateQuestion = createUpdateQuestion({ quizzes, questions, clock });
+		updateQuestion = createUpdateQuestion({
+			quizzes,
+			questions,
+			versions,
+			storage: new InMemoryObjectStorage(),
+			clock,
+		});
 		await quizzes.save(aQuiz());
 		await quizzes.save(aQuiz({ id: "quiz-2" }));
 		await questions.saveList("quiz-1", [
@@ -48,6 +59,62 @@ describe("updateQuestion", () => {
 			"Qual é a capital do Brasil?",
 		);
 		expect((await quizzes.findById("quiz-1"))?.updatedAt).toEqual(clock.now());
+	});
+
+	describe("on a published quiz", () => {
+		const published = [
+			aQuestion({ id: "a", text: "Capital do Brasil?" }),
+			aQuestion({ id: "b" }),
+		];
+
+		beforeEach(async () => {
+			await quizzes.save(aPublishedQuiz());
+			await questions.saveList("quiz-1", published);
+			await versions.save(
+				newQuizVersion({
+					quizId: "quiz-1",
+					number: 1,
+					questions: published,
+					now: new Date("2026-02-01T10:00:00.000Z"),
+				}),
+			);
+		});
+
+		it("editing a published quiz keeps its version", async () => {
+			await updateQuestion({
+				...ref,
+				change: { kind: "text", text: "Capital da Argentina?" },
+			});
+
+			expect(questions.listOf("quiz-1")[0]?.text).toBe("Capital da Argentina?");
+			expect(versions.allOf("quiz-1")).toMatchObject([
+				{ number: 1, questions: [{ text: "Capital do Brasil?" }, {}] },
+			]);
+			expect(await quizzes.findById("quiz-1")).toMatchObject({
+				status: "published",
+				publishedVersion: 1,
+				hasUnpublishedChanges: true,
+			});
+		});
+
+		it("undoing an edit clears the flag", async () => {
+			await updateQuestion({
+				...ref,
+				change: { kind: "timeLimit", seconds: 30 },
+			});
+			expect((await quizzes.findById("quiz-1"))?.hasUnpublishedChanges).toBe(
+				true,
+			);
+
+			await updateQuestion({
+				...ref,
+				change: { kind: "timeLimit", seconds: 20 },
+			});
+
+			expect((await quizzes.findById("quiz-1"))?.hasUnpublishedChanges).toBe(
+				false,
+			);
+		});
 	});
 
 	it("stores whitespace-only text as null", async () => {

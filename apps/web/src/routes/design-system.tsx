@@ -146,7 +146,9 @@ function DesignSystemPage() {
 						<Badge variant="private">Privado</Badge>
 						<Badge variant="unlisted">Não listado</Badge>
 						<Badge variant="soon">Em breve</Badge>
-						<Badge>Rascunho</Badge>
+						<Badge variant="draft">Rascunho</Badge>
+						<Badge variant="published">Publicado</Badge>
+						<Badge variant="unsaved">Alterações não salvas</Badge>
 					</div>
 				</div>
 			</Section>

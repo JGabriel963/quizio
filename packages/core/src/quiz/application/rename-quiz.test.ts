@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
+import { QuizTitleRequiredError } from "../domain/quiz";
 import { QuizTitleTooLongError } from "../domain/quiz-details";
 import { aQuestion } from "../testing/a-question";
-import { aQuiz } from "../testing/a-quiz";
+import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import { createRenameQuiz, type RenameQuiz } from "./rename-quiz";
@@ -46,5 +47,27 @@ describe("renameQuiz", () => {
 		await expect(renameQuiz({ ...ref, title: "a".repeat(96) })).rejects.toThrow(
 			QuizTitleTooLongError,
 		);
+	});
+
+	it("refuses to clear the title of a published quiz", async () => {
+		await quizzes.save(aPublishedQuiz({ title: "Geografia" }));
+
+		await expect(renameQuiz({ ...ref, title: "  " })).rejects.toThrow(
+			QuizTitleRequiredError,
+		);
+		expect((await quizzes.findById("quiz-1"))?.title).toBe("Geografia");
+	});
+
+	it("renaming a published quiz is not a pending change", async () => {
+		await quizzes.save(aPublishedQuiz());
+
+		const view = await renameQuiz({ ...ref, title: "Geografia 2" });
+
+		expect(view).toMatchObject({
+			title: "Geografia 2",
+			status: "published",
+			publishedVersion: 1,
+			hasUnpublishedChanges: false,
+		});
 	});
 });

@@ -16,6 +16,9 @@ const quiz: QuizDetailsData = {
 	coverImageUrl: null,
 	visibility: "private",
 	status: "draft",
+	publishedVersion: null,
+	publishedAt: null,
+	hasUnpublishedChanges: false,
 	questionCount: 0,
 	createdAt: "2026-04-01T12:00:00.000Z",
 	updatedAt: "2026-04-15T12:00:00.000Z",
@@ -112,5 +115,63 @@ describe("QuizDetailsView", () => {
 		expect(
 			screen.getByRole("button", { name: "Excluir definitivamente" }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("QuizDetailsView status", () => {
+	it("a draft shows its badge and that it was never saved as playable", async () => {
+		renderWithRouter(
+			<QuizDetailsView quiz={quiz} actions={fakeActions()} now={now} />,
+		);
+
+		expect(await screen.findByText("Rascunho")).toHaveAttribute(
+			"data-slot",
+			"badge",
+		);
+		expect(
+			screen.getByText("Ainda não foi salvo como jogável"),
+		).toBeInTheDocument();
+	});
+
+	it("tells when the playable version was saved", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={{
+					...quiz,
+					status: "published",
+					publishedVersion: 1,
+					publishedAt: "2026-06-13T12:00:00.000Z",
+				}}
+				actions={fakeActions()}
+				now={now}
+			/>,
+		);
+
+		expect(
+			await screen.findByText("Versão jogável salva anteontem"),
+		).toBeInTheDocument();
+		expect(screen.queryByText("Rascunho")).toBeNull();
+		expect(screen.queryByText("Alterações não salvas")).toBeNull();
+	});
+
+	it("a published quiz with changes shows the badge", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={{
+					...quiz,
+					status: "published",
+					publishedVersion: 1,
+					publishedAt: "2026-06-13T12:00:00.000Z",
+					hasUnpublishedChanges: true,
+				}}
+				actions={fakeActions()}
+				now={now}
+			/>,
+		);
+
+		expect(await screen.findByText("Alterações não salvas")).toHaveAttribute(
+			"data-slot",
+			"badge",
+		);
 	});
 });

@@ -7,16 +7,24 @@ import type { QuestionData } from "@/lib/api-types";
 import { SaveTrackerProvider } from "@/lib/save-tracker";
 
 import { QuestionCanvas } from "./question-canvas";
+import { NO_UPLOAD } from "./question-media";
 
 function renderCanvas(question: QuestionData, showHints = true) {
 	const handlers = {
 		onSaveText: vi.fn(async () => {}),
 		onSaveChoiceText: vi.fn(async () => {}),
 		onChange: vi.fn(),
+		onUploadImage: vi.fn(),
 	};
 	render(
 		<SaveTrackerProvider>
-			<QuestionCanvas question={question} showHints={showHints} {...handlers} />
+			<QuestionCanvas
+				question={question}
+				imageUrl={null}
+				upload={NO_UPLOAD}
+				showHints={showHints}
+				{...handlers}
+			/>
 		</SaveTrackerProvider>,
 	);
 	return { handlers, user: userEvent.setup() };
@@ -50,7 +58,7 @@ describe("QuestionCanvas", () => {
 			"Capital?",
 		);
 		const media = screen.getByRole("region", { name: "Mídia" });
-		expect(within(media).getByText("Em breve")).toBeInTheDocument();
+		expect(media).toHaveTextContent("Encontre e insira mídia");
 		expect(
 			answerFields().map((field) => field.getAttribute("placeholder")),
 		).toEqual([
@@ -59,7 +67,7 @@ describe("QuestionCanvas", () => {
 			"Adicionar resposta 3 (opcional)",
 			"Adicionar resposta 4 (opcional)",
 		]);
-		expect(screen.getAllByText("Em breve")).toHaveLength(1);
+		expect(screen.queryByText("Em breve")).toBeNull();
 	});
 
 	it("a true/false question shows its two fixed answers and no extra answers action", async () => {

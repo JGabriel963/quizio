@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useBlocker } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { EditorUnavailable } from "@/components/editor/editor-unavailable";
 import { QuizEditor } from "@/components/editor/quiz-editor";
@@ -78,7 +79,12 @@ function Creator({ quizId }: { quizId: string }) {
 				actions={actions}
 				titleRevision={titleRevision}
 				onOpenSettings={() => setSettingsOpen(true)}
-				onExit={() => navigate({ to: "/quizzes/$quizId", params: { quizId } })}
+				// Sair, Pronto and "Deixar sem salvar" lead to the library, as in
+				// Kahoot; the brand leads home (spec 006, RN-23).
+				onExit={(destination) =>
+					navigate({ to: destination === "home" ? "/" : "/library" })
+				}
+				onError={(message) => toast.error(message)}
 			/>
 			<QuizFormDialog
 				state={settingsOpen ? { quiz: editor.data.quiz } : null}

@@ -34,15 +34,18 @@ import {
 import { useId } from "react";
 
 import type { QuestionData } from "@/lib/api-types";
-import { QUESTION_ISSUE_LABELS } from "@/lib/question-labels";
+import { questionIssueLabel } from "@/lib/question-labels";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 
 import { ActionButton, questionActionReasons } from "./question-actions";
+import { QuestionImageView, thumbnailImage } from "./question-image-view";
 import { QuestionTypePicker } from "./question-type-picker";
 import { TRUE_FALSE_ANSWERS } from "./true-false-answers";
 
 export interface QuestionListProps {
 	questions: QuestionData[];
+	/** Public URLs of the question images, by key (spec 007, RN-32). */
+	imageUrls?: Record<string, string>;
 	selectedId: string;
 	/** Questions the creator has just started: no incomplete alert yet (spec 004, RN-16). */
 	quietIds: ReadonlySet<string>;
@@ -61,6 +64,7 @@ export interface QuestionListProps {
  */
 export function QuestionList({
 	questions,
+	imageUrls = {},
 	selectedId,
 	quietIds,
 	onSelect,
@@ -117,6 +121,9 @@ export function QuestionList({
 							<QuestionListItem
 								key={question.id}
 								question={question}
+								imageUrl={
+									question.image ? imageUrls[question.image.key] : undefined
+								}
 								position={index + 1}
 								selected={question.id === selectedId}
 								quiet={quietIds.has(question.id)}
@@ -143,6 +150,7 @@ const screenReaderInstructions: ScreenReaderInstructions = {
 
 function QuestionListItem({
 	question,
+	imageUrl,
 	position,
 	selected,
 	quiet,
@@ -153,6 +161,7 @@ function QuestionListItem({
 	onDelete,
 }: {
 	question: QuestionData;
+	imageUrl: string | undefined;
 	position: number;
 	selected: boolean;
 	quiet: boolean;
@@ -249,9 +258,22 @@ function QuestionListItem({
 							<span className="absolute left-0 flex size-6 items-center justify-center rounded-full border border-border bg-card font-bold text-[0.625rem] text-muted-foreground">
 								{question.timeLimitSeconds}
 							</span>
-							<span className="flex h-7 w-10 items-center justify-center rounded-sm border border-muted-foreground/40 border-dashed">
-								<ImageIcon className="size-3.5 text-muted-foreground/60" />
-							</span>
+							{question.image && imageUrl ? (
+								<span
+									data-slot="question-thumbnail"
+									className="block h-7 w-10 overflow-hidden rounded-sm"
+								>
+									<QuestionImageView
+										image={thumbnailImage(question.image)}
+										url={imageUrl}
+										decorative
+									/>
+								</span>
+							) : (
+								<span className="flex h-7 w-10 items-center justify-center rounded-sm border border-muted-foreground/40 border-dashed">
+									<ImageIcon className="size-3.5 text-muted-foreground/60" />
+								</span>
+							)}
 						</span>
 						<span aria-hidden="true" className="grid w-full grid-cols-2 gap-1">
 							{answerBars(question).map((bar) => (
@@ -306,7 +328,7 @@ function IncompleteAlert({
 		return null;
 	}
 	const reasons = issues
-		.map((issue) => `${QUESTION_ISSUE_LABELS[issue]}.`)
+		.map((issue) => `${questionIssueLabel(question, issue)}.`)
 		.join(" ");
 	return (
 		<>

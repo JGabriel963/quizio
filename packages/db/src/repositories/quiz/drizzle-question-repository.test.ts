@@ -223,6 +223,45 @@ describe("DrizzleQuestionRepository", () => {
 		).toEqual([aTrueFalseQuestion({ id: "odd", text: "?" })]);
 	});
 
+	it("round-trips the image through saveList and saveQuestion", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const image = {
+			key: "media/user-1/ponte.png",
+			placement: "background" as const,
+			crop: { shape: "circle" as const, zoom: 2.5, x: 0.25, y: 1 },
+			altText: "Ponte",
+		};
+		await questions.saveList("quiz-1", [{ ...a, image }, b]);
+		const saved = await questions.listByQuiz("quiz-1");
+
+		// saveList again updates the existing rows (conflict path).
+		await questions.saveList("quiz-1", [a, { ...b, image }]);
+		const swapped = await questions.listByQuiz("quiz-1");
+		await questions.saveQuestion("quiz-1", { ...b, image: null });
+
+		expect(saved.map((question) => question.image)).toEqual([image, null]);
+		expect(swapped.map((question) => question.image)).toEqual([null, image]);
+		expect(
+			(await questions.listByQuiz("quiz-1")).map((question) => question.image),
+		).toEqual([null, null]);
+	});
+
+	it("reads a malformed image as no image", async () => {
+		await testDb.db.insert(questionTable).values({
+			id: "odd",
+			quizId: "quiz-1",
+			position: 0,
+			type: "quiz",
+			text: "?",
+			image: { placement: "background" },
+		});
+
+		expect(
+			(await createDrizzleQuestionRepository(testDb.db).listByQuiz("quiz-1"))[0]
+				?.image,
+		).toBeNull();
+	});
+
 	it("reads legacy rows with defaults", async () => {
 		await testDb.db.insert(questionTable).values({
 			id: "old",

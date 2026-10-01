@@ -1,4 +1,5 @@
 import {
+	blankQuestion,
 	QUESTION_TYPES,
 	TIME_LIMITS_SECONDS,
 } from "@quizio/core/quiz/domain/question";
@@ -7,8 +8,10 @@ import { describe, expect, it } from "vitest";
 import {
 	answerPlaceholder,
 	changeNoticeMessage,
+	NO_CORRECT_ANSWER_HINT,
+	NO_CORRECT_TRUE_FALSE_HINT,
 	POINTS_LABELS,
-	QUESTION_ISSUE_LABELS,
+	questionIssueLabel,
 	SELECTION_LABELS,
 	TRUE_FALSE_LABELS,
 	timeAppliedMessage,
@@ -45,13 +48,38 @@ describe("question labels", () => {
 		});
 	});
 
-	it("explains each incomplete-question issue", () => {
-		expect(QUESTION_ISSUE_LABELS).toEqual({
-			missingText: "Falta o texto da pergunta",
-			notEnoughAnswers: "Adicione pelo menos 2 respostas",
-			noCorrectAnswer: "Marque pelo menos 1 resposta correta",
-			noCorrectTrueFalse: "Marque a resposta correta",
-		});
+	it("uses Kahoot's reason texts", () => {
+		const quiz = blankQuestion("q");
+		const trueFalse = blankQuestion("t", "trueFalse");
+
+		expect(questionIssueLabel(quiz, "missingText")).toBe("Pergunta ausente");
+		expect(questionIssueLabel(quiz, "notEnoughAnswers")).toBe(
+			"2 respostas faltando",
+		);
+		expect(questionIssueLabel(quiz, "noCorrectAnswer")).toBe(
+			"Resposta correta não selecionada",
+		);
+		expect(questionIssueLabel(trueFalse, "noCorrectTrueFalse")).toBe(
+			"Resposta correta não selecionada",
+		);
+	});
+
+	it("1 resposta faltando", () => {
+		const oneAnswer = {
+			...blankQuestion("q"),
+			choices: blankQuestion("q").choices.map((choice, index) =>
+				index === 2 ? { ...choice, text: "Rio" } : choice,
+			),
+		};
+
+		expect(questionIssueLabel(oneAnswer, "notEnoughAnswers")).toBe(
+			"1 resposta faltando",
+		);
+	});
+
+	it("keeps the hints beside the answers", () => {
+		expect(NO_CORRECT_ANSWER_HINT).toBe("Marque pelo menos 1 resposta correta");
+		expect(NO_CORRECT_TRUE_FALSE_HINT).toBe("Marque a resposta correta");
 	});
 
 	it("names the question types and the kept answers notice", () => {

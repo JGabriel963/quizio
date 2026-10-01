@@ -3,6 +3,10 @@ import {
 	QUESTION_TYPES,
 	SELECTION_MODES,
 } from "@quizio/core/quiz/domain/question";
+import {
+	CROP_SHAPES,
+	IMAGE_PLACEMENTS,
+} from "@quizio/core/quiz/domain/question-image";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -53,6 +57,22 @@ const change = z.discriminatedUnion("kind", [
 		type: z.enum(QUESTION_TYPES),
 		remembered: content.nullable(),
 	}),
+	// Spec 007: the image key comes from `media.requestUpload`.
+	z.object({ kind: z.literal("image"), key: z.string().min(1).nullable() }),
+	z.object({
+		kind: z.literal("imagePlacement"),
+		placement: z.enum(IMAGE_PLACEMENTS),
+	}),
+	z.object({
+		kind: z.literal("imageCrop"),
+		crop: z.object({
+			shape: z.enum(CROP_SHAPES),
+			zoom: z.number(),
+			x: z.number(),
+			y: z.number(),
+		}),
+	}),
+	z.object({ kind: z.literal("imageAltText"), altText: z.string().nullable() }),
 ]);
 
 /** Question list and autosave of the editor (specs 003 to 005), mounted as `quiz.questions`. */

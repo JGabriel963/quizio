@@ -38,7 +38,7 @@ Variantes sólidas pressionáveis: `default` (azul), `brand`, `success`, `destru
 
 ### `Badge`
 
-Além das variantes de visibilidade do quiz (`private`, `unlisted`), a variante **`soon`** (contorno tracejado, texto esmaecido) marca pontos de entrada de features planejadas mas ainda não entregues — navegação e cartões "Em breve" da spec 002.
+Além das variantes de visibilidade do quiz (`private`, `unlisted`), a variante **`soon`** (contorno tracejado, texto esmaecido) marca pontos de entrada de features planejadas mas ainda não entregues — navegação e cartões "Em breve" da spec 002. As variantes de **status do quiz** (spec 006) são `draft` (contorno neutro, "Rascunho"), `published` (verde suave, "Publicado") e `unsaved` (roxo suave, "Alterações não salvas"); no app elas são usadas pelo `QuizStatusBadge`.
 
 ### `TabNav` + `TabNavItem`
 

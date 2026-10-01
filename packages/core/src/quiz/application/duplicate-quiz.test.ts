@@ -6,7 +6,7 @@ import { SequentialIdGenerator } from "../../shared/testing/sequential-id-genera
 import { blankQuestion } from "../domain/question";
 import { QuizInTrashError, QuizNotFoundError } from "../domain/quiz";
 import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
-import { aQuiz } from "../testing/a-quiz";
+import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import { createDuplicateQuiz, type DuplicateQuiz } from "./duplicate-quiz";
@@ -148,6 +148,26 @@ describe("duplicateQuiz", () => {
 
 		expect(copy.questionCount).toBe(1);
 		expect(questions.listOf(copy.id)).toEqual([blankQuestion("new-2")]);
+	});
+
+	it("a copy of a published quiz is a draft with the current questions", async () => {
+		const original = aPublishedQuiz({ hasUnpublishedChanges: true });
+		await quizzes.save(original);
+		// The live list, with what changed after the version was saved.
+		await questions.saveList("quiz-1", [aQuestion({ id: "a", text: "Mudou" })]);
+
+		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(copy).toMatchObject({
+			status: "draft",
+			publishedVersion: null,
+			publishedAt: null,
+			hasUnpublishedChanges: false,
+		});
+		expect(questions.listOf(copy.id)).toEqual([
+			aQuestion({ id: "new-2", text: "Mudou" }),
+		]);
+		expect(await quizzes.findById("quiz-1")).toEqual(original);
 	});
 
 	it("refuses quizzes in the trash", async () => {

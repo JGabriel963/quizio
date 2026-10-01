@@ -5,6 +5,7 @@ import { insertQuestionAfter } from "../domain/question-list";
 import { loadEditableQuiz, markQuizEdited } from "./editable-quiz";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
+import type { QuizVersionRepository } from "./ports/quiz-version-repository";
 import { type QuestionView, toQuestionView } from "./quiz-editor-view";
 import type { QuizReference } from "./quiz-reference";
 
@@ -25,6 +26,7 @@ export type AddQuestion = (input: AddQuestionInput) => Promise<PlacedQuestion>;
 export function createAddQuestion(deps: {
 	quizzes: QuizRepository;
 	questions: QuestionRepository;
+	versions: Pick<QuizVersionRepository, "find">;
 	ids: IdGenerator;
 	clock: Clock;
 }): AddQuestion {
@@ -39,7 +41,7 @@ export function createAddQuestion(deps: {
 		);
 
 		await deps.questions.saveList(quiz.id, list);
-		await markQuizEdited(deps, quiz);
+		await markQuizEdited(deps, quiz, list);
 
 		return { question: toQuestionView(question), index };
 	};

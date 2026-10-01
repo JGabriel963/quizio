@@ -17,6 +17,10 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.DESCRIPTION_TOO_LONG": `A descrição deve ter no máximo ${QUIZ_DESCRIPTION_MAX_LENGTH} caracteres.`,
 	"QUIZ.INVALID_VISIBILITY": "Escolha uma visibilidade válida.",
 	"QUIZ.INVALID_COVER": "Envie a capa novamente.",
+	"QUIZ.TITLE_REQUIRED": "Um quiz publicado precisa de título",
+	"QUIZ.INCOMPLETE_QUESTIONS":
+		"Complete todas as perguntas antes de salvar o quiz.",
+	"QUIZ.NOT_PUBLISHED": "Este quiz ainda não foi salvo como jogável.",
 	"QUIZ.QUESTION_NOT_FOUND":
 		"Esta pergunta não existe mais. Recarregue a página.",
 	"QUIZ.QUESTION_TEXT_TOO_LONG": `A pergunta deve ter no máximo ${QUESTION_TEXT_MAX_LENGTH} caracteres.`,
@@ -37,6 +41,13 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.INVALID_TYPE": "Escolha um tipo de pergunta da lista.",
 	"QUIZ.CHANGE_NOT_APPLICABLE":
 		"Esta alteração não vale para o tipo da pergunta. Recarregue a página.",
+	"QUIZ.INVALID_IMAGE":
+		"Não foi possível usar esta imagem. Envie o arquivo de novo.",
+	"QUIZ.NO_IMAGE": "Esta pergunta não tem mais imagem.",
+	"QUIZ.INVALID_IMAGE_PLACEMENT": "Posição de imagem inválida.",
+	"QUIZ.INVALID_IMAGE_CROP": "Recorte de imagem inválido.",
+	"QUIZ.IMAGE_ALT_TEXT_TOO_LONG":
+		"O texto alternativo pode ter até 1000 caracteres.",
 	"MEDIA.UNSUPPORTED_TYPE":
 		"Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
 	"MEDIA.INVALID_SIZE": "Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",

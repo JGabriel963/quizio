@@ -2,6 +2,8 @@ import {
 	moveQuestion,
 	removeQuestion,
 } from "@quizio/core/quiz/domain/question-list";
+import type { QuizPublishState } from "@quizio/core/quiz/domain/quiz";
+import { sameQuestionLists } from "@quizio/core/quiz/domain/quiz-version";
 
 import type { QuestionData, QuizEditorData } from "./api-types";
 
@@ -16,6 +18,7 @@ function withQuestions(
 	questions: readonly QuestionData[],
 ): QuizEditorData {
 	return {
+		...data,
 		quiz: { ...data.quiz, questionCount: questions.length },
 		questions: [...questions],
 	};
@@ -84,4 +87,43 @@ export function selectionAfterRemoval(
 	removedIndex: number,
 ): string | undefined {
 	return remaining[Math.min(removedIndex, remaining.length - 1)]?.id;
+}
+
+/**
+ * What the status badge shows for the cached editor data: the server's mark
+ * lags behind the optimistic list, so the editor compares the questions
+ * itself (spec 006, RN-19, RN-22).
+ */
+export function publishStateOf(data: QuizEditorData): QuizPublishState {
+	if (data.publishedQuestions === null) {
+		return "draft";
+	}
+	return sameQuestionLists(data.questions, data.publishedQuestions)
+		? "published"
+		: "unpublishedChanges";
+}
+
+/** Remembers the public URL of an image just uploaded (spec 007): questions carry keys only. */
+export function withImageUrl(
+	data: QuizEditorData,
+	key: string,
+	url: string,
+): QuizEditorData {
+	return { ...data, imageUrls: { ...data.imageUrls, [key]: url } };
+}
+
+/** The URL to show a question's image with, or null without an image. */
+export function imageUrlOf(
+	data: Pick<QuizEditorData, "imageUrls">,
+	question: Pick<QuestionData, "image">,
+): string | null {
+	return question.image ? (data.imageUrls[question.image.key] ?? null) : null;
+}
+
+/** The quiz as the server answered a publish: its questions are now the playable version. */
+export function withQuizPublished(
+	data: QuizEditorData,
+	quiz: QuizEditorData["quiz"],
+): QuizEditorData {
+	return { ...data, quiz, publishedQuestions: data.questions };
 }

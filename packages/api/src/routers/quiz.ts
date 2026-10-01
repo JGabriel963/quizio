@@ -41,6 +41,38 @@ export const quizRouter = router({
 			}),
 		),
 
+	/**
+	 * The editor's Salvar: freezes the playable version (spec 006). `details`
+	 * comes from "Toques finais", when the quiz had no title.
+	 */
+	publish: protectedProcedure
+		.input(
+			quizReference.extend({
+				details: z
+					.object({
+						title: z.string().nullable(),
+						description: z.string().nullable(),
+					})
+					.optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.publishQuiz({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** "Descartar": the questions go back to the playable version (spec 006, RN-26). */
+	discardChanges: protectedProcedure
+		.input(quizReference)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.discardQuizChanges({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
 	create: protectedProcedure
 		.input(
 			z.object({

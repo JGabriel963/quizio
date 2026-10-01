@@ -46,6 +46,7 @@ describe("blankQuestion", () => {
 			text: null,
 			timeLimitSeconds: 20,
 			points: "standard",
+			image: null,
 			selection: "single",
 			choices: emptyChoices(4),
 		});
@@ -69,6 +70,7 @@ describe("true/false question", () => {
 			text: null,
 			timeLimitSeconds: 20,
 			points: "standard",
+			image: null,
 			correct: null,
 		});
 	});

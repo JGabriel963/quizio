@@ -3,23 +3,28 @@ import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-sto
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { blankQuestion } from "../domain/question";
 import { QuizInTrashError, QuizNotFoundError } from "../domain/quiz";
+import { newQuizVersion } from "../domain/quiz-version";
 import { aQuestion } from "../testing/a-question";
-import { aQuiz } from "../testing/a-quiz";
+import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
+import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
 import { createGetQuizEditor, type GetQuizEditor } from "./get-quiz-editor";
 
 describe("getQuizEditor", () => {
 	let quizzes: InMemoryQuizRepository;
 	let questions: InMemoryQuestionRepository;
+	let versions: InMemoryQuizVersionRepository;
 	let getQuizEditor: GetQuizEditor;
 
 	beforeEach(() => {
 		quizzes = new InMemoryQuizRepository();
 		questions = new InMemoryQuestionRepository();
+		versions = new InMemoryQuizVersionRepository();
 		getQuizEditor = createGetQuizEditor({
 			quizzes,
 			questions,
+			versions,
 			storage: new InMemoryObjectStorage("https://media.test"),
 			ids: new SequentialIdGenerator("question"),
 		});
@@ -41,6 +46,33 @@ describe("getQuizEditor", () => {
 			}),
 		);
 		expect(editor.questions).toEqual([b, a]);
+		expect(editor.publishedQuestions).toBeNull();
+	});
+
+	it("returns the published questions of a published quiz", async () => {
+		const published = aQuestion({ id: "a", text: "Capital do Brasil?" });
+		await quizzes.save(aPublishedQuiz({ hasUnpublishedChanges: true }));
+		await versions.save(
+			newQuizVersion({
+				quizId: "quiz-1",
+				number: 1,
+				questions: [published],
+				now: new Date("2026-02-01T10:00:00.000Z"),
+			}),
+		);
+		await questions.saveList("quiz-1", [
+			{ ...published, text: "Capital da Argentina?" },
+		]);
+
+		const editor = await getQuizEditor({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(editor.quiz).toMatchObject({
+			status: "published",
+			publishedVersion: 1,
+			hasUnpublishedChanges: true,
+		});
+		expect(editor.questions[0]?.text).toBe("Capital da Argentina?");
+		expect(editor.publishedQuestions).toEqual([published]);
 	});
 
 	it("hides missing and foreign quizzes behind QuizNotFoundError", async () => {

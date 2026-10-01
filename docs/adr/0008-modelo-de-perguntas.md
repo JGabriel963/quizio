@@ -24,6 +24,7 @@ Além disso:
 2. **O conteúdo específico de cada tipo fica numa coluna `content jsonb`**. Exemplos: as alternativas de um Quiz, a resposta de um V/F, o intervalo de um controle deslizante. O banco não conhece a forma desse JSON. Quem valida é o **core**, com um parser puro por tipo, e o `Question` do domínio é uma união discriminada por `type`. O adapter só traduz `jsonb` ↔ objeto e delega a validação ao parser do core.
 3. **Itens internos com id estável.** Cada alternativa tem `id` dentro do JSON, para que respostas de jogadores e relatórios apontem para ela mesmo que o texto ou a ordem mudem.
 4. **O rascunho é mutável e a versão jogável é um snapshot imutável.** O botão Salvar (spec 006) valida o quiz inteiro e grava o quiz com suas perguntas como um documento `jsonb` numa tabela `quiz_version`. Partidas e relatórios apontam para a versão, nunca para as linhas vivas de `question`.
+   - **Atualização (2026-10-01, spec 006):** a versão guarda **só a lista de perguntas**. Título, descrição, capa e visibilidade não entram no snapshot: valem na hora (spec 006, RN-06), e a spec 008 decide o que a partida copia desses dados ao começar. A tabela é `quiz_version (quiz_id, number, questions jsonb, created_at)`, uma linha por versão; o quiz guarda o número da versão vigente e a marca derivada `has_unpublished_changes`.
 
 ## Consequências
 
@@ -33,6 +34,14 @@ Além disso:
 - **O banco não impede um `content` malformado.** A proteção é o core ser a única porta de escrita e o adapter parsear na leitura: um JSON inválido vira erro, não dado corrompido silencioso.
 - **Consultas analíticas sobre alternativas** (por exemplo, "todas as alternativas corretas do sistema") ficam mais difíceis. Elas não são necessárias: relatórios leem o snapshot da versão.
 - **Editar um quiz depois de jogado não afeta partidas nem relatórios antigos**, que continuam no snapshot.
+
+## Atualização — imagem da pergunta (spec 007, 2026-10-01)
+
+A imagem é comum a todos os tipos, então **não entra no `content`**: é a coluna `question.image` (`jsonb`, nula), com a chave do arquivo, a posição (`media` ou `background`), o recorte e o texto alternativo, lida pelo core com `parseStoredImage`. O snapshot da versão guarda a pergunta inteira e, com ela, a imagem.
+
+O recorte é guardado como parâmetros (forma, zoom e posição em frações do percurso livre), não como um arquivo derivado: independe das dimensões da imagem, é desenhado com CSS e pode ser refeito a partir do original.
+
+Os arquivos pertencem ao quiz: um arquivo só é apagado quando nenhuma pergunta viva e nenhuma versão guardada o usa (`releaseUnusedImages`), e todos são apagados na exclusão definitiva. Duplicar uma pergunta compartilha a chave dentro do quiz; duplicar um quiz copia os arquivos para chaves novas.
 
 ## Alternativas consideradas
 

@@ -53,7 +53,7 @@ export function ChoiceField({
 		<li className="flex flex-col gap-1">
 			<div
 				className={cn(
-					"flex min-h-16 items-center gap-3 rounded-md p-2 shadow-press-light transition-colors sm:min-h-20",
+					"flex min-h-16 items-center gap-3 rounded-md p-2 shadow-press-light transition-colors sm:min-h-[clamp(4.5rem,11svh,7rem)] xl:gap-4",
 					filled
 						? [ANSWER_COLOR_CLASSES[shape], "text-answer-foreground"]
 						: "bg-card",
@@ -61,11 +61,11 @@ export function ChoiceField({
 			>
 				<span
 					className={cn(
-						"flex h-full min-h-12 w-10 shrink-0 items-center justify-center rounded-md text-answer-foreground",
+						"flex min-h-12 w-10 shrink-0 items-center justify-center self-stretch rounded-md text-answer-foreground xl:w-12",
 						ANSWER_COLOR_CLASSES[shape],
 					)}
 				>
-					<AnswerShape shape={shape} className="size-5" />
+					<AnswerShape shape={shape} className="size-5 xl:size-7" />
 				</span>
 				<input
 					aria-label={`Resposta ${position}`}
@@ -79,7 +79,7 @@ export function ChoiceField({
 					}
 					onBlur={() => void flush()}
 					className={cn(
-						"min-w-0 flex-1 bg-transparent font-bold outline-none",
+						"min-w-0 flex-1 bg-transparent font-bold outline-none xl:text-lg",
 						filled
 							? "placeholder:text-answer-foreground/70"
 							: "placeholder:text-muted-foreground",
@@ -95,7 +95,7 @@ export function ChoiceField({
 						await flush();
 						onCorrectChange(checked);
 					}}
-					className={cn(!filled && "invisible")}
+					className={cn("xl:mr-1 xl:size-11", !filled && "invisible")}
 				/>
 			</div>
 			{showHint && (

@@ -5,9 +5,13 @@ export interface QuizRepository {
 	/** Inserts or replaces the whole quiz. */
 	save(quiz: Quiz): Promise<void>;
 	/**
-	 * Sets only `updatedAt`. Editor operations mark the quiz edited with this,
-	 * so they never overwrite a concurrent change to its details (spec 003).
+	 * Sets only the marks of an edit of the questions. Editor operations use
+	 * this, so they never overwrite a concurrent change to the quiz details
+	 * (spec 003); `hasUnpublishedChanges` comes with spec 006, RN-19.
 	 */
-	touch(id: string, updatedAt: Date): Promise<void>;
+	markEdited(
+		id: string,
+		change: { updatedAt: Date; hasUnpublishedChanges: boolean },
+	): Promise<void>;
 	delete(id: string): Promise<void>;
 }

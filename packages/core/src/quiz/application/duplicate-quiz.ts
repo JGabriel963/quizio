@@ -6,6 +6,7 @@ import { blankQuestion, copyQuestion } from "../domain/question";
 import { assertQuizEditable, copyQuiz, requireOwnedQuiz } from "../domain/quiz";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
+import { imageKeysOf } from "./question-images";
 import { type QuizDetailsView, toQuizDetailsView } from "./quiz-details-view";
 import type { QuizReference } from "./quiz-reference";
 
@@ -41,11 +42,36 @@ export function createDuplicateQuiz(deps: {
 		// Same questions in the same order, under new ids (spec 003, RN-27). A
 		// source from before the editor still yields a usable copy (RN-08).
 		const sourceQuestions = await deps.questions.listByQuiz(source.id);
+		// The copy owns its image files too (spec 007, RN-33): one object per
+		// distinct image, shared inside the copy as it was inside the source.
+		const copiedKeys = new Map<string, string>();
+		for (const key of imageKeysOf(sourceQuestions)) {
+			copiedKeys.set(
+				key,
+				mediaKeyFor(
+					ownerId,
+					deps.ids.generate(),
+					mediaKeyExtension(key) ?? "img",
+				),
+			);
+		}
+		await Promise.all(
+			[...copiedKeys].map(([from, to]) => deps.storage.copy(from, to)),
+		);
 		const copiedQuestions =
 			sourceQuestions.length > 0
-				? sourceQuestions.map((question) =>
-						copyQuestion(question, deps.ids.generate()),
-					)
+				? sourceQuestions.map((question) => {
+						const copy = copyQuestion(question, deps.ids.generate());
+						return copy.image
+							? {
+									...copy,
+									image: {
+										...copy.image,
+										key: copiedKeys.get(copy.image.key) ?? copy.image.key,
+									},
+								}
+							: copy;
+					})
 				: [blankQuestion(deps.ids.generate())];
 
 		const copy = copyQuiz(source, { id, coverImageKey, now: deps.clock.now() });

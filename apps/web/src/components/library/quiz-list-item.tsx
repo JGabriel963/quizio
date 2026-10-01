@@ -1,4 +1,5 @@
 import type { LibrarySection } from "@quizio/core/library/domain/library-section";
+import { quizPublishState } from "@quizio/core/quiz/domain/quiz";
 import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
 import { Button } from "@quizio/ui/components/button";
 import {
@@ -11,6 +12,7 @@ import { Link } from "@tanstack/react-router";
 import { EllipsisVerticalIcon } from "lucide-react";
 
 import { QuizCover } from "@/components/quiz/quiz-cover";
+import { QuizStatusBadge } from "@/components/quiz/quiz-status-badge";
 import { VisibilityBadge } from "@/components/quiz/visibility-badge";
 import type { LibraryItemView } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
@@ -48,8 +50,9 @@ export function QuizListItem({
 				>
 					{title}
 				</Link>
-				<span className="text-muted-foreground text-xs">
+				<span className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
 					{questionCountLabel(item.questionCount)}
+					<QuizStatusBadge state={quizPublishState(item)} />
 				</span>
 			</div>
 			<VisibilityBadge visibility={item.visibility} />

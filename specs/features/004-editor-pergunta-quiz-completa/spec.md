@@ -20,7 +20,7 @@ No Kahoot, a pergunta Quiz se completa no centro do editor (alternativas colorid
 | **004** | **Pergunta Quiz completa (esta spec)** |
 | 005 | Verdadeiro ou falso e troca de tipo |
 | 006 | Salvar a versão jogável |
-| 007 | Mídia nas perguntas |
+| 007 | Imagem na pergunta |
 
 ## Objetivo
 
@@ -167,7 +167,7 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 
 - **Dado** uma pergunta sem enunciado, sem alternativas e sem correta, da qual o criador já saiu
 - **Quando** o criador olha a lista de perguntas
-- **Então** o item dela tem um alerta que lista "Falta o texto da pergunta", "Adicione pelo menos 2 respostas" e "Marque pelo menos 1 resposta correta"
+- **Então** o item dela tem um alerta que lista "Pergunta ausente", "2 respostas faltando" e "Resposta correta não selecionada"
 - **Quando** ele preenche o enunciado, duas alternativas e marca uma correta
 - **Então** o alerta some
 
@@ -233,3 +233,4 @@ O criador monta uma pergunta Quiz inteira: escreve de 2 a 6 alternativas, marca 
 - 2026-10-01 — implementada (tarefas T01 a T17).
 - 2026-10-01 — ajustes de layout pedidos pelo usuário: as dicas viraram balões junto aos campos, com a nova dica do enunciado (RN-16); avisos só depois que o criador sai da pergunta e volta (RN-16a, CA-12, CA-13, CA-14a); listas do painel com o seletor do design system.
 - 2026-10-01 — card da lista realinhado como o do Kahoot, por pedido do usuário: barras em contorno com ponto verde nas corretas e alerta na lateral do card; marcação de correta em verde-claro com anel branco.
+- 2026-10-01 — alterada pela spec 006 (RN-10a): os motivos do alerta da lista passam a usar os textos do Kahoot — "Pergunta ausente", "N respostas faltando" e "Resposta correta não selecionada" (CA-12). Os balões junto aos campos (RN-16) não mudaram. Uma pergunta incompleta agora impede o Salvar (spec 006, RN-09).

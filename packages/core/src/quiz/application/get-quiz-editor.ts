@@ -2,10 +2,11 @@ import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { blankQuestion } from "../domain/question";
 import { assertQuizEditable, requireOwnedQuiz } from "../domain/quiz";
+import { loadCurrentVersion } from "./editable-quiz";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
-import { toQuizDetailsView } from "./quiz-details-view";
-import { type QuizEditorView, toQuestionView } from "./quiz-editor-view";
+import type { QuizVersionRepository } from "./ports/quiz-version-repository";
+import { type QuizEditorView, toQuizEditorView } from "./quiz-editor-view";
 import type { QuizReference } from "./quiz-reference";
 
 export type GetQuizEditor = (input: QuizReference) => Promise<QuizEditorView>;
@@ -13,6 +14,7 @@ export type GetQuizEditor = (input: QuizReference) => Promise<QuizEditorView>;
 export function createGetQuizEditor(deps: {
 	quizzes: QuizRepository;
 	questions: QuestionRepository;
+	versions: Pick<QuizVersionRepository, "find">;
 	storage: Pick<ObjectStorage, "getPublicUrl">;
 	ids: IdGenerator;
 }): GetQuizEditor {
@@ -30,9 +32,11 @@ export function createGetQuizEditor(deps: {
 			await deps.questions.saveList(quiz.id, questions);
 		}
 
-		return {
-			quiz: toQuizDetailsView(quiz, deps.storage, questions.length),
-			questions: questions.map(toQuestionView),
-		};
+		return toQuizEditorView(
+			quiz,
+			questions,
+			await loadCurrentVersion(deps, quiz),
+			deps.storage,
+		);
 	};
 }

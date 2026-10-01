@@ -32,6 +32,10 @@ import {
 	type DeleteQuizPermanently,
 } from "@quizio/core/quiz/application/delete-quiz-permanently";
 import {
+	createDiscardQuizChanges,
+	type DiscardQuizChanges,
+} from "@quizio/core/quiz/application/discard-quiz-changes";
+import {
 	createDuplicateQuestion,
 	type DuplicateQuestion,
 } from "@quizio/core/quiz/application/duplicate-question";
@@ -57,11 +61,15 @@ import {
 } from "@quizio/core/quiz/application/move-quiz-to-trash";
 import type { QuestionRepository } from "@quizio/core/quiz/application/ports/question-repository";
 import type { QuizRepository } from "@quizio/core/quiz/application/ports/quiz-repository";
+import type { QuizVersionRepository } from "@quizio/core/quiz/application/ports/quiz-version-repository";
+import {
+	createPublishQuiz,
+	type PublishQuiz,
+} from "@quizio/core/quiz/application/publish-quiz";
 import {
 	createRenameQuiz,
 	type RenameQuiz,
 } from "@quizio/core/quiz/application/rename-quiz";
-
 import {
 	createRestoreQuiz,
 	type RestoreQuiz,
@@ -93,6 +101,7 @@ export interface Adapters {
 	clock: Clock;
 	quizzes: QuizRepository;
 	questions: QuestionRepository;
+	versions: QuizVersionRepository;
 	libraryQuizzes: LibraryQuizQuery;
 	authSettings: AuthSettings;
 }
@@ -109,6 +118,8 @@ export interface Container extends Adapters {
 		deleteQuizPermanently: DeleteQuizPermanently;
 		getQuizEditor: GetQuizEditor;
 		renameQuiz: RenameQuiz;
+		publishQuiz: PublishQuiz;
+		discardQuizChanges: DiscardQuizChanges;
 		addQuestion: AddQuestion;
 		duplicateQuestion: DuplicateQuestion;
 		moveQuestion: MoveQuestion;
@@ -138,6 +149,8 @@ export function createContainer(adapters: Adapters): Container {
 			deleteQuizPermanently: createDeleteQuizPermanently(adapters),
 			getQuizEditor: createGetQuizEditor(adapters),
 			renameQuiz: createRenameQuiz(adapters),
+			publishQuiz: createPublishQuiz(adapters),
+			discardQuizChanges: createDiscardQuizChanges(adapters),
 			addQuestion: createAddQuestion(adapters),
 			duplicateQuestion: createDuplicateQuestion(adapters),
 			moveQuestion: createMoveQuestion(adapters),

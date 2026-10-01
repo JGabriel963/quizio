@@ -73,7 +73,13 @@ export function createDrizzleLibraryQuizQuery(db: Database): LibraryQuizQuery {
 				: query.limit(criteria.limit));
 
 			return rows.map(
-				({ createdAt: _createdAt, description: _description, ...row }) => row,
+				({
+					createdAt: _createdAt,
+					description: _description,
+					publishedVersion: _publishedVersion,
+					publishedAt: _publishedAt,
+					...row
+				}) => row,
 			);
 		},
 

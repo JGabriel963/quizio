@@ -57,7 +57,7 @@ export function QuestionTextField({
 						setFocused(false);
 						void flush();
 					}}
-					className="h-auto rounded-md border-0 bg-card px-4 py-4 text-center font-bold text-lg shadow-press-light sm:px-12 sm:text-2xl"
+					className="h-auto rounded-md border-0 bg-card px-4 py-4 text-center font-bold text-lg shadow-press-light sm:px-12 sm:text-2xl xl:py-5 xl:text-3xl"
 				/>
 				{focused && (
 					<span className="pointer-events-none absolute top-1.5 right-2.5 font-semibold text-muted-foreground text-xs">

@@ -10,7 +10,7 @@ import {
 import { Button } from "@quizio/ui/components/button";
 import { MinusIcon, PlusIcon } from "lucide-react";
 
-import { QUESTION_ISSUE_LABELS } from "@/lib/question-labels";
+import { NO_CORRECT_ANSWER_HINT } from "@/lib/question-labels";
 
 import { ChoiceField } from "./choice-field";
 import { EditorHint } from "./editor-hint";
@@ -58,9 +58,7 @@ export function QuizAnswers({
 					/>
 				))}
 			</ul>
-			{noCorrect && (
-				<EditorHint>{QUESTION_ISSUE_LABELS.noCorrectAnswer}</EditorHint>
-			)}
+			{noCorrect && <EditorHint>{NO_CORRECT_ANSWER_HINT}</EditorHint>}
 			<Button
 				variant="secondary"
 				size="sm"

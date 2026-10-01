@@ -20,6 +20,16 @@ import {
 	type QuizQuestion,
 	type TrueFalseQuestion,
 } from "./question";
+import {
+	copyImage,
+	type ImageCropInput,
+	newQuestionImage,
+	parseImageAltText,
+	parseImageCrop,
+	parseImagePlacement,
+	QuestionHasNoImageError,
+	type QuestionImage,
+} from "./question-image";
 
 /**
  * The type-specific part of a question as a client sends it back: what the
@@ -47,7 +57,12 @@ export type QuestionChange =
 	| { kind: "extraChoices"; visible: boolean }
 	| { kind: "trueFalseCorrect"; correct: boolean }
 	/** `remembered` is what the question had in that type earlier in the session (RN-17). */
-	| { kind: "type"; type: string; remembered: QuestionContentInput | null };
+	| { kind: "type"; type: string; remembered: QuestionContentInput | null }
+	/** A new upload, or null to remove the image with its adjustments (spec 007). */
+	| { kind: "image"; key: string | null }
+	| { kind: "imagePlacement"; placement: string }
+	| { kind: "imageCrop"; crop: ImageCropInput }
+	| { kind: "imageAltText"; altText: string | null };
 
 /** What the editor tells the creator after a change (spec 004, RN-08, RN-09; spec 005, RN-19). */
 export type QuestionChangeNotice =
@@ -251,13 +266,26 @@ function changeType(
 			text: question.text,
 			timeLimitSeconds: question.timeLimitSeconds,
 			points: question.points,
+			// The image belongs to the question, not to its type (spec 007, RN-34).
+			image: copyImage(question.image),
 			...content,
 		},
 		notice: answersSetAside ? { kind: "quizAnswersKept" } : null,
 	};
 }
 
-/** Applies one edit, keeping the question's invariants (specs 004, 005). */
+/** Adjusts the image the question must already have (spec 007, RN-04). */
+function adjustImage(
+	question: Question,
+	adjust: (image: QuestionImage) => QuestionImage,
+): QuestionChangeResult {
+	if (question.image === null) {
+		throw new QuestionHasNoImageError("This question has no image");
+	}
+	return unchanged({ ...question, image: adjust(question.image) });
+}
+
+/** Applies one edit, keeping the question's invariants (specs 004, 005, 007). */
 export function applyQuestionChange(
 	question: Question,
 	change: QuestionChange,
@@ -300,5 +328,24 @@ export function applyQuestionChange(
 			});
 		case "type":
 			return changeType(question, change.type, change.remembered);
+		case "image":
+			// RN-13, RN-16: a new image starts over; removing takes the adjustments.
+			return unchanged({
+				...question,
+				image: change.key === null ? null : newQuestionImage(change.key),
+			});
+		case "imagePlacement": {
+			const placement = parseImagePlacement(change.placement);
+			// RN-24: the crop is kept for when the image is back in the middle.
+			return adjustImage(question, (image) => ({ ...image, placement }));
+		}
+		case "imageCrop": {
+			const crop = parseImageCrop(change.crop);
+			return adjustImage(question, (image) => ({ ...image, crop }));
+		}
+		case "imageAltText": {
+			const altText = parseImageAltText(change.altText);
+			return adjustImage(question, (image) => ({ ...image, altText }));
+		}
 	}
 }

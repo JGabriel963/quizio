@@ -3,9 +3,14 @@ import type {
 	SelectionMode,
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChangeNotice } from "@quizio/core/quiz/domain/question-change";
-import type { QuestionIssue } from "@quizio/core/quiz/domain/question-issues";
+import {
+	missingAnswerCount,
+	type QuestionIssue,
+} from "@quizio/core/quiz/domain/question-issues";
 
-/** PT-BR labels of the question editor (specs 004, 005). */
+import type { QuestionData } from "./api-types";
+
+/** PT-BR labels of the question editor (specs 004 to 006). */
 
 function plural(count: number, singular: string, pluralForm: string): string {
 	return `${count} ${count === 1 ? singular : pluralForm}`;
@@ -33,12 +38,28 @@ export const SELECTION_LABELS: Record<SelectionMode, string> = {
 	multiple: "Múltipla escolha",
 };
 
-export const QUESTION_ISSUE_LABELS: Record<QuestionIssue, string> = {
-	missingText: "Falta o texto da pergunta",
-	notEnoughAnswers: "Adicione pelo menos 2 respostas",
-	noCorrectAnswer: "Marque pelo menos 1 resposta correta",
-	noCorrectTrueFalse: "Marque a resposta correta",
-};
+/**
+ * Why a question is incomplete, in Kahoot's words: the list alert and the
+ * "Não é possível jogar este quiz" dialog show the same reasons (spec 006, RN-10a).
+ */
+export function questionIssueLabel(
+	question: QuestionData,
+	issue: QuestionIssue,
+): string {
+	switch (issue) {
+		case "missingText":
+			return "Pergunta ausente";
+		case "notEnoughAnswers":
+			return `${plural(missingAnswerCount(question), "resposta", "respostas")} faltando`;
+		case "noCorrectAnswer":
+		case "noCorrectTrueFalse":
+			return "Resposta correta não selecionada";
+	}
+}
+
+/** The hints beside the answers of a question without a correct one (spec 004, RN-16; spec 005, RN-12). */
+export const NO_CORRECT_ANSWER_HINT = "Marque pelo menos 1 resposta correta";
+export const NO_CORRECT_TRUE_FALSE_HINT = "Marque a resposta correta";
 
 /** The two fixed answers of a true/false question (spec 005, RN-06). */
 export const TRUE_FALSE_LABELS = {

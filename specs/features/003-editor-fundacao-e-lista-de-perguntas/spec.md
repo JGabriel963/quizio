@@ -22,7 +22,7 @@ O editor é grande demais para uma entrega só, então foi dividido em cinco spe
 | 004 | Pergunta Quiz completa | Alternativas (2 a 6), corretas, seleção simples/múltipla, tempo, pontos, avisos de pergunta incompleta |
 | 005 | Verdadeiro ou falso e troca de tipo | Escolher o tipo ao adicionar, pergunta V/F, trocar o tipo de uma pergunta |
 | 006 | Salvar a versão jogável | Botão Salvar, validação do quiz inteiro, versão congelada para as partidas |
-| 007 | Mídia nas perguntas | Imagem na pergunta e nas alternativas |
+| 007 | Imagem na pergunta | Imagem na pergunta, ao centro ou como fundo, com recorte e texto alternativo |
 
 Esta etapa entrega o esqueleto em que as outras quatro vão se encaixar: a tela, a estrutura de perguntas ordenadas e o salvamento automático. Ao final dela, o criador já monta a sequência de perguntas de um quiz, só com os enunciados.
 
@@ -56,7 +56,7 @@ Jogadores e anfitriões não aparecem nesta feature.
 | RN-03 | Um quiz **na lixeira** não abre no editor: a tela avisa que ele está na lixeira e oferece o caminho para a Lixeira da biblioteca, onde ele pode ser restaurado. | spec 001, RN-22 |
 | RN-04 | A ação **Criar** (barra superior, estado vazio do painel e da biblioteca) cria na hora um **rascunho sem título** com **uma pergunta do tipo Quiz em branco** e abre o editor dele, já com essa pergunta selecionada. Não há formulário antes. | kahoot-reference §3 · decisão do produto (2026-09-25) — substitui a RN-13 da spec 002 |
 | RN-05 | A página do quiz (`/quizzes/<id>`) continua existindo e ganha a ação **Editar**, que abre o editor. Abrir um quiz pela biblioteca ou pelo painel continua levando à página do quiz. | decisão do produto (2026-09-25) |
-| RN-06 | O editor ocupa a tela inteira, **sem a navegação principal** nem a barra superior das demais telas do criador. A ação **Sair** do cabeçalho leva à página do quiz. | kahoot-reference §3 · decisão do produto (2026-09-25) — exceção à RN-04 da spec 002 |
+| RN-06 | O editor ocupa a tela inteira, **sem a navegação principal** nem a barra superior das demais telas do criador. A ação **Sair** do cabeçalho leva à **Biblioteca** (até a spec 006, levava à página do quiz). | kahoot-reference §3 · decisão do produto (2026-09-25) — exceção à RN-04 da spec 002 |
 
 ### Perguntas e lista
 
@@ -119,11 +119,11 @@ Jogadores e anfitriões não aparecem nesta feature.
 - **Quando** ele aciona **Editar**
 - **Então** chega ao editor desse quiz, com a primeira pergunta selecionada
 
-#### CA-03 — Sair volta à página do quiz
+#### CA-03 — Sair volta à biblioteca
 
 - **Dado** um criador no editor de um quiz, com tudo salvo
 - **Quando** ele aciona **Sair**
-- **Então** chega à página desse quiz, que mostra o título atualizado e o número de perguntas
+- **Então** chega à Biblioteca, onde o quiz aparece com o título atualizado e o número de perguntas
 
 #### CA-04 — Quiz de outra pessoa ou inexistente
 
@@ -280,7 +280,7 @@ Jogadores e anfitriões não aparecem nesta feature.
 
 - **Dado** um criador que acabou de digitar no enunciado, antes de a alteração ser enviada
 - **Quando** ele aciona **Sair**
-- **Então** a alteração é salva antes de a página do quiz abrir
+- **Então** a alteração é salva antes de a Biblioteca abrir
 
 #### CA-26 — Última modificação
 
@@ -325,7 +325,7 @@ Jogadores e anfitriões não aparecem nesta feature.
   - à esquerda, a marca do Quizio (leva à página inicial, salvando antes o que estiver pendente);
   - um campo de título com o texto de apoio "Inserir título do quiz…" e, colado a ele, a ação **Configurações**;
   - o estado do salvamento ("Salvando…", "✓ Salvo", "Não foi possível salvar · Tentar de novo");
-  - à direita, a ação **Sair**. O espaço do botão **Salvar** fica reservado para a spec 006.
+  - à direita, a ação **Sair** e, desde a spec 006, o botão **Salvar** e o selo de status do quiz.
 - **Lista de perguntas (esquerda)**: cada item com o número e o tipo ("1 Quiz"), a miniatura com o começo do enunciado e, ao lado, as ações duplicar e excluir. A selecionada fica destacada. Abaixo da lista, o botão **Adicionar**. Os itens podem ser arrastados.
 - **Pergunta (centro)**, sobre o fundo do editor:
   - o enunciado, em destaque no topo, com o texto de apoio "Comece a digitar a pergunta" e, no canto superior direito, a contagem de caracteres restantes enquanto o campo está em foco;
@@ -373,3 +373,4 @@ Jogadores e anfitriões não aparecem nesta feature.
 - 2026-10-01 — excluir uma pergunta passou a pedir confirmação, como no Kahoot, a pedido do usuário; o "Desfazer" foi mantido (RN-14, CA-13).
 - 2026-10-01 — o "Desfazer" da exclusão de pergunta foi removido por decisão do usuário: com a confirmação, a exclusão é definitiva, como no Kahoot (RN-14, CA-13). O caso de uso `restoreQuestion`, a procedure `quiz.questions.restore` e as funções `restoreQuestionAt` e `parseQuestion` foram removidos; `deleteQuestion` não devolve mais a pergunta excluída.
 - 2026-10-01 — o limite do enunciado subiu de 120 para 160 caracteres e a contagem de caracteres restantes passou a aparecer só com o campo em foco, a pedido do usuário (RN-10, CA-19).
+- 2026-10-01 — alterada pela spec 006: **Sair** passa a levar à Biblioteca, como no Kahoot (RN-06, CA-03, CA-25); num quiz publicado com alterações, Sair pergunta antes (spec 006, RN-24). O cabeçalho ganhou o botão Salvar e o selo de status.

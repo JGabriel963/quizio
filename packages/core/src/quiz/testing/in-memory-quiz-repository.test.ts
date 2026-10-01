@@ -27,4 +27,23 @@ describe("InMemoryQuizRepository", () => {
 		await quizzes.delete("quiz-1");
 		expect(await quizzes.findById("quiz-1")).toBeNull();
 	});
+
+	it("markEdited writes only the edit marks", async () => {
+		const quizzes = new InMemoryQuizRepository();
+		const updatedAt = new Date("2026-01-02T10:00:00.000Z");
+		await quizzes.save(quiz);
+
+		await quizzes.markEdited("quiz-1", {
+			updatedAt,
+			hasUnpublishedChanges: true,
+		});
+		await quizzes.markEdited("missing", {
+			updatedAt,
+			hasUnpublishedChanges: true,
+		});
+
+		expect(quizzes.all()).toEqual([
+			{ ...quiz, updatedAt, hasUnpublishedChanges: true },
+		]);
+	});
 });

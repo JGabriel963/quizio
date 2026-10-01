@@ -20,7 +20,7 @@ No Kahoot, Quiz e Verdadeiro ou falso são os dois tipos gratuitos e cobrem a ma
 | 004 | Pergunta Quiz completa ✅ |
 | **005** | **Verdadeiro ou falso e troca de tipo (esta spec)** |
 | 006 | Salvar a versão jogável |
-| 007 | Mídia nas perguntas |
+| 007 | Imagem na pergunta |
 
 ## Objetivo
 
@@ -173,7 +173,7 @@ O criador escolhe o tipo ao adicionar uma pergunta, monta uma pergunta Verdadeir
 
 - **Dado** uma pergunta Verdadeiro ou falso sem enunciado e sem correta
 - **Quando** o criador olha a lista
-- **Então** o item tem um alerta que lista "Falta o texto da pergunta" e "Marque a resposta correta"
+- **Então** o item tem um alerta que lista "Pergunta ausente" e "Resposta correta não selecionada"
 - **Quando** ele escreve o enunciado e marca "Falso"
 - **Então** o alerta some
 
@@ -295,3 +295,4 @@ O criador escolhe o tipo ao adicionar uma pergunta, monta uma pergunta Verdadeir
 - 2026-10-01 — revisão do usuário: o seletor segue a aparência do Kahoot (RN-02, com a captura de tela como referência visual) e, em Verdadeiro ou falso, desmarcar a correta marca a outra, como no Kahoot (RN-07, CA-08). Spec aprovada pelo usuário, com pedido para implementar em seguida.
 - 2026-10-01 — implementada (tarefas T01 a T18).
 - 2026-10-01 — ajustes de layout pedidos pelo usuário: "Tipo de pergunta" com cartões e ícone, como no Kahoot; a dica da correta virou balão e segue a spec 004, RN-16a.
+- 2026-10-01 — alterada pela spec 006 (RN-10a): os motivos do alerta da lista passam a usar os textos do Kahoot (CA-12). O balão "Marque a resposta correta" junto às alternativas não mudou.

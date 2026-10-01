@@ -9,7 +9,7 @@ import { cn } from "@quizio/ui/lib/utils";
 import { useId } from "react";
 
 import {
-	QUESTION_ISSUE_LABELS,
+	NO_CORRECT_TRUE_FALSE_HINT,
 	TRUE_FALSE_LABELS,
 } from "@/lib/question-labels";
 
@@ -53,17 +53,18 @@ export function TrueFalseAnswers({
 					<li
 						key={label}
 						className={cn(
-							"flex min-h-16 items-center gap-3 rounded-md p-2 text-answer-foreground shadow-press-light sm:min-h-20",
+							"flex min-h-20 items-center gap-3 rounded-md p-2 text-answer-foreground shadow-press-light sm:min-h-[clamp(6rem,20svh,12.5rem)] xl:gap-4",
 							ANSWER_COLOR_CLASSES[shape],
 						)}
 					>
-						<span className="flex h-full min-h-12 w-10 shrink-0 items-center justify-center">
-							<AnswerShape shape={shape} className="size-5" />
+						<span className="flex min-h-12 w-10 shrink-0 items-center justify-center xl:w-12">
+							<AnswerShape shape={shape} className="size-5 xl:size-7" />
 						</span>
-						<span className="min-w-0 flex-1 font-bold">{label}</span>
+						<span className="min-w-0 flex-1 font-bold xl:text-lg">{label}</span>
 						<Checkbox
 							variant="answer"
 							aria-label={`${label} correta`}
+							className="xl:mr-1 xl:size-11"
 							checked={correct === value}
 							onCheckedChange={() =>
 								onCorrectChange(toggledTrueFalseCorrect(correct, value))
@@ -73,9 +74,7 @@ export function TrueFalseAnswers({
 				))}
 			</ul>
 			{unanswered && (
-				<EditorHint id={hintId}>
-					{QUESTION_ISSUE_LABELS.noCorrectTrueFalse}
-				</EditorHint>
+				<EditorHint id={hintId}>{NO_CORRECT_TRUE_FALSE_HINT}</EditorHint>
 			)}
 		</div>
 	);

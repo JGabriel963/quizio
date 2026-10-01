@@ -24,6 +24,7 @@ export function aTrueFalseQuestion(
 		text: "A capital do Brasil é Brasília",
 		timeLimitSeconds: 20,
 		points: "standard",
+		image: null,
 		correct: null,
 		...overrides,
 	};

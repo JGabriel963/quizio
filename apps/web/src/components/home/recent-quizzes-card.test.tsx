@@ -18,6 +18,7 @@ const aQuiz = (id: string, title: string): HomeQuizView => ({
 	coverImageUrl: null,
 	visibility: "private",
 	status: "draft",
+	hasUnpublishedChanges: false,
 	questionCount: 0,
 	updatedAt: "2026-06-14T12:00:00.000Z",
 	trashedAt: null,

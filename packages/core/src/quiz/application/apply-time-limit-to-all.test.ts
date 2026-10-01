@@ -6,6 +6,7 @@ import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
+import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
 import {
 	type ApplyTimeLimitToAll,
 	createApplyTimeLimitToAll,
@@ -23,6 +24,7 @@ describe("applyTimeLimitToAll", () => {
 		applyTimeLimitToAll = createApplyTimeLimitToAll({
 			quizzes,
 			questions,
+			versions: new InMemoryQuizVersionRepository(),
 			clock: new FixedClock("2026-06-01T12:00:00.000Z"),
 		});
 		await quizzes.save(aQuiz());

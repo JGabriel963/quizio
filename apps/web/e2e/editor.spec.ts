@@ -226,19 +226,29 @@ test("shows the failure offline and saves on retry", async ({ page }) => {
 	await expect(questionText(page)).toHaveValue("Pergunta nova");
 });
 
-test("Sair returns to the quiz page with the new title and count", async ({
+test("Sair returns to the library with the new title and count", async ({
 	page,
 }) => {
 	await createQuizInEditor(page);
 	await titleField(page).fill("Capitais");
 	await addQuestion(page, "Segunda");
 
-	await page.getByRole("button", { name: "Sair" }).click();
+	// A draft leaves at once, to the library (spec 006, RN-23).
+	await page.getByRole("button", { name: "Sair", exact: true }).click();
 
+	await expect(page).toHaveURL(/\/library/);
+	const item = quizList(page).getByRole("listitem").filter({
+		hasText: "Capitais",
+	});
+	await expect(item).toContainText("2 perguntas");
+	await expect(item.getByText("Rascunho")).toBeVisible();
+	await item.getByRole("link", { name: "Capitais" }).click();
 	await expect(
 		page.getByRole("heading", { level: 1, name: "Capitais" }),
 	).toBeVisible();
-	await expect(page.getByText("2 perguntas")).toBeVisible();
+	await expect(
+		page.getByText("Ainda não foi salvo como jogável"),
+	).toBeVisible();
 	await page.getByRole("link", { name: "Editar", exact: true }).click();
 	await expect(titleField(page)).toHaveValue("Capitais");
 });

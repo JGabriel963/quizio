@@ -122,6 +122,7 @@ describe("applyQuestionChange changing the type", () => {
 			text: "A capital do Brasil é Brasília",
 			timeLimitSeconds: 30,
 			points: "double",
+			image: null,
 			correct: null,
 		});
 	});

@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
+import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { LastQuestionError } from "../domain/question-list";
 import { aQuestion } from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
+import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
 import { createDeleteQuestion, type DeleteQuestion } from "./delete-question";
 
 describe("deleteQuestion", () => {
@@ -20,7 +22,13 @@ describe("deleteQuestion", () => {
 		quizzes = new InMemoryQuizRepository();
 		questions = new InMemoryQuestionRepository();
 		clock = new FixedClock("2026-06-01T12:00:00.000Z");
-		deleteQuestion = createDeleteQuestion({ quizzes, questions, clock });
+		deleteQuestion = createDeleteQuestion({
+			quizzes,
+			questions,
+			versions: new InMemoryQuizVersionRepository(),
+			storage: new InMemoryObjectStorage(),
+			clock,
+		});
 		await quizzes.save(aQuiz());
 	});
 

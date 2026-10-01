@@ -9,6 +9,7 @@ import type { PlacedQuestion } from "./add-question";
 import { loadEditableQuiz, markQuizEdited } from "./editable-quiz";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
+import type { QuizVersionRepository } from "./ports/quiz-version-repository";
 import { toQuestionView } from "./quiz-editor-view";
 import type { QuizReference } from "./quiz-reference";
 
@@ -23,6 +24,7 @@ export type DuplicateQuestion = (
 export function createDuplicateQuestion(deps: {
 	quizzes: QuizRepository;
 	questions: QuestionRepository;
+	versions: Pick<QuizVersionRepository, "find">;
 	ids: IdGenerator;
 	clock: Clock;
 }): DuplicateQuestion {
@@ -36,7 +38,7 @@ export function createDuplicateQuestion(deps: {
 		const { list, index } = insertQuestionAfter(questions, source.id, copy);
 
 		await deps.questions.saveList(quiz.id, list);
-		await markQuizEdited(deps, quiz);
+		await markQuizEdited(deps, quiz, list);
 
 		return { question: toQuestionView(copy), index };
 	};
