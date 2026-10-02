@@ -64,6 +64,13 @@ export const game = pgTable(
 		questionIndex: integer("question_index"),
 		phase: gamePhase("phase"),
 		phaseStartedAt: timestamp("phase_started_at", { withTimezone: true }),
+		/**
+		 * When the host's screen last told the server it is there (spec 013). It
+		 * is written on its own, every few seconds, while the game is open.
+		 */
+		hostSeenAt: timestamp("host_seen_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
 	},
 	(table) => [
 		/** A PIN is unique among the games that were not ended (RN-09, RN-12). */

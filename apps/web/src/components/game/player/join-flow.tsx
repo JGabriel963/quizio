@@ -5,6 +5,7 @@ import {
 	type StageChangedPayload,
 } from "@quizio/core/game/domain/game-events";
 import { parseGamePin } from "@quizio/core/game/domain/game-pin";
+import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type {
@@ -12,21 +13,25 @@ import type {
 	PlayerSessionData,
 	PlayerStageData,
 } from "@/lib/api-types";
+import { isConnectionFailure } from "@/lib/connection";
 import {
+	ANSWER_NOT_SENT_MESSAGE,
 	GAME_ENDED_MESSAGE,
 	gameErrorCode,
 	gameErrorMessage,
 	REMOVED_FROM_GAME_MESSAGE,
 } from "@/lib/game-error-messages";
-import { stageOrder } from "@/lib/game-stage";
+import { nextSessionCheckInMs, stageOrder } from "@/lib/game-stage";
 import type {
 	LastGame,
 	PlayerSessionStore,
 	StoredPlayerSession,
 } from "@/lib/player-session";
 import { useRealtimeEvent } from "@/lib/realtime";
+import { useConnectionWatch } from "@/lib/use-connection-watch";
 import { earliestDeadline } from "@/lib/use-countdown";
 
+import { ConnectionBar, type ConnectionTrouble } from "./connection-bar";
 import {
 	JoinLoading,
 	NicknameForm,
@@ -78,6 +83,12 @@ type Step =
 			session: StoredPlayerSession;
 			nickname: string;
 			play: PlayView | null;
+			/**
+			 * How long the host's screen had been silent when the server last
+			 * told; null when unknown or when nobody waits for the host anymore
+			 * (spec 013, RN-14).
+			 */
+			hostIdleMs: number | null;
 	  };
 
 /** How often a waiting device asks the server where it stands (ADR 0009). */
@@ -224,6 +235,7 @@ export function JoinFlow({
 						session: stored,
 						nickname: view.nickname,
 						play: toPlay(view),
+						hostIdleMs: view.hostIdleMs,
 					};
 				}
 				store.clear(parsed);
@@ -350,6 +362,28 @@ export function JoinFlow({
 		show(pinStep(notice), null);
 	}
 
+	/**
+	 * "Sair" on the connection bar: to the PIN, still a player of the game. The
+	 * session stays, and so the way back is offered at once (spec 013, RN-18).
+	 */
+	function stepOut() {
+		if (step.kind !== "waiting") {
+			return;
+		}
+		resolvedPin.current = null;
+		onPinChange(null);
+		setStep({ kind: "rejoin", pin: step.game.pin, nickname: step.nickname });
+	}
+
+	/** What the server, or an event, told about the host's screen. */
+	function hostSeen(idleMs: number | null) {
+		setStep((current) =>
+			current.kind === "waiting" && current.hostIdleMs !== idleMs
+				? { ...current, hostIdleMs: idleMs }
+				: current,
+		);
+	}
+
 	/** Changes what is known of the game, if the player is still in it. */
 	function updatePlay(change: (play: PlayView | null) => PlayView | null) {
 		setStep((current) =>
@@ -378,8 +412,15 @@ export function JoinFlow({
 	useRealtimeEvent(channel, GAME_EVENTS.gameEnded, () =>
 		leave(GAME_ENDED_MESSAGE),
 	);
-	// Events are hints: the device also asks, for what it missed while offline.
-	const checkSession = useEffectEvent(async () => {
+	// The host's screen gave a sign again (spec 013, RN-16).
+	useRealtimeEvent(channel, GAME_EVENTS.hostBack, () => hostSeen(0));
+	/** Goes up with every check that ended, whatever it ended in: the next one is due. */
+	const [checks, setChecks] = useState(0);
+	/**
+	 * Events are hints: the device also asks, for what it missed while offline.
+	 * It rejects only when the server gave no answer.
+	 */
+	const askSession = useEffectEvent(async () => {
 		if (!waiting) {
 			return;
 		}
@@ -392,14 +433,27 @@ export function JoinFlow({
 			} else {
 				const next = toPlay(view);
 				updatePlay((current) => mergePlay(current, next));
+				hostSeen(view.hostIdleMs);
 			}
 		} catch (error) {
-			// The game is gone with its quiz; a network failure just waits for the next check.
+			// The game is gone with its quiz.
 			if (gameErrorCode(error) === "GAME.NOT_FOUND") {
 				leave(GAME_ENDED_MESSAGE);
+			} else if (isConnectionFailure(error)) {
+				throw error;
 			}
+		} finally {
+			setChecks((count) => count + 1);
 		}
 	});
+	// Without an answer the device says so and keeps trying; once the server
+	// answers, the check itself has brought the game back (spec 013, RN-22).
+	const watch = useConnectionWatch({
+		enabled: playerId !== null && !settled,
+		probe: () => askSession(),
+	});
+	const { report } = watch;
+	const checkSession = useEffectEvent(() => askSession().catch(report));
 
 	// The event has the buttons to show; what is this player's alone (did they
 	// answer, were they right) comes from the session.
@@ -416,12 +470,15 @@ export function JoinFlow({
 						? current
 						: { finished: true, stage: null, final: null, receivedAt },
 				);
+				hostSeen(null);
 				void checkSession();
 				return;
 			}
 			if (status !== "playing" || !stage) {
 				return;
 			}
+			// Only the host's screen moves the game: it is there.
+			hostSeen(0);
 			const next: PlayView = {
 				finished: false,
 				final: null,
@@ -469,8 +526,14 @@ export function JoinFlow({
 	const checkInterval = playing
 		? PLAY_CHECK_INTERVAL_MS
 		: SESSION_CHECK_INTERVAL_MS;
+	const hostIdleMs = waiting?.hostIdleMs ?? null;
+	const { lost } = watch;
+	// `checks` restarts the wait after each check: the next one is due at the
+	// usual interval, or sooner when the host's silence would reach its limit
+	// before that. Without a connection the watch is the one that asks.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see above
 	useEffect(() => {
-		if (!playerId || settled) {
+		if (!playerId || settled || lost) {
 			return;
 		}
 		const check = () => void checkSession();
@@ -479,17 +542,20 @@ export function JoinFlow({
 				check();
 			}
 		};
-		const timer = setInterval(check, checkInterval);
+		const timer = setTimeout(
+			check,
+			nextSessionCheckInMs(hostIdleMs, checkInterval),
+		);
 		window.addEventListener("online", check);
 		window.addEventListener("focus", check);
 		document.addEventListener("visibilitychange", whenVisible);
 		return () => {
-			clearInterval(timer);
+			clearTimeout(timer);
 			window.removeEventListener("online", check);
 			window.removeEventListener("focus", check);
 			document.removeEventListener("visibilitychange", whenVisible);
 		};
-	}, [playerId, settled, checkInterval]);
+	}, [playerId, settled, lost, checkInterval, hostIdleMs, checks]);
 
 	/** `typed` is false for the way back: the player did not write this PIN. */
 	async function submitPin(rawPin: string, typed = true) {
@@ -520,6 +586,7 @@ export function JoinFlow({
 				session,
 				nickname: joined.nickname,
 				play: view ? toPlay(view) : null,
+				hostIdleMs: view?.hostIdleMs ?? null,
 			});
 		} catch (error) {
 			if (gameErrorCode(error) === PIN_NOT_RECOGNIZED) {
@@ -566,6 +633,11 @@ export function JoinFlow({
 				setLateFor(questionIndex);
 			} else if (code === "GAME.NOT_FOUND") {
 				void checkSession();
+			} else if (isConnectionFailure(error)) {
+				// The buttons are back: the answer may be sent again while
+				// the question is open (spec 013, RN-23).
+				setAnswerFailure({ questionIndex, message: ANSWER_NOT_SENT_MESSAGE });
+				report(error);
 			} else {
 				setAnswerFailure({ questionIndex, message: gameErrorMessage(error) });
 			}
@@ -603,26 +675,47 @@ export function JoinFlow({
 			);
 		case "waiting": {
 			const { play } = step;
+			// Nobody waits for the host, or for the connection, once the game is
+			// over (spec 013, RN-19).
+			const trouble: ConnectionTrouble = play?.finished
+				? null
+				: watch.lost
+					? "device"
+					: step.hostIdleMs !== null && step.hostIdleMs >= HOST_AWAY_AFTER_MS
+						? "host"
+						: null;
+			const questionIndex = play?.stage?.questionIndex ?? null;
+			const notice =
+				answerFailure?.questionIndex === questionIndex
+					? answerFailure.message
+					: null;
+			const connection = (
+				<ConnectionBar trouble={trouble} notice={notice} onLeave={stepOut} />
+			);
 			if (!play) {
-				return <WaitingScreen nickname={step.nickname} />;
+				return (
+					<>
+						<WaitingScreen nickname={step.nickname} />
+						{connection}
+					</>
+				);
 			}
-			const questionIndex = play.stage?.questionIndex ?? null;
 			return (
-				<PlayerStage
-					nickname={step.nickname}
-					finished={play.finished}
-					final={play.final}
-					stage={play.stage}
-					receivedAt={play.receivedAt}
-					late={questionIndex !== null && lateFor === questionIndex}
-					notice={
-						answerFailure?.questionIndex === questionIndex
-							? answerFailure.message
-							: null
-					}
-					onAnswer={submitAnswer}
-					onLeave={() => leave(null)}
-				/>
+				<>
+					<PlayerStage
+						nickname={step.nickname}
+						finished={play.finished}
+						final={play.final}
+						stage={play.stage}
+						receivedAt={play.receivedAt}
+						late={questionIndex !== null && lateFor === questionIndex}
+						// The bar sits where the notice would: it shows it instead.
+						notice={trouble ? null : notice}
+						onAnswer={submitAnswer}
+						onLeave={() => leave(null)}
+					/>
+					{connection}
+				</>
 			);
 		}
 	}

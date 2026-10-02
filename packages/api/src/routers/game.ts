@@ -90,6 +90,17 @@ export const gameRouter = router({
 			}),
 		),
 
+	/**
+	 * The host's screen is there (spec 013, RN-14). A mutation: it is written,
+	 * and the screen takes the answer as the proof that it has a connection.
+	 */
+	signal: protectedProcedure.input(gameReference).mutation(({ ctx, input }) =>
+		ctx.container.useCases.signalHost({
+			ownerId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
 	setLocked: protectedProcedure
 		.input(gameReference.extend({ locked: z.boolean() }))
 		.mutation(({ ctx, input }) =>

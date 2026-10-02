@@ -44,6 +44,7 @@ export function HostStage({
 	stage: told,
 	origin,
 	receivedAt: toldAt,
+	connected = true,
 	actions,
 }: {
 	game: HostGameData;
@@ -52,6 +53,11 @@ export function HostStage({
 	origin: string;
 	/** When `game` arrived, by this device's clock: the countdowns start from it. */
 	receivedAt: number;
+	/**
+	 * Whether the screen reaches the server (spec 013). Without it nothing is
+	 * asked; once back, the stage that ran out meanwhile is asked for at once.
+	 */
+	connected?: boolean;
 	actions: HostStageActions;
 }) {
 	const [ending, setEnding] = useState(false);
@@ -77,7 +83,7 @@ export function HostStage({
 
 	// A phase with a deadline ends by itself: this screen asks when it is due.
 	useEffect(() => {
-		if (remainingMs === null) {
+		if (remainingMs === null || !connected) {
 			return;
 		}
 		let cancelled = false;
@@ -95,8 +101,9 @@ export function HostStage({
 			cancelled = true;
 			clearTimeout(timer);
 		};
-		// A new stage always comes with a new `receivedAt`, which restarts the wait.
-	}, [remainingMs, receivedAt]);
+		// A new stage always comes with a new `receivedAt`, which restarts the
+		// wait; so does the connection coming back (RN-11).
+	}, [remainingMs, receivedAt, connected]);
 
 	function request(skip: boolean) {
 		setPending(stageKey);
@@ -166,6 +173,7 @@ export function HostStage({
 				playing
 				onOptionsChange={actions.setOptions}
 				onLockedChange={actions.setLocked}
+				onEnd={actions.end}
 			/>
 			<EndGameDialog
 				open={ending}

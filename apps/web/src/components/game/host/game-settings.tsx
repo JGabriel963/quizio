@@ -1,3 +1,4 @@
+import { Button } from "@quizio/ui/components/button";
 import {
 	Sheet,
 	SheetBody,
@@ -11,12 +12,15 @@ import {
 	ListOrderedIcon,
 	LockIcon,
 	type LucideIcon,
+	PowerIcon,
 	ShuffleIcon,
 	SmartphoneIcon,
 } from "lucide-react";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import type { GameOptionsData } from "@/lib/api-types";
+
+import { EndGameDialog } from "./lobby-dialogs";
 
 /** Why the random orders cannot change during the game (spec 012, RN-25). */
 const ONLY_BEFORE_START = "Só antes de iniciar a partida.";
@@ -24,7 +28,8 @@ const ONLY_BEFORE_START = "Só antes de iniciar a partida.";
 /**
  * "Configurações", opened from the gear of the host's header, in the lobby
  * and during the game (spec 012, RN-01 to RN-07). Each switch takes effect at
- * once; the game behind the panel keeps running.
+ * once; the game behind the panel keeps running. Its last line ends the game,
+ * after the same question the exit button asks (spec 013, RN-01, RN-02).
  */
 export function GameSettings({
 	open,
@@ -34,6 +39,7 @@ export function GameSettings({
 	playing,
 	onOptionsChange,
 	onLockedChange,
+	onEnd,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -45,7 +51,11 @@ export function GameSettings({
 	/** Only the option that changed. */
 	onOptionsChange: (change: Partial<GameOptionsData>) => void;
 	onLockedChange: (locked: boolean) => void;
+	/** "Encerrar agora", once confirmed. */
+	onEnd: () => void;
 }) {
+	const [confirmingEnd, setConfirmingEnd] = useState(false);
+
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent>
@@ -91,10 +101,29 @@ export function GameSettings({
 							}
 						/>
 					</ul>
+					<div className="flex items-center gap-4 border-t px-5 py-4">
+						<PowerIcon
+							aria-hidden="true"
+							className="size-6 shrink-0 text-brand"
+						/>
+						<p className="min-w-0 flex-1 font-bold text-base">Encerrar jogo</p>
+						<Button onClick={() => setConfirmingEnd(true)}>
+							Encerrar agora
+						</Button>
+					</div>
 				</SheetBody>
 				<SheetFooter>
 					Suas configurações serão salvas para a próxima vez.
 				</SheetFooter>
+				{/* Inside the panel: cancelling comes back to it (RN-02). */}
+				<EndGameDialog
+					open={confirmingEnd}
+					onCancel={() => setConfirmingEnd(false)}
+					onConfirm={() => {
+						setConfirmingEnd(false);
+						onEnd();
+					}}
+				/>
 			</SheetContent>
 		</Sheet>
 	);

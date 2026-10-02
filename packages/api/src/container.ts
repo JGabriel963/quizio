@@ -47,6 +47,10 @@ import {
 	type SetGameOptions,
 } from "@quizio/core/game/application/set-game-options";
 import {
+	createSignalHost,
+	type SignalHost,
+} from "@quizio/core/game/application/signal-host";
+import {
 	createStartGame,
 	type StartGame,
 } from "@quizio/core/game/application/start-game";
@@ -199,6 +203,7 @@ export interface Container extends Adapters {
 		getHostGame: GetHostGame;
 		startGame: StartGame;
 		advanceGame: AdvanceGame;
+		signalHost: SignalHost;
 		setGameLocked: SetGameLocked;
 		setGameOptions: SetGameOptions;
 		removePlayer: RemovePlayer;
@@ -252,6 +257,7 @@ export function createContainer(adapters: Adapters): Container {
 			getHostGame: createGetHostGame(adapters),
 			startGame: createStartGame(adapters),
 			advanceGame: createAdvanceGame(adapters),
+			signalHost: createSignalHost(adapters),
 			setGameLocked: createSetGameLocked(adapters),
 			setGameOptions: createSetGameOptions(adapters),
 			removePlayer: createRemovePlayer(adapters),

@@ -270,6 +270,21 @@ describe("HostLobby (spec 008)", () => {
 		expect(screen.getByText("265 914")).toBeInTheDocument();
 	});
 
+	it("Encerrar agora asks and ends the game from the lobby (spec 013)", async () => {
+		const { actions, user } = renderLobby({ ...empty, players: [act] });
+		await user.click(screen.getByRole("button", { name: "Configurações" }));
+
+		await user.click(screen.getByRole("button", { name: "Encerrar agora" }));
+		expect(actions.end).not.toHaveBeenCalled();
+		await user.click(
+			within(
+				screen.getByRole("alertdialog", { name: "Encerrar o jogo?" }),
+			).getByRole("button", { name: "Encerrar" }),
+		);
+
+		expect(actions.end).toHaveBeenCalledOnce();
+	});
+
 	describe("settings (spec 012)", () => {
 		const openSettings = async (user: ReturnType<typeof userEvent.setup>) => {
 			await user.click(screen.getByRole("button", { name: "Configurações" }));

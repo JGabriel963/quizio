@@ -24,6 +24,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		endReason: null,
 		questionCount: 0,
 		progress: null,
+		hostSeenAt: createdAt,
 		...overrides,
 	};
 }

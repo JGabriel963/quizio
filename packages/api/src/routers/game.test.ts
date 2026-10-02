@@ -1,6 +1,7 @@
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
 import { PIN_ATTEMPT_LIMIT } from "@quizio/core/game/domain/game-pin";
 import { QUESTION_INTRO_MS } from "@quizio/core/game/domain/game-progress";
+import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import { somePlayableQuestions } from "@quizio/core/game/testing/game-deps";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
@@ -167,6 +168,7 @@ describe("game router: the player (spec 008)", () => {
 			status: "waiting",
 			stage: null,
 			final: null,
+			hostIdleMs: 0,
 		});
 		expect((await host.game.view({ gameId })).players).toEqual([
 			{ id: player.playerId, nickname: "ACT" },
@@ -555,6 +557,7 @@ describe("game router: the end of the game (spec 011)", () => {
 			status: "finished",
 			stage: null,
 			final: { title: "Capitais", rank: 2, total: 0, revealRemainingMs: 0 },
+			hostIdleMs: null,
 		});
 		await expect(visitor.game.join.find({ pin })).rejects.toMatchObject({
 			cause: { code: "GAME.PIN_NOT_RECOGNIZED" },
@@ -776,5 +779,57 @@ describe("game router: the options (spec 012)", () => {
 		for (const sent of [session, published]) {
 			expect(JSON.stringify(sent)).not.toMatch(/"correct"|distribution/);
 		}
+	});
+});
+
+describe("game router: the host's signal (spec 013)", () => {
+	async function withPlayer() {
+		const game = await hosted();
+		const guest = game.api.callerFor(null);
+		const { playerId, secret } = await guest.game.join.enter({
+			gameId: game.gameId,
+			nickname: "Ana",
+		});
+		const session = () =>
+			guest.game.join.session({ gameId: game.gameId, playerId, secret });
+		return { ...game, session };
+	}
+
+	it("game.signal needs a session", async () => {
+		const { api, gameId } = await hosted();
+
+		await expect(
+			api.callerFor(null).game.signal({ gameId }),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("game.signal is not found for another creator", async () => {
+		const { api, gameId } = await hosted();
+
+		await expect(
+			api.callerFor("user-2").game.signal({ gameId }),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			cause: { code: "GAME.NOT_FOUND" },
+		});
+	});
+
+	it("the player's session tells a host that went silent", async () => {
+		const { api, session } = await withPlayer();
+		api.clock.advanceBy(HOST_AWAY_AFTER_MS + 500);
+
+		expect((await session()).hostIdleMs).toBe(HOST_AWAY_AFTER_MS + 500);
+	});
+
+	it("after a signal the player's session tells the host is there", async () => {
+		const { api, host, gameId, session } = await withPlayer();
+		api.clock.advanceBy(HOST_AWAY_AFTER_MS + 500);
+
+		expect(await host.game.signal({ gameId })).toEqual({ status: "lobby" });
+
+		expect((await session()).hostIdleMs).toBe(0);
+		expect(api.realtime.messagesOn(gameChannel(gameId)).at(-1)).toMatchObject({
+			event: GAME_EVENTS.hostBack,
+		});
 	});
 });

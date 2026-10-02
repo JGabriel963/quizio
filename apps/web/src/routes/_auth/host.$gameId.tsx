@@ -11,13 +11,16 @@ import {
 import type { StageRef } from "@quizio/core/game/domain/game-progress";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
+import { ConnectionLostDialog } from "@/components/game/host/connection-lost-dialog";
 import { GameUnavailable } from "@/components/game/host/game-unavailable";
 import { HostLobby } from "@/components/game/host/host-lobby";
 import { HostStage } from "@/components/game/host/host-stage";
 import { Podium } from "@/components/game/host/podium";
 import type { GameOptionsData, HostGameData } from "@/lib/api-types";
+import { isConnectionFailure, withTimeout } from "@/lib/connection";
 import {
 	gameErrorCode,
 	gameErrorMessage,
@@ -27,11 +30,13 @@ import { applyLobbyEvent, type LobbyEvent } from "@/lib/game-lobby";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { applyAnswerCount, showsStage } from "@/lib/game-stage";
 import { useRealtimeEvent } from "@/lib/realtime";
+import { useConnectionWatch } from "@/lib/use-connection-watch";
+import { useHostSignal } from "@/lib/use-host-signal";
 import { useLeaveWarning } from "@/lib/use-leave-warning";
 import { useOrigin } from "@/lib/use-origin";
-import { useTRPC } from "@/utils/trpc";
+import { useTRPC, useTRPCClient } from "@/utils/trpc";
 
-/** The host's screen of a live game, full screen outside the creator shell (specs 008 to 011). */
+/** The host's screen of a live game, full screen outside the creator shell (specs 008 to 013). */
 export const Route = createFileRoute("/_auth/host/$gameId")({
 	component: HostPage,
 });
@@ -47,6 +52,7 @@ const QUIET_REFUSALS = ["GAME.STAGE_NOT_DUE", "GAME.ENDED"];
 function HostPage() {
 	const { gameId } = Route.useParams();
 	const trpc = useTRPC();
+	const client = useTRPCClient();
 	const queryClient = useQueryClient();
 	const navigate = Route.useNavigate();
 	const origin = useOrigin();
@@ -90,6 +96,30 @@ function HostPage() {
 		apply((current) => applyLobbyEvent(current, event));
 	const refresh = () => queryClient.invalidateQueries({ queryKey: viewKey });
 
+	// The screen tells the server it is there, and the answer is also how it
+	// knows it has a connection (spec 013). Back from a loss, it asks about the
+	// game again: it may have been ended meanwhile (RN-13).
+	const status = view.data?.status;
+	const signal = () => withTimeout(client.game.signal.mutate({ gameId }));
+	const watch = useConnectionWatch({
+		enabled: status !== undefined && status !== "ended",
+		probe: signal,
+		onBack: () => void refresh(),
+	});
+	// The podium waits for nobody: no signal there (RN-19).
+	useHostSignal({
+		enabled: (status === "lobby" || status === "playing") && !watch.lost,
+		signal,
+		report: watch.report,
+	});
+	const { report } = watch;
+	const viewError = view.error;
+	useEffect(() => {
+		if (viewError) {
+			report(viewError);
+		}
+	}, [viewError, report]);
+
 	const channel = gameChannel(gameId);
 	useRealtimeEvent<PlayerJoinedPayload>(
 		channel,
@@ -128,9 +158,12 @@ function HostPage() {
 		(event) => apply((current) => applyAnswerCount(current, event)),
 	);
 
-	// The host's own actions show at once; a refusal brings the server's state back.
+	// The host's own actions show at once; a failure is told and brings the
+	// server's state back. One for lack of a connection also opens the dialog
+	// (spec 013): the host asked for something, so they are told it did not go.
 	const failed = (error: unknown) => {
 		toast.error(gameErrorMessage(error));
+		report(error);
 		void refresh();
 	};
 	const setLocked = useMutation(
@@ -153,6 +186,7 @@ function HostPage() {
 				void applyLobby({ type: "optionsChanged", options }),
 			onError: (error) => {
 				toast.error(settingErrorMessage(error));
+				report(error);
 				void refresh();
 			},
 			meta: { suppressErrorToast: true },
@@ -187,7 +221,6 @@ function HostPage() {
 	// From the lobby to the podium the host's screen is the game: closing the
 	// tab by accident would leave the players without it, so the browser asks
 	// first, as Kahoot does. A game that was ended has nothing left to lose.
-	const status = view.data?.status;
 	useLeaveWarning(
 		status === "lobby" || status === "playing" || status === "finished",
 	);
@@ -198,7 +231,10 @@ function HostPage() {
 			show(await advance.mutateAsync({ gameId, from, skip }));
 		} catch (error) {
 			const code = gameErrorCode(error);
-			if (code !== "GAME.STAGE_NOT_DUE") {
+			if (isConnectionFailure(error)) {
+				// The stage is asked for again when the connection is back (RN-11).
+				report(error);
+			} else if (code !== "GAME.STAGE_NOT_DUE") {
 				if (!code || !QUIET_REFUSALS.includes(code)) {
 					toast.error(gameErrorMessage(error));
 				}
@@ -212,11 +248,14 @@ function HostPage() {
 	if (view.isPending || origin === null) {
 		return <GameUnavailable state={{ kind: "loading", origin }} />;
 	}
-	if (view.isError) {
+	// A screen that already has the game keeps it when asking again fails: the
+	// dialog over it tells about the connection (spec 013).
+	const game = view.data;
+	if (!game) {
 		return (
 			<GameUnavailable
 				state={
-					view.error.data?.code === "NOT_FOUND"
+					view.error?.data?.code === "NOT_FOUND"
 						? { kind: "not-found" }
 						: { kind: "error", onRetry: () => void view.refetch() }
 				}
@@ -224,22 +263,25 @@ function HostPage() {
 		);
 	}
 
-	const game = view.data;
 	const { quizId } = game;
 	if (game.status === "ended") {
 		return <GameUnavailable state={{ kind: "ended", quizId }} />;
 	}
 	const toQuiz = () => navigate({ to: "/quizzes/$quizId", params: { quizId } });
+	const connectionLost = <ConnectionLostDialog watch={watch} />;
 	if (game.status === "finished" && game.final) {
 		return (
-			<Podium
-				game={game}
-				final={game.final}
-				receivedAt={view.dataUpdatedAt}
-				playingAgain={playAgain.pending}
-				playAgainError={playAgain.error}
-				actions={{ playAgain: () => playAgain.start(quizId), exit: toQuiz }}
-			/>
+			<>
+				<Podium
+					game={game}
+					final={game.final}
+					receivedAt={view.dataUpdatedAt}
+					playingAgain={playAgain.pending}
+					playAgainError={playAgain.error}
+					actions={{ playAgain: () => playAgain.start(quizId), exit: toQuiz }}
+				/>
+				{connectionLost}
+			</>
 		);
 	}
 
@@ -252,27 +294,34 @@ function HostPage() {
 
 	if (game.status === "playing" && game.stage) {
 		return (
-			<HostStage
-				game={game}
-				stage={game.stage}
-				origin={origin}
-				receivedAt={view.dataUpdatedAt}
-				actions={{ advance: advanceFrom, end: endGame, ...settings }}
-			/>
+			<>
+				<HostStage
+					game={game}
+					stage={game.stage}
+					origin={origin}
+					receivedAt={view.dataUpdatedAt}
+					connected={!watch.lost}
+					actions={{ advance: advanceFrom, end: endGame, ...settings }}
+				/>
+				{connectionLost}
+			</>
 		);
 	}
 
 	return (
-		<HostLobby
-			lobby={game}
-			origin={origin}
-			starting={start.isPending}
-			actions={{
-				...settings,
-				removePlayer: (playerId) => removePlayer.mutate({ gameId, playerId }),
-				start: () => start.mutate({ gameId }),
-				end: endGame,
-			}}
-		/>
+		<>
+			<HostLobby
+				lobby={game}
+				origin={origin}
+				starting={start.isPending}
+				actions={{
+					...settings,
+					removePlayer: (playerId) => removePlayer.mutate({ gameId, playerId }),
+					start: () => start.mutate({ gameId }),
+					end: endGame,
+				}}
+			/>
+			{connectionLost}
+		</>
 	);
 }

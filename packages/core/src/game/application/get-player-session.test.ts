@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { aQuestion } from "../../quiz/testing/a-question";
+import { HOST_AWAY_AFTER_MS } from "../domain/host-presence";
+import { aGame, aPlayer } from "../testing/a-game";
+import { createGameDeps } from "../testing/game-deps";
 import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
 import { createGetHostGame } from "./get-host-game";
@@ -48,6 +51,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 				outcome: null,
 			},
 			final: null,
+			hostIdleMs: 0,
 		});
 	});
 
@@ -365,6 +369,7 @@ describe("getPlayerSession: the final screen (spec 011)", () => {
 				total: 1875,
 				revealRemainingMs: 7_000,
 			},
+			hostIdleMs: null,
 		});
 		expect((await getPlayerSession(player(2))).final).toMatchObject({
 			rank: 2,
@@ -439,6 +444,7 @@ describe("getPlayerSession: who joined in the middle (spec 012)", () => {
 				outcome: null,
 			},
 			final: null,
+			hostIdleMs: expect.any(Number),
 		});
 	});
 
@@ -664,6 +670,65 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 		expect(revealed?.find((choice) => choice.correct)).toMatchObject({
 			shapeIndex: 3,
 			text: "Brasília",
+		});
+	});
+});
+
+describe("getPlayerSession: the host's silence (spec 013)", () => {
+	it("tells how long the host has been silent, in the lobby and during the game", async () => {
+		const deps = createGameDeps();
+		const now = deps.clock.now();
+		await deps.games.save(aGame({ createdAt: now, hostSeenAt: now }));
+		await deps.players.add(aPlayer({ id: "p1", secret: "s1" }));
+		const getPlayerSession = createGetPlayerSession(deps);
+		deps.clock.advanceBy(3_000);
+
+		expect(await getPlayerSession(player(1))).toMatchObject({
+			status: "waiting",
+			hostIdleMs: 3_000,
+		});
+
+		const playing = await createStartedGame();
+		await playing.reach("answering");
+		const seenAt = playing.deps.clock.now();
+		await playing.deps.games.saveHostSeen("game-1", seenAt);
+		playing.deps.clock.advanceBy(HOST_AWAY_AFTER_MS + 2_000);
+
+		expect(await createGetPlayerSession(playing.deps)(player(1))).toMatchObject(
+			{
+				status: "playing",
+				hostIdleMs: HOST_AWAY_AFTER_MS + 2_000,
+			},
+		);
+	});
+
+	it("tells no idle time for a finished or ended game", async () => {
+		const finished = await createStartedGame();
+		await finished.finish();
+		finished.deps.clock.advanceBy(60_000);
+
+		expect(
+			await createGetPlayerSession(finished.deps)(player(1)),
+		).toMatchObject({ status: "finished", hostIdleMs: null });
+
+		const ended = await createStartedGame();
+		await createEndGame(ended.deps)(ended.host);
+		ended.deps.clock.advanceBy(60_000);
+
+		expect(await createGetPlayerSession(ended.deps)(player(1))).toMatchObject({
+			status: "ended",
+			hostIdleMs: null,
+		});
+	});
+
+	it("tells no idle time to a removed player", async () => {
+		const { deps, host } = await createStartedGame();
+		await createRemovePlayer(deps)({ ...host, playerId: "p1" });
+		deps.clock.advanceBy(60_000);
+
+		expect(await createGetPlayerSession(deps)(player(1))).toMatchObject({
+			status: "removed",
+			hostIdleMs: null,
 		});
 	});
 });

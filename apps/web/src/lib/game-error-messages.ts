@@ -46,6 +46,9 @@ export function playAgainErrorMessage(error: unknown): string {
 		: gameErrorMessage(error);
 }
 
+/** The answer got no reply from the server: the player may try again (spec 013, RN-23). */
+export const ANSWER_NOT_SENT_MESSAGE = "Sua resposta não foi enviada.";
+
 /** A switch of the settings that could not be saved (spec 012, RN-04). */
 export const SETTING_NOT_SAVED_MESSAGE =
 	"Não foi possível salvar a configuração. Tente novamente.";

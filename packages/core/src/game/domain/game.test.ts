@@ -52,6 +52,21 @@ describe("game (spec 008)", () => {
 		expect(isGameOpen(game)).toBe(true);
 	});
 
+	it("a new game was seen by its host when created (spec 013)", () => {
+		const game = newGame({
+			id: "game-1",
+			ownerId: "user-1",
+			quizId: "quiz-1",
+			quizVersion: 1,
+			title: "Capitais",
+			pin: "265914",
+			options: DEFAULT_GAME_OPTIONS,
+			now,
+		});
+
+		expect(game.hostSeenAt).toEqual(now);
+	});
+
 	it("is ended once past its deadline, at the deadline", () => {
 		const game = aGame({ createdAt: now });
 

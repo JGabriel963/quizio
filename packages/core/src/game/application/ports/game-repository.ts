@@ -28,4 +28,10 @@ export interface GameRepository {
 	 * means another request moved it first (spec 009, RN-12).
 	 */
 	saveIfAt(game: Game, from: StageRef | null): Promise<boolean>;
+	/**
+	 * Stores when the host's screen last gave a sign, and nothing else (spec
+	 * 013): it is written every few seconds and must never undo a stage or a
+	 * setting written meanwhile.
+	 */
+	saveHostSeen(gameId: string, at: Date): Promise<void>;
 }

@@ -93,6 +93,7 @@ export function HostLobby({
 				playing={false}
 				onOptionsChange={actions.setOptions}
 				onLockedChange={actions.setLocked}
+				onEnd={actions.end}
 			/>
 			<RemovePlayerDialog
 				player={removing}

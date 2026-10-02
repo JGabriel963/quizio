@@ -97,6 +97,8 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Entrada bloqueada | `locked` | Estado da partida em que ninguém novo entra; quem já entrou permanece (spec 008) | ✅ |
 | Remover participante | `removePlayer` | O anfitrião tira um jogador da partida; o apelido removido fica bloqueado nela (spec 008) | ✅ |
 | Encerrar o jogo | `endGame`, `GameEndReason` | Fecha a partida: o PIN deixa de funcionar e os jogadores são avisados (spec 008) | ✅ |
+| Conexão perdida | `isConnectionFailure`, `useConnectionWatch` | A tela (do anfitrião ou do jogador) não consegue falar com o servidor; ela avisa e tenta de novo sozinha a cada 5 s. Uma resposta de erro do servidor não é falta de conexão (spec 013) | ✅ |
+| Anfitrião ausente | `isHostAway`, `Game.hostSeenAt`, `hostIdleMs` | A tela do anfitrião está há 10 s sem dar sinal ao servidor (queda ou aba fechada); os celulares avisam "O anfitrião se desconectou". O jogo não avança, mas os prazos correm e as respostas valem (spec 013) | ✅ |
 | Limite de jogadores | `GAME_MAX_PLAYERS` | Máximo de 200 jogadores por partida, técnico e configurável (spec 008) | ✅ |
 | Jogador | `Player` | Participante anônimo identificado por apelido na partida; pertence ao navegador em que entrou (spec 008) | ✅ |
 | Apelido | `Nickname` | Nome do jogador na partida: 1 a 15 caracteres, único sem diferenciar maiúsculas e acentos, fixo depois de entrar (spec 008) | ✅ |

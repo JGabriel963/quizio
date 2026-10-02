@@ -1,7 +1,8 @@
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
+import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import type { PublicStage } from "@quizio/core/game/domain/public-stage";
 import { InMemoryRealtimeSubscriber } from "@quizio/realtime/testing/in-memory-realtime-subscriber";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -26,6 +27,9 @@ import {
 const PIN = "265914";
 const GAME = "game-1";
 
+/** What a request ends in when the server is out of reach. */
+const noAnswer = () => new TypeError("Failed to fetch");
+
 /** The API's refusals carry the domain code, as tRPC errors do. */
 const refusal = (domainCode: string) =>
 	Object.assign(new Error(domainCode), { data: { domainCode } });
@@ -44,6 +48,10 @@ class FakeJoinApi implements JoinApi {
 	stage: PublicStage | null = null;
 	/** What the server answers to an answer, when it refuses. */
 	answerRefusal: string | null = null;
+	/** The device has no connection: nothing gets an answer (spec 013). */
+	offline = false;
+	/** How long the host's screen has been silent, as the server would tell. */
+	hostIdleMs = 0;
 	readonly answers: {
 		playerId: string;
 		questionIndex: number;
@@ -103,6 +111,9 @@ class FakeJoinApi implements JoinApi {
 	}
 
 	async session(input: StoredPlayerSession): Promise<PlayerSessionData> {
+		if (this.offline) {
+			throw noAnswer();
+		}
 		const player = this.players.get(input.playerId);
 		if (!player || input.secret !== `secret-${input.playerId}`) {
 			throw refusal("GAME.NOT_FOUND");
@@ -151,6 +162,7 @@ class FakeJoinApi implements JoinApi {
 							revealRemainingMs: this.revealRemainingMs,
 						}
 					: null,
+			hostIdleMs: over ? null : this.hostIdleMs,
 		};
 	}
 
@@ -170,6 +182,9 @@ class FakeJoinApi implements JoinApi {
 	async answer(
 		input: StoredPlayerSession & { questionIndex: number; choiceIds: string[] },
 	) {
+		if (this.offline) {
+			throw noAnswer();
+		}
 		if (this.answerRefusal) {
 			throw refusal(this.answerRefusal);
 		}
@@ -1294,5 +1309,272 @@ describe("JoinFlow: coming back to a game (spec 008, RN-44a)", () => {
 
 		expect(pinField()).toBeInTheDocument();
 		expect(store.last()).toBeNull();
+	});
+});
+
+describe("JoinFlow: connection (spec 013)", () => {
+	function moveTo(flow: ReturnType<typeof renderFlow>, stage: PublicStage) {
+		flow.api.stage = stage;
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.stageChanged, {
+				status: "playing",
+				stage,
+			}),
+		);
+	}
+	const red = () => screen.getByRole("button", { name: "Triângulo vermelho" });
+	const answerButtons = () =>
+		document.querySelectorAll('[data-slot="answer-button"]');
+	const bar = () => document.querySelector('[data-slot="connection-bar"]');
+	const pass = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
+	const AWAY = HOST_AWAY_AFTER_MS + 2_000;
+
+	/** In a game at the answers of the first question, with the clock in hand. */
+	async function playing() {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("answering"));
+		return flow;
+	}
+
+	/** The same, with the host's screen silent for longer than the limit. */
+	async function withHostAway() {
+		const flow = await playing();
+		flow.api.hostIdleMs = AWAY;
+		await pass(PLAY_CHECK_INTERVAL_MS);
+		return flow;
+	}
+
+	it("shows O anfitrião se desconectou when the session tells the host is away", async () => {
+		await withHostAway();
+
+		expect(bar()).toHaveTextContent("Conexão perdida");
+		expect(bar()).toHaveTextContent("O anfitrião se desconectou");
+		expect(screen.getByRole("button", { name: "Sair" })).toBeEnabled();
+	});
+
+	it("shows no bar while the host is signalling", async () => {
+		const flow = await playing();
+		flow.api.hostIdleMs = 4_000;
+
+		await pass(PLAY_CHECK_INTERVAL_MS);
+
+		expect(bar()).toBeNull();
+	});
+
+	it("the bar shows in the lobby too", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		flow.api.hostIdleMs = AWAY;
+
+		await pass(SESSION_CHECK_INTERVAL_MS);
+
+		expect(bar()).toHaveTextContent("O anfitrião se desconectou");
+		expect(
+			screen.getByText("Pronto! Está vendo seu apelido na tela?"),
+		).toBeVisible();
+	});
+
+	it("asks again when the host's silence would reach 10 s", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		const session = vi.spyOn(flow.api, "session");
+
+		// In the lobby the usual check is 15 s away: too late to tell at 10 s.
+		await pass(HOST_AWAY_AFTER_MS - 500);
+		expect(session).not.toHaveBeenCalled();
+
+		flow.api.hostIdleMs = HOST_AWAY_AFTER_MS + 100;
+		await pass(1_000);
+
+		expect(session).toHaveBeenCalledTimes(1);
+		expect(bar()).toHaveTextContent("O anfitrião se desconectou");
+	});
+
+	it("the bar goes away with host-back and with a new stage", async () => {
+		const flow = await withHostAway();
+
+		flow.api.hostIdleMs = 0;
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.hostBack, {}),
+		);
+		// The bar leaves moving: it is gone a moment later.
+		await waitFor(() => expect(bar()).toBeNull());
+
+		// Away again, and back by moving the game on.
+		flow.api.hostIdleMs = AWAY;
+		await pass(PLAY_CHECK_INTERVAL_MS);
+		expect(bar()).not.toBeNull();
+
+		flow.api.hostIdleMs = 0;
+		moveTo(flow, stageOf("results"));
+
+		await waitFor(() => expect(bar()).toBeNull());
+	});
+
+	it("the bar goes away when the session tells the host is back", async () => {
+		const flow = await withHostAway();
+
+		flow.api.hostIdleMs = 500;
+		await pass(PLAY_CHECK_INTERVAL_MS);
+
+		expect(bar()).toBeNull();
+	});
+
+	it("an answer is sent with the bar showing", async () => {
+		const flow = await withHostAway();
+
+		await flow.user.click(red());
+
+		expect(flow.api.answers).toEqual([
+			{ playerId: "p1", questionIndex: 0, choiceIds: ["choice-1"] },
+		]);
+		expect(answerButtons()).toHaveLength(0);
+		expect(bar()).toHaveTextContent("O anfitrião se desconectou");
+	});
+
+	it("Sair keeps the session and offers the way back", async () => {
+		const flow = await withHostAway();
+		flow.api.totals.set("p1", 900);
+
+		await flow.user.click(screen.getByRole("button", { name: "Sair" }));
+
+		const back = await screen.findByRole("button", { name: "Voltar como ACT" });
+		expect(flow.onPinChange).toHaveBeenLastCalledWith(null);
+		expect(flow.store.load(PIN)).not.toBeNull();
+		expect(bar()).toBeNull();
+
+		flow.api.hostIdleMs = 0;
+		await flow.user.click(back);
+
+		expect(
+			await screen.findByRole("button", { name: "Triângulo vermelho" }),
+		).toBeVisible();
+		expect(
+			document.querySelector('[data-slot="player-total"]'),
+		).toHaveTextContent("900");
+		// The same player, not a new one.
+		expect(flow.api.players.size).toBe(1);
+	});
+
+	it("no bar on the final screen", async () => {
+		const flow = await withHostAway();
+
+		flow.api.finished = true;
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.stageChanged, {
+				status: "finished",
+				stage: null,
+			}),
+		);
+		await pass(1_000);
+
+		expect(bar()).toBeNull();
+	});
+
+	it("a failed check shows Tentando reconectar…", async () => {
+		const flow = await playing();
+		flow.api.offline = true;
+
+		await pass(PLAY_CHECK_INTERVAL_MS);
+
+		expect(bar()).toHaveTextContent("Conexão perdida");
+		expect(bar()).toHaveTextContent("Tentando reconectar…");
+		// Present and usable; how it comes in is the browser's to draw.
+		expect(screen.getByRole("button", { name: "Sair" })).toBeEnabled();
+	});
+
+	it("the browser going offline shows the bar at once", async () => {
+		await playing();
+
+		act(() => {
+			window.dispatchEvent(new Event("offline"));
+		});
+
+		expect(bar()).toHaveTextContent("Tentando reconectar…");
+	});
+
+	it("the device's own connection comes before the host's", async () => {
+		const flow = await withHostAway();
+		flow.api.offline = true;
+
+		await pass(PLAY_CHECK_INTERVAL_MS);
+
+		expect(bar()).toHaveTextContent("Tentando reconectar…");
+		expect(bar()).not.toHaveTextContent("O anfitrião se desconectou");
+	});
+
+	it("returns to the current stage as the same player", async () => {
+		const flow = await playing();
+		flow.api.offline = true;
+		await pass(PLAY_CHECK_INTERVAL_MS);
+		expect(bar()).not.toBeNull();
+
+		// The game went on to the next question meanwhile.
+		flow.api.stage = stageOf("answering", 1);
+		flow.api.totals.set("p1", 900);
+		flow.api.offline = false;
+		await pass(PLAY_CHECK_INTERVAL_MS);
+
+		expect(bar()).toBeNull();
+		expect(answerButtons()).toHaveLength(4);
+		expect(
+			document.querySelector('[data-slot="question-number"]'),
+		).toHaveTextContent("2");
+		expect(
+			document.querySelector('[data-slot="player-total"]'),
+		).toHaveTextContent("900");
+		expect(flow.api.players.size).toBe(1);
+	});
+
+	it("an ended game leads to the PIN when the device is back", async () => {
+		const flow = await playing();
+		flow.api.offline = true;
+		await pass(PLAY_CHECK_INTERVAL_MS);
+
+		flow.api.ended = true;
+		flow.api.offline = false;
+		await pass(PLAY_CHECK_INTERVAL_MS);
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"O anfitrião encerrou o jogo.",
+		);
+		expect(pinField()).toBeVisible();
+		expect(bar()).toBeNull();
+	});
+
+	it("an answer that got no reply shows Sua resposta não foi enviada. and the buttons again", async () => {
+		const flow = await playing();
+		flow.api.offline = true;
+
+		await flow.user.click(red());
+
+		// With the bar at the bottom, the notice shows at the top, once.
+		const notice = await screen.findByText("Sua resposta não foi enviada.");
+		expect(notice).toHaveAttribute("role", "alert");
+		expect(notice).toHaveClass("top-16");
+		expect(answerButtons()).toHaveLength(4);
+		expect(flow.api.answers).toEqual([]);
+		// The failure also tells that the connection is gone.
+		expect(bar()).toHaveTextContent("Tentando reconectar…");
+	});
+
+	it("the answer can be sent again", async () => {
+		const flow = await playing();
+		flow.api.offline = true;
+		await flow.user.click(red());
+		await screen.findByText("Sua resposta não foi enviada.");
+
+		flow.api.offline = false;
+		await flow.user.click(red());
+
+		expect(flow.api.answers).toEqual([
+			{ playerId: "p1", questionIndex: 0, choiceIds: ["choice-1"] },
+		]);
+		expect(answerButtons()).toHaveLength(0);
+		expect(screen.queryByText("Sua resposta não foi enviada.")).toBeNull();
 	});
 });

@@ -107,6 +107,14 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 			await db.update(gameTable).set(columns).where(eq(gameTable.id, gameId));
 		},
 
+		async saveHostSeen(gameId, at) {
+			// Only this column, every few seconds: never the stage or a setting.
+			await db
+				.update(gameTable)
+				.set({ hostSeenAt: at })
+				.where(eq(gameTable.id, gameId));
+		},
+
 		async saveIfAt(game, from) {
 			// One statement: of two requests leaving the same stage, the database
 			// lets one through (spec 009, RN-12).

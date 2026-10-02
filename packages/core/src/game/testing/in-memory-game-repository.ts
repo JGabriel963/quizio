@@ -75,6 +75,13 @@ export class InMemoryGameRepository implements GameRepository {
 		return true;
 	}
 
+	async saveHostSeen(gameId: string, at: Date): Promise<void> {
+		const stored = this.#games.get(gameId);
+		if (stored) {
+			this.#games.set(gameId, { ...stored, hostSeenAt: at });
+		}
+	}
+
 	/** Test helper: every stored game, in insertion order. */
 	all(): Game[] {
 		return [...this.#games.values()];

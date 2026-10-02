@@ -5,8 +5,9 @@ import {
 	AnswersClosedError,
 	InvalidAnswerError,
 } from "../domain/answer";
-import { GameNotFoundError } from "../domain/game";
+import { type Game, GameNotFoundError } from "../domain/game";
 import { GAME_EVENTS } from "../domain/game-events";
+import { HOST_AWAY_AFTER_MS, isHostAway } from "../domain/host-presence";
 import { createStartedGame } from "../testing/started-game";
 import { createRemovePlayer } from "./remove-player";
 
@@ -21,6 +22,16 @@ const fromPlayer = (
 	questionIndex,
 	choiceIds,
 });
+
+async function storedGame(deps: {
+	games: { findById(id: string): Promise<Game | null> };
+}): Promise<Game> {
+	const game = await deps.games.findById("game-1");
+	if (!game) {
+		throw new Error("game-1 is gone");
+	}
+	return game;
+}
 
 async function answering(players = ["Ana", "Bia"]) {
 	const game = await createStartedGame({ players });
@@ -151,6 +162,33 @@ describe("submitAnswer (spec 009)", () => {
 			event: GAME_EVENTS.stageChanged,
 			payload: { status: "playing", stage: { phase: "results" } },
 		});
+	});
+
+	it("the answers stay open while someone has not answered (spec 013)", async () => {
+		// Bia's phone lost its connection: the question waits for her to its end.
+		const { deps, answer, stage, advance, host } = await answering();
+		await answer(1, "choice-1");
+		deps.clock.advanceBy(19_000);
+
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "answering" });
+
+		deps.clock.advanceBy(1_000);
+		await advance({ ...host, from: await stage() });
+
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
+	});
+
+	it("an answer counts while the host is away (spec 013)", async () => {
+		const { deps, answer } = await answering();
+		// The host's screen gave no sign for longer than the limit.
+		deps.clock.advanceBy(HOST_AWAY_AFTER_MS + 2_000);
+		expect(isHostAway(await storedGame(deps), deps.clock.now())).toBe(true);
+
+		await answer(1, "choice-1");
+
+		expect(await deps.answers.listByPlayer("game-1", "p1")).toMatchObject([
+			{ questionIndex: 0, correctness: "correct", responseTimeMs: 12_000 },
+		]);
 	});
 
 	it("does not wait for a player who was removed", async () => {

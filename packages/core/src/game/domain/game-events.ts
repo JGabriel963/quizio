@@ -16,6 +16,7 @@ export const GAME_EVENTS = {
 	gameEnded: "game-ended",
 	stageChanged: "stage-changed",
 	answerCount: "answer-count",
+	hostBack: "host-back",
 } as const;
 
 export interface PlayerJoinedPayload {
@@ -43,6 +44,13 @@ export interface StageChangedPayload {
 	/** Null once the game is finished. */
 	stage: PublicStage | null;
 }
+
+/**
+ * The host's screen gave a sign after counting as away (spec 013, RN-16).
+ * Nothing tells that the host went away: no timer is there to publish it, so
+ * each device learns it from its session.
+ */
+export type HostBackPayload = Record<string, never>;
 
 /** Only the total: the count per answer waits for the results (RN-21). */
 export interface AnswerCountPayload {

@@ -262,6 +262,7 @@ describe("getPlayerSession (spec 008)", () => {
 			status: "waiting",
 			stage: null,
 			final: null,
+			hostIdleMs: 0,
 		});
 	});
 

@@ -6,6 +6,7 @@ import {
 	GAME_PHASES,
 	type GamePhase,
 } from "@quizio/core/game/domain/game-progress";
+import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import { PODIUM_SIZE } from "@quizio/core/game/domain/podium";
 import {
 	type AnswerShapeName,
@@ -132,4 +133,27 @@ export function finalMessage(rank: number): {
 				title: `Você ficou em ${rank}º lugar`,
 				detail: "Obrigado por jogar!",
 			};
+}
+
+/** Past the instant itself, so the server's answer is already on the other side of it. */
+const HOST_CHECK_MARGIN_MS = 250;
+
+/**
+ * How long a player's device waits before asking about its session again:
+ * the usual `intervalMs`, or sooner when the host's silence (`hostIdleMs`, as
+ * the server last told it) would reach the limit before that (spec 013,
+ * RN-14). The device never decides by itself that the host is away: it asks
+ * at the moment the server can tell.
+ */
+export function nextSessionCheckInMs(
+	hostIdleMs: number | null,
+	intervalMs: number,
+): number {
+	if (hostIdleMs === null || hostIdleMs >= HOST_AWAY_AFTER_MS) {
+		return intervalMs;
+	}
+	return Math.min(
+		intervalMs,
+		HOST_AWAY_AFTER_MS - hostIdleMs + HOST_CHECK_MARGIN_MS,
+	);
 }

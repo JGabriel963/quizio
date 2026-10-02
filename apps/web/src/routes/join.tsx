@@ -2,6 +2,7 @@ import { ClientOnly, createFileRoute, useParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { type JoinApi, JoinFlow } from "@/components/game/player/join-flow";
 import { JoinLoading } from "@/components/game/player/join-forms";
+import { withTimeout } from "@/lib/connection";
 import { browserPlayerSessionStore } from "@/lib/player-session";
 import { useTRPCClient } from "@/utils/trpc";
 
@@ -24,8 +25,10 @@ function JoinPage() {
 		() => ({
 			find: (gamePin) => client.game.join.find.mutate({ pin: gamePin }),
 			enter: (input) => client.game.join.enter.mutate(input),
-			session: (input) => client.game.join.session.query(input),
-			answer: (input) => client.game.join.answer.mutate(input),
+			// Without an answer in time, the device takes the connection as lost
+			// (spec 013): both are safe to ask again.
+			session: (input) => withTimeout(client.game.join.session.query(input)),
+			answer: (input) => withTimeout(client.game.join.answer.mutate(input)),
 		}),
 		[client],
 	);

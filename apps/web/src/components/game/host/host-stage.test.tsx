@@ -904,3 +904,127 @@ describe("HostStage: settings and late joining (spec 012)", () => {
 		expect(screen.queryByText("265 914")).toBeNull();
 	});
 });
+
+describe("HostStage: Encerrar agora (spec 013)", () => {
+	const openSettings = async (user: ReturnType<typeof userEvent.setup>) => {
+		await user.click(screen.getByRole("button", { name: "Configurações" }));
+		return screen.getByRole("dialog", { name: "Configurações" });
+	};
+
+	it("Encerrar agora asks and ends the game", async () => {
+		const { actions, user } = renderStage(stageAt({ remainingMs: 20_000 }));
+		const panel = await openSettings(user);
+
+		await user.click(
+			within(panel).getByRole("button", { name: "Encerrar agora" }),
+		);
+		expect(actions.end).not.toHaveBeenCalled();
+		await user.click(
+			within(
+				screen.getByRole("alertdialog", { name: "Encerrar o jogo?" }),
+			).getByRole("button", { name: "Encerrar" }),
+		);
+
+		expect(actions.end).toHaveBeenCalledTimes(1);
+	});
+
+	it("cancelling keeps the game and the panel", async () => {
+		const { actions, user } = renderStage(stageAt({ remainingMs: 20_000 }));
+		const panel = await openSettings(user);
+
+		await user.click(
+			within(panel).getByRole("button", { name: "Encerrar agora" }),
+		);
+		await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+		expect(actions.end).not.toHaveBeenCalled();
+		expect(
+			screen.getByRole("dialog", { name: "Configurações" }),
+		).toBeInTheDocument();
+	});
+});
+
+describe("HostStage: a lost connection (spec 013)", () => {
+	const actions = (advance: HostStageActions["advance"]): HostStageActions => ({
+		advance,
+		setLocked: vi.fn(),
+		setOptions: vi.fn(),
+		end: vi.fn(),
+	});
+	const at = (
+		stage: HostStageData,
+		on: HostStageActions,
+		connected: boolean,
+		receivedAt: number,
+	) => (
+		<HostStage
+			game={{ ...game, stage }}
+			stage={stage}
+			origin="https://quizio.app"
+			receivedAt={receivedAt}
+			connected={connected}
+			actions={on}
+		/>
+	);
+	const timeLeft = () => screen.getByRole("timer", { name: "Tempo restante" });
+
+	it("does not ask for the next stage while disconnected", async () => {
+		vi.useFakeTimers();
+		const advance = vi.fn(async () => {});
+		render(
+			at(stageAt({ remainingMs: 1_000 }), actions(advance), false, Date.now()),
+		);
+
+		await tick(3_000);
+
+		expect(advance).not.toHaveBeenCalled();
+	});
+
+	it("asks again when the connection returns and the time is up", async () => {
+		vi.useFakeTimers();
+		// The request made when the time ran out got no answer.
+		const advance = vi
+			.fn<HostStageActions["advance"]>()
+			.mockRejectedValueOnce(new TypeError("Failed to fetch"))
+			.mockResolvedValue(undefined);
+		const on = actions(advance);
+		const stage = stageAt({ remainingMs: 1_000 });
+		const receivedAt = Date.now();
+		const view = render(at(stage, on, true, receivedAt));
+		await tick(1_200);
+		expect(advance).toHaveBeenCalledTimes(1);
+
+		view.rerender(at(stage, on, false, receivedAt));
+		await tick(8_000);
+		expect(advance).toHaveBeenCalledTimes(1);
+
+		view.rerender(at(stage, on, true, receivedAt));
+		await tick(50);
+
+		expect(advance).toHaveBeenCalledTimes(2);
+		expect(advance).toHaveBeenLastCalledWith(
+			{ questionIndex: 0, phase: "answering" },
+			false,
+		);
+	});
+
+	it("keeps the countdown across a reconnection", async () => {
+		vi.useFakeTimers();
+		const on = actions(vi.fn(async () => {}));
+		const receivedAt = Date.now();
+		const view = render(
+			at(stageAt({ remainingMs: 20_000 }), on, true, receivedAt),
+		);
+		await tick(5_000);
+
+		view.rerender(at(stageAt({ remainingMs: 20_000 }), on, false, receivedAt));
+		await tick(3_000);
+		expect(timeLeft()).toHaveTextContent("12");
+
+		// Back, the server tells the time left again, a little late.
+		view.rerender(at(stageAt({ remainingMs: 12_600 }), on, true, Date.now()));
+		await tick(200);
+
+		expect(timeLeft()).toHaveTextContent("12");
+	});
+});

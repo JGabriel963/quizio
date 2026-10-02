@@ -575,6 +575,28 @@ describe("getHostGame: the podium (spec 011)", () => {
 		]);
 	});
 
+	it("a player who stopped answering stays in the count and in the final standings (spec 013)", async () => {
+		// Bia's phone lost its connection after the first question.
+		const { deps, reach, answer, finish } = await createStartedGame();
+		await reach("answering");
+		await answer(1, "choice-1");
+		deps.clock.advanceBy(2_000);
+		await answer(2, "choice-1");
+		await reach("answering", 1);
+
+		expect((await createGetHostGame(deps)(mine)).players).toHaveLength(2);
+
+		await finish();
+
+		const { final } = await createGetHostGame(deps)(mine);
+		expect(
+			final?.standings.map(({ nickname, total }) => [nickname, total]),
+		).toEqual([
+			["Ana", 1000],
+			["Bia", 950],
+		]);
+	});
+
 	it("only a finished game has a final", async () => {
 		const playing = await createStartedGame();
 		await playing.reach("results", 1);

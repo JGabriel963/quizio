@@ -26,6 +26,7 @@ function renderSettings(
 		onOpenChange: vi.fn(),
 		onOptionsChange: vi.fn(),
 		onLockedChange: vi.fn(),
+		onEnd: vi.fn(),
 	};
 	const user = userEvent.setup();
 	render(
@@ -172,6 +173,70 @@ function renderSettingsClosed() {
 			onOpenChange={() => {}}
 			onOptionsChange={() => {}}
 			onLockedChange={() => {}}
+			onEnd={() => {}}
 		/>,
 	);
 }
+
+describe("GameSettings: Encerrar agora (spec 013)", () => {
+	it("shows Encerrar jogo with Encerrar agora after the switches", () => {
+		const { panel } = renderSettings();
+
+		const row = within(panel).getByText("Encerrar jogo");
+		const button = within(panel).getByRole("button", {
+			name: "Encerrar agora",
+		});
+		const lastSwitch = within(panel).getAllByRole("switch").at(-1);
+		const footer = within(panel).getByText(
+			"Suas configurações serão salvas para a próxima vez.",
+		);
+
+		// After the switches, before the footer.
+		expect(
+			lastSwitch &&
+				lastSwitch.compareDocumentPosition(row) &
+					Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(
+			button.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("asks before ending, and ends only when confirmed", async () => {
+		const { user, panel, onEnd } = renderSettings({ playing: true });
+
+		await user.click(
+			within(panel).getByRole("button", { name: "Encerrar agora" }),
+		);
+
+		const dialog = screen.getByRole("alertdialog", {
+			name: "Encerrar o jogo?",
+		});
+		expect(dialog).toHaveTextContent(
+			"Os participantes serão desconectados e o PIN deixará de funcionar.",
+		);
+		expect(onEnd).not.toHaveBeenCalled();
+
+		await user.click(within(dialog).getByRole("button", { name: "Encerrar" }));
+
+		expect(onEnd).toHaveBeenCalledTimes(1);
+	});
+
+	it("cancelling goes back to the panel, which stays open", async () => {
+		const { user, panel, onEnd, onOpenChange } = renderSettings();
+
+		await user.click(
+			within(panel).getByRole("button", { name: "Encerrar agora" }),
+		);
+		await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+		await waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+		);
+		expect(onEnd).not.toHaveBeenCalled();
+		expect(onOpenChange).not.toHaveBeenCalledWith(false);
+		expect(
+			screen.getByRole("dialog", { name: "Configurações" }),
+		).toBeInTheDocument();
+	});
+});

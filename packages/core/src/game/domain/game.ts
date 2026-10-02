@@ -54,6 +54,11 @@ export interface Game {
 	questionCount: number;
 	/** Where the game is; null in the lobby and once it is over. */
 	progress: GameProgress | null;
+	/**
+	 * When the host's screen last told the server it is there (spec 013). It is
+	 * written on its own, every few seconds, while the game is open.
+	 */
+	hostSeenAt: Date;
 }
 
 export class GameNotFoundError extends NotFoundError {
@@ -128,6 +133,8 @@ export function newGame(input: {
 		endReason: null,
 		questionCount: 0,
 		progress: null,
+		// Whoever creates the game is on its screen.
+		hostSeenAt: input.now,
 	};
 }
 

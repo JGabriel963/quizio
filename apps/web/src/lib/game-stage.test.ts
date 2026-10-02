@@ -1,3 +1,4 @@
+import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import { describe, expect, it } from "vitest";
 
 import type { HostGameData } from "./api-types";
@@ -5,6 +6,7 @@ import {
 	answerShapeName,
 	applyAnswerCount,
 	finalMessage,
+	nextSessionCheckInMs,
 	positionMessage,
 	showsStage,
 	stageOrder,
@@ -188,5 +190,34 @@ describe("finalMessage (spec 011)", () => {
 			title: "Você ficou em 5º lugar",
 			detail: "Obrigado por jogar!",
 		});
+	});
+});
+
+describe("nextSessionCheckInMs (spec 013, RN-14)", () => {
+	it("asks at the usual interval while the host is signalling", () => {
+		// The host gave a sign 2 s ago: 10 s of silence are further than the
+		// usual check of a game in progress.
+		expect(nextSessionCheckInMs(2_000, 5_000)).toBe(5_000);
+	});
+
+	it("asks again when the silence would reach 10 s", () => {
+		// In the lobby the device asks every 15 s: too late to tell at 10 s.
+		const wait = nextSessionCheckInMs(2_000, 15_000);
+		expect(wait).toBeGreaterThanOrEqual(HOST_AWAY_AFTER_MS - 2_000);
+		expect(wait).toBeLessThan(HOST_AWAY_AFTER_MS - 2_000 + 500);
+
+		// One signal missed already: the next reading settles it.
+		const soon = nextSessionCheckInMs(9_600, 5_000);
+		expect(soon).toBeGreaterThanOrEqual(400);
+		expect(soon).toBeLessThan(900);
+	});
+
+	it("keeps the usual interval once the host is away", () => {
+		expect(nextSessionCheckInMs(HOST_AWAY_AFTER_MS, 5_000)).toBe(5_000);
+		expect(nextSessionCheckInMs(60_000, 15_000)).toBe(15_000);
+	});
+
+	it("keeps the usual interval without an idle time", () => {
+		expect(nextSessionCheckInMs(null, 15_000)).toBe(15_000);
 	});
 });

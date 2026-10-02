@@ -9,6 +9,7 @@ import {
 	revealedThrough,
 } from "../domain/game-progress";
 import type { GameQuestion } from "../domain/game-question";
+import { hostIdleMs } from "../domain/host-presence";
 import {
 	canAnswer,
 	hasPlayerSecret,
@@ -94,6 +95,12 @@ export interface PlayerSessionView {
 	stage: PlayerStageView | null;
 	/** Null unless the game is finished and the player was in it to the end. */
 	final: PlayerFinalView | null;
+	/**
+	 * How long ago the host's screen last gave a sign, by the server's clock
+	 * (spec 013, RN-14); null when the player is not waiting for the host
+	 * anymore: removed, or the game is over.
+	 */
+	hostIdleMs: number | null;
 }
 
 export type GetPlayerSession = (input: {
@@ -231,6 +238,9 @@ export function createGetPlayerSession(deps: {
 			status: statusOf(game, player),
 			stage: await stageOf(game, player),
 			final: await finalOf(game, player),
+			hostIdleMs: isActivePlayer(player)
+				? hostIdleMs(game, deps.clock.now())
+				: null,
 		};
 	};
 }
