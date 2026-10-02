@@ -27,6 +27,7 @@ import { applyLobbyEvent, type LobbyEvent } from "@/lib/game-lobby";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { applyAnswerCount, showsStage } from "@/lib/game-stage";
 import { useRealtimeEvent } from "@/lib/realtime";
+import { useLeaveWarning } from "@/lib/use-leave-warning";
 import { useOrigin } from "@/lib/use-origin";
 import { useTRPC } from "@/utils/trpc";
 
@@ -182,6 +183,14 @@ function HostPage() {
 		trpc.game.advance.mutationOptions({ networkMode: "always" }),
 	);
 	const playAgain = usePlayAgain();
+
+	// From the lobby to the podium the host's screen is the game: closing the
+	// tab by accident would leave the players without it, so the browser asks
+	// first, as Kahoot does. A game that was ended has nothing left to lose.
+	const status = view.data?.status;
+	useLeaveWarning(
+		status === "lobby" || status === "playing" || status === "finished",
+	);
 
 	/** The answer is the game after the transition; a refusal goes back to the screen that asked. */
 	async function advanceFrom(from: StageRef, skip: boolean) {
