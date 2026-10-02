@@ -61,7 +61,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 		expect(stage).toMatchObject({
 			questionIndex: 1,
 			phase: "questionIntro",
-			remainingMs: 3_000,
+			remainingMs: 4_500,
 			question: { type: "trueFalse" },
 		});
 	});

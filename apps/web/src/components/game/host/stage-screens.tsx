@@ -1,9 +1,12 @@
+import { QUESTION_TYPE_REVEAL_MS } from "@quizio/core/game/domain/game-progress";
 import { Button } from "@quizio/ui/components/button";
 import { ChevronRightIcon, SkipForwardIcon } from "lucide-react";
+import { motion } from "motion/react";
 import type { ReactNode } from "react";
 
 import { QuestionTypeIcon } from "@/components/editor/question-type-icon";
 import type { HostQuestionData, HostStageData } from "@/lib/api-types";
+import { usePrefersReducedMotion } from "@/lib/game-motion";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import { useCountdown } from "@/lib/use-countdown";
 
@@ -30,9 +33,31 @@ export function GameIntro({ title }: { title: string }) {
 	);
 }
 
+/** Where the question is in the game: "1/5". */
+function QuestionPosition({
+	position,
+	questionCount,
+}: {
+	position: number;
+	questionCount: number;
+}) {
+	return (
+		<p className="rounded-full bg-black/50 px-5 py-1.5 font-black text-xl shadow-lg sm:text-2xl">
+			<span className="sr-only">Pergunta </span>
+			<span data-slot="question-position">
+				{position}/{questionCount}
+			</span>
+		</p>
+	);
+}
+
 /**
- * The opening of a question: its type, its text and where it is in the game,
- * without the answers yet (spec 009, RN-07).
+ * The opening of a question, in two steps as in Kahoot (spec 009, RN-07): its
+ * type comes in first, large, then the question takes the middle of the
+ * screen with the reading time running at the bottom. Where it is in the
+ * game shows in both, and the answers in neither. Which step shows comes from
+ * the time the server told: a reload goes on from where the intro is. The
+ * intro lasts the type's time plus the reading time (`QUESTION_INTRO_MS`).
  */
 export function QuestionIntro({
 	stage,
@@ -45,41 +70,79 @@ export function QuestionIntro({
 	questionCount: number;
 	receivedAt: number;
 }) {
+	const reducedMotion = usePrefersReducedMotion();
 	const { ms } = useCountdown(stage.remainingMs, receivedAt);
 	const duration = stage.durationMs ?? 1;
-	const elapsed = Math.min(1, Math.max(0, 1 - (ms ?? 0) / duration));
+	const elapsedMs = Math.max(0, duration - (ms ?? 0));
+	const reveal = reducedMotion
+		? 0
+		: Math.min(QUESTION_TYPE_REVEAL_MS, duration);
+	const showingType = elapsedMs < reveal;
+	// The bar runs over the time the question itself is on the screen.
+	const read = Math.min(
+		1,
+		Math.max(0, (elapsedMs - reveal) / Math.max(1, duration - reveal)),
+	);
 	const position = stage.questionIndex + 1;
+	const typeLabel = questionTypeLabel(question.type);
 
 	return (
-		<main className="relative flex flex-1 flex-col items-center justify-between gap-6 p-4 motion-safe:animate-stage-in sm:p-8">
-			<p className="flex items-center gap-3 font-bold text-2xl">
-				<QuestionTypeIcon type={question.type} />
-				{questionTypeLabel(question.type)}
-			</p>
-			<div className="w-full max-w-5xl">
-				<QuestionText>{question.text}</QuestionText>
-			</div>
-			<div className="flex w-full max-w-3xl flex-col items-center gap-4">
-				<p className="rounded-full bg-black/40 px-4 py-1 font-bold text-lg">
-					<span className="sr-only">Pergunta </span>
-					<span data-slot="question-position">
-						{position}/{questionCount}
-					</span>
-				</p>
+		<main
+			data-step={showingType ? "type" : "question"}
+			className="relative flex flex-1 flex-col items-center gap-4 overflow-hidden p-4 sm:gap-6 sm:p-8"
+		>
+			{showingType ? (
+				<div className="flex w-full flex-1 flex-col items-center justify-center">
+					<motion.div
+						initial={{ scale: 0, rotate: -120 }}
+						animate={{ scale: 1, rotate: -14 }}
+						transition={{ type: "spring", stiffness: 260, damping: 16 }}
+						className="z-10 -mb-12 flex size-44 items-center justify-center rounded-full bg-black/40 sm:size-64"
+					>
+						<QuestionTypeIcon
+							type={question.type}
+							className="h-32 w-24 gap-1.5 rounded-xl border-[6px] border-neutral-900 bg-white p-1.5 shadow-xl sm:h-48 sm:w-36 sm:gap-2 sm:border-8 sm:p-2 [&>span]:rounded-sm"
+						/>
+					</motion.div>
+					<motion.h1
+						initial={{ opacity: 0, scaleX: 0.3 }}
+						animate={{ opacity: 1, scaleX: 1 }}
+						transition={{ duration: 0.35, delay: 0.15 }}
+						className="w-full bg-black/40 px-4 pt-14 pb-6 text-center font-black text-6xl sm:text-8xl"
+					>
+						{typeLabel}
+					</motion.h1>
+				</div>
+			) : (
+				<>
+					<p className="flex size-14 shrink-0 items-center justify-center rounded-full bg-black/40 motion-safe:animate-pop-in sm:size-16">
+						<QuestionTypeIcon
+							type={question.type}
+							className="border-neutral-900 bg-white"
+						/>
+						<span className="sr-only">{typeLabel}</span>
+					</p>
+					<div className="flex w-full max-w-6xl flex-1 items-center motion-safe:animate-stage-in">
+						<QuestionText>{question.text}</QuestionText>
+					</div>
+				</>
+			)}
+			<QuestionPosition position={position} questionCount={questionCount} />
+			{!showingType && (
 				<div
 					role="progressbar"
 					aria-label="Tempo de leitura"
 					aria-valuemin={0}
 					aria-valuemax={100}
-					aria-valuenow={Math.round(elapsed * 100)}
-					className="h-3 w-full overflow-hidden rounded-full bg-black/30"
+					aria-valuenow={Math.round(read * 100)}
+					className="h-4 w-full shrink-0 overflow-hidden rounded-full bg-black/30"
 				>
 					<div
 						className="h-full rounded-full bg-white transition-[width] duration-200 ease-linear"
-						style={{ width: `${elapsed * 100}%` }}
+						style={{ width: `${read * 100}%` }}
 					/>
 				</div>
-			</div>
+			)}
 		</main>
 	);
 }
@@ -154,8 +217,10 @@ export function Answering({
 			</div>
 			<p className="flex shrink-0 flex-col items-center justify-center gap-1">
 				<span
+					// Each answer that comes in makes the number jump.
+					key={stage.answerCount}
 					data-slot="answer-count"
-					className="flex size-16 items-center justify-center rounded-full bg-brand-strong font-black text-3xl shadow-lg sm:size-20 sm:text-4xl"
+					className="flex size-16 items-center justify-center rounded-full bg-brand-strong font-black text-3xl shadow-lg motion-safe:animate-pop-in sm:size-20 sm:text-4xl"
 				>
 					{stage.answerCount}
 				</span>

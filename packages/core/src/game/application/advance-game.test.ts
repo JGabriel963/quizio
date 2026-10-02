@@ -23,11 +23,11 @@ describe("advanceGame (spec 009)", () => {
 		expect(opening.stage).toMatchObject({
 			questionIndex: 0,
 			phase: "questionIntro",
-			remainingMs: 5_000,
+			remainingMs: 6_500,
 			question: { type: "quiz", text: "Qual é a capital do Brasil?" },
 		});
 
-		deps.clock.advanceBy(5_000);
+		deps.clock.advanceBy(6_500);
 		const open = await advance({ ...host, from: intro });
 		expect(open.stage).toMatchObject({
 			phase: "answering",

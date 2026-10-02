@@ -55,7 +55,7 @@ export function GameHeader({
 
 	return (
 		<header className="relative grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 bg-black/40 px-2">
-			<div className="flex min-w-0 items-center gap-1 justify-self-start">
+			<div className="flex min-w-0 items-center gap-1">
 				<Button variant="ghost" size="icon" aria-label="Sair" onClick={onExit}>
 					<XIcon />
 				</Button>
@@ -130,13 +130,20 @@ function JoinInHeader({ join }: { join: HeaderJoin }) {
 			</Tooltip>
 			<section
 				aria-label="Como entrar"
-				className="flex min-w-0 items-baseline gap-2 whitespace-nowrap px-1"
+				className="flex min-w-0 items-baseline gap-2 px-1"
 			>
-				<span className="sr-only lg:not-sr-only lg:truncate">
+				{/* Wide screens: the address, then the PIN, as in Kahoot. Narrower
+				    ones: "PIN do jogo:" and the PIN; a phone, the PIN alone. */}
+				<span className="sr-only lg:not-sr-only lg:min-w-0 lg:truncate">
 					Entre em <strong>{joinAddress(join.origin)}</strong>
 				</span>
-				<span className="sr-only sm:not-sr-only sm:text-sm">PIN do jogo:</span>
-				<strong data-slot="game-pin" className="font-black text-xl">
+				<span className="sr-only sm:not-sr-only sm:whitespace-nowrap sm:text-sm lg:sr-only">
+					PIN do jogo:
+				</span>
+				<strong
+					data-slot="game-pin"
+					className="whitespace-nowrap font-black text-xl"
+				>
 					{formatGamePin(join.pin)}
 				</strong>
 			</section>

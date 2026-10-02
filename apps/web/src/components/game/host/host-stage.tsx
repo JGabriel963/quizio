@@ -7,7 +7,7 @@ import type {
 	HostStageData,
 } from "@/lib/api-types";
 import { gameErrorCode } from "@/lib/game-error-messages";
-import { msLeft } from "@/lib/use-countdown";
+import { msLeft, useSteadyTimeLeft } from "@/lib/use-countdown";
 
 import { GameScreen } from "../game-screen";
 import { GameHeader } from "./game-header";
@@ -41,9 +41,9 @@ export const ADVANCE_RETRY_MS = 250;
  */
 export function HostStage({
 	game,
-	stage,
+	stage: told,
 	origin,
-	receivedAt,
+	receivedAt: toldAt,
 	actions,
 }: {
 	game: HostGameData;
@@ -59,8 +59,17 @@ export function HostStage({
 	/** The stage a manual request (skip, advance) was made from, while it is pending. */
 	const [pending, setPending] = useState<string | null>(null);
 
-	const { questionIndex, phase, remainingMs, question } = stage;
+	const { questionIndex, phase, question } = told;
 	const stageKey = `${questionIndex}:${phase}`;
+	// The screen asks about the game every few seconds: the countdown of the
+	// stage it is showing goes on from where it is, instead of jumping back by
+	// the time each answer took to arrive (spec 012).
+	const { remainingMs, receivedAt } = useSteadyTimeLeft(
+		stageKey,
+		told.remainingMs,
+		toldAt,
+	);
+	const stage = { ...told, remainingMs };
 
 	const advance = useEffectEvent((skip: boolean) =>
 		actions.advance({ questionIndex, phase }, skip),

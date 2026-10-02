@@ -1,3 +1,7 @@
+import {
+	QUESTION_INTRO_MS,
+	QUESTION_TYPE_REVEAL_MS,
+} from "@quizio/core/game/domain/game-progress";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +12,7 @@ import type {
 	HostStageData,
 } from "@/lib/api-types";
 import { GAME_MOTION } from "@/lib/game-motion";
+import { stubReducedMotion } from "@/testing/reduced-motion";
 
 import {
 	ADVANCE_RETRY_MS,
@@ -109,6 +114,7 @@ const choices = () =>
 
 afterEach(() => {
 	vi.useRealTimers();
+	vi.unstubAllGlobals();
 });
 
 describe("HostStage: openings (spec 009)", () => {
@@ -134,25 +140,95 @@ describe("HostStage: openings (spec 009)", () => {
 		);
 	});
 
-	it("shows the type, the question and its position, without the answers", () => {
-		renderStage(
-			stageAt({
-				questionIndex: 1,
-				phase: "questionIntro",
-				remainingMs: 5_000,
-				durationMs: 5_000,
-			}),
-		);
+	describe("the question's intro, in two steps", () => {
+		const intro = stageAt({
+			questionIndex: 1,
+			phase: "questionIntro",
+			remainingMs: QUESTION_INTRO_MS,
+			durationMs: QUESTION_INTRO_MS,
+		});
+		const position = () =>
+			document.querySelector('[data-slot="question-position"]');
+		const statement = () =>
+			screen.queryByRole("heading", { name: "Qual é a capital do Brasil?" });
 
-		expect(screen.getByText("Quiz")).toBeVisible();
-		expect(
-			screen.getByRole("heading", { name: "Qual é a capital do Brasil?" }),
-		).toBeVisible();
-		expect(
-			document.querySelector('[data-slot="question-position"]'),
-		).toHaveTextContent("2/10");
-		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
-		expect(screen.queryByText("Brasília")).toBeNull();
+		it("opens with the type of the question and its position", () => {
+			vi.useFakeTimers();
+			renderStage(intro);
+
+			// It comes in animated: the test only asks that it is there.
+			expect(screen.getByRole("heading", { name: "Quiz" })).toBeInTheDocument();
+			expect(
+				document.querySelector('[data-slot="question-type-icon"]'),
+			).not.toBeNull();
+			expect(position()).toHaveTextContent("2/10");
+			// The question waits for its turn, and so does the reading time.
+			expect(statement()).toBeNull();
+			expect(screen.queryByRole("progressbar")).toBeNull();
+		});
+
+		it("then shows the question, its position and the reading time, without the answers", async () => {
+			vi.useFakeTimers();
+			renderStage(intro);
+
+			await tick(QUESTION_TYPE_REVEAL_MS + 200);
+
+			expect(statement()).toBeVisible();
+			expect(screen.queryByRole("heading", { name: "Quiz" })).toBeNull();
+			// The type stays, small, for who reads the screen.
+			expect(screen.getByText("Quiz")).toBeInTheDocument();
+			expect(position()).toHaveTextContent("2/10");
+			expect(
+				screen.getByRole("progressbar", { name: "Tempo de leitura" }),
+			).toBeVisible();
+			expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
+			expect(screen.queryByText("Brasília")).toBeNull();
+		});
+
+		it("the reading bar fills over the time the question is on the screen", async () => {
+			vi.useFakeTimers();
+			renderStage(intro);
+			const bar = () =>
+				Number(
+					screen
+						.getByRole("progressbar", { name: "Tempo de leitura" })
+						.getAttribute("aria-valuenow"),
+				);
+
+			await tick(QUESTION_TYPE_REVEAL_MS + 200);
+			expect(bar()).toBeLessThan(15);
+
+			await tick(QUESTION_INTRO_MS - QUESTION_TYPE_REVEAL_MS - 400);
+			expect(bar()).toBeGreaterThan(85);
+		});
+
+		it("a reload in the middle of the intro goes straight to the question", () => {
+			vi.useFakeTimers();
+			renderStage({ ...intro, remainingMs: 4_000 });
+
+			expect(statement()).toBeVisible();
+			expect(screen.queryByRole("heading", { name: "Quiz" })).toBeNull();
+		});
+
+		it("with reduced motion the question shows at once", () => {
+			stubReducedMotion(true);
+			renderStage(intro);
+
+			expect(statement()).toBeVisible();
+			expect(position()).toHaveTextContent("2/10");
+		});
+
+		it("names the type of a true/false question", () => {
+			vi.useFakeTimers();
+			renderStage({
+				...intro,
+				question: { ...capitals(hidden), type: "trueFalse" },
+			});
+
+			expect(
+				screen.getByRole("heading", { name: "Verdadeiro ou falso" }),
+			).toBeInTheDocument();
+		});
 	});
 
 	it("asks for the answers when the intro's time is up", async () => {
@@ -332,6 +408,74 @@ describe("HostStage: answers (spec 009)", () => {
 
 		expect(choices()).toHaveLength(6);
 		expect(choices().at(-1)?.dataset.shape).toBe("inverted-triangle");
+	});
+
+	describe("asked again about the same stage (spec 012)", () => {
+		const actions = (): HostStageActions => ({
+			advance: vi.fn(async () => {}),
+			setLocked: vi.fn(),
+			setOptions: vi.fn(),
+			end: vi.fn(),
+		});
+		const at = (stage: HostStageData, on: HostStageActions) => (
+			<HostStage
+				game={{ ...game, stage }}
+				stage={stage}
+				origin="https://quizio.app"
+				receivedAt={Date.now()}
+				actions={on}
+			/>
+		);
+		const timeLeft = () =>
+			screen.getByRole("timer", { name: "Tempo restante" });
+
+		it("the countdown does not go back with a late answer", async () => {
+			vi.useFakeTimers();
+			const on = actions();
+			const view = render(at(stageAt({ remainingMs: 20_000 }), on));
+			await tick(5_000);
+			expect(timeLeft()).toHaveTextContent("15");
+
+			// The screen asks again; the answer took a while and says there are
+			// 15.8 s left from now, more than the screen is showing.
+			view.rerender(at(stageAt({ remainingMs: 15_800 }), on));
+			await tick(200);
+
+			expect(timeLeft()).toHaveTextContent("15");
+
+			// And the results are still asked for at the time first told.
+			await tick(14_800);
+			expect(on.advance).toHaveBeenCalledExactlyOnceWith(
+				{ questionIndex: 0, phase: "answering" },
+				false,
+			);
+		});
+
+		it("takes a reading that ends sooner", async () => {
+			vi.useFakeTimers();
+			const on = actions();
+			const view = render(at(stageAt({ remainingMs: 20_000 }), on));
+			await tick(5_000);
+
+			view.rerender(at(stageAt({ remainingMs: 12_000 }), on));
+			await tick(200);
+
+			expect(timeLeft()).toHaveTextContent("12");
+		});
+
+		it("a new stage starts its own countdown", async () => {
+			vi.useFakeTimers();
+			const on = actions();
+			const view = render(
+				at(stageAt({ phase: "questionIntro", remainingMs: 1_000 }), on),
+			);
+			await tick(500);
+
+			view.rerender(at(stageAt({ remainingMs: 20_000 }), on));
+			await tick(200);
+
+			expect(timeLeft()).toHaveTextContent("20");
+		});
 	});
 });
 
@@ -645,9 +789,8 @@ describe("HostStage: animations hold nothing (spec 011, RN-25)", () => {
 		);
 
 		expect(screen.queryByRole("list", { name: "Placar" })).toBeNull();
-		expect(
-			screen.getByRole("heading", { name: "Qual é a capital do Brasil?" }),
-		).toBeVisible();
+		// The next question opens with its type (spec 012).
+		expect(screen.getByRole("heading", { name: "Quiz" })).toBeInTheDocument();
 	});
 });
 

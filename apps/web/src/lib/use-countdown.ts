@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const TICK_MS = 200;
 
@@ -37,6 +37,27 @@ export function earliestDeadline(current: TimeLeft, next: TimeLeft): TimeLeft {
 		next.receivedAt + next.remainingMs
 		? current
 		: next;
+}
+
+/**
+ * The countdown of what `key` names (a stage), steady across the readings the
+ * screen gets of it: `earliestDeadline` of them all. Another key starts over.
+ */
+export function useSteadyTimeLeft(
+	key: string,
+	remainingMs: number | null,
+	receivedAt: number,
+): TimeLeft {
+	const shown = useRef<(TimeLeft & { key: string }) | null>(null);
+	const next = { remainingMs, receivedAt };
+	const time =
+		shown.current?.key === key ? earliestDeadline(shown.current, next) : next;
+	shown.current = {
+		key,
+		remainingMs: time.remainingMs,
+		receivedAt: time.receivedAt,
+	};
+	return { remainingMs: time.remainingMs, receivedAt: time.receivedAt };
 }
 
 /** What a countdown shows: whole seconds, and 0 only when the time is up. */

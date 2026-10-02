@@ -6,6 +6,7 @@ import {
 	msLeft,
 	secondsLeft,
 	useCountdown,
+	useSteadyTimeLeft,
 } from "./use-countdown";
 
 describe("msLeft (spec 009)", () => {
@@ -95,5 +96,46 @@ describe("earliestDeadline (spec 012)", () => {
 
 		expect(earliestDeadline(results, answering)).toBe(answering);
 		expect(earliestDeadline(answering, results)).toBe(results);
+	});
+});
+
+describe("useSteadyTimeLeft (spec 012)", () => {
+	it("keeps the reading that ends first while the key is the same", () => {
+		const { result, rerender } = renderHook(
+			({ key, remainingMs, receivedAt }) =>
+				useSteadyTimeLeft(key, remainingMs, receivedAt),
+			{
+				initialProps: {
+					key: "0:answering",
+					remainingMs: 20_000,
+					receivedAt: 0,
+				},
+			},
+		);
+		expect(result.current).toEqual({ remainingMs: 20_000, receivedAt: 0 });
+
+		rerender({ key: "0:answering", remainingMs: 15_800, receivedAt: 5_000 });
+		expect(result.current).toEqual({ remainingMs: 20_000, receivedAt: 0 });
+
+		rerender({ key: "0:answering", remainingMs: 14_000, receivedAt: 5_500 });
+		expect(result.current).toEqual({ remainingMs: 14_000, receivedAt: 5_500 });
+	});
+
+	it("starts over with another key", () => {
+		const { result, rerender } = renderHook(
+			({ key, remainingMs, receivedAt }) =>
+				useSteadyTimeLeft(key, remainingMs, receivedAt),
+			{
+				initialProps: {
+					key: "0:questionIntro",
+					remainingMs: 5_000,
+					receivedAt: 0,
+				},
+			},
+		);
+
+		rerender({ key: "0:answering", remainingMs: 20_000, receivedAt: 5_100 });
+
+		expect(result.current).toEqual({ remainingMs: 20_000, receivedAt: 5_100 });
 	});
 });

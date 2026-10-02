@@ -1,5 +1,6 @@
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
 import { PIN_ATTEMPT_LIMIT } from "@quizio/core/game/domain/game-pin";
+import { QUESTION_INTRO_MS } from "@quizio/core/game/domain/game-progress";
 import { somePlayableQuestions } from "@quizio/core/game/testing/game-deps";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
@@ -269,7 +270,7 @@ async function answering() {
 		gameId,
 		from: { questionIndex: 0, phase: "gameIntro" },
 	});
-	api.clock.advanceBy(5_000);
+	api.clock.advanceBy(QUESTION_INTRO_MS);
 	await host.game.advance({
 		gameId,
 		from: { questionIndex: 0, phase: "questionIntro" },
@@ -522,7 +523,7 @@ describe("game router: the end of the game (spec 011)", () => {
 		await advance(0, "answering");
 		await advance(0, "results");
 		await advance(0, "scoreboard");
-		api.clock.advanceBy(5_000);
+		api.clock.advanceBy(QUESTION_INTRO_MS);
 		await advance(1, "questionIntro");
 		await advance(1, "answering");
 		return { ...game, podium: await advance(1, "results") };
