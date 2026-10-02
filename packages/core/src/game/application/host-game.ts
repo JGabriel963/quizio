@@ -7,10 +7,12 @@ import {
 	newGame,
 	QuizNotPlayableError,
 } from "../domain/game";
+import { DEFAULT_GAME_OPTIONS } from "../domain/game-options";
 import { createEndGamesOfQuiz } from "./end-games-of-quiz";
 import { settleGame } from "./game-lifecycle";
 import type { GamePinGenerator } from "./ports/game-pin-generator";
 import type { GameRepository } from "./ports/game-repository";
+import type { HostPreferencesRepository } from "./ports/host-preferences-repository";
 import type { PlayableQuizQuery } from "./ports/playable-quiz-query";
 
 export type HostGame = (input: {
@@ -25,6 +27,7 @@ const PIN_DRAWS = 5;
 export function createHostGame(deps: {
 	playableQuizzes: PlayableQuizQuery;
 	games: GameRepository;
+	preferences: Pick<HostPreferencesRepository, "find">;
 	pins: GamePinGenerator;
 	ids: IdGenerator;
 	clock: Clock;
@@ -46,6 +49,10 @@ export function createHostGame(deps: {
 		// A quiz has one open game: the new one replaces it (RN-07).
 		await endGamesOfQuiz({ quizId: quiz.id, reason: "replaced" });
 
+		// The game starts as the host left the settings last time (spec 012, RN-05).
+		const options =
+			(await deps.preferences.find(ownerId)) ?? DEFAULT_GAME_OPTIONS;
+
 		for (let draw = 0; draw < PIN_DRAWS; draw++) {
 			const pin = deps.pins.generate();
 			const holder = await deps.games.findUnendedByPin(pin);
@@ -60,6 +67,7 @@ export function createHostGame(deps: {
 				quizVersion: quiz.version,
 				title: quiz.title ?? "",
 				pin,
+				options,
 				now: deps.clock.now(),
 			});
 			if ((await deps.games.create(game)) === "created") {

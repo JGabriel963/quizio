@@ -7,11 +7,20 @@ import type { Database } from "../../types";
 
 type GameRow = typeof gameTable.$inferSelect;
 
-/** The progress is three columns, set together. */
+/** The progress is three columns, set together; the options are one each. */
 function toGame(row: GameRow): Game {
-	const { questionIndex, phase, phaseStartedAt, ...game } = row;
+	const {
+		questionIndex,
+		phase,
+		phaseStartedAt,
+		showQuestionsOnDevices,
+		randomizeQuestions,
+		randomizeAnswers,
+		...game
+	} = row;
 	return {
 		...game,
+		options: { showQuestionsOnDevices, randomizeQuestions, randomizeAnswers },
 		progress:
 			questionIndex !== null && phase !== null && phaseStartedAt !== null
 				? { questionIndex, phase, phaseStartedAt }
@@ -20,9 +29,12 @@ function toGame(row: GameRow): Game {
 }
 
 function toRow(game: Game): GameRow {
-	const { progress, ...row } = game;
+	const { progress, options, ...row } = game;
 	return {
 		...row,
+		showQuestionsOnDevices: options.showQuestionsOnDevices,
+		randomizeQuestions: options.randomizeQuestions,
+		randomizeAnswers: options.randomizeAnswers,
 		questionIndex: progress?.questionIndex ?? null,
 		phase: progress?.phase ?? null,
 		phaseStartedAt: progress?.phaseStartedAt ?? null,
@@ -74,6 +86,19 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 				.insert(gameTable)
 				.values({ id, ...fields })
 				.onConflictDoUpdate({ target: gameTable.id, set: fields });
+		},
+
+		async saveSettings(game) {
+			// Only these columns: where the game is belongs to `saveIfAt`.
+			await db
+				.update(gameTable)
+				.set({
+					locked: game.locked,
+					showQuestionsOnDevices: game.options.showQuestionsOnDevices,
+					randomizeQuestions: game.options.randomizeQuestions,
+					randomizeAnswers: game.options.randomizeAnswers,
+				})
+				.where(eq(gameTable.id, game.id));
 		},
 
 		async saveIfAt(game, from) {

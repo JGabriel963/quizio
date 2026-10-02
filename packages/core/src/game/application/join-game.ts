@@ -9,7 +9,7 @@ import {
 } from "../domain/game";
 import { GAME_EVENTS, type PlayerJoinedPayload } from "../domain/game-events";
 import { parseNickname } from "../domain/nickname";
-import { newPlayer } from "../domain/player";
+import { firstQuestionFor, newPlayer } from "../domain/player";
 import { loadGame, publishToGame } from "./game-lifecycle";
 import { toLobbyPlayerView } from "./host-game-view";
 import type { GameRepository } from "./ports/game-repository";
@@ -22,7 +22,9 @@ export type JoinGame = (input: {
 
 /**
  * The nickname step (spec 008, RN-40 to RN-45). The game is checked again:
- * it may have been locked or ended while the player was typing.
+ * it may have been locked or ended while the player was typing. A game in
+ * progress takes players too, each from the question they may answer (spec
+ * 012, RN-10, RN-13).
  */
 export function createJoinGame(deps: {
 	games: GameRepository;
@@ -44,6 +46,7 @@ export function createJoinGame(deps: {
 			gameId: game.id,
 			nickname,
 			secret: deps.ids.generate(),
+			firstQuestionIndex: firstQuestionFor(game),
 			now: deps.clock.now(),
 		});
 		if ((await deps.players.add(player)) === "nicknameTaken") {

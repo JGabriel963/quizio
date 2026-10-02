@@ -1,4 +1,5 @@
 import type { Clock } from "../../shared/application/ports/clock";
+import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
 import {
 	endGame,
@@ -61,20 +62,26 @@ export async function publishToGame<TPayload>(
 /**
  * Tells the screens where the game went (spec 009): the public part of the
  * stage, or none once the game is finished. `question` is the one of the
- * game's stage.
+ * game's stage. The storage gives the image its address when the questions
+ * go to the devices (spec 012).
  */
 export async function publishStage(
-	realtime: RealtimePublisher,
+	deps: {
+		realtime: RealtimePublisher;
+		storage: Pick<ObjectStorage, "getPublicUrl">;
+	},
 	game: Game,
 	question: GameQuestion | null,
 ): Promise<void> {
 	await publishToGame<StageChangedPayload>(
-		realtime,
+		deps.realtime,
 		game.id,
 		GAME_EVENTS.stageChanged,
 		{
 			status: game.status,
-			stage: isPlaying(game) ? publicStageOf(game, question) : null,
+			stage: isPlaying(game)
+				? publicStageOf(game, question, (key) => deps.storage.getPublicUrl(key))
+				: null,
 		},
 	);
 }

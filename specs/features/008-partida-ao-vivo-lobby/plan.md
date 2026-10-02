@@ -210,7 +210,7 @@ Fakes em `testing/`: `InMemoryGameRepository`, `InMemoryPlayerRepository`, `InMe
 
 Repositórios em `repositories/game/`: `drizzle-game-repository.ts`, `drizzle-player-repository.ts`, `drizzle-playable-quiz-query.ts` (lê a tabela `quiz`, sem carregar o agregado). Em `repositories/shared/`: `drizzle-attempt-limiter.ts`. Os conflitos de PIN e de apelido são traduzidos da violação de índice único para o resultado da porta.
 
-A FK `quiz_id` em cascata apaga as partidas de um quiz excluído definitivamente. A spec 013 (relatórios) revisita isso, se relatórios precisarem sobreviver ao quiz.
+A FK `quiz_id` em cascata apaga as partidas de um quiz excluído definitivamente. A spec 015 (relatórios) revisita isso, se relatórios precisarem sobreviver ao quiz.
 
 ### Real-time
 
@@ -322,7 +322,7 @@ CA-02 e CA-09 também entram no E2E do editor (`editor-publish.spec.ts`) e no te
 - **ADR 0009**: estado no banco, jogador anônimo por segredo, canal público, evento como aviso. Aceito pelo usuário junto com este plano (2026-10-01).
 - **Limite de PINs errados por IP** (RN-39): o servidor só vê o IP, e uma sala inteira costuma sair pelo mesmo. Por isso o limite subiu para 30 por minuto e só PINs errados contam; a spec foi ajustada. Atrás de um proxy que não repassa `x-forwarded-for`, todos caem na mesma chave.
 - **Limite de 200 jogadores** mantido: o teto de 10 KB vale para eventos, e os do lobby levam um jogador por vez; a lista inteira vem pela consulta HTTP, com cerca de 12 KB para 200 jogadores. A contagem antes de inserir pode passar do limite por um ou dois em entradas simultâneas.
-- **Jogadores que saem não somem**: sem presença, quem fecha a aba continua na lista (spec, Fora de escopo). A spec 012 decide.
+- **Jogadores que saem não somem**: sem presença, quem fecha a aba continua na lista (spec, Fora de escopo). A spec 013 decide.
 - **Segredo em texto no banco e no `localStorage`**: o valor protegido é a participação numa partida de até 8 horas.
 - **Soketi no E2E**: os testes de lobby dependem do tempo real local (`pnpm infra:up`), como o resto do E2E. A consulta periódica garante que um evento perdido não quebra o teste, só o atrasa.
 - **`Game` em vez de `GameSession`** no código: mais curto e sem confundir com sessão de login; o glossário é atualizado.

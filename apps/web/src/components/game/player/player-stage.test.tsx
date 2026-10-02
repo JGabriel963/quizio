@@ -17,10 +17,13 @@ function quiz(
 	return {
 		type: "quiz",
 		selection,
+		text: null,
+		image: null,
 		choices: Array.from({ length: count }, (_, index) => ({
 			id: `choice-${index + 1}`,
 			shapeIndex: index,
 			label: null,
+			text: null,
 		})),
 	};
 }
@@ -28,11 +31,36 @@ function quiz(
 const trueFalse: PlayerQuestionData = {
 	type: "trueFalse",
 	selection: "single",
+	text: null,
+	image: null,
 	choices: [
-		{ id: "true", shapeIndex: 1, label: "Verdadeiro" },
-		{ id: "false", shapeIndex: 0, label: "Falso" },
+		{ id: "true", shapeIndex: 1, label: "Verdadeiro", text: null },
+		{ id: "false", shapeIndex: 0, label: "Falso", text: null },
 	],
 };
+
+const STATEMENT = "Qual é a capital do Brasil?";
+const TEXTS = ["Brasília", "Rio de Janeiro", "Salvador", "Recife"];
+
+/** The same question with "Mostrar perguntas nos dispositivos" on (spec 012). */
+function onDevice(
+	overrides: Partial<PlayerQuestionData> = {},
+	texts: readonly string[] = TEXTS,
+): PlayerQuestionData {
+	return {
+		type: "quiz",
+		selection: "single",
+		text: STATEMENT,
+		image: null,
+		choices: texts.map((text, index) => ({
+			id: `choice-${index + 1}`,
+			shapeIndex: index,
+			label: null,
+			text,
+		})),
+		...overrides,
+	};
+}
 
 function stageAt(overrides: Partial<PlayerStageData> = {}): PlayerStageData {
 	return {
@@ -42,6 +70,7 @@ function stageAt(overrides: Partial<PlayerStageData> = {}): PlayerStageData {
 		durationMs: 20_000,
 		remainingMs: 20_000,
 		question: quiz(),
+		sittingOut: false,
 		answered: false,
 		total: 0,
 		outcome: null,
@@ -86,6 +115,7 @@ describe("PlayerStage: before the answers (spec 009)", () => {
 		renderStage(stageAt({ phase: "gameIntro", question: null }));
 
 		expect(screen.getByRole("heading", { name: "Prepare-se!" })).toBeVisible();
+		expect(screen.getByRole("status")).toHaveTextContent("Carregando…");
 		expect(buttons()).toHaveLength(0);
 		expect(
 			document.querySelector('[data-slot="player-nickname"]'),
@@ -183,16 +213,19 @@ describe("PlayerStage: answering (spec 009)", () => {
 		expect(onAnswer).toHaveBeenCalledExactlyOnceWith(["false"]);
 	});
 
-	it("a tap is the answer in multiple selection too, with no Enviar", async () => {
+	it("marks and sends in multiple selection (spec 012)", async () => {
 		const { onAnswer, user } = renderStage(
 			stageAt({ question: quiz(4, "multiple") }),
 		);
 
-		expect(screen.queryByRole("button", { name: "Enviar" })).toBeNull();
-
+		expect(screen.getByText("Selecione uma ou mais respostas!")).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Losango azul" }));
+		await user.click(screen.getByRole("button", { name: "Quadrado verde" }));
+		expect(onAnswer).not.toHaveBeenCalled();
 
-		expect(onAnswer).toHaveBeenCalledExactlyOnceWith(["choice-2"]);
+		await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+		expect(onAnswer).toHaveBeenCalledExactlyOnceWith(["choice-2", "choice-4"]);
 	});
 
 	it("waits after answering, without saying how it went", () => {
@@ -400,5 +433,226 @@ describe("PlayerStage: results and end (spec 009)", () => {
 		expect(slot("player-total")).toBe("1354");
 		expect(slot("answer-points")).toBeNull();
 		expect(slot("player-position")).toBeNull();
+	});
+});
+
+describe("PlayerStage: who joined in the middle (spec 012)", () => {
+	it("who joined in the middle waits for the next question", () => {
+		renderStage(stageAt({ sittingOut: true, question: null }));
+
+		expect(screen.getByRole("heading", { name: "Você entrou!" })).toBeVisible();
+		expect(screen.getByRole("status")).toHaveTextContent(
+			"Aguarde a próxima pergunta.",
+		);
+		expect(buttons()).toHaveLength(0);
+		expect(screen.queryByText("Prepare-se!")).toBeNull();
+	});
+
+	it("shows the total zero and no time over to who joined in the middle", () => {
+		for (const phase of ["answering", "results", "scoreboard"] as const) {
+			const view = render(
+				<PlayerStage
+					nickname="Caio"
+					finished={false}
+					final={null}
+					stage={stageAt({
+						phase,
+						sittingOut: true,
+						question: null,
+						remainingMs: null,
+					})}
+					receivedAt={Date.now()}
+					late={false}
+					notice={null}
+					onAnswer={vi.fn()}
+					onLeave={vi.fn()}
+				/>,
+			);
+
+			expect(
+				screen.getByRole("heading", { name: "Você entrou!" }),
+			).toBeVisible();
+			expect(screen.queryByText("Tempo esgotado")).toBeNull();
+			expect(
+				document.querySelector('[data-slot="player-total"]'),
+			).toHaveTextContent("0");
+			expect(
+				document.querySelector('[data-slot="player-nickname"]'),
+			).toHaveTextContent("Caio");
+			view.unmount();
+		}
+	});
+
+	it("a refused answer does not turn the wait into time over", () => {
+		renderStage(stageAt({ sittingOut: true, question: null }), { late: true });
+
+		expect(screen.queryByText("Tempo esgotado")).toBeNull();
+		expect(screen.getByRole("heading", { name: "Você entrou!" })).toBeVisible();
+	});
+});
+
+describe("PlayerStage: the question on the device (spec 012)", () => {
+	const image = {
+		url: "https://media.test/mapa.png",
+		crop: { shape: "square" as const, zoom: 1.5, x: 0.5, y: 0.5 },
+		altText: "Mapa do Brasil",
+	};
+
+	it("the intro shows the statement and the reading bar", async () => {
+		vi.useFakeTimers();
+		renderStage(
+			stageAt({
+				phase: "questionIntro",
+				durationMs: 5_000,
+				remainingMs: 5_000,
+				// The answers come only when they open.
+				question: onDevice({
+					choices: onDevice().choices.map((choice) => ({
+						...choice,
+						text: null,
+					})),
+				}),
+			}),
+		);
+
+		expect(screen.getByRole("heading", { name: STATEMENT })).toBeVisible();
+		expect(screen.queryByText("Preparar…")).toBeNull();
+		expect(screen.queryByRole("heading", { name: "Pergunta 2" })).toBeNull();
+		expect(buttons()).toHaveLength(0);
+		const bar = screen.getByRole("progressbar", { name: "Tempo de leitura" });
+		expect(bar).toHaveAttribute("aria-valuenow", "0");
+
+		await act(() => vi.advanceTimersByTimeAsync(2_500));
+		expect(Number(bar.getAttribute("aria-valuenow"))).toBeGreaterThanOrEqual(
+			40,
+		);
+	});
+
+	it("the answers show the statement, the texts and the shapes", async () => {
+		const { onAnswer, user } = renderStage(stageAt({ question: onDevice() }));
+
+		expect(screen.getByRole("heading", { name: STATEMENT })).toBeVisible();
+		expect(buttons().map((button) => button.textContent)).toEqual(TEXTS);
+		expect(buttons().map((button) => button.dataset.shape)).toEqual([
+			"triangle",
+			"diamond",
+			"circle",
+			"square",
+		]);
+
+		await user.click(screen.getByRole("button", { name: "Brasília" }));
+		expect(onAnswer).toHaveBeenCalledExactlyOnceWith(["choice-1"]);
+	});
+
+	it("the answers show the image with its crop above the statement", () => {
+		renderStage(stageAt({ question: onDevice({ image }) }));
+
+		const picture = screen.getByRole("img", { name: "Mapa do Brasil" });
+		expect(picture).toHaveAttribute("src", image.url);
+		expect(
+			document.querySelector('[data-slot="question-image"]'),
+		).toHaveAttribute("data-crop", "square");
+		const statement = screen.getByRole("heading", { name: STATEMENT });
+		expect(
+			picture.compareDocumentPosition(statement) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("shows no image and no statement with the option off", () => {
+		renderStage(stageAt());
+
+		expect(screen.queryByRole("img")).toBeNull();
+		expect(screen.queryByRole("heading")).toBeNull();
+		expect(screen.queryByRole("timer")).toBeNull();
+		expect(buttons().every((button) => button.textContent === "")).toBe(true);
+	});
+
+	it("the time bar counts the seconds left", async () => {
+		vi.useFakeTimers();
+		renderStage(
+			stageAt({
+				durationMs: 30_000,
+				remainingMs: 30_000,
+				question: onDevice(),
+			}),
+		);
+		const timer = screen.getByRole("timer", { name: "Tempo restante" });
+		expect(timer).toHaveTextContent("30");
+
+		await act(() => vi.advanceTimersByTimeAsync(2_000));
+
+		expect(timer).toHaveTextContent("28");
+	});
+
+	it("true or false shows its two texts", () => {
+		renderStage(
+			stageAt({
+				question: {
+					type: "trueFalse",
+					selection: "single",
+					text: "A capital do Brasil é Brasília",
+					image: null,
+					choices: [
+						{
+							id: "true",
+							shapeIndex: 1,
+							label: "Verdadeiro",
+							text: "Verdadeiro",
+						},
+						{ id: "false", shapeIndex: 0, label: "Falso", text: "Falso" },
+					],
+				},
+			}),
+		);
+
+		expect(buttons().map((button) => button.textContent)).toEqual([
+			"Verdadeiro",
+			"Falso",
+		]);
+	});
+
+	it("the texts fit a narrow screen", () => {
+		const statement = "Pergunta comprida ".repeat(7).slice(0, 120);
+		const long = "Uma alternativa bem comprida, ".repeat(3).slice(0, 75);
+		renderStage(
+			stageAt({
+				question: onDevice(
+					{ text: statement, image },
+					Array.from({ length: 6 }, () => long),
+				),
+			}),
+		);
+
+		expect(buttons()).toHaveLength(6);
+		expect(screen.getByRole("heading", { name: statement }).className).toMatch(
+			/break-words/,
+		);
+		// The image never takes the buttons' room: it is bounded.
+		expect(
+			document.querySelector('[data-slot="device-question-image"]')?.className,
+		).toMatch(/max-h-/);
+		expect(screen.getByRole("timer", { name: "Tempo restante" })).toBeVisible();
+	});
+
+	it("keeps the wait and the result as they are", () => {
+		const view = render(
+			<PlayerStage
+				nickname="ACT"
+				finished={false}
+				final={null}
+				stage={stageAt({ question: onDevice(), answered: true })}
+				receivedAt={Date.now()}
+				late={false}
+				notice={null}
+				onAnswer={vi.fn()}
+				onLeave={vi.fn()}
+			/>,
+		);
+
+		expect(screen.getByRole("status")).toBeVisible();
+		expect(buttons()).toHaveLength(0);
+		expect(screen.queryByRole("timer")).toBeNull();
+		view.unmount();
 	});
 });

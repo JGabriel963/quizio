@@ -47,7 +47,7 @@ describe("FinalScreen (spec 011)", () => {
 		vi.useFakeTimers();
 		renderFinal(finalOf(1, { revealRemainingMs: 7_000 }));
 
-		expect(screen.getByRole("status")).toHaveTextContent("Rufem os tambores…");
+		expect(screen.getByRole("status")).toHaveTextContent("Rufar dos tambores…");
 		expect(medal()).toBeNull();
 		await tick(6_500);
 		expect(screen.getByRole("status")).toBeVisible();
@@ -61,7 +61,7 @@ describe("FinalScreen (spec 011)", () => {
 	it("waits when the end came before the session told the place", () => {
 		renderFinal(null);
 
-		expect(screen.getByRole("status")).toHaveTextContent("Rufem os tambores…");
+		expect(screen.getByRole("status")).toHaveTextContent("Rufar dos tambores…");
 		expect(slot("player-total")).toBeNull();
 	});
 

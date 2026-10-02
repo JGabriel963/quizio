@@ -1,5 +1,5 @@
 import { cn } from "@quizio/ui/lib/utils";
-import { CheckIcon, LoaderCircleIcon, XIcon } from "lucide-react";
+import { CheckIcon, XIcon } from "lucide-react";
 
 import type {
 	PlayerFinalData,
@@ -13,13 +13,8 @@ import { useCountdown } from "@/lib/use-countdown";
 
 import { AnswerButtons } from "./answer-buttons";
 import { FinalScreen } from "./final-screen";
-import { Centered, PlayerFrame } from "./player-frame";
-
-function Spinner() {
-	return (
-		<LoaderCircleIcon aria-hidden="true" className="size-16 animate-spin" />
-	);
-}
+import { Centered, PlayerFrame, Spinner } from "./player-frame";
+import { DeviceQuestion, DeviceQuestionIntro } from "./question-on-device";
 
 const RESULTS: Record<
 	PlayerResultData,
@@ -129,9 +124,27 @@ function QuestionIntro({
 }
 
 /**
+ * Who got in after a question's answers opened: it is not theirs to answer,
+ * and it leaves them no result (spec 012, RN-13, RN-14).
+ */
+function JoinedInTheMiddle() {
+	return (
+		<Centered>
+			<h1 className="font-black text-4xl motion-safe:animate-pop-in sm:text-5xl">
+				Você entrou!
+			</h1>
+			<p role="status" className="font-bold text-xl">
+				Aguarde a próxima pergunta.
+			</p>
+		</Centered>
+	);
+}
+
+/**
  * The player's device during the game (specs 009 and 010). It shows the phase
- * the game is in and what this player did in it: nothing here knows the
- * question's text, the answers' texts or which one is right.
+ * the game is in and what this player did in it. Nothing here knows which
+ * answer is right; the question's text, its image and the answers' texts only
+ * come when the host shows the questions on the devices (spec 012, RN-18).
  */
 export function PlayerStage({
 	nickname,
@@ -172,12 +185,22 @@ export function PlayerStage({
 	}
 
 	const total = stage?.total ?? 0;
+	if (stage?.sittingOut) {
+		return (
+			<PlayerFrame nickname={nickname} total={total}>
+				<JoinedInTheMiddle />
+			</PlayerFrame>
+		);
+	}
 	if (!stage || stage.phase === "gameIntro" || !stage.question) {
 		return (
 			<PlayerFrame nickname={nickname} total={total}>
 				<Centered>
 					<h1 className="font-black text-5xl">Prepare-se!</h1>
 					<Spinner />
+					<p role="status" className="font-bold text-xl">
+						Carregando…
+					</p>
 				</Centered>
 			</PlayerFrame>
 		);
@@ -194,7 +217,15 @@ export function PlayerStage({
 	if (phase === "questionIntro") {
 		return (
 			<PlayerFrame {...frame}>
-				<QuestionIntro stage={stage} receivedAt={receivedAt} />
+				{question.text === null ? (
+					<QuestionIntro stage={stage} receivedAt={receivedAt} />
+				) : (
+					<DeviceQuestionIntro
+						stage={stage}
+						text={question.text}
+						receivedAt={receivedAt}
+					/>
+				)}
 			</PlayerFrame>
 		);
 	}
@@ -236,14 +267,27 @@ export function PlayerStage({
 		);
 	}
 
+	const answerButtons = (
+		<AnswerButtons
+			// A new question starts with nothing marked.
+			key={stage.questionIndex}
+			question={question}
+			onAnswer={onAnswer}
+		/>
+	);
 	return (
 		<PlayerFrame {...frame} notice={notice}>
-			<AnswerButtons
-				// A new question starts with nothing marked.
-				key={stage.questionIndex}
-				question={question}
-				onAnswer={onAnswer}
-			/>
+			{question.text === null ? (
+				answerButtons
+			) : (
+				<DeviceQuestion
+					stage={stage}
+					question={question}
+					receivedAt={receivedAt}
+				>
+					{answerButtons}
+				</DeviceQuestion>
+			)}
 		</PlayerFrame>
 	);
 }

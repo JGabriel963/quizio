@@ -4,6 +4,7 @@ import { GAME_TTL_MS, GameEndedError, GameNotFoundError } from "../domain/game";
 import { GAME_EVENTS, gameChannel } from "../domain/game-events";
 import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps } from "../testing/game-deps";
+import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
 import { createGetHostGame } from "./get-host-game";
 import { createRemovePlayer } from "./remove-player";
@@ -36,6 +37,11 @@ describe("getHostGame (spec 008)", () => {
 			status: "lobby",
 			endReason: null,
 			locked: false,
+			options: {
+				showQuestionsOnDevices: false,
+				randomizeQuestions: false,
+				randomizeAnswers: false,
+			},
 			players: [
 				{ id: "p1", nickname: "Ana" },
 				{ id: "p2", nickname: "Bia" },
@@ -115,6 +121,46 @@ describe("setGameLocked (spec 008)", () => {
 		await expect(setGameLocked({ ...mine, locked: true })).rejects.toThrow(
 			GameEndedError,
 		);
+	});
+
+	it("locks and unlocks a game in progress (spec 012)", async () => {
+		const { deps, host, reach, stage } = await createStartedGame();
+		await reach("answering");
+		const setGameLocked = createSetGameLocked(deps);
+
+		await setGameLocked({ ...host, locked: true });
+
+		expect(await deps.games.findById("game-1")).toMatchObject({
+			status: "playing",
+			locked: true,
+		});
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "answering" });
+
+		await setGameLocked({ ...host, locked: false });
+
+		expect((await deps.games.findById("game-1"))?.locked).toBe(false);
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "answering" });
+	});
+
+	it("locking does not undo an advance written meanwhile (spec 012)", async () => {
+		const { deps, host, reach, stage } = await createStartedGame();
+		await reach("answering");
+		// The request reads the game, and the answers close before it writes.
+		const findById = deps.games.findById.bind(deps.games);
+		let raced = false;
+		deps.games.findById = async (id) => {
+			const game = await findById(id);
+			if (!raced) {
+				raced = true;
+				await reach("results");
+			}
+			return game;
+		};
+
+		await createSetGameLocked(deps)({ ...host, locked: true });
+
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
+		expect((await deps.games.findById("game-1"))?.locked).toBe(true);
 	});
 });
 

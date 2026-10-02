@@ -1,4 +1,5 @@
 import type { Clock } from "../../shared/application/ports/clock";
+import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
 import {
 	AlreadyAnsweredError,
@@ -15,7 +16,7 @@ import {
 	isPlaying,
 	responseTimeOf,
 } from "../domain/game-progress";
-import { hasPlayerSecret, isActivePlayer } from "../domain/player";
+import { canAnswer, hasPlayerSecret, isActivePlayer } from "../domain/player";
 import { loadGame, publishStage, publishToGame } from "./game-lifecycle";
 import type { AnswerRepository } from "./ports/answer-repository";
 import type { GameQuestionRepository } from "./ports/game-question-repository";
@@ -38,9 +39,10 @@ export type SubmitAnswer = (input: {
  */
 export function createSubmitAnswer(deps: {
 	games: GameRepository;
-	players: Pick<PlayerRepository, "findById" | "countActive">;
+	players: Pick<PlayerRepository, "findById" | "countEligible">;
 	gameQuestions: Pick<GameQuestionRepository, "find">;
 	answers: Pick<AnswerRepository, "add" | "countByQuestion">;
+	storage: Pick<ObjectStorage, "getPublicUrl">;
 	clock: Clock;
 	realtime: RealtimePublisher;
 }): SubmitAnswer {
@@ -59,7 +61,8 @@ export function createSubmitAnswer(deps: {
 
 		const closed = () =>
 			new AnswersClosedError("This question is not taking answers");
-		if (!isPlaying(game)) {
+		// Who joined after the answers opened waits for the next one (spec 012, RN-13).
+		if (!isPlaying(game) || !canAnswer(player, questionIndex)) {
 			throw closed();
 		}
 		const question = await deps.gameQuestions.find(game.id, questionIndex);
@@ -105,12 +108,13 @@ export function createSubmitAnswer(deps: {
 			{ questionIndex, count },
 		);
 
-		// Everybody answered: the results do not wait for the time (RN-10).
-		if (count >= (await deps.players.countActive(game.id))) {
+		// Everybody who may answer did: the results do not wait for the time
+		// (RN-10; spec 012, RN-16).
+		if (count >= (await deps.players.countEligible(game.id, questionIndex))) {
 			const results = closeAnswers(game, now);
 			const from = { questionIndex, phase: "answering" as const };
 			if (await deps.games.saveIfAt(results, from)) {
-				await publishStage(deps.realtime, results, question);
+				await publishStage(deps, results, question);
 			}
 		}
 	};

@@ -31,6 +31,7 @@ import type { AnswerRepository } from "@quizio/core/game/application/ports/answe
 import type { GamePinGenerator } from "@quizio/core/game/application/ports/game-pin-generator";
 import type { GameQuestionRepository } from "@quizio/core/game/application/ports/game-question-repository";
 import type { GameRepository } from "@quizio/core/game/application/ports/game-repository";
+import type { HostPreferencesRepository } from "@quizio/core/game/application/ports/host-preferences-repository";
 import type { PlayableQuizQuery } from "@quizio/core/game/application/ports/playable-quiz-query";
 import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
 import {
@@ -41,6 +42,10 @@ import {
 	createSetGameLocked,
 	type SetGameLocked,
 } from "@quizio/core/game/application/set-game-locked";
+import {
+	createSetGameOptions,
+	type SetGameOptions,
+} from "@quizio/core/game/application/set-game-options";
 import {
 	createStartGame,
 	type StartGame,
@@ -138,6 +143,7 @@ import type { Clock } from "@quizio/core/shared/application/ports/clock";
 import type { IdGenerator } from "@quizio/core/shared/application/ports/id-generator";
 import type { ObjectStorage } from "@quizio/core/shared/application/ports/object-storage";
 import type { RealtimePublisher } from "@quizio/core/shared/application/ports/realtime-publisher";
+import type { Shuffler } from "@quizio/core/shared/application/ports/shuffler";
 
 /** Public sign-in options the login screen needs to know about. */
 export interface AuthSettings {
@@ -160,7 +166,9 @@ export interface Adapters {
 	gameQuestions: GameQuestionRepository;
 	answers: AnswerRepository;
 	playableQuizzes: PlayableQuizQuery;
+	preferences: HostPreferencesRepository;
 	pins: GamePinGenerator;
+	shuffler: Shuffler;
 	attempts: AttemptLimiter;
 	authSettings: AuthSettings;
 }
@@ -192,6 +200,7 @@ export interface Container extends Adapters {
 		startGame: StartGame;
 		advanceGame: AdvanceGame;
 		setGameLocked: SetGameLocked;
+		setGameOptions: SetGameOptions;
 		removePlayer: RemovePlayer;
 		endGame: EndGame;
 		findGameByPin: FindGameByPin;
@@ -244,6 +253,7 @@ export function createContainer(adapters: Adapters): Container {
 			startGame: createStartGame(adapters),
 			advanceGame: createAdvanceGame(adapters),
 			setGameLocked: createSetGameLocked(adapters),
+			setGameOptions: createSetGameOptions(adapters),
 			removePlayer: createRemovePlayer(adapters),
 			endGame: createEndGame(adapters),
 			findGameByPin: createFindGameByPin(adapters),

@@ -8,10 +8,15 @@ import { cn } from "@quizio/ui/lib/utils";
 import { LockIcon, LockOpenIcon } from "lucide-react";
 import { useState } from "react";
 
-import type { HostGameData, LobbyPlayerData } from "@/lib/api-types";
+import type {
+	GameOptionsData,
+	HostGameData,
+	LobbyPlayerData,
+} from "@/lib/api-types";
 
 import { GameScreen, Wordmark } from "../game-screen";
 import { GameHeader } from "./game-header";
+import { GameSettings } from "./game-settings";
 import { JoinInstructions } from "./join-instructions";
 import { EndGameDialog, RemovePlayerDialog } from "./lobby-dialogs";
 import { PlayerGrid } from "./player-grid";
@@ -19,6 +24,8 @@ import { PlayerGrid } from "./player-grid";
 /** What the lobby asks of the API; the route wires it to tRPC (spec 008). */
 export interface HostLobbyActions {
 	setLocked: (locked: boolean) => void;
+	/** A switch of the settings: only the option that changed (spec 012). */
+	setOptions: (change: Partial<GameOptionsData>) => void;
 	/** "Iniciar": the game leaves the lobby (spec 009, RN-01). */
 	start: () => void;
 	removePlayer: (playerId: string) => void;
@@ -43,12 +50,14 @@ export function HostLobby({
 }) {
 	const [removing, setRemoving] = useState<LobbyPlayerData | null>(null);
 	const [ending, setEnding] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(false);
 
 	return (
 		<GameScreen className="flex flex-col">
 			<GameHeader
 				playerCount={lobby.players.length}
 				onExit={() => setEnding(true)}
+				onOpenSettings={() => setSettingsOpen(true)}
 			/>
 
 			<main className="flex flex-1 flex-col items-center gap-8 p-4 sm:p-6">
@@ -76,6 +85,15 @@ export function HostLobby({
 				<PlayerGrid players={lobby.players} onRemove={setRemoving} />
 			</main>
 
+			<GameSettings
+				open={settingsOpen}
+				onOpenChange={setSettingsOpen}
+				options={lobby.options}
+				locked={lobby.locked}
+				playing={false}
+				onOptionsChange={actions.setOptions}
+				onLockedChange={actions.setLocked}
+			/>
 			<RemovePlayerDialog
 				player={removing}
 				onCancel={() => setRemoving(null)}

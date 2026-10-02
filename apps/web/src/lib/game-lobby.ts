@@ -1,12 +1,14 @@
 import type { GameEndReason } from "@quizio/core/game/domain/game";
 
-import type { HostGameData } from "./api-types";
+import type { GameOptionsData, HostGameData } from "./api-types";
 
 /** What the game's channel tells the host's lobby (spec 008; ADR 0009). */
 export type LobbyEvent =
 	| { type: "playerJoined"; player: { id: string; nickname: string } }
 	| { type: "playerRemoved"; playerId: string }
 	| { type: "lockChanged"; locked: boolean }
+	/** The host's own change in the settings, shown before the server answers (spec 012). */
+	| { type: "optionsChanged"; options: Partial<GameOptionsData> }
 	| { type: "gameEnded"; reason: GameEndReason };
 
 /**
@@ -29,6 +31,8 @@ export function applyLobbyEvent(
 			};
 		case "lockChanged":
 			return { ...view, locked: event.locked };
+		case "optionsChanged":
+			return { ...view, options: { ...view.options, ...event.options } };
 		case "gameEnded":
 			return view.status === "ended"
 				? view

@@ -63,11 +63,21 @@ Lista de opções sobre `@base-ui/react/select`, usada no lugar do `<select>` do
 - `variant="default"`: caixa de formulário.
 - `variant="answer"`: marcação redonda de "resposta correta" sobre um bloco de alternativa (spec 004); anel branco, preenchida de verde-claro (`answer-correct`) com o check branco quando marcada, para aparecer também sobre a alternativa verde.
 
+### `Switch`
+
+- Chave liga/desliga que vale na hora, sem botão de salvar (spec 012): verde (`success`) quando ligada.
+- `size`: `default` e `sm`. Sem rótulo próprio: dê o nome com `aria-labelledby` ou envolva num `Label`.
+
+### `Sheet`
+
+- Painel preso à lateral, por cima da página (spec 012): `SheetContent` com `side="right"` (padrão) ou `"left"`, `SheetHeader`, `SheetBody` (a parte que rola) e `SheetFooter`.
+- Sobre o `Dialog` do base-ui: fecha com o X, Esc ou clique fora. Abre num portal, fora de `.dark`, então é claro mesmo sobre as telas do jogo.
+
 ## Animações do jogo (spec 011)
 
 As telas do jogo (`.dark`, dentro de `GameScreen`) têm animações curtas, como no Kahoot. São só apresentação: nada no jogo espera por elas.
 
-- **Simples, em CSS**: keyframes em `globals.css`, usados com `motion-safe:` para respeitar o movimento reduzido. `animate-pop-in` (um elemento que salta ao entrar), `animate-stage-in` (o conteúdo de uma fase entrando), `animate-bar-grow` (barras crescendo, com `origin-bottom`), `animate-confetti-fall`, `animate-podium-glow`, `animate-drumroll`.
+- **Simples, em CSS**: keyframes em `globals.css`, usados com `motion-safe:` para respeitar o movimento reduzido. `animate-pop-in` (um elemento que salta ao entrar), `animate-stage-in` (o conteúdo de uma fase entrando), `animate-bar-grow` (barras crescendo, com `origin-bottom`), `animate-confetti-fall`, `animate-podium-glow`.
 - **O que muda de lugar, sai da tela ou é sequência**: a biblioteca `motion` (`motion.li` com `layout`, `AnimatePresence`), só em `apps/web/src/components/game/`.
 - **Números que sobem**: `CountUp` (`apps/web/src/lib/count-up.tsx`).
 - **Durações**: até cerca de 1 s por movimento (`GAME_MOTION` em `lib/game-motion.tsx`).

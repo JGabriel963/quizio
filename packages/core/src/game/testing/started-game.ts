@@ -1,7 +1,9 @@
 import type { Question } from "../../quiz/domain/question";
 import { createAdvanceGame } from "../application/advance-game";
+import { createJoinGame } from "../application/join-game";
 import { createStartGame } from "../application/start-game";
 import { createSubmitAnswer } from "../application/submit-answer";
+import { DEFAULT_GAME_OPTIONS, type GameOptions } from "../domain/game-options";
 import {
 	type GamePhase,
 	isAtStage,
@@ -18,10 +20,20 @@ import { createGameDeps } from "./game-deps";
  * screen would.
  */
 export async function createStartedGame(
-	options: { players?: string[]; questions?: Question[] } = {},
+	options: {
+		players?: string[];
+		questions?: Question[];
+		/** The game's options, set before it starts (spec 012). */
+		options?: Partial<GameOptions>;
+	} = {},
 ) {
 	const deps = createGameDeps({ questions: options.questions });
-	await deps.games.save(aGame({ createdAt: deps.clock.now() }));
+	await deps.games.save(
+		aGame({
+			createdAt: deps.clock.now(),
+			options: { ...DEFAULT_GAME_OPTIONS, ...options.options },
+		}),
+	);
 	const nicknames = options.players ?? ["Ana", "Bia"];
 	for (const [index, nickname] of nicknames.entries()) {
 		await deps.players.add(
@@ -93,9 +105,20 @@ export async function createStartedGame(
 		});
 	}
 
+	/** Someone gets in with the game on (spec 012); the session to ask with. */
+	async function join(nickname: string) {
+		const joined = await createJoinGame(deps)({ gameId: "game-1", nickname });
+		return {
+			gameId: "game-1",
+			playerId: joined.playerId,
+			secret: joined.secret,
+		};
+	}
+
 	return {
 		deps,
 		host,
+		join,
 		advance,
 		submitAnswer,
 		stored,

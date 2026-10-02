@@ -6,6 +6,7 @@ import {
 	QuizNotPlayableError,
 } from "../domain/game";
 import { GAME_EVENTS, gameChannel } from "../domain/game-events";
+import { DEFAULT_GAME_OPTIONS } from "../domain/game-options";
 import { aGame } from "../testing/a-game";
 import { createGameDeps } from "../testing/game-deps";
 import { aPlayableQuiz } from "../testing/in-memory-playable-quiz-query";
@@ -149,6 +150,46 @@ describe("hostGame (spec 008)", () => {
 		await deps.games.save(aGame({ id: "other", quizId: "quiz-9" }));
 
 		await expect(createHostGame(deps)(host)).rejects.toThrow(/free game PIN/);
+	});
+
+	it("a first game starts with every option off (spec 012)", async () => {
+		const deps = createGameDeps();
+
+		const { gameId } = await createHostGame(deps)(host);
+
+		expect((await deps.games.findById(gameId))?.options).toEqual(
+			DEFAULT_GAME_OPTIONS,
+		);
+	});
+
+	it("a new game starts with the options the host saved (spec 012)", async () => {
+		const deps = createGameDeps();
+		const saved = {
+			showQuestionsOnDevices: true,
+			randomizeQuestions: false,
+			randomizeAnswers: true,
+		};
+		await deps.preferences.save("user-1", saved);
+		await deps.preferences.save("user-2", {
+			...saved,
+			randomizeQuestions: true,
+		});
+
+		const { gameId } = await createHostGame(deps)(host);
+
+		expect((await deps.games.findById(gameId))?.options).toEqual(saved);
+	});
+
+	it("a new game is never locked (spec 012)", async () => {
+		const deps = createGameDeps({ pins: ["265914", "569177"] });
+		const hostGame = createHostGame(deps);
+		const first = await hostGame(host);
+		const stored = await deps.games.findById(first.gameId);
+		await deps.games.save({ ...aGame(), ...stored, locked: true });
+
+		const second = await hostGame(host);
+
+		expect((await deps.games.findById(second.gameId))?.locked).toBe(false);
 	});
 });
 

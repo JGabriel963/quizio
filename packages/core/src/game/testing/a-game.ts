@@ -1,5 +1,6 @@
 import type { Game } from "../domain/game";
 import { GAME_TTL_MS } from "../domain/game";
+import { DEFAULT_GAME_OPTIONS } from "../domain/game-options";
 import type { GamePhase, PlayingGame } from "../domain/game-progress";
 import { nicknameKeyOf } from "../domain/nickname";
 import type { Player } from "../domain/player";
@@ -16,6 +17,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		pin: "265914",
 		status: "lobby",
 		locked: false,
+		options: DEFAULT_GAME_OPTIONS,
 		createdAt,
 		expiresAt: new Date(createdAt.getTime() + GAME_TTL_MS),
 		endedAt: null,
@@ -58,6 +60,7 @@ export function aPlayer(overrides: Partial<Player> = {}): Player {
 		nickname,
 		nicknameKey: nicknameKeyOf(nickname),
 		secret: "secret-1",
+		firstQuestionIndex: 0,
 		joinedAt: new Date("2026-06-01T12:01:00.000Z"),
 		removedAt: null,
 		...overrides,

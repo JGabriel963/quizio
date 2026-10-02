@@ -11,7 +11,10 @@ export type SetGameLocked = (input: {
 	locked: boolean;
 }) => Promise<{ locked: boolean }>;
 
-/** The lobby's padlock (spec 008, RN-23, RN-24). */
+/**
+ * The lobby's padlock (spec 008, RN-23, RN-24), which is also "Bloquear jogo"
+ * in the settings and works during the game (spec 012, RN-08, RN-09).
+ */
 export function createSetGameLocked(deps: {
 	games: GameRepository;
 	clock: Clock;
@@ -20,7 +23,8 @@ export function createSetGameLocked(deps: {
 	return async ({ ownerId, gameId, locked }) => {
 		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
 		const changed = setGameLocked(game, locked);
-		await deps.games.save(changed);
+		// Only the settings are written: the game may have moved on meanwhile.
+		await deps.games.saveSettings(changed);
 		await publishToGame<LockChangedPayload>(
 			deps.realtime,
 			game.id,

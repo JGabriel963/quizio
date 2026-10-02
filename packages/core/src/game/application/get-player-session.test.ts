@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { aQuestion } from "../../quiz/testing/a-question";
 import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
+import { createGetHostGame } from "./get-host-game";
 import { createGetPlayerSession } from "./get-player-session";
 import { createRemovePlayer } from "./remove-player";
 
@@ -41,6 +42,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 				durationMs: 3_000,
 				remainingMs: 3_000,
 				question: null,
+				sittingOut: false,
 				answered: false,
 				total: 0,
 				outcome: null,
@@ -80,13 +82,16 @@ describe("getPlayerSession during a game (spec 009)", () => {
 			question: {
 				type: "quiz",
 				selection: "single",
+				text: null,
+				image: null,
 				choices: [
-					{ id: "choice-1", shapeIndex: 0, label: null },
-					{ id: "choice-2", shapeIndex: 1, label: null },
-					{ id: "choice-3", shapeIndex: 2, label: null },
-					{ id: "choice-4", shapeIndex: 3, label: null },
+					{ id: "choice-1", shapeIndex: 0, label: null, text: null },
+					{ id: "choice-2", shapeIndex: 1, label: null, text: null },
+					{ id: "choice-3", shapeIndex: 2, label: null, text: null },
+					{ id: "choice-4", shapeIndex: 3, label: null, text: null },
 				],
 			},
+			sittingOut: false,
 			answered: false,
 			total: 0,
 			outcome: null,
@@ -406,5 +411,258 @@ describe("getPlayerSession: the final screen (spec 011)", () => {
 		await reach("results", 1);
 
 		expect((await createGetPlayerSession(deps)(player(1))).final).toBeNull();
+	});
+});
+
+describe("getPlayerSession: who joined in the middle (spec 012)", () => {
+	it("who joined late sits out the question in course", async () => {
+		const { deps, reach, join } = await createStartedGame();
+		await reach("answering");
+		deps.clock.advanceBy(4_000);
+
+		const caio = await join("Caio");
+
+		expect(await createGetPlayerSession(deps)(caio)).toEqual({
+			gameId: "game-1",
+			nickname: "Caio",
+			status: "playing",
+			stage: {
+				questionIndex: 0,
+				questionCount: 2,
+				phase: "answering",
+				durationMs: 20_000,
+				remainingMs: 16_000,
+				question: null,
+				sittingOut: true,
+				answered: false,
+				total: 0,
+				outcome: null,
+			},
+			final: null,
+		});
+	});
+
+	it("sits out without a result and without time over", async () => {
+		const { deps, reach, join, answer } = await createStartedGame();
+		await reach("answering");
+		const caio = await join("Caio");
+		await answer(1, "choice-1");
+		const getPlayerSession = createGetPlayerSession(deps);
+
+		for (const phase of ["results", "scoreboard"] as const) {
+			await reach(phase);
+
+			expect((await getPlayerSession(caio)).stage).toMatchObject({
+				phase,
+				sittingOut: true,
+				question: null,
+				total: 0,
+				outcome: null,
+			});
+		}
+		// Who was there is told as before.
+		expect((await getPlayerSession(player(2))).stage?.outcome?.result).toBe(
+			"timeout",
+		);
+	});
+
+	it("who joined before the answers opened plays that question", async () => {
+		const { deps, reach, join } = await createStartedGame();
+		await reach("questionIntro");
+		const caio = await join("Caio");
+		await reach("answering");
+
+		expect((await createGetPlayerSession(deps)(caio)).stage).toMatchObject({
+			sittingOut: false,
+			question: { type: "quiz" },
+		});
+	});
+
+	it("plays the next question normally", async () => {
+		const { deps, reach, join, submitAnswer } = await createStartedGame();
+		await reach("answering");
+		const caio = await join("Caio");
+		const getPlayerSession = createGetPlayerSession(deps);
+
+		await reach("questionIntro", 1);
+		expect((await getPlayerSession(caio)).stage).toMatchObject({
+			sittingOut: false,
+			question: { type: "trueFalse" },
+		});
+
+		await reach("answering", 1);
+		await submitAnswer({ ...caio, questionIndex: 1, choiceIds: ["true"] });
+		await reach("results", 1);
+
+		expect((await getPlayerSession(caio)).stage).toMatchObject({
+			sittingOut: false,
+			answered: true,
+			total: 1000,
+			outcome: { result: "correct", points: 1000, streak: 1 },
+		});
+	});
+
+	it("is in the standings with zero, after who was there", async () => {
+		const { deps, host, reach, join, answer } = await createStartedGame();
+		await reach("answering");
+		await answer(1, "choice-1");
+		const caio = await join("Caio");
+		await reach("scoreboard");
+
+		const view = await createGetHostGame(deps)(host);
+
+		expect(
+			view.stage?.scoreboard?.map((entry) => [entry.nickname, entry.total]),
+		).toEqual([
+			["Ana", 1000],
+			["Bia", 0],
+			["Caio", 0],
+		]);
+		expect(view.players.map((entry) => entry.nickname)).toEqual([
+			"Ana",
+			"Bia",
+			"Caio",
+		]);
+		expect((await createGetPlayerSession(deps)(caio)).stage).toMatchObject({
+			total: 0,
+			outcome: null,
+		});
+	});
+
+	it("goes to the end with zero and the last place", async () => {
+		const { deps, reach, join, finish } = await createStartedGame();
+		await reach("answering", 1);
+		const caio = await join("Caio");
+
+		expect((await createGetPlayerSession(deps)(caio)).stage).toMatchObject({
+			sittingOut: true,
+		});
+		await finish();
+
+		expect(await createGetPlayerSession(deps)(caio)).toMatchObject({
+			status: "finished",
+			stage: null,
+			final: { rank: 3, total: 0 },
+		});
+	});
+});
+
+describe("getPlayerSession: the questions on the devices (spec 012)", () => {
+	const image = {
+		key: "quizzes/quiz-1/questions/mapa.png",
+		placement: "background" as const,
+		crop: { shape: "square" as const, zoom: 1.5, x: 0.5, y: 0.5 },
+		altText: "Mapa do Brasil",
+	};
+	const onDevices = { showQuestionsOnDevices: true };
+
+	it("gets the statement, the texts and the image with the option on", async () => {
+		const { deps, reach } = await createStartedGame({
+			questions: [quiz({ image }), quiz()],
+			options: onDevices,
+		});
+		await reach("answering");
+
+		const view = await createGetPlayerSession(deps)(player(1));
+
+		expect(view.stage?.question).toEqual({
+			type: "quiz",
+			selection: "single",
+			text: "Qual é a capital do Brasil?",
+			image: {
+				url: "https://media.test/quizzes/quiz-1/questions/mapa.png",
+				crop: image.crop,
+				altText: "Mapa do Brasil",
+			},
+			choices: [
+				{ id: "choice-1", shapeIndex: 0, label: null, text: "a" },
+				{ id: "choice-2", shapeIndex: 1, label: null, text: "b" },
+				{ id: "choice-3", shapeIndex: 2, label: null, text: "c" },
+				{ id: "choice-4", shapeIndex: 3, label: null, text: "d" },
+			],
+		});
+		// Never which one is right (RN-20).
+		expect(JSON.stringify(view)).not.toMatch(/"correct":/);
+	});
+
+	it("gets the statement alone in the question's intro", async () => {
+		const { deps, reach } = await createStartedGame({
+			questions: [quiz({ image }), quiz()],
+			options: onDevices,
+		});
+		await reach("questionIntro");
+
+		const { stage } = await createGetPlayerSession(deps)(player(1));
+
+		expect(stage?.question).toMatchObject({
+			text: "Qual é a capital do Brasil?",
+			image: null,
+		});
+		expect(
+			stage?.question?.choices.every((choice) => choice.text === null),
+		).toBe(true);
+	});
+
+	it("true or false gets its two texts", async () => {
+		const { deps, reach } = await createStartedGame({ options: onDevices });
+		await reach("answering", 1);
+
+		const { stage } = await createGetPlayerSession(deps)(player(1));
+
+		expect(stage?.question?.choices.map((choice) => choice.text)).toEqual([
+			"Verdadeiro",
+			"Falso",
+		]);
+	});
+
+	it("the drawn positions are the same for every player and for the host", async () => {
+		const { deps, host, reach } = await createStartedGame({
+			options: { ...onDevices, randomizeAnswers: true },
+		});
+		await reach("answering");
+		const getPlayerSession = createGetPlayerSession(deps);
+
+		const onHost = (await createGetHostGame(deps)(host)).stage?.question
+			?.choices;
+		const first = (await getPlayerSession(player(1))).stage?.question?.choices;
+		const second = (await getPlayerSession(player(2))).stage?.question?.choices;
+
+		const places = (choices: typeof first) =>
+			choices?.map((choice) => [choice.shapeIndex, choice.text]);
+		expect(places(first)).toEqual([
+			[0, "Recife"],
+			[1, "Salvador"],
+			[2, "Rio de Janeiro"],
+			[3, "Brasília"],
+		]);
+		expect(places(second)).toEqual(places(first));
+		expect(onHost?.map((choice) => [choice.shapeIndex, choice.text])).toEqual(
+			places(first),
+		);
+	});
+
+	it("the right answer follows its answer to the drawn shape", async () => {
+		const { deps, host, reach, answer } = await createStartedGame({
+			options: { randomizeAnswers: true },
+		});
+		await reach("answering");
+
+		// "Brasília" went to the last shape; its id is still the right one.
+		await answer(1, "choice-1");
+		await answer(2, "choice-4");
+
+		const getPlayerSession = createGetPlayerSession(deps);
+		expect((await getPlayerSession(player(1))).stage?.outcome?.result).toBe(
+			"correct",
+		);
+		expect((await getPlayerSession(player(2))).stage?.outcome?.result).toBe(
+			"wrong",
+		);
+		const revealed = (await createGetHostGame(deps)(host)).stage?.question
+			?.choices;
+		expect(revealed?.find((choice) => choice.correct)).toMatchObject({
+			shapeIndex: 3,
+			text: "Brasília",
+		});
 	});
 });

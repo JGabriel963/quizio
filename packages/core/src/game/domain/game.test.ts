@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { aGame, aPlayer } from "../testing/a-game";
+import { aGame, aPlayer, aPlayingGame } from "../testing/a-game";
 import {
 	assertJoinable,
 	endGame,
@@ -16,6 +16,7 @@ import {
 	setGameLocked,
 } from "./game";
 import { gameChannel } from "./game-events";
+import { DEFAULT_GAME_OPTIONS } from "./game-options";
 import {
 	hasPlayerSecret,
 	isActivePlayer,
@@ -35,6 +36,7 @@ describe("game (spec 008)", () => {
 			quizVersion: 3,
 			title: "Capitais",
 			pin: "265914",
+			options: DEFAULT_GAME_OPTIONS,
 			now,
 		});
 
@@ -102,6 +104,52 @@ describe("game (spec 008)", () => {
 		);
 	});
 
+	it("a new game carries the options it was given", () => {
+		const options = {
+			showQuestionsOnDevices: true,
+			randomizeQuestions: false,
+			randomizeAnswers: true,
+		};
+		const game = newGame({
+			id: "game-1",
+			ownerId: "user-1",
+			quizId: "quiz-1",
+			quizVersion: 1,
+			title: "Capitais",
+			pin: "265914",
+			options,
+			now,
+		});
+
+		expect(game.options).toEqual(options);
+		// The lock is never carried from one game to the next (spec 012, RN-06).
+		expect(game.locked).toBe(false);
+	});
+
+	it("a game in progress can be joined", () => {
+		for (const phase of [
+			"gameIntro",
+			"questionIntro",
+			"answering",
+			"results",
+			"scoreboard",
+		] as const) {
+			expect(() => assertJoinable(aPlayingGame(phase))).not.toThrow();
+		}
+	});
+
+	it("a locked game in progress cannot be joined", () => {
+		expect(() =>
+			assertJoinable(aPlayingGame("answering", {}, { locked: true })),
+		).toThrow(GameLockedError);
+	});
+
+	it("a finished game cannot be joined", () => {
+		expect(() =>
+			assertJoinable(aGame({ status: "finished", endedAt: now })),
+		).toThrow(GamePinNotRecognizedError);
+	});
+
 	it("has one channel per game", () => {
 		expect(gameChannel("abc")).toBe("game-abc");
 	});
@@ -114,6 +162,7 @@ describe("player (spec 008)", () => {
 			gameId: "game-1",
 			nickname: "José",
 			secret: "s3cret",
+			firstQuestionIndex: 0,
 			now,
 		});
 

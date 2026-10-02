@@ -20,6 +20,8 @@ export type QuestionData = QuizEditorData["questions"][number];
 /** The host's screen: the lobby and the game in progress (specs 008, 009). */
 export type HostGameData = RouterOutputs["game"]["view"];
 export type LobbyPlayerData = HostGameData["players"][number];
+/** What the settings panel shows and changes (spec 012). */
+export type GameOptionsData = HostGameData["options"];
 export type HostStageData = NonNullable<HostGameData["stage"]>;
 export type HostQuestionData = NonNullable<HostStageData["question"]>;
 export type ScoreboardEntryData = NonNullable<

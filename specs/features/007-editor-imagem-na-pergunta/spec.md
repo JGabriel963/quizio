@@ -422,7 +422,7 @@ O criador coloca uma imagem em qualquer pergunta, enviando um arquivo do computa
 - **Limites da política de mídia do Quizio** (RN-02): 10 MB e JPEG, PNG, GIF ou WebP, em vez dos 50 MB do diálogo do Kahoot. São os mesmos limites da capa.
 - **Imagem de fundo para todos** (RN-27): no Kahoot é recurso pago.
 - **Ação de recorte some com a imagem como fundo** (RN-24): o Kahoot mantém o ícone visível, mas ele não recorta o fundo. Aqui a ação simplesmente não aparece.
-- **Sem "Visualizar" no aviso do fundo**: o Quizio ainda não tem pré-visualização do quiz (spec 020).
+- **Sem "Visualizar" no aviso do fundo**: o Quizio ainda não tem pré-visualização do quiz (spec 022).
 - **Sem "Fonte dos créditos"** nos detalhes da mídia: só existe para imagens da biblioteca do Kahoot.
 - **Sem "Revelação de imagem"** (a imagem aparecendo aos poucos em blocos 3×3, 5×5, 8×8): é um efeito da partida, pago no Kahoot. Fica para depois da partida ao vivo.
 
@@ -433,7 +433,7 @@ O criador coloca uma imagem em qualquer pergunta, enviando um arquivo do computa
 - Biblioteca de imagens, GIFs, figurinhas e geração de imagem por IA.
 - Revelação de imagem.
 - Como a imagem, o fundo, o recorte e o texto alternativo aparecem **na partida**, na tela do anfitrião e no dispositivo do jogador (spec 009).
-- Pré-visualização do quiz (spec 020).
+- Pré-visualização do quiz (spec 022).
 - Editar a imagem além do recorte (girar, filtros) e escolher uma forma "sem recorte" depois de recortar.
 - Desfazer a remoção de uma imagem.
 

@@ -88,7 +88,9 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Partida ao vivo | `Game` | Instância de apresentação de um quiz: usa a versão jogável e o título do momento em que é criada; no máximo uma aberta por quiz (spec 008) | ✅ |
 | Modo de jogo | `GameMode` | `classic`, `team`, … | 📝 |
 | PIN do jogo | `GamePin` | Código de 6 dígitos, sem zero à esquerda, único entre as partidas abertas; vale até a partida ser encerrada ou completar 8 horas (spec 008) | ✅ |
-| Opções de jogo | `GameOptions` | Randomizar perguntas/alternativas, mostrar no dispositivo, gerador de apelidos, autoplay… | 📝 |
+| Opções de jogo | `GameOptions` | O que o anfitrião ajusta no painel de Configurações: mostrar perguntas nos dispositivos, perguntas e respostas em ordem aleatória; salvas por criador (spec 012). Gerador de apelidos, reprodução automática e música chegam na spec 014 | ✅ |
+| Entrada durante o jogo | `lateJoin` | Entrar numa partida em andamento, enquanto a entrada não está bloqueada: 0 pontos, jogando a partir da próxima pergunta cujas respostas ainda não abriram (spec 012). O jogador guarda a primeira pergunta que pode responder (`Player.firstQuestionIndex`); enquanto a pergunta em curso é anterior a ela, o celular espera (`sittingOut`) | ✅ |
+| Preferências do anfitrião | `HostPreferences` | As opções de jogo que o criador deixou na última partida; a próxima começa com elas. O bloqueio não entra (spec 012) | ✅ |
 | Lobby | `Lobby` | Sala de espera antes do início: PIN, QR, link, lista e total de jogadores (spec 008) | ✅ |
 | Organizar ao vivo | `hostGame` (`game.host`) | Ação do dono de um quiz publicado que cria a partida e abre o lobby (spec 008) | ✅ |
 | Link de entrada | `joinLink` | Endereço `/join/{PIN}`, também contido no QR code, que leva o jogador direto à etapa do apelido (spec 008) | ✅ |
@@ -103,7 +105,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Iniciar | `startGame` | Passa a partida do lobby para em andamento; exige ao menos um jogador, fecha a entrada e copia as perguntas da versão jogável (spec 009) | ✅ |
 | Andamento | `GameProgress` | Onde a partida está: pergunta, fase e desde quando. O prazo da fase é esse instante mais a duração dela (spec 009) | ✅ |
 | Pergunta da partida | `GameQuestion` | A pergunta como a partida a usa, copiada ao iniciar: só as alternativas preenchidas, cada uma com a posição de cor e forma (spec 009) | ✅ |
-| Palco público | `PublicStage` | A parte de uma fase que todo aparelho pode saber: número da pergunta, fase, duração e formas das alternativas; sem textos e sem a correta (spec 009) | ✅ |
+| Palco público | `PublicStage` | A parte de uma fase que todo aparelho pode saber: número da pergunta, fase, duração e formas das alternativas; nunca a correta (spec 009). Com "Mostrar perguntas nos dispositivos", leva também o enunciado, a imagem e os textos das alternativas (spec 012) | ✅ |
 | Fase | `GamePhase` | `gameIntro` (abertura da partida, 3 s) → `questionIntro` (5 s de leitura) → `answering` (limite de tempo da pergunta) → `results` → `scoreboard` (placar, até o anfitrião avançar; a última pergunta não tem, vai direto ao pódio) | ✅ |
 | Avançar de fase | `advanceGame`, `StageRef` | Pedido da tela do anfitrião para a fase seguinte, dizendo de que fase parte; o servidor confere o prazo e aplica uma única vez (spec 009) | ✅ |
 | Pular o cronômetro | `advanceGame` com `skip` | O anfitrião fecha a fase de respostas antes do tempo (spec 009) | ✅ |

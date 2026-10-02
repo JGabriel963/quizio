@@ -108,7 +108,6 @@
 	--animate-bar-grow: bar-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 	--animate-confetti-fall: confetti-fall 3s linear both;
 	--animate-podium-glow: podium-glow 1.2s ease-in-out infinite alternate;
-	--animate-drumroll: drumroll 0.45s ease-in-out infinite alternate;
 
 	@keyframes pop-in {
 		from {
@@ -152,14 +151,6 @@
 		}
 		to {
 			box-shadow: 0 0 3rem 0.5rem rgb(251 191 36 / 0.6);
-		}
-	}
-	@keyframes drumroll {
-		from {
-			transform: scale(1) rotate(-2deg);
-		}
-		to {
-			transform: scale(1.06) rotate(2deg);
 		}
 	}
 }

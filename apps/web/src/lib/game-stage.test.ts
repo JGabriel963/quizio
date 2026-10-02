@@ -19,6 +19,11 @@ const answering: HostGameData = {
 	status: "playing",
 	endReason: null,
 	locked: false,
+	options: {
+		showQuestionsOnDevices: false,
+		randomizeQuestions: false,
+		randomizeAnswers: false,
+	},
 	players: [{ id: "p1", nickname: "Ana" }],
 	questionCount: 3,
 	stage: {
@@ -117,7 +122,9 @@ describe("player texts (spec 009)", () => {
 	it("keeps one waiting phrase per question", () => {
 		expect(waitingPhrase(0)).toBe("Resposta recebida!");
 		expect(waitingPhrase(1)).toBe("Será que acertou?");
-		expect(waitingPhrase(3)).toBe(waitingPhrase(0));
+		expect(waitingPhrase(3)).toBe("Mamão com açúcar!");
+		// They come around again after the last one.
+		expect(waitingPhrase(5)).toBe(waitingPhrase(0));
 	});
 
 	it("names each button by shape and color", () => {

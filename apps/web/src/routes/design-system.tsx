@@ -29,6 +29,17 @@ import {
 import { Input } from "@quizio/ui/components/input";
 import { Label } from "@quizio/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@quizio/ui/components/radio-group";
+import {
+	Sheet,
+	SheetBody,
+	SheetContent,
+	SheetDescription,
+	SheetFooter,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@quizio/ui/components/sheet";
+import { Switch } from "@quizio/ui/components/switch";
 import { TabNav, TabNavItem } from "@quizio/ui/components/tab-nav";
 import { Textarea } from "@quizio/ui/components/textarea";
 import { createFileRoute } from "@tanstack/react-router";
@@ -243,6 +254,47 @@ function DesignSystemPage() {
 						Checkbox variant="answer"
 					</span>
 				</div>
+			</Section>
+
+			<Section title="Chave e painel lateral">
+				<div className="flex flex-wrap items-center gap-6">
+					<Label className="flex items-center gap-2">
+						<Switch defaultChecked />
+						Ligada
+					</Label>
+					<Label className="flex items-center gap-2">
+						<Switch />
+						Desligada
+					</Label>
+					<Label className="flex items-center gap-2">
+						<Switch size="sm" defaultChecked />
+						Pequena
+					</Label>
+					<Label className="flex items-center gap-2">
+						<Switch disabled />
+						Desabilitada
+					</Label>
+				</div>
+				<Sheet>
+					<SheetTrigger render={<Button variant="outline" />}>
+						Abrir painel lateral
+					</SheetTrigger>
+					<SheetContent>
+						<SheetHeader>
+							<SheetTitle>Painel lateral</SheetTitle>
+							<SheetDescription>
+								Fica preso à lateral, por cima da página.
+							</SheetDescription>
+						</SheetHeader>
+						<SheetBody>
+							<Label className="flex items-center justify-between gap-4">
+								Uma opção
+								<Switch />
+							</Label>
+						</SheetBody>
+						<SheetFooter>Rodapé do painel</SheetFooter>
+					</SheetContent>
+				</Sheet>
 			</Section>
 		</main>
 	);

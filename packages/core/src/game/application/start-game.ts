@@ -1,7 +1,8 @@
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
+import type { Shuffler } from "../../shared/application/ports/shuffler";
 import { QuizNotPlayableError, requireOwnedGame } from "../domain/game";
 import { isPlaying, startGame } from "../domain/game-progress";
-import { toGameQuestion } from "../domain/game-question";
+import { arrangeGameQuestions } from "../domain/game-question";
 import { loadGame, publishStage } from "./game-lifecycle";
 import {
 	type HostGameView,
@@ -21,7 +22,8 @@ export type StartGame = (input: {
 /**
  * "Iniciar" (spec 009, RN-01 to RN-04). The questions of the playable version
  * the game was created with are copied into the game, which never reads the
- * quiz again (RN-29).
+ * quiz again (RN-29). The random orders are drawn here, once, so every
+ * screen and every reload reads the same one (spec 012, RN-22, RN-23, RN-26).
  */
 export function createStartGame(
 	deps: HostGameViewDeps & {
@@ -29,6 +31,7 @@ export function createStartGame(
 		players: Pick<PlayerRepository, "listActive" | "countActive">;
 		playableQuizzes: Pick<PlayableQuizQuery, "questions">;
 		gameQuestions: GameQuestionRepository;
+		shuffler: Shuffler;
 		realtime: RealtimePublisher;
 	},
 ): StartGame {
@@ -39,9 +42,11 @@ export function createStartGame(
 			return loadHostGameView(deps, game);
 		}
 
-		const questions = (
-			await deps.playableQuizzes.questions(game.quizId, game.quizVersion)
-		).map(toGameQuestion);
+		const questions = arrangeGameQuestions(
+			await deps.playableQuizzes.questions(game.quizId, game.quizVersion),
+			game.options,
+			(items) => deps.shuffler.shuffle(items),
+		);
 		const started = startGame(game, {
 			playerCount: await deps.players.countActive(game.id),
 			questionCount: questions.length,
@@ -57,7 +62,7 @@ export function createStartGame(
 			const current = await loadGame(deps, game.id);
 			return loadHostGameView(deps, current ?? game);
 		}
-		await publishStage(deps.realtime, started, null);
+		await publishStage(deps, started, null);
 		return loadHostGameView(deps, started);
 	};
 }

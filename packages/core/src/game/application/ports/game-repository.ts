@@ -11,7 +11,13 @@ export interface GameRepository {
 	listUnendedByQuiz(quizId: string): Promise<Game[]>;
 	/** Inserts; "pinTaken" when another game that was not ended holds the PIN. */
 	create(game: Game): Promise<"created" | "pinTaken">;
+	/** Rewrites the whole game: only for what ends it or settles its deadline. */
 	save(game: Game): Promise<void>;
+	/**
+	 * Stores the lock and the options, and nothing else: a setting changed
+	 * during the game never undoes a stage written meanwhile (spec 012).
+	 */
+	saveSettings(game: Game): Promise<void>;
 	/**
 	 * Stores where the game is (status, progress, ending) only if the stored
 	 * game was not ended and is still at `from`, the lobby when null. False

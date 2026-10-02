@@ -121,10 +121,11 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 		await expect(heading(ana, "Prepare-se!")).toBeVisible();
 		await expect(heading(bia, "Prepare-se!")).toBeVisible();
 
-		// CA-04: nobody new gets in once it started.
+		// Spec 012, RN-10: a game in progress still takes players. This one only
+		// gets as far as the nickname: joining is in game-options.spec.ts.
 		const late = await newParticipant(browser);
 		await late.goto(`/join/${pin}`);
-		await expect(notice(late)).toHaveText("Este jogo já começou.");
+		await expect(late.getByRole("textbox", { name: "Apelido" })).toBeVisible();
 
 		// The intro of question 1: the question without its answers.
 		await expect(position(host)).toHaveText("1/2", NEXT_PHASE);
@@ -264,8 +265,8 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 		await host.getByRole("button", { name: "Avançar" }).click();
 		await expect(heading(host, "Capitais")).toBeVisible();
 		await expect(host.getByRole("list", { name: "Placar" })).toHaveCount(0);
-		await expect(ana.getByText("Rufem os tambores…")).toBeVisible();
-		await expect(bia.getByText("Rufem os tambores…")).toBeVisible();
+		await expect(ana.getByText("Rufar dos tambores…")).toBeVisible();
+		await expect(bia.getByText("Rufar dos tambores…")).toBeVisible();
 
 		// The PIN is free as soon as the game finishes.
 		await late.goto(`/join/${pin}`);
@@ -309,7 +310,7 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 		// CA-24: a reload shows the final screen again, without the wait.
 		await winner.page.reload();
 		await expect(heading(winner.page, "Imbatível!")).toBeVisible();
-		await expect(winner.page.getByText("Rufem os tambores…")).toHaveCount(0);
+		await expect(winner.page.getByText("Rufar dos tambores…")).toHaveCount(0);
 
 		// CA-13: the podium survives a reload of the host's screen, whole.
 		await host.reload();

@@ -34,6 +34,17 @@ export class InMemoryGameRepository implements GameRepository {
 		this.#games.set(game.id, game);
 	}
 
+	async saveSettings(game: Game): Promise<void> {
+		const stored = this.#games.get(game.id);
+		if (stored) {
+			this.#games.set(game.id, {
+				...stored,
+				locked: game.locked,
+				options: { ...game.options },
+			});
+		}
+	}
+
 	async saveIfAt(game: Game, from: StageRef | null): Promise<boolean> {
 		const stored = this.#games.get(game.id);
 		const there =

@@ -481,25 +481,25 @@ As telas da partida usam o tema escuro do Quizio, em roxo, com as cores e a tipo
 - **Sem escolha de experiência** (RN-06): o Kahoot pergunta entre clássico, equipe, precisão e outros. O Quizio só tem o clássico por enquanto, então vai direto ao lobby.
 - **Sem avatar**: o Kahoot deixa o jogador escolher personagem e acessório, e mostra o avatar no cartão. Aqui o cartão e a tela de espera têm só o apelido (decisão do usuário, 2026-10-01).
 - **Sem "Conquistas", sem a barra do app e sem troca de idioma** na tela do jogador.
-- **Sem som e sem configurações no cabeçalho** do anfitrião: música e opções de jogo ficam para a spec 012 (decisão do usuário, 2026-10-01).
+- **Sem som e sem configurações no cabeçalho** do anfitrião: música e opções de jogo ficam para as specs 012 e 014 (decisão do usuário, 2026-10-01).
 - **Sem o cenário e sem temas**: fundo roxo liso do design system.
 - **A instrução de entrada cita só o endereço do Quizio**, sem "ou com o app".
 - **Iniciar como "Em breve"** (RN-22): no Kahoot ele inicia a partida; aqui isso chega na spec 009.
 - **Uma partida aberta por quiz** (RN-07): o Kahoot permite várias sessões do mesmo kahoot ao mesmo tempo. Aqui a nova encerra a anterior, para não deixar lobbies esquecidos com PIN ativo.
 - **Encerrar explícito no lobby** (RN-31): no Kahoot a sessão acaba quando o anfitrião sai da página. Aqui a partida vive no servidor e sobrevive a um recarregamento (RN-33), então o encerramento é uma ação.
-- **Sem filtro de apelidos impróprios**: o Kahoot troca apelidos ofensivos por um neutro. Aqui o anfitrião remove (RN-27 a RN-30); o filtro e o gerador de apelidos ficam para a spec 012.
+- **Sem filtro de apelidos impróprios**: o Kahoot troca apelidos ofensivos por um neutro. Aqui o anfitrião remove (RN-27 a RN-30); o filtro e o gerador de apelidos ficam para a spec 014.
 - **Limite de 200 jogadores** (RN-45), técnico e configurável, em vez dos limites por plano do Kahoot.
 
 ## Fora de escopo
 
 - Iniciar a partida e tudo o que vem depois: ciclo da pergunta (spec 009), pontuação e placar (spec 010), pódio e fim de jogo (spec 011).
-- Reconexão durante o jogo, entrada tardia, opções de jogo, gerador e filtro de apelidos, entrada em duas etapas, música e efeitos sonoros (spec 012).
+- Reconexão durante o jogo, entrada tardia, opções de jogo, gerador e filtro de apelidos, entrada em duas etapas, música e efeitos sonoros (specs 012 a 014).
 - Saber se um jogador fechou a aba ou perdeu a conexão: no lobby, quem entrou continua na lista até ser removido.
-- Relatórios e histórico de partidas (spec 013).
-- Modo equipe (spec 018) e os demais modos.
+- Relatórios e histórico de partidas (spec 015).
+- Modo equipe (spec 020) e os demais modos.
 - Avatares.
 - Várias partidas abertas do mesmo quiz, e playlist de quizzes.
-- Atribuir e jogar solo (spec 017).
+- Atribuir e jogar solo (spec 019).
 
 ## Perguntas em aberto
 
@@ -519,3 +519,4 @@ As telas da partida usam o tema escuro do Quizio, em roxo, com as cores e a tipo
 - 2026-10-01 — implementada (tarefas T01 a T16). Os critérios de aceite têm teste automatizado verde em domínio, casos de uso, PGlite, API, componentes e E2E com anfitrião e jogadores em navegadores separados, em desktop e celular; as exceções estão em `tasks.md`. Decisões de base no ADR 0009. Ajuste vindo da implementação: os formulários do jogador só aparecem quando a página está interativa.
 - 2026-10-02 — correção, sem mudar regra: abrir `/host/{id}` por carga completa dava erro de hidratação, porque o cartaz "Prepare-se para participar" (RN-13) mostrava o endereço do site, que o servidor não conhece. O cartaz agora espera o navegador dizer o endereço (`useOrigin`), e o lobby só aparece depois disso.
 - 2026-10-02 — a pedido do usuário, depois de ver o Kahoot oferecer a volta a um jogo em andamento: a entrada do PIN oferece "Voltar como {apelido}" enquanto a partida daquele navegador está aberta (RN-44a, CA-45a a CA-45c). Adianta uma parte da reconexão prevista na spec 012. O retorno direto ao recarregar `/join/{PIN}` não muda.
+- 2026-10-02 — a spec 012 altera esta: o cabeçalho do anfitrião ganhou o botão Configurações, e o cadeado do lobby é o mesmo "Bloquear jogo" do painel, que passa a valer também durante o jogo (RN-23 a RN-26).

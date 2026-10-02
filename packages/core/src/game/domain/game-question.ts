@@ -5,6 +5,7 @@ import type {
 	SelectionMode,
 } from "../../quiz/domain/question";
 import type { QuestionImage } from "../../quiz/domain/question-image";
+import type { GameOptions } from "./game-options";
 
 /** An answer as the game shows it: always filled, at a fixed position. */
 export interface GameChoice {
@@ -28,7 +29,10 @@ export interface GameQuestion {
 	timeLimitSeconds: number;
 	points: QuestionPoints;
 	selection: SelectionMode;
-	/** Only the filled answers, in position order (RN-14, RN-27). */
+	/**
+	 * Only the filled answers, in position order (RN-14, RN-27). The position is
+	 * the editor's, or a drawn one (spec 012, RN-23).
+	 */
 	choices: GameChoice[];
 	image: QuestionImage | null;
 }
@@ -93,6 +97,47 @@ export function toGameQuestion(
 				}
 			: null,
 	};
+}
+
+/**
+ * Hands the question's positions out again among its answers: the colors and
+ * shapes on the screen stay the same, each with another answer (spec 012, RN-23).
+ */
+function withShuffledChoices(
+	question: GameQuestion,
+	shuffle: <T>(items: readonly T[]) => T[],
+): GameQuestion {
+	const positions = shuffle(
+		question.choices.map((choice) => choice.shapeIndex),
+	);
+	return {
+		...question,
+		choices: question.choices
+			.map((choice, index) => ({
+				...choice,
+				shapeIndex: positions[index] ?? choice.shapeIndex,
+			}))
+			.sort((a, b) => a.shapeIndex - b.shapeIndex),
+	};
+}
+
+/**
+ * The questions as the game will play them, in the editor's order or in a
+ * drawn one, by the game's options (spec 012, RN-22 to RN-24). It is drawn
+ * once, when the game starts; true/false is never shuffled.
+ */
+export function arrangeGameQuestions(
+	questions: readonly Question[],
+	options: Pick<GameOptions, "randomizeQuestions" | "randomizeAnswers">,
+	shuffle: <T>(items: readonly T[]) => T[],
+): GameQuestion[] {
+	const ordered = options.randomizeQuestions ? shuffle(questions) : questions;
+	return ordered.map((question, index) => {
+		const copied = toGameQuestion(question, index);
+		return options.randomizeAnswers && copied.type === "quiz"
+			? withShuffledChoices(copied, shuffle)
+			: copied;
+	});
 }
 
 function isChoice(value: unknown): value is GameChoice {

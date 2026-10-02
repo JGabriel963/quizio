@@ -312,7 +312,7 @@ As telas seguem as capturas do jogo de verdade, no tema escuro do Quizio.
 - Pódio, tela final do jogador e menu final do anfitrião (spec 011).
 - Como o jogador escolhe mais de uma alternativa na múltipla escolha (em aberto na spec 009).
 - Bônus de pontos por sequência, modo Precisão e modo equipe.
-- Relatórios com os pontos por jogador e por pergunta (spec 013).
+- Relatórios com os pontos por jogador e por pergunta (spec 015).
 - Avatares, reações e mensagens de celebração.
 
 ## Perguntas em aberto

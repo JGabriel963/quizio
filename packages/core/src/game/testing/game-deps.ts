@@ -1,6 +1,7 @@
 import type { Question } from "../../quiz/domain/question";
 import { aQuestion, aTrueFalseQuestion } from "../../quiz/testing/a-question";
 import { FixedClock } from "../../shared/testing/fixed-clock";
+import { FixedShuffler } from "../../shared/testing/fixed-shuffler";
 import { InMemoryAttemptLimiter } from "../../shared/testing/in-memory-attempt-limiter";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { InMemoryRealtimePublisher } from "../../shared/testing/in-memory-realtime-publisher";
@@ -9,6 +10,7 @@ import type { PlayableQuiz } from "../application/ports/playable-quiz-query";
 import { InMemoryAnswerRepository } from "./in-memory-answer-repository";
 import { InMemoryGameQuestionRepository } from "./in-memory-game-question-repository";
 import { InMemoryGameRepository } from "./in-memory-game-repository";
+import { InMemoryHostPreferencesRepository } from "./in-memory-host-preferences-repository";
 import {
 	aPlayableQuiz,
 	InMemoryPlayableQuizQuery,
@@ -65,6 +67,9 @@ export function createGameDeps(
 		players: new InMemoryPlayerRepository(),
 		gameQuestions: new InMemoryGameQuestionRepository(),
 		answers: new InMemoryAnswerRepository(),
+		preferences: new InMemoryHostPreferencesRepository(),
+		/** Hands every list back backwards (spec 012). */
+		shuffler: new FixedShuffler(),
 		pins: new SequentialGamePinGenerator(...(options.pins ?? ["265914"])),
 		attempts: new InMemoryAttemptLimiter(),
 		storage: new InMemoryObjectStorage("https://media.test"),

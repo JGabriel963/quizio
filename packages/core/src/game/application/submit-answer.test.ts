@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-
+import { aQuestion } from "../../quiz/testing/a-question";
 import {
 	AlreadyAnsweredError,
 	AnswersClosedError,
@@ -211,5 +211,95 @@ describe("submitAnswer (spec 009)", () => {
 		const [ana, bia] = await deps.answers.listByQuestion("game-1", 1);
 		expect(ana?.points).toBe(750);
 		expect(bia?.points).toBe(750);
+	});
+
+	describe("with players who joined in the middle (spec 012)", () => {
+		it("refuses an answer to a question before the player's first", async () => {
+			const { deps, join, submitAnswer } = await answering();
+			const caio = await join("Caio");
+
+			await expect(
+				submitAnswer({ ...caio, questionIndex: 0, choiceIds: ["choice-1"] }),
+			).rejects.toThrow(AnswersClosedError);
+			expect(await deps.answers.countByQuestion("game-1", 0)).toBe(0);
+		});
+
+		it("closes the answers without waiting for who joined late", async () => {
+			const { join, answer, stage } = await answering();
+			await join("Caio");
+
+			await answer(1, "choice-1");
+			await answer(2, "choice-3");
+
+			expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
+		});
+
+		it("waits for who joined before the answers opened", async () => {
+			const { join, reach, answer, stage, submitAnswer } =
+				await createStartedGame();
+			await reach("questionIntro");
+			const caio = await join("Caio");
+			await reach("answering");
+
+			await answer(1, "choice-1");
+			await answer(2, "choice-3");
+			expect((await stage()).phase).toBe("answering");
+
+			await submitAnswer({
+				...caio,
+				questionIndex: 0,
+				choiceIds: ["choice-1"],
+			});
+
+			expect((await stage()).phase).toBe("results");
+		});
+
+		it("who joined late answers the next question", async () => {
+			const { join, reach, answer, stage, submitAnswer } = await answering();
+			const caio = await join("Caio");
+			await reach("answering", 1);
+
+			await answer(1, "true");
+			await answer(2, "false");
+			expect((await stage()).phase).toBe("answering");
+
+			await submitAnswer({ ...caio, questionIndex: 1, choiceIds: ["true"] });
+
+			expect((await stage()).phase).toBe("results");
+		});
+	});
+
+	it("scores each right answer marked in a multiple selection (spec 012, CA-37)", async () => {
+		const { deps, reach, answer } = await createStartedGame({
+			players: ["Ana", "Bia", "Caio"],
+			questions: [
+				aQuestion({
+					selection: "multiple",
+					timeLimitSeconds: 30,
+					choices: ["a", "b", "c", "d"].map((text, index) => ({
+						id: `choice-${index + 1}`,
+						text,
+						correct: index < 3,
+					})),
+				}),
+			],
+		});
+		await reach("answering");
+		deps.clock.advanceBy(8_000);
+
+		await answer(1, "choice-1", "choice-2", "choice-3");
+		await answer(2, "choice-1", "choice-2");
+		await answer(3, "choice-1", "choice-2", "choice-4");
+
+		expect(
+			(await deps.answers.listByQuestion("game-1", 0)).map((entry) => [
+				entry.correctness,
+				entry.points,
+			]),
+		).toEqual([
+			["correct", 2600],
+			["partiallyCorrect", 1733],
+			["wrong", 0],
+		]);
 	});
 });

@@ -22,6 +22,9 @@ Toda a partida fica no Postgres: tabela `game` (quiz, versão, título, PIN, est
 Nada "acontece" sozinho no servidor. Todo prazo é um instante guardado, comparado com o relógio a cada acesso:
 
 - **Validade da partida:** `expiresAt = createdAt + 8 h`. Uma partida vencida é tratada como encerrada por qualquer caso de uso que a carregue, que aproveita para gravar o encerramento. Não há job de limpeza.
+- **Configurações gravadas à parte (spec 012):** o bloqueio e as opções de jogo podem mudar durante o jogo. Quem os muda grava só essas colunas (`saveSettings`), nunca a linha inteira: um pedido que leu a partida numa fase não desfaz o avanço gravado enquanto ele corria. A linha inteira só é regravada por quem encerra a partida ou aplica o prazo de 8 horas.
+- **Entrada durante o jogo (spec 012):** o jogador guarda a primeira pergunta que pode responder (`first_question_index`): a pergunta em curso, se as respostas dela ainda não abriram, ou a seguinte. Dela saem a espera de quem entrou no meio, a recusa de respostas a perguntas anteriores e a conta de "todos responderam". Um jogador que entra no instante em que as respostas abrem pode ficar com a pergunta em curso; o pior caso é a fase esperar o tempo dele acabar.
+- **Ordem sorteada uma vez (spec 012):** as ordens aleatórias de perguntas e alternativas são sorteadas em "Iniciar", antes de as perguntas serem copiadas para a partida. Depois disso a partida lê a própria cópia: todas as telas e todo recarregamento veem a mesma ordem.
 - **Prazo de cada fase (spec 009):** a partida guarda o andamento (`questionIndex`, `phase`, `phaseStartedAt`), e o prazo é `phaseStartedAt` mais a duração da fase. A tela do anfitrião pede a transição, dizendo de que fase ela parte; o servidor confere, pelo relógio dele, se ela é permitida, e a grava com uma atualização condicionada a essa fase (`saveIfAt`). De dois pedidos iguais, repetidos ou de duas abas, um grava e o outro não muda nada. Uma resposta só vale se chegar antes do prazo, com meio segundo de tolerância de latência.
 
 ### 2. O jogador anônimo é um `playerId` público e um segredo
@@ -30,7 +33,7 @@ Ao entrar, o servidor cria o jogador e devolve `playerId` e `secret` (um UUID al
 
 - O `playerId` é público: aparece na lista do anfitrião e nos eventos.
 - O segredo nunca sai em evento nem em resposta a outra pessoa.
-- Recarregar a página ou reabrir o link retoma o mesmo jogador (spec 008, RN-44). Na spec 012, a reconexão durante o jogo usa o mesmo par.
+- Recarregar a página ou reabrir o link retoma o mesmo jogador (spec 008, RN-44). Na spec 013, a reconexão durante o jogo usa o mesmo par.
 - Jogadores não usam o Better Auth: não há conta, sessão nem cookie.
 
 ### 3. Um canal público por partida
@@ -76,7 +79,7 @@ O que pode ser divulgado é sempre calculado até a última pergunta revelada: a
 - Para dar a posição, cada consulta de sessão na revelação soma os pontos da partida inteira. Se pesar, a saída é guardar a classificação de cada pergunta quando a fase fecha, sem mudar o domínio.
 - Se a tela do anfitrião estiver fechada, a partida não avança: o prazo das respostas continua valendo, mas a revelação espera ele voltar.
 - O segredo fica no `localStorage`: quem tem acesso ao navegador do jogador joga como ele. O dano é uma pontuação num jogo de perguntas.
-- Trocar de aparelho no meio da partida cria outro jogador. A spec 012 decide se oferece outro caminho.
+- Trocar de aparelho no meio da partida cria outro jogador. A spec 013 decide se oferece outro caminho.
 - Uma partida vencida só é marcada como encerrada quando alguém a acessa. Até lá, a linha fica como aberta e vencida, e o sorteio do PIN precisa tratá-la.
 - Se o deploy mudar para um host com processos persistentes, os itens 1 e 4 podem ser simplificados (timer no servidor, sem consulta periódica) sem mudar o domínio.
 

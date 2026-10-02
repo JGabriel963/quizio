@@ -99,6 +99,24 @@ export const gameRouter = router({
 			}),
 		),
 
+	/** A switch of "Configurações": only what changes is sent (spec 012, RN-04). */
+	setOptions: protectedProcedure
+		.input(
+			gameReference.extend({
+				options: z.object({
+					showQuestionsOnDevices: z.boolean().optional(),
+					randomizeQuestions: z.boolean().optional(),
+					randomizeAnswers: z.boolean().optional(),
+				}),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.setGameOptions({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
 	removePlayer: protectedProcedure
 		.input(gameReference.extend({ playerId: z.string().min(1) }))
 		.mutation(({ ctx, input }) =>

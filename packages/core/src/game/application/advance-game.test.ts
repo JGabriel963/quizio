@@ -6,6 +6,7 @@ import { StageNotDueError } from "../domain/game-progress";
 import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
 import { createFindGameByPin } from "./find-game-by-pin";
+import { createSetGameOptions } from "./set-game-options";
 
 const gameIntro = { questionIndex: 0, phase: "gameIntro" } as const;
 const intro = { questionIndex: 0, phase: "questionIntro" } as const;
@@ -62,11 +63,13 @@ describe("advanceGame (spec 009)", () => {
 				question: {
 					type: "quiz",
 					selection: "single",
+					text: null,
+					image: null,
 					choices: [
-						{ id: "choice-1", shapeIndex: 0, label: null },
-						{ id: "choice-2", shapeIndex: 1, label: null },
-						{ id: "choice-3", shapeIndex: 2, label: null },
-						{ id: "choice-4", shapeIndex: 3, label: null },
+						{ id: "choice-1", shapeIndex: 0, label: null, text: null },
+						{ id: "choice-2", shapeIndex: 1, label: null, text: null },
+						{ id: "choice-3", shapeIndex: 2, label: null, text: null },
+						{ id: "choice-4", shapeIndex: 3, label: null, text: null },
 					],
 				},
 			},
@@ -244,5 +247,47 @@ describe("advanceGame (spec 009)", () => {
 			advance({ ownerId: "user-2", gameId: "game-1", from: gameIntro }),
 		).rejects.toThrow(GameNotFoundError);
 		expect(await stage()).toEqual(gameIntro);
+	});
+
+	it("the stage sent to the devices follows the option (spec 012)", async () => {
+		const { deps, host, reach } = await createStartedGame();
+		const sent = () =>
+			deps.realtime.messages
+				.filter((message) => message.event === GAME_EVENTS.stageChanged)
+				.map(
+					(message) =>
+						(
+							message.payload as {
+								stage: {
+									phase: string;
+									question: {
+										text: string | null;
+										choices: { text: string | null }[];
+									} | null;
+								};
+							}
+						).stage,
+				);
+		await reach("answering");
+		expect(sent().at(-1)?.question?.text).toBeNull();
+
+		// Turned on in the middle of the answers: it shows from the next stage on (RN-21).
+		await createSetGameOptions(deps)({
+			...host,
+			options: { showQuestionsOnDevices: true },
+		});
+		expect(sent()).toHaveLength(3);
+		await reach("questionIntro", 1);
+
+		expect(sent().at(-1)).toMatchObject({
+			phase: "questionIntro",
+			question: { text: "A capital do Brasil é Brasília" },
+		});
+		await reach("answering", 1);
+		expect(
+			sent()
+				.at(-1)
+				?.question?.choices.map((choice) => choice.text),
+		).toEqual(["Verdadeiro", "Falso"]);
 	});
 });

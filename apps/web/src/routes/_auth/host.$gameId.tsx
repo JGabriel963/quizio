@@ -17,8 +17,12 @@ import { GameUnavailable } from "@/components/game/host/game-unavailable";
 import { HostLobby } from "@/components/game/host/host-lobby";
 import { HostStage } from "@/components/game/host/host-stage";
 import { Podium } from "@/components/game/host/podium";
-import type { HostGameData } from "@/lib/api-types";
-import { gameErrorCode, gameErrorMessage } from "@/lib/game-error-messages";
+import type { GameOptionsData, HostGameData } from "@/lib/api-types";
+import {
+	gameErrorCode,
+	gameErrorMessage,
+	settingErrorMessage,
+} from "@/lib/game-error-messages";
 import { applyLobbyEvent, type LobbyEvent } from "@/lib/game-lobby";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { applyAnswerCount, showsStage } from "@/lib/game-stage";
@@ -136,6 +140,23 @@ function HostPage() {
 			onError: failed,
 		}),
 	);
+	// A switch of the settings: it shows at once and goes back if it fails
+	// (spec 012, RN-04). The answer only confirms the options: the stage it
+	// carries may be older than the one an advance has just shown.
+	const setOptions = useMutation(
+		trpc.game.setOptions.mutationOptions({
+			networkMode: "always",
+			onMutate: ({ options }) =>
+				void applyLobby({ type: "optionsChanged", options }),
+			onSuccess: ({ options }) =>
+				void applyLobby({ type: "optionsChanged", options }),
+			onError: (error) => {
+				toast.error(settingErrorMessage(error));
+				void refresh();
+			},
+			meta: { suppressErrorToast: true },
+		}),
+	);
 	const removePlayer = useMutation(
 		trpc.game.removePlayer.mutationOptions({
 			networkMode: "always",
@@ -214,14 +235,20 @@ function HostPage() {
 	}
 
 	const endGame = () => end.mutate({ gameId }, { onSuccess: toQuiz });
+	const settings = {
+		setLocked: (locked: boolean) => setLocked.mutate({ gameId, locked }),
+		setOptions: (options: Partial<GameOptionsData>) =>
+			setOptions.mutate({ gameId, options }),
+	};
 
 	if (game.status === "playing" && game.stage) {
 		return (
 			<HostStage
 				game={game}
 				stage={game.stage}
+				origin={origin}
 				receivedAt={view.dataUpdatedAt}
-				actions={{ advance: advanceFrom, end: endGame }}
+				actions={{ advance: advanceFrom, end: endGame, ...settings }}
 			/>
 		);
 	}
@@ -232,7 +259,7 @@ function HostPage() {
 			origin={origin}
 			starting={start.isPending}
 			actions={{
-				setLocked: (locked) => setLocked.mutate({ gameId, locked }),
+				...settings,
 				removePlayer: (playerId) => removePlayer.mutate({ gameId, playerId }),
 				start: () => start.mutate({ gameId }),
 				end: endGame,

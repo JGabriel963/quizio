@@ -18,6 +18,11 @@ const empty: HostGameData = {
 	status: "lobby",
 	endReason: null,
 	locked: false,
+	options: {
+		showQuestionsOnDevices: false,
+		randomizeQuestions: false,
+		randomizeAnswers: false,
+	},
 	players: [],
 	questionCount: 0,
 	stage: null,
@@ -29,6 +34,7 @@ const bia = { id: "p2", nickname: "Bia" };
 function renderLobby(lobby: HostGameData = empty) {
 	const actions: HostLobbyActions = {
 		setLocked: vi.fn(),
+		setOptions: vi.fn(),
 		start: vi.fn(),
 		removePlayer: vi.fn(),
 		end: vi.fn(),
@@ -146,6 +152,7 @@ describe("HostLobby (spec 008)", () => {
 	it("Iniciar cannot be pressed twice while the game is starting", () => {
 		const actions: HostLobbyActions = {
 			setLocked: vi.fn(),
+			setOptions: vi.fn(),
 			start: vi.fn(),
 			removePlayer: vi.fn(),
 			end: vi.fn(),
@@ -261,6 +268,73 @@ describe("HostLobby (spec 008)", () => {
 
 		expect(actions.end).not.toHaveBeenCalled();
 		expect(screen.getByText("265 914")).toBeInTheDocument();
+	});
+
+	describe("settings (spec 012)", () => {
+		const openSettings = async (user: ReturnType<typeof userEvent.setup>) => {
+			await user.click(screen.getByRole("button", { name: "Configurações" }));
+			return screen.getByRole("dialog", { name: "Configurações" });
+		};
+
+		it("opens the settings from the header, with every switch free", async () => {
+			const { user } = renderLobby();
+
+			const panel = await openSettings(user);
+
+			const switches = within(panel).getAllByRole("switch");
+			expect(switches).toHaveLength(4);
+			for (const control of switches) {
+				expect(control).not.toHaveAttribute("aria-disabled", "true");
+			}
+		});
+
+		it("changes an option from the lobby", async () => {
+			const { actions, user } = renderLobby();
+			const panel = await openSettings(user);
+
+			await user.click(
+				within(panel).getByRole("switch", {
+					name: "Mostrar perguntas em ordem aleatória",
+				}),
+			);
+
+			expect(actions.setOptions).toHaveBeenCalledExactlyOnceWith({
+				randomizeQuestions: true,
+			});
+		});
+
+		it("the panel's lock closes the lobby's padlock", async () => {
+			const { actions, user, rerender } = renderLobby();
+			const panel = await openSettings(user);
+			const lock = () =>
+				within(panel).getByRole("switch", { name: "Bloquear jogo" });
+
+			await user.click(lock());
+			expect(actions.setLocked).toHaveBeenCalledExactlyOnceWith(true);
+
+			// The route shows the change at once: both controls tell the same lock.
+			rerender({ ...empty, locked: true });
+
+			expect(lock()).toHaveAttribute("aria-checked", "true");
+			expect(
+				screen.getByRole("region", { name: "Como entrar", hidden: true }),
+			).toHaveTextContent("Jogo bloqueado: ninguém mais pode entrar");
+			expect(
+				screen.getByRole("button", {
+					name: "Desbloqueie o jogo para que outros participantes entrem",
+					hidden: true,
+				}),
+			).toHaveAttribute("aria-pressed", "true");
+		});
+
+		it("keeps the address and the PIN out of the header", () => {
+			renderLobby();
+
+			expect(screen.getByRole("banner")).not.toHaveTextContent("Entre em");
+			expect(
+				screen.getAllByRole("region", { name: "Como entrar" }),
+			).toHaveLength(1);
+		});
 	});
 });
 

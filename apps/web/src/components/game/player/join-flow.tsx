@@ -413,6 +413,7 @@ export function JoinFlow({
 				stage: {
 					...stage,
 					remainingMs: stage.durationMs,
+					sittingOut: false,
 					answered: false,
 					total: 0,
 					outcome: null,
@@ -428,10 +429,15 @@ export function JoinFlow({
 				// sent and its outcome (the scoreboard comes after the results).
 				const known = current?.stage;
 				const sameQuestion = known?.questionIndex === next.stage.questionIndex;
+				// Who joined in the middle sits out the question they found, to
+				// its end: the event knows nothing of that (spec 012, RN-13).
+				const sittingOut = sameQuestion && (known?.sittingOut ?? false);
 				return {
 					...next,
 					stage: {
 						...next.stage,
+						question: sittingOut ? null : next.stage.question,
+						sittingOut,
 						answered: sameQuestion && (known?.answered ?? false),
 						total: known?.total ?? 0,
 						outcome: sameQuestion ? (known?.outcome ?? null) : null,
@@ -489,12 +495,16 @@ export function JoinFlow({
 			};
 			store.save(game.pin, session);
 			store.remember({ pin: game.pin, nickname: joined.nickname });
+			// A game in progress takes players too (spec 012, RN-10): where it is
+			// comes from the session, as nothing here saw its events. A failure
+			// leaves the device waiting for the next check.
+			const view = await api.session(session).catch(() => null);
 			setStep({
 				kind: "waiting",
 				game,
 				session,
 				nickname: joined.nickname,
-				play: null,
+				play: view ? toPlay(view) : null,
 			});
 		} catch (error) {
 			if (gameErrorCode(error) === PIN_NOT_RECOGNIZED) {

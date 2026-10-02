@@ -1,5 +1,4 @@
 import { Button } from "@quizio/ui/components/button";
-import { DrumIcon } from "lucide-react";
 import { useState } from "react";
 
 import type { PlayerFinalData } from "@/lib/api-types";
@@ -8,7 +7,7 @@ import { useCountdown } from "@/lib/use-countdown";
 
 import { Confetti } from "../confetti";
 import { Medal } from "../medal";
-import { Centered, PlayerFrame } from "./player-frame";
+import { Centered, PlayerFrame, Spinner } from "./player-frame";
 
 /**
  * The end of the game on the player's device (spec 011, RN-18 to RN-23).
@@ -37,13 +36,10 @@ export function FinalScreen({
 		return (
 			<PlayerFrame nickname={nickname} total={final?.total ?? null}>
 				<Centered key="drumroll">
-					<DrumIcon
-						aria-hidden="true"
-						className="size-20 motion-safe:animate-drumroll"
-					/>
-					<h1 role="status" className="font-black text-4xl">
-						Rufem os tambores…
+					<h1 role="status" className="font-black text-4xl sm:text-5xl">
+						Rufar dos tambores…
 					</h1>
+					<Spinner />
 				</Centered>
 			</PlayerFrame>
 		);

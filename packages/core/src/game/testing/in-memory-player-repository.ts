@@ -1,5 +1,5 @@
 import type { PlayerRepository } from "../application/ports/player-repository";
-import { isActivePlayer, type Player } from "../domain/player";
+import { canAnswer, isActivePlayer, type Player } from "../domain/player";
 
 export class InMemoryPlayerRepository implements PlayerRepository {
 	/** Insertion order is the order of arrival. */
@@ -15,6 +15,12 @@ export class InMemoryPlayerRepository implements PlayerRepository {
 
 	async countActive(gameId: string): Promise<number> {
 		return (await this.listActive(gameId)).length;
+	}
+
+	async countEligible(gameId: string, questionIndex: number): Promise<number> {
+		return (await this.listActive(gameId)).filter((player) =>
+			canAnswer(player, questionIndex),
+		).length;
 	}
 
 	async add(player: Player): Promise<"added" | "nicknameTaken"> {

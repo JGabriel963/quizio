@@ -30,6 +30,11 @@ const game: HostGameData = {
 	status: "finished",
 	endReason: null,
 	locked: false,
+	options: {
+		showQuestionsOnDevices: false,
+		randomizeQuestions: false,
+		randomizeAnswers: false,
+	},
 	players: NAMES.map((nickname, index) => ({ id: `p${index + 1}`, nickname })),
 	questionCount: 3,
 	stage: null,

@@ -67,6 +67,8 @@ export const WAITING_PHRASES = [
 	"Resposta recebida!",
 	"Será que acertou?",
 	"A competitividade está no ar?",
+	"Mamão com açúcar!",
+	"É assim que se faz!",
 ] as const;
 
 /** One phrase per question, so it does not change while the player waits. */

@@ -413,7 +413,7 @@ O criador aciona **Salvar** e, se o quiz estiver completo, ele passa a ter uma *
 
 - **Opções de "O quiz está pronto" como "Em breve"** (RN-15a). No Kahoot, Iniciar demonstração, Organizar ao vivo, Palestra e Compartilhar funcionam; aqui aparecem indisponíveis até as features correspondentes chegarem.
 - **O diálogo de saída só aparece em quiz publicado com alterações** (RN-23, RN-24). Num rascunho, Sair vai direto: não há versão jogável para a qual "Descartar" voltaria.
-- **"Toques finais" sem a promessa de visibilidade**. O texto do Kahoot fala em aumentar a visibilidade do kahoot na busca pública, que o Quizio ainda não tem (spec 020).
+- **"Toques finais" sem a promessa de visibilidade**. O texto do Kahoot fala em aumentar a visibilidade do kahoot na busca pública, que o Quizio ainda não tem (spec 022).
 - **Quiz publicado com alterações não aparece em Rascunhos** (RN-29). Fica só em Recentes, com o selo "Alterações não salvas".
 - **Dados do quiz valem na hora** (RN-06): título, descrição, capa e visibilidade não esperam o Salvar. O comportamento do Kahoot nesse ponto não está documentado na referência.
 - **Pergunta sem enunciado bloqueia o Salvar** (RN-09), como já decidido na spec 004 (RN-14); na referência esse motivo é inferido.
@@ -428,7 +428,7 @@ O criador aciona **Salvar** e, se o quiz estiver completo, ele passa a ter uma *
 - Imagem nas perguntas e sua validação (spec 007); a versão passa a incluir as imagens quando elas existirem.
 - Outros tipos de pergunta e seus motivos de incompleta (specs 014 a 016).
 - Edição do mesmo quiz em duas abas ao mesmo tempo (spec 003, fora de escopo).
-- Visibilidade pública e descoberta (spec 020).
+- Visibilidade pública e descoberta (spec 022).
 
 ## Perguntas em aberto
 

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
 	GAME_MAX_PLAYERS,
 	GAME_TTL_MS,
-	GameAlreadyStartedError,
 	GameFullError,
 	GameLockedError,
 	GameNotFoundError,
@@ -22,6 +21,7 @@ import { createFindGameByPin } from "./find-game-by-pin";
 import { createGetPlayerSession } from "./get-player-session";
 import { createJoinGame } from "./join-game";
 import { createRemovePlayer } from "./remove-player";
+import { createSetGameLocked } from "./set-game-locked";
 
 const mine = { ownerId: "user-1", gameId: "game-1" };
 
@@ -297,27 +297,141 @@ describe("getPlayerSession (spec 008)", () => {
 	});
 });
 
-describe("joining a game in progress (spec 009, RN-03)", () => {
-	it("a game in progress takes nobody new, by PIN or by nickname", async () => {
-		const { deps } = await createStartedGame();
+describe("joining a game in progress (spec 012)", () => {
+	const find = { pin: "265914", clientKey: "ip" };
+	const caio = { gameId: "game-1", nickname: "Caio" };
+
+	it("finds a game in progress", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("answering");
+
+		expect(await createFindGameByPin(deps)(find)).toEqual({
+			gameId: "game-1",
+			pin: "265914",
+		});
+	});
+
+	it("a locked game in progress tells it is locked", async () => {
+		const { deps, host, reach } = await createStartedGame();
+		await reach("answering");
+		await createSetGameLocked(deps)({ ...host, locked: true });
+
+		await expect(createFindGameByPin(deps)(find)).rejects.toThrow(
+			GameLockedError,
+		);
+		await expect(createJoinGame(deps)(caio)).rejects.toThrow(GameLockedError);
+		expect(await deps.players.countActive("game-1")).toBe(2);
+
+		// Unlocked, the same PIN takes players again (CA-16).
+		await createSetGameLocked(deps)({ ...host, locked: false });
+		await expect(createJoinGame(deps)(caio)).resolves.toMatchObject({
+			nickname: "Caio",
+		});
+	});
+
+	it("a finished game's PIN is not recognized", async () => {
+		const { deps, finish } = await createStartedGame();
+		await finish();
+
+		await expect(createFindGameByPin(deps)(find)).rejects.toThrow(
+			GamePinNotRecognizedError,
+		);
+		await expect(createJoinGame(deps)(caio)).rejects.toThrow(
+			GamePinNotRecognizedError,
+		);
+	});
+
+	it("joins before the answers open and plays that question", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("questionIntro", 1);
+
+		const { playerId } = await createJoinGame(deps)(caio);
+
+		expect(await deps.players.findById(playerId)).toMatchObject({
+			nickname: "Caio",
+			firstQuestionIndex: 1,
+		});
+	});
+
+	it("joins with the answers open and waits for the next", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("answering");
+
+		const { playerId } = await createJoinGame(deps)(caio);
+
+		expect((await deps.players.findById(playerId))?.firstQuestionIndex).toBe(1);
+	});
+
+	it("joins at the last answers", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("answering", 1);
+
+		const { playerId } = await createJoinGame(deps)(caio);
+
+		// Past the last question: there is nothing left to answer (RN-17).
+		expect((await deps.players.findById(playerId))?.firstQuestionIndex).toBe(2);
+	});
+
+	it("who joined in the lobby starts at the first question", async () => {
+		const deps = await lobby();
+
+		const { playerId } = await createJoinGame(deps)(caio);
+
+		expect((await deps.players.findById(playerId))?.firstQuestionIndex).toBe(0);
+	});
+
+	it("a nickname in use is refused while the game is on", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("answering");
 
 		await expect(
-			createFindGameByPin(deps)({ pin: "265914", clientKey: "ip" }),
-		).rejects.toThrow(GameAlreadyStartedError);
+			createJoinGame(deps)({ gameId: "game-1", nickname: "ana" }),
+		).rejects.toThrow(NicknameTakenError);
+	});
+
+	it("a full game is refused while the game is on", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("answering");
+		for (let index = 2; index < GAME_MAX_PLAYERS; index++) {
+			await deps.players.add(
+				aPlayer({ id: `extra-${index}`, nickname: `jogador ${index}` }),
+			);
+		}
+
+		await expect(createJoinGame(deps)(caio)).rejects.toThrow(GameFullError);
+	});
+
+	it("a removed nickname stays blocked", async () => {
+		const { deps, host, reach } = await createStartedGame();
+		await reach("answering");
+		await createRemovePlayer(deps)({ ...host, playerId: "p2" });
+
 		await expect(
-			createJoinGame(deps)({ gameId: "game-1", nickname: "Caio" }),
-		).rejects.toThrow(GameAlreadyStartedError);
-		expect(await deps.players.countActive("game-1")).toBe(2);
+			createJoinGame(deps)({ gameId: "game-1", nickname: "Bia" }),
+		).rejects.toThrow(NicknameTakenError);
+	});
+
+	it("tells the host's screen about who joined", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("answering");
+
+		const { playerId } = await createJoinGame(deps)(caio);
+
+		expect(deps.realtime.messages.at(-1)).toEqual({
+			channel: gameChannel("game-1"),
+			event: GAME_EVENTS.playerJoined,
+			payload: { player: { id: playerId, nickname: "Caio" } },
+		});
 	});
 
 	it("the PIN of a game in progress is not a wrong attempt", async () => {
 		const { deps } = await createStartedGame();
-		const find = createFindGameByPin(deps);
+		const findGameByPin = createFindGameByPin(deps);
 
 		for (let attempt = 0; attempt < PIN_ATTEMPT_LIMIT + 1; attempt++) {
-			await expect(find({ pin: "265914", clientKey: "ip" })).rejects.toThrow(
-				GameAlreadyStartedError,
-			);
+			await expect(findGameByPin(find)).resolves.toMatchObject({
+				gameId: "game-1",
+			});
 		}
 	});
 });

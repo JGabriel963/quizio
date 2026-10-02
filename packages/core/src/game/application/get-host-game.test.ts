@@ -589,3 +589,34 @@ describe("getHostGame: the podium (spec 011)", () => {
 		});
 	});
 });
+
+describe("getHostGame: options and who joined in the middle (spec 012)", () => {
+	it("tells the game's options", async () => {
+		const { deps, reach } = await createStartedGame({
+			options: { showQuestionsOnDevices: true, randomizeAnswers: true },
+		});
+		await reach("answering");
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.options).toEqual({
+			showQuestionsOnDevices: true,
+			randomizeQuestions: false,
+			randomizeAnswers: true,
+		});
+	});
+
+	it("counts who joined in the middle", async () => {
+		const { deps, reach, join } = await createStartedGame();
+		await reach("answering");
+
+		await join("Caio");
+
+		const view = await createGetHostGame(deps)(mine);
+		expect(view.players.map((player) => player.nickname)).toEqual([
+			"Ana",
+			"Bia",
+			"Caio",
+		]);
+	});
+});

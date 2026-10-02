@@ -1,6 +1,6 @@
 import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
 import type { Player } from "@quizio/core/game/domain/player";
-import { and, asc, count as countRows, eq, isNull } from "drizzle-orm";
+import { and, asc, count as countRows, eq, isNull, lte } from "drizzle-orm";
 
 import { gamePlayer as playerTable } from "../../schema/game";
 import type { Database } from "../../types";
@@ -37,6 +37,19 @@ export function createDrizzlePlayerRepository(db: Database): PlayerRepository {
 				.select({ total: countRows() })
 				.from(playerTable)
 				.where(activeIn(gameId));
+			return row?.total ?? 0;
+		},
+
+		async countEligible(gameId, questionIndex) {
+			const [row] = await db
+				.select({ total: countRows() })
+				.from(playerTable)
+				.where(
+					and(
+						activeIn(gameId),
+						lte(playerTable.firstQuestionIndex, questionIndex),
+					),
+				);
 			return row?.total ?? 0;
 		},
 

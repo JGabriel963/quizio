@@ -3,6 +3,7 @@ import { db } from "@quizio/db";
 import { createDrizzleAnswerRepository } from "@quizio/db/repositories/game/drizzle-answer-repository";
 import { createDrizzleGameQuestionRepository } from "@quizio/db/repositories/game/drizzle-game-question-repository";
 import { createDrizzleGameRepository } from "@quizio/db/repositories/game/drizzle-game-repository";
+import { createDrizzleHostPreferencesRepository } from "@quizio/db/repositories/game/drizzle-host-preferences-repository";
 import { createDrizzlePlayableQuizQuery } from "@quizio/db/repositories/game/drizzle-playable-quiz-query";
 import { createDrizzlePlayerRepository } from "@quizio/db/repositories/game/drizzle-player-repository";
 import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
@@ -16,6 +17,7 @@ import { createS3ObjectStorage } from "@quizio/storage/s3-object-storage";
 
 import { type Adapters, type Container, createContainer } from "./container";
 import { createRandomGamePinGenerator } from "./random-game-pin-generator";
+import { createRandomShuffler } from "./random-shuffler";
 
 /**
  * The only place that knows which concrete provider backs each port.
@@ -53,7 +55,9 @@ export function createAdaptersFromEnv(): Adapters {
 		gameQuestions: createDrizzleGameQuestionRepository(db),
 		answers: createDrizzleAnswerRepository(db),
 		playableQuizzes: createDrizzlePlayableQuizQuery(db),
+		preferences: createDrizzleHostPreferencesRepository(db),
 		pins: createRandomGamePinGenerator(),
+		shuffler: createRandomShuffler(),
 		attempts: createDrizzleAttemptLimiter(db),
 		authSettings,
 	};

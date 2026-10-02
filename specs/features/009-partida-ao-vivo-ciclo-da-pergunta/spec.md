@@ -79,7 +79,7 @@ O anfitrião aciona Iniciar e conduz a partida pergunta a pergunta. Cada jogador
 | RN-16 | Num **Quiz de múltipla escolha**, por enquanto, o toque também **envia a resposta** na hora, com a alternativa tocada: não há botão Enviar. Como o jogador escolhe mais de uma alternativa fica para decidir depois (ver Perguntas em aberto). | decisão do usuário (2026-10-01) |
 | RN-17 | Cada jogador envia **uma resposta por pergunta**, e ela **não pode ser trocada**. | kahoot-reference §6.4 |
 | RN-18 | Uma resposta só vale se chegar ao servidor **durante a fase de respostas e até o fim do limite de tempo**, com meio segundo de tolerância para a latência. O **tempo de resposta** é medido no servidor, do instante em que as respostas abriram até o recebimento; o dispositivo nunca informa o próprio tempo. | constituição, artigo V · ADR 0009 · tolerância: decisão do produto (2026-10-01) |
-| RN-19 | Depois de enviar, o jogador vê uma **tela de espera** com uma frase ("Resposta recebida!", "Será que acertou?", "A competitividade está no ar?") e não fica sabendo se acertou até a revelação. | referência visual do Kahoot |
+| RN-19 | Depois de enviar, o jogador vê uma **tela de espera** com uma frase ("Resposta recebida!", "Será que acertou?", "A competitividade está no ar?", "Mamão com açúcar!", "É assim que se faz!") e não fica sabendo se acertou até a revelação. | referência visual do Kahoot |
 | RN-20 | Uma resposta que chega fora do prazo é recusada, e o jogador vê **"Tempo esgotado"** e espera a revelação. | kahoot-reference §5.3 (`TIMEOUT`) |
 | RN-21 | **A resposta correta não chega ao dispositivo de nenhum jogador antes da revelação**, e a contagem por alternativa não é divulgada durante a fase de respostas: só o total de respostas. | constituição, artigo V |
 
@@ -430,16 +430,16 @@ As telas seguem as da demonstração do Kahoot, no tema escuro do Quizio.
 - **Tempo de leitura fixo em 5 segundos** (RN-08): o Kahoot aumenta esse tempo em perguntas longas.
 - **Sem a seta de voltar** ao lado de Avançar.
 - **Sem avatar** na revelação do jogador (spec 008).
-- **Sem som e sem opções de jogo** (spec 012): sem embaralhar perguntas e respostas, sem avanço automático e sem enunciado no celular.
+- **Sem som e sem opções de jogo** (specs 012 e 014): sem embaralhar perguntas e respostas, sem avanço automático e sem enunciado no celular.
 - **"Parcialmente correto"** (RN-25): texto proposto, sem captura do Kahoot.
 
 ## Fora de escopo
 
 - Pontuação, sequência de acertos, resultado com pontos e placar (spec 010).
 - Pódio, tela final do jogador e menu final do anfitrião (spec 011).
-- Entrada tardia, reconexão por apelido em outro aparelho, opções de jogo, música (spec 012).
+- Entrada tardia, reconexão por apelido em outro aparelho, opções de jogo, música (specs 012 a 014).
 - Remover participante durante o jogo.
-- Relatórios (spec 013): esta etapa guarda as respostas, mas não as mostra depois do jogo.
+- Relatórios (spec 015): esta etapa guarda as respostas, mas não as mostra depois do jogo.
 - Tipos de pergunta além de Quiz e Verdadeiro ou falso.
 - Vídeo e imagem nas alternativas.
 
@@ -459,3 +459,5 @@ As telas seguem as da demonstração do Kahoot, no tema escuro do Quizio.
 - 2026-10-01 — a pedido do usuário, depois de ver a tela: sem botão Enviar. Um toque é a resposta em qualquer pergunta, e a tela de espera aparece em seguida (RN-16, CA-15). A múltipla escolha no celular fica como pergunta em aberto.
 - 2026-10-01 — capturas de um jogo de verdade no Kahoot, enviadas pelo usuário. Ajustes: os botões do Verdadeiro ou falso no celular mostram só cor e forma (RN-15, CA-14); "Incorreto" ganha a faixa "Boa tentativa!" (RN-25). De layout, sem mudar regra: enunciado num cartão ao centro com a ação à direita, total de respostas num círculo com a etiqueta, tipo da pergunta numa cápsula clara no celular. Ficam para as próximas specs o que as capturas mostram de pontos, sequência e placar (010) e de pódio (011); avatares e o PIN no cabeçalho durante o jogo continuam fora.
 - 2026-10-01 — alterada pela spec 011: a tela provisória de "Fim do jogo" (RN-30, CA-36) deu lugar ao pódio no anfitrião e à tela final no celular.
+- 2026-10-02 — capturas do celular num jogo de verdade no Kahoot, enviadas pelo usuário. Ajustes de texto, sem mudar regra: a abertura da partida no celular mostra "Carregando…" embaixo de "Prepare-se!" (RN-04); a espera depois de responder ganha as frases "Mamão com açúcar!" e "É assim que se faz!" (RN-19).
+- 2026-10-02 — a spec 012 altera esta: uma partida em andamento aceita jogadores (RN-03 deixa de valer, e "Este jogo já começou." sai); a fase de respostas fecha quando respondem todos os que podem responder aquela pergunta (RN-10); com "Mostrar perguntas nos dispositivos" o celular mostra o enunciado, a imagem e os textos (RN-14, RN-15, RN-28); e a múltipla escolha no celular ganhou marcadores e "Enviar" (RN-16).

@@ -7,6 +7,7 @@ import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { type AnswerDistribution, answerDistribution } from "../domain/answer";
 import type { Game, GameEndReason, GameStatus } from "../domain/game";
+import type { GameOptions } from "../domain/game-options";
 import {
 	type GamePhase,
 	isPlaying,
@@ -94,7 +95,9 @@ export interface HostGameView {
 	status: GameStatus;
 	endReason: GameEndReason | null;
 	locked: boolean;
-	/** Active players, in order of arrival. */
+	/** What the settings panel shows (spec 012). */
+	options: GameOptions;
+	/** Active players, in order of arrival: who joined in the middle too. */
 	players: LobbyPlayerView[];
 	questionCount: number;
 	/** Null unless the game is being played. */
@@ -260,6 +263,7 @@ export async function loadHostGameView(
 		status: game.status,
 		endReason: game.endReason,
 		locked: game.locked,
+		options: { ...game.options },
 		players: players.map(toLobbyPlayerView),
 		questionCount: game.questionCount,
 		stage: await loadStageView(deps, game, players, question),

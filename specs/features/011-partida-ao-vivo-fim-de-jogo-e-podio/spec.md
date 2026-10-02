@@ -88,7 +88,7 @@ Depois da revelação da última pergunta, a tela do anfitrião anuncia os três
 
 | ID | Regra | Fonte |
 | --- | --- | --- |
-| RN-18 | Enquanto o pódio é revelado na tela do anfitrião (RN-10), o celular mostra uma **espera**: "Rufem os tambores…". Terminada a revelação, mostra a **tela final**. | kahoot-reference §6.4 · decisão do produto (2026-10-01) |
+| RN-18 | Enquanto o pódio é revelado na tela do anfitrião (RN-10), o celular mostra uma **espera**: "Rufar dos tambores…". Terminada a revelação, mostra a **tela final**. | kahoot-reference §6.4 · decisão do produto (2026-10-01) |
 | RN-19 | A tela final mostra o **título do quiz**, o **lugar** do jogador na classificação final e, no rodapé, o apelido e o **total de pontos**. | referência visual do Kahoot |
 | RN-20 | Quem ficou entre os **três primeiros** vê a **medalha** com o número do lugar e uma frase: **"Imbatível!"** no 1º, **"Por pouco!"** no 2º e **"No pódio!"** no 3º. | referência visual do Kahoot ("Imbatível!") · demais frases: decisão do produto (2026-10-01) |
 | RN-21 | Quem ficou **do 4º lugar em diante** vê **"Você ficou em 5º lugar"** (com o seu lugar) e "Obrigado por jogar!", sem medalha. | decisão do produto (2026-10-01) |
@@ -246,7 +246,7 @@ Depois da revelação da última pergunta, a tela do anfitrião anuncia os três
 
 - **Dado** um jogador na revelação da última pergunta
 - **Quando** o anfitrião avança para o pódio
-- **Então** o celular mostra "Rufem os tambores…" e, quando a revelação do pódio termina, a tela final
+- **Então** o celular mostra "Rufar dos tambores…" e, quando a revelação do pódio termina, a tela final
 
 #### CA-21 — Primeiro lugar
 
@@ -367,7 +367,7 @@ As telas seguem as capturas do jogo de verdade, no tema escuro do Quizio.
 - **Pódio (anfitrião)**: o título do quiz num cartão no alto; ao centro, três degraus roxos lado a lado, o do meio mais alto, cada um com a medalha do lugar (ouro, prata, bronze) na frente. Sobre cada degrau, o apelido numa etiqueta e, abaixo dele, os pontos. Os degraus ficam à vista desde o início; os jogadores sobem do 3º para o 1º, cada um com os pontos contando. O 1º entra depois de uma pausa maior, com brilho no degrau e confete.
 - **Ações do anfitrião**: aparecem embaixo do pódio depois da revelação: "Classificação", "Jogar novamente" (a principal) e "Voltar ao quiz".
 - **Classificação (anfitrião)**: lista no mesmo estilo do placar, com o número do lugar à esquerda, o apelido e os pontos; o primeiro em destaque; rola quando não cabe. "Voltar ao pódio" no alto.
-- **Espera (jogador)**: "Rufem os tambores…" ao centro, com o rodapé de sempre.
+- **Espera (jogador)**: "Rufar dos tambores…" ao centro, com o rodapé de sempre.
 - **Tela final (jogador), no pódio**: o título do quiz numa etiqueta; a medalha grande com o número do lugar; a frase embaixo; "Entrar em outro jogo"; e o rodapé com o apelido e o total.
 - **Tela final (jogador), fora do pódio**: o título do quiz, "Você ficou em 5º lugar", "Obrigado por jogar!", a mesma ação e o mesmo rodapé.
 - **Placar (anfitrião), animado**: abre como estava antes da pergunta; os pontos sobem; as faixas deslizam para os lugares novos; quem entra nos cinco sobe de baixo, quem sai desce e some; a seta aparece no fim.
@@ -377,18 +377,18 @@ As telas seguem as capturas do jogo de verdade, no tema escuro do Quizio.
 ## Divergências intencionais do Kahoot
 
 - **Sem avatar** sobre os degraus: só o apelido e os pontos (spec 008).
-- **Sem música e sem efeitos sonoros**: as animações são só visuais; música é da spec 012.
+- **Sem música e sem efeitos sonoros**: as animações são só visuais; música é da spec 014.
 - **Sem mensagens de celebração no placar** (jogador em sequência, quem subiu três posições): continuam fora, como na spec 010.
 - **Todo jogador vê o seu lugar** (RN-21): no Kahoot, do 6º em diante o celular mostra só a pontuação.
-- **Classificação completa na tela do anfitrião** (RN-14): no Kahoot ela só existe no relatório. Aqui ela cobre essa falta até a spec 013.
+- **Classificação completa na tela do anfitrião** (RN-14): no Kahoot ela só existe no relatório. Aqui ela cobre essa falta até a spec 015.
 - **"Jogar novamente" sem fantasmas** (RN-15): é uma partida nova, sem os jogadores da anterior.
 - **Sem "Obter feedback"** e sem acesso ao relatório no menu final.
 - **Sem "Conquistas"** na tela final do jogador (spec 008).
 
 ## Fora de escopo
 
-- Encerrar antes do fim indo direto ao pódio ("End kahoot"): spec 012. Hoje, encerrar no meio não tem pódio (RN-04).
-- Relatório da partida, pesquisa de feedback e compartilhamento do pódio (spec 013).
+- Encerrar antes do fim indo direto ao pódio ("End kahoot"): spec 013. Hoje, encerrar no meio não tem pódio (RN-04).
+- Relatório da partida, pesquisa de feedback e compartilhamento do pódio (spec 015).
 - Fantasmas e levar os jogadores automaticamente para a nova partida.
 - Avatares, música, efeitos sonoros, reações e conquistas.
 - Animação de personagens no pódio: não há avatar.
@@ -397,10 +397,10 @@ As telas seguem as capturas do jogo de verdade, no tema escuro do Quizio.
 ## Perguntas em aberto
 
 - [ ] **Sem placar na última pergunta** (RN-01) — segue o Kahoot e responde à pergunta em aberto da spec 010. A alternativa é manter o placar final antes do pódio.
-- [ ] **Classificação completa** (RN-14) — não existe no Kahoot. A alternativa é deixar o anfitrião só com o pódio até os relatórios (spec 013).
+- [ ] **Classificação completa** (RN-14) — não existe no Kahoot. A alternativa é deixar o anfitrião só com o pódio até os relatórios (spec 015).
 - [ ] **"Jogar novamente"** (RN-15) — partida nova com PIN novo, e os jogadores entram de novo. A alternativa é levar os celulares da partida terminada direto para o novo lobby.
-- [ ] **O celular durante o pódio** (RN-18) — a espera "Rufem os tambores…" é uma proposta: ainda não foi conferido o que o Kahoot mostra no celular enquanto o pódio é apresentado.
-- [ ] **Tempos e frases** (RN-10, RN-18, RN-20, RN-21) — revelação aos 2, 4 e 7 segundos; "Rufem os tambores…"; "Por pouco!", "No pódio!", "Você ficou em 5º lugar" e "Obrigado por jogar!" são propostas. Só "Imbatível!" vem das capturas.
+- [x] **O celular durante o pódio** (RN-18) — confirmado pelas capturas do Kahoot de 2026-10-02: "Rufar dos tambores…" com o indicador de carregamento, e o lugar só depois que o pódio termina na tela do anfitrião. Antes: — a espera "Rufar dos tambores…" é uma proposta: ainda não foi conferido o que o Kahoot mostra no celular enquanto o pódio é apresentado.
+- [ ] **Tempos e frases** (RN-10, RN-18, RN-20, RN-21) — revelação aos 2, 4 e 7 segundos; "Rufar dos tambores…"; "Por pouco!", "No pódio!", "Você ficou em 5º lugar" e "Obrigado por jogar!" são propostas. Só "Imbatível!" vem das capturas.
 - [ ] **Animações do placar** (RN-28 a RN-32) — escritas a partir da sua descrição: pontos subindo, depois a troca de lugares, quem entra sobe de baixo. A ordem dos movimentos e as durações (RN-26) são propostas.
 - [ ] **Lista de microtransições** (RN-35) — entrada de cada fase, barras crescendo, sinal e pontos no celular, apelidos no lobby. Dá para tirar ou acrescentar.
 - [ ] **Acertos no pódio** — o pódio mostra apelido e pontos. O Kahoot, ao menos no modo Precisão, mostra também "x de y" acertos; ficou de fora.
@@ -411,3 +411,4 @@ As telas seguem as capturas do jogo de verdade, no tema escuro do Quizio.
 - 2026-10-01 — a pedido do usuário, a spec passa a tratar das animações: placar com pontos subindo, troca de posições e entrada nos cinco primeiros (RN-28 a RN-32, altera a divergência "Sem animação" da spec 010); pódio com um lugar por vez e mais destaque para o 1º, que passa a aparecer aos 7 segundos (RN-10, RN-33); tela final do jogador (RN-34); microtransições nas telas que já existem (RN-35). Decisões tomadas sem consulta prévia: as animações nunca seguram o jogo (RN-25), durações (RN-26), movimento reduzido (RN-27), a lista de microtransições.
 - 2026-10-01 — aprovada pelo usuário, com as decisões em aberto mantidas como propostas.
 - 2026-10-01 — implementada. Sem mudança de regra. Ajustes decididos na implementação: quando ninguém que está no placar pontuou, a etapa da contagem é pulada e as faixas se movem logo (RN-29, RN-30); voltar da Classificação ao pódio não repete a comemoração (RN-11); um pedido de avançar repetido depois do fim recebe o pódio em vez de um erro (RN-03); os testes de ponta a ponta leem os pontos do celular com movimento reduzido, para não pegar um quadro da contagem. As perguntas em aberto continuam abertas, inclusive o que o celular mostra durante o pódio (RN-18).
+- 2026-10-02 — capturas do celular num jogo de verdade no Kahoot, enviadas pelo usuário: a espera do pódio passa a dizer "Rufar dos tambores…", com o indicador de carregamento embaixo, no lugar de "Rufem os tambores…" com um tambor (RN-18, CA-20). O comportamento não muda.

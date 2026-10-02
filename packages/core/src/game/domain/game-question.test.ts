@@ -3,10 +3,20 @@ import { describe, expect, it } from "vitest";
 import { aQuestion, aTrueFalseQuestion } from "../../quiz/testing/a-question";
 import { aPlayingGame } from "../testing/a-game";
 import { aGameQuestion } from "../testing/a-game-question";
-import { parseStoredGameQuestion, toGameQuestion } from "./game-question";
+import { DEFAULT_GAME_OPTIONS } from "./game-options";
+import {
+	arrangeGameQuestions,
+	parseStoredGameQuestion,
+	toGameQuestion,
+} from "./game-question";
 import { publicStageOf } from "./public-stage";
 
 const choice = (text: string | null, correct = false) => ({ text, correct });
+
+const urlOf = (key: string) => `https://media.test/${key}`;
+
+/** A draw the tests can read: the list backwards. */
+const backwards = <T>(items: readonly T[]): T[] => [...items].reverse();
 
 function quizWith(
 	choices: { text: string | null; correct: boolean }[],
@@ -106,6 +116,108 @@ describe("game question (spec 009)", () => {
 		expect(parseStoredGameQuestion(null)).toBeNull();
 		expect(parseStoredGameQuestion({ index: 0 })).toBeNull();
 	});
+
+	describe("in the order of the game (spec 012)", () => {
+		const questions = [
+			quizWith(
+				[
+					choice("Brasília", true),
+					choice("Rio de Janeiro"),
+					choice(null),
+					choice("Salvador"),
+				],
+				{ id: "question-1" },
+			),
+			aTrueFalseQuestion({ id: "question-2", correct: true }),
+			quizWith([choice("Azul"), choice("Verde", true)], {
+				id: "question-3",
+				text: "Qual é a cor da mata?",
+			}),
+		];
+
+		it("keeps the editor's order with both options off", () => {
+			const arranged = arrangeGameQuestions(
+				questions,
+				DEFAULT_GAME_OPTIONS,
+				backwards,
+			);
+
+			expect(arranged).toEqual(questions.map(toGameQuestion));
+		});
+
+		it("shuffles the questions and numbers them in the drawn order", () => {
+			const arranged = arrangeGameQuestions(
+				questions,
+				{ ...DEFAULT_GAME_OPTIONS, randomizeQuestions: true },
+				backwards,
+			);
+
+			expect(arranged.map((question) => question.text)).toEqual([
+				"Qual é a cor da mata?",
+				"A capital do Brasil é Brasília",
+				"Qual é a capital do Brasil?",
+			]);
+			expect(arranged.map((question) => question.index)).toEqual([0, 1, 2]);
+		});
+
+		it("shuffles the positions among the filled answers", () => {
+			const [first] = arrangeGameQuestions(
+				questions,
+				{ ...DEFAULT_GAME_OPTIONS, randomizeAnswers: true },
+				backwards,
+			);
+
+			// The same three shapes (0, 1 and 3), handed out backwards, in position order.
+			expect(first?.choices).toEqual([
+				{ id: "choice-4", shapeIndex: 0, text: "Salvador", correct: false },
+				{
+					id: "choice-2",
+					shapeIndex: 1,
+					text: "Rio de Janeiro",
+					correct: false,
+				},
+				{ id: "choice-1", shapeIndex: 3, text: "Brasília", correct: true },
+			]);
+		});
+
+		it("the right answer goes with its answer to the new shape", () => {
+			const arranged = arrangeGameQuestions(
+				questions,
+				{ ...DEFAULT_GAME_OPTIONS, randomizeAnswers: true },
+				backwards,
+			);
+
+			expect(arranged[2]?.choices).toEqual([
+				{ id: "choice-2", shapeIndex: 0, text: "Verde", correct: true },
+				{ id: "choice-1", shapeIndex: 1, text: "Azul", correct: false },
+			]);
+		});
+
+		it("true or false is never shuffled", () => {
+			const arranged = arrangeGameQuestions(
+				questions,
+				{ ...DEFAULT_GAME_OPTIONS, randomizeAnswers: true },
+				backwards,
+			);
+
+			expect(arranged[1]?.choices).toEqual([
+				{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: true },
+				{ id: "false", shapeIndex: 0, text: "Falso", correct: false },
+			]);
+		});
+
+		it("shuffling the answers leaves the questions in order", () => {
+			const arranged = arrangeGameQuestions(
+				questions,
+				{ ...DEFAULT_GAME_OPTIONS, randomizeAnswers: true },
+				backwards,
+			);
+
+			expect(arranged.map((question) => question.text)).toEqual(
+				questions.map((question) => question.text),
+			);
+		});
+	});
 });
 
 describe("public stage (spec 009)", () => {
@@ -113,6 +225,7 @@ describe("public stage (spec 009)", () => {
 		const stage = publicStageOf(
 			aPlayingGame("answering", { questionIndex: 1, questionCount: 10 }),
 			aGameQuestion({ index: 1 }),
+			urlOf,
 		);
 
 		expect(stage).toEqual({
@@ -123,11 +236,13 @@ describe("public stage (spec 009)", () => {
 			question: {
 				type: "quiz",
 				selection: "single",
+				text: null,
+				image: null,
 				choices: [
-					{ id: "choice-1", shapeIndex: 0, label: null },
-					{ id: "choice-2", shapeIndex: 1, label: null },
-					{ id: "choice-3", shapeIndex: 2, label: null },
-					{ id: "choice-4", shapeIndex: 3, label: null },
+					{ id: "choice-1", shapeIndex: 0, label: null, text: null },
+					{ id: "choice-2", shapeIndex: 1, label: null, text: null },
+					{ id: "choice-3", shapeIndex: 2, label: null, text: null },
+					{ id: "choice-4", shapeIndex: 3, label: null, text: null },
 				],
 			},
 		});
@@ -138,22 +253,25 @@ describe("public stage (spec 009)", () => {
 		const stage = publicStageOf(
 			aPlayingGame("answering"),
 			toGameQuestion(aTrueFalseQuestion({ correct: true }), 0),
+			urlOf,
 		);
 
 		expect(stage.question?.choices).toEqual([
-			{ id: "true", shapeIndex: 1, label: "Verdadeiro" },
-			{ id: "false", shapeIndex: 0, label: "Falso" },
+			{ id: "true", shapeIndex: 1, label: "Verdadeiro", text: null },
+			{ id: "false", shapeIndex: 0, label: "Falso", text: null },
 		]);
 	});
 
 	it("has no question during the game intro and no deadline in the results", () => {
-		expect(publicStageOf(aPlayingGame("gameIntro"), null)).toMatchObject({
-			phase: "gameIntro",
-			durationMs: 3_000,
-			question: null,
-		});
+		expect(publicStageOf(aPlayingGame("gameIntro"), null, urlOf)).toMatchObject(
+			{
+				phase: "gameIntro",
+				durationMs: 3_000,
+				question: null,
+			},
+		);
 		expect(
-			publicStageOf(aPlayingGame("results"), aGameQuestion()),
+			publicStageOf(aPlayingGame("results"), aGameQuestion(), urlOf),
 		).toMatchObject({ phase: "results", durationMs: null });
 	});
 });

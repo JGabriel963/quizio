@@ -65,7 +65,7 @@ export function createAdvanceGame(
 			: next.progress.questionIndex === current?.index
 				? current
 				: await deps.gameQuestions.find(game.id, next.progress.questionIndex);
-		await publishStage(deps.realtime, next, question);
+		await publishStage(deps, next, question);
 		return loadHostGameView(deps, next, question);
 	};
 }

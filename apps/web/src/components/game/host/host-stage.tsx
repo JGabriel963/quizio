@@ -1,12 +1,17 @@
 import type { StageRef } from "@quizio/core/game/domain/game-progress";
 import { useEffect, useEffectEvent, useState } from "react";
 
-import type { HostGameData, HostStageData } from "@/lib/api-types";
+import type {
+	GameOptionsData,
+	HostGameData,
+	HostStageData,
+} from "@/lib/api-types";
 import { gameErrorCode } from "@/lib/game-error-messages";
 import { msLeft } from "@/lib/use-countdown";
 
 import { GameScreen } from "../game-screen";
 import { GameHeader } from "./game-header";
+import { GameSettings } from "./game-settings";
 import { EndGameDialog } from "./lobby-dialogs";
 import { Scoreboard } from "./scoreboard";
 import { StageBackground } from "./stage-image";
@@ -19,6 +24,10 @@ export interface HostStageActions {
 	 * server refuses, so a request made a moment too early can be repeated.
 	 */
 	advance: (from: StageRef, skip: boolean) => Promise<unknown>;
+	/** "Bloquear jogo", which also works during the game (spec 012, RN-09). */
+	setLocked: (locked: boolean) => void;
+	/** A switch of the settings: only the option that changed (spec 012). */
+	setOptions: (change: Partial<GameOptionsData>) => void;
 	end: () => void;
 }
 
@@ -33,16 +42,20 @@ export const ADVANCE_RETRY_MS = 250;
 export function HostStage({
 	game,
 	stage,
+	origin,
 	receivedAt,
 	actions,
 }: {
 	game: HostGameData;
 	stage: HostStageData;
+	/** The site's origin: the header tells late players where to get in (spec 012, RN-11). */
+	origin: string;
 	/** When `game` arrived, by this device's clock: the countdowns start from it. */
 	receivedAt: number;
 	actions: HostStageActions;
 }) {
 	const [ending, setEnding] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(false);
 	/** The stage a manual request (skip, advance) was made from, while it is pending. */
 	const [pending, setPending] = useState<string | null>(null);
 
@@ -93,6 +106,8 @@ export function HostStage({
 			<GameHeader
 				playerCount={game.players.length}
 				onExit={() => setEnding(true)}
+				join={{ origin, pin: game.pin, locked: game.locked }}
+				onOpenSettings={() => setSettingsOpen(true)}
 			/>
 
 			{phase === "scoreboard" ? (
@@ -133,6 +148,16 @@ export function HostStage({
 				/>
 			)}
 
+			{/* Over the screen, which keeps asking for the next stage behind it (RN-02). */}
+			<GameSettings
+				open={settingsOpen}
+				onOpenChange={setSettingsOpen}
+				options={game.options}
+				locked={game.locked}
+				playing
+				onOptionsChange={actions.setOptions}
+				onLockedChange={actions.setLocked}
+			/>
 			<EndGameDialog
 				open={ending}
 				onCancel={() => setEnding(false)}

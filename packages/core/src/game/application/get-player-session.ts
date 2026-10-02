@@ -1,4 +1,5 @@
 import type { Clock } from "../../shared/application/ports/clock";
+import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { Answer, Correctness } from "../domain/answer";
 import { type Game, GameNotFoundError } from "../domain/game";
 import {
@@ -8,7 +9,12 @@ import {
 	revealedThrough,
 } from "../domain/game-progress";
 import type { GameQuestion } from "../domain/game-question";
-import { hasPlayerSecret, isActivePlayer, type Player } from "../domain/player";
+import {
+	canAnswer,
+	hasPlayerSecret,
+	isActivePlayer,
+	type Player,
+} from "../domain/player";
 import { podiumRevealRemainingMs } from "../domain/podium";
 import { type PublicStage, publicStageOf } from "../domain/public-stage";
 import { rankPlayers, standingOf, streakAfter } from "../domain/standings";
@@ -47,12 +53,18 @@ export interface PlayerOutcome {
 
 /**
  * A stage as one player's device shows it: the public part plus what is this
- * player's alone. Never the question text, the answer texts or which answer
- * was right (spec 009, RN-14, RN-21, RN-26).
+ * player's alone. Never which answer was right (spec 009, RN-21, RN-26); the
+ * question's text and the answer texts only with the questions on the devices
+ * (spec 012, RN-18).
  */
 export interface PlayerStageView extends PublicStage {
 	/** By the server's clock when the view was made; null for the results. */
 	remainingMs: number | null;
+	/**
+	 * The player joined after this question's answers opened and waits for the
+	 * next one: no question, no answer and no outcome (spec 012, RN-13, RN-14).
+	 */
+	sittingOut: boolean;
 	answered: boolean;
 	/**
 	 * Sum of the points already revealed (spec 010, RN-16): an answer just sent
@@ -107,6 +119,7 @@ export function createGetPlayerSession(deps: {
 	players: Pick<PlayerRepository, "findById" | "listActive">;
 	gameQuestions: Pick<GameQuestionRepository, "find">;
 	answers: Pick<AnswerRepository, "listByPlayer" | "totalsThrough">;
+	storage: Pick<ObjectStorage, "getPublicUrl">;
 	clock: Clock;
 }): GetPlayerSession {
 	/** Told once the question's results are out, and kept through its scoreboard. */
@@ -149,15 +162,21 @@ export function createGetPlayerSession(deps: {
 				: await deps.gameQuestions.find(game.id, questionIndex);
 		const ownAnswers = await deps.answers.listByPlayer(game.id, player.id);
 		const revealed = revealedThrough(progress);
-		const told = phase === "results" || phase === "scoreboard";
+		const sittingOut = !canAnswer(player, questionIndex);
+		const told = !sittingOut && (phase === "results" || phase === "scoreboard");
+		const stage = publicStageOf(game, question, (key) =>
+			deps.storage.getPublicUrl(key),
+		);
 
 		return {
-			...publicStageOf(game, question),
+			...stage,
+			question: sittingOut ? null : stage.question,
 			remainingMs: remainingMsOf(
 				progress,
 				question?.timeLimitSeconds ?? 0,
 				deps.clock.now(),
 			),
+			sittingOut,
 			answered:
 				phase !== "gameIntro" &&
 				phase !== "questionIntro" &&

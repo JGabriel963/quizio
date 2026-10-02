@@ -11,6 +11,11 @@ const lobby: HostGameData = {
 	status: "lobby",
 	endReason: null,
 	locked: false,
+	options: {
+		showQuestionsOnDevices: false,
+		randomizeQuestions: false,
+		randomizeAnswers: false,
+	},
 	players: [{ id: "p1", nickname: "Ana" }],
 	questionCount: 0,
 	stage: null,
@@ -59,5 +64,22 @@ describe("applyLobbyEvent (spec 008)", () => {
 		expect(
 			applyLobbyEvent(ended, { type: "gameEnded", reason: "expired" }),
 		).toBe(ended);
+	});
+});
+
+describe("applyLobbyEvent: options (spec 012)", () => {
+	it("applies only the option the host changed", () => {
+		const changed = applyLobbyEvent(lobby, {
+			type: "optionsChanged",
+			options: { showQuestionsOnDevices: true },
+		});
+
+		expect(changed.options).toEqual({
+			showQuestionsOnDevices: true,
+			randomizeQuestions: false,
+			randomizeAnswers: false,
+		});
+		expect(changed.locked).toBe(false);
+		expect(lobby.options.showQuestionsOnDevices).toBe(false);
 	});
 });

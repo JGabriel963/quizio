@@ -70,10 +70,8 @@ describe("starting a game (spec 009)", () => {
 		);
 	});
 
-	it("takes nobody new once it is playing", () => {
-		expect(() => assertJoinable(at("gameIntro"))).toThrow(
-			GameAlreadyStartedError,
-		);
+	it("still takes players once it is playing (spec 012, RN-10)", () => {
+		expect(() => assertJoinable(at("gameIntro"))).not.toThrow();
 	});
 
 	it("still expires while playing", () => {

@@ -62,6 +62,11 @@ const game: HostGameData = {
 	status: "playing",
 	endReason: null,
 	locked: false,
+	options: {
+		showQuestionsOnDevices: false,
+		randomizeQuestions: false,
+		randomizeAnswers: false,
+	},
 	players: [
 		{ id: "p1", nickname: "Ana" },
 		{ id: "p2", nickname: "Bia" },
@@ -77,6 +82,8 @@ function renderStage(
 ) {
 	const actions: HostStageActions = {
 		advance: options.advance ?? vi.fn(async () => {}),
+		setLocked: vi.fn(),
+		setOptions: vi.fn(),
 		end: vi.fn(),
 	};
 	const user = userEvent.setup(
@@ -86,6 +93,7 @@ function renderStage(
 		<HostStage
 			game={{ ...game, stage }}
 			stage={stage}
+			origin="https://quizio.app"
 			receivedAt={options.receivedAt ?? Date.now()}
 			actions={actions}
 		/>,
@@ -566,11 +574,17 @@ describe("HostStage: animations hold nothing (spec 011, RN-25)", () => {
 			],
 			scoreboardLeavers: [],
 		});
-		const actions: HostStageActions = { advance: vi.fn(), end: vi.fn() };
+		const actions: HostStageActions = {
+			advance: vi.fn(),
+			setLocked: vi.fn(),
+			setOptions: vi.fn(),
+			end: vi.fn(),
+		};
 		const ui = (stage: HostStageData) => (
 			<HostStage
 				game={{ ...game, stage }}
 				stage={stage}
+				origin="https://quizio.app"
 				receivedAt={Date.now()}
 				actions={actions}
 			/>
@@ -595,5 +609,116 @@ describe("HostStage: animations hold nothing (spec 011, RN-25)", () => {
 		expect(
 			screen.getByRole("heading", { name: "Qual é a capital do Brasil?" }),
 		).toBeVisible();
+	});
+});
+
+describe("HostStage: settings and late joining (spec 012)", () => {
+	const openSettings = async (user: ReturnType<typeof userEvent.setup>) => {
+		await user.click(screen.getByRole("button", { name: "Configurações" }));
+		return screen.getByRole("dialog", { name: "Configurações" });
+	};
+
+	it("shows how to get in, in the header", () => {
+		renderStage(stageAt({}));
+
+		const join = within(screen.getByRole("banner")).getByRole("region", {
+			name: "Como entrar",
+		});
+		expect(join).toHaveTextContent("Entre em quizio.app/join");
+		expect(within(join).getByText("265 914")).toBeInTheDocument();
+	});
+
+	it("opens the settings during the answers", async () => {
+		const { actions, user } = renderStage(stageAt({}));
+
+		const panel = await openSettings(user);
+
+		expect(within(panel).getAllByRole("switch")).toHaveLength(4);
+		expect(
+			within(panel).getAllByText("Só antes de iniciar a partida."),
+		).toHaveLength(2);
+
+		await user.click(
+			within(panel).getByRole("switch", {
+				name: "Mostrar perguntas nos dispositivos",
+			}),
+		);
+		await user.click(
+			within(panel).getByRole("switch", { name: "Bloquear jogo" }),
+		);
+
+		expect(actions.setOptions).toHaveBeenCalledExactlyOnceWith({
+			showQuestionsOnDevices: true,
+		});
+		expect(actions.setLocked).toHaveBeenCalledExactlyOnceWith(true);
+	});
+
+	it("the results show behind the open panel", async () => {
+		const actions: HostStageActions = {
+			advance: vi.fn(async () => {}),
+			setLocked: vi.fn(),
+			setOptions: vi.fn(),
+			end: vi.fn(),
+		};
+		const user = userEvent.setup();
+		const at = (stage: HostStageData) => (
+			<HostStage
+				game={{ ...game, stage }}
+				stage={stage}
+				origin="https://quizio.app"
+				receivedAt={Date.now()}
+				actions={actions}
+			/>
+		);
+		const view = render(at(stageAt({})));
+		await openSettings(user);
+
+		// The answers close while the panel is open: the game does not wait for it.
+		view.rerender(
+			at(
+				stageAt({
+					phase: "results",
+					remainingMs: null,
+					durationMs: null,
+					question: capitals(revealed),
+					answerCount: 2,
+					distribution: [
+						{ choiceId: "choice-1", count: 0 },
+						{ choiceId: "choice-2", count: 0 },
+						{ choiceId: "choice-3", count: 2 },
+						{ choiceId: "choice-4", count: 0 },
+					],
+				}),
+			),
+		);
+
+		expect(screen.getByRole("dialog", { name: "Configurações" })).toBeVisible();
+		expect(
+			screen.getByRole("button", { name: "Avançar", hidden: true }),
+		).toBeInTheDocument();
+	});
+
+	it("a locked game shows the padlock in place of the PIN", () => {
+		const stage = stageAt({});
+		render(
+			<HostStage
+				game={{ ...game, locked: true, stage }}
+				stage={stage}
+				origin="https://quizio.app"
+				receivedAt={Date.now()}
+				actions={{
+					advance: vi.fn(async () => {}),
+					setLocked: vi.fn(),
+					setOptions: vi.fn(),
+					end: vi.fn(),
+				}}
+			/>,
+		);
+
+		const join = within(screen.getByRole("banner")).getByRole("region", {
+			name: "Como entrar",
+		});
+		expect(join).toHaveTextContent("Jogo bloqueado");
+		expect(screen.queryByText("265 914")).toBeNull();
 	});
 });

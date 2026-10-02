@@ -1,5 +1,6 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
+import type { GameOptions } from "./game-options";
 import type { GameProgress } from "./game-progress";
 
 /**
@@ -41,6 +42,8 @@ export interface Game {
 	status: GameStatus;
 	/** Nobody new gets in; who is in stays (RN-24). */
 	locked: boolean;
+	/** What the host chose in the settings (spec 012). */
+	options: GameOptions;
 	createdAt: Date;
 	expiresAt: Date;
 	/** Set when the game is finished or ended: it frees the PIN. */
@@ -88,7 +91,7 @@ export class GameEndedError extends DomainError {
 	readonly code = "GAME.ENDED";
 }
 
-/** Nobody new gets into a game in progress (spec 009, RN-03). */
+/** "Iniciar" on a game that is already being played (spec 009, RN-02). */
 export class GameAlreadyStartedError extends DomainError {
 	readonly code = "GAME.ALREADY_STARTED";
 }
@@ -105,6 +108,8 @@ export function newGame(input: {
 	quizVersion: number;
 	title: string;
 	pin: string;
+	/** The ones the host saved, or the defaults (spec 012, RN-05, RN-07). */
+	options: GameOptions;
 	now: Date;
 }): Game {
 	return {
@@ -116,6 +121,7 @@ export function newGame(input: {
 		pin: input.pin,
 		status: "lobby",
 		locked: false,
+		options: { ...input.options },
 		createdAt: input.now,
 		expiresAt: new Date(input.now.getTime() + GAME_TTL_MS),
 		endedAt: null,
@@ -167,13 +173,13 @@ export function setGameLocked(game: Game, locked: boolean): Game {
 	return { ...game, locked };
 }
 
-/** What a player needs to get in: a lobby that is not locked. */
+/**
+ * What a player needs to get in: an open game that is not locked. A game in
+ * progress takes players too (spec 012, RN-10).
+ */
 export function assertJoinable(game: Game | null): asserts game is Game {
 	if (!game || !isGameOpen(game)) {
 		throw new GamePinNotRecognizedError("No open game has this PIN");
-	}
-	if (game.status !== "lobby") {
-		throw new GameAlreadyStartedError("The game has already started");
 	}
 	if (game.locked) {
 		throw new GameLockedError("The game is locked");

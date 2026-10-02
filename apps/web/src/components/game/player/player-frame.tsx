@@ -1,3 +1,4 @@
+import { LoaderCircleIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { QuestionTypeIcon } from "@/components/editor/question-type-icon";
@@ -70,5 +71,12 @@ export function Centered({ children }: { children: ReactNode }) {
 		<main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 p-6 text-center motion-safe:animate-stage-in">
 			{children}
 		</main>
+	);
+}
+
+/** What the player's screens show while something is on its way. */
+export function Spinner() {
+	return (
+		<LoaderCircleIcon aria-hidden="true" className="size-16 animate-spin" />
 	);
 }
