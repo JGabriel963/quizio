@@ -7,5 +7,9 @@ import type { GameOptions } from "../../domain/game-options";
 export interface HostPreferencesRepository {
 	/** Null for a host who never changed an option. */
 	find(ownerId: string): Promise<GameOptions | null>;
-	save(ownerId: string, options: GameOptions): Promise<void>;
+	/**
+	 * Stores only the options given, over the ones kept (or the defaults, the
+	 * first time): two saved at the same time are both kept.
+	 */
+	save(ownerId: string, change: Partial<GameOptions>): Promise<void>;
 }

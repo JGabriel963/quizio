@@ -24,10 +24,21 @@ function stateOf(choice: HostChoice): "idle" | "correct" | "incorrect" {
  * right ones get a check and the others fade, with a cross (RN-22).
  */
 export function StageChoices({ choices }: { choices: HostChoice[] }) {
+	// As in Kahoot and in the editor, the cards take a good part of the
+	// screen: one row of two is taller than each of three rows.
+	const rows = Math.ceil(choices.length / 2);
+	const height =
+		rows <= 1
+			? "min-h-20 sm:min-h-[clamp(6rem,19svh,12rem)]"
+			: rows === 2
+				? "min-h-16 sm:min-h-[clamp(5rem,12svh,8.5rem)]"
+				: "min-h-14 sm:min-h-[clamp(4.5rem,9.5svh,7rem)]";
+
 	return (
 		<ul
 			aria-label="Respostas"
-			className="relative grid shrink-0 grid-cols-2 gap-2 p-2"
+			data-rows={rows}
+			className="relative grid shrink-0 grid-cols-2 gap-2 p-2 sm:px-4 sm:pb-4"
 		>
 			{choices.map((choice) => {
 				const shape = answerShapeAt(choice.shapeIndex);
@@ -39,12 +50,13 @@ export function StageChoices({ choices }: { choices: HostChoice[] }) {
 						data-shape={shape}
 						data-state={state}
 						className={cn(
-							"flex min-h-14 items-center gap-3 rounded-md px-4 py-2 font-bold text-answer-foreground text-lg shadow-press sm:min-h-20 sm:text-2xl",
+							"flex items-center gap-3 rounded-md px-4 py-2 font-bold text-answer-foreground text-lg shadow-press sm:gap-4 sm:px-6 sm:text-3xl",
+							height,
 							ANSWER_COLOR_CLASSES[shape],
 							state === "incorrect" && "opacity-40",
 						)}
 					>
-						<AnswerShape shape={shape} className="size-7 shrink-0 sm:size-9" />
+						<AnswerShape shape={shape} className="size-7 shrink-0 sm:size-10" />
 						<span className="min-w-0 flex-1 break-words">{choice.text}</span>
 						{state === "correct" && (
 							<>

@@ -20,6 +20,7 @@ export function PlayerFrame({
 	questionNumber,
 	question,
 	notice = null,
+	background = null,
 	children,
 }: {
 	nickname: string;
@@ -28,10 +29,13 @@ export function PlayerFrame({
 	questionNumber?: number;
 	question?: PlayerQuestionData | null;
 	notice?: string | null;
+	/** Drawn behind the whole screen: the question's background image (spec 012). */
+	background?: ReactNode;
 	children: ReactNode;
 }) {
 	return (
-		<GameScreen className="relative flex h-svh flex-col overflow-hidden">
+		<GameScreen className="relative isolate flex h-svh flex-col overflow-hidden">
+			{background}
 			{question && questionNumber !== undefined && (
 				<header className="flex h-14 shrink-0 items-center justify-between px-3">
 					<span

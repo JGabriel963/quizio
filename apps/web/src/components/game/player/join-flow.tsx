@@ -25,6 +25,7 @@ import type {
 	StoredPlayerSession,
 } from "@/lib/player-session";
 import { useRealtimeEvent } from "@/lib/realtime";
+import { earliestDeadline } from "@/lib/use-countdown";
 
 import {
 	JoinLoading,
@@ -139,10 +140,24 @@ function mergePlay(
 		return current;
 	}
 	const sameQuestion = next.stage.questionIndex === current.stage.questionIndex;
+	// The same stage, asked about again: its countdown goes on from what the
+	// screen shows, without jumping back by the time the answer took to arrive.
+	const sameStage = stageOrder(next.stage) === stageOrder(current.stage);
+	const time = sameStage
+		? earliestDeadline(
+				{
+					remainingMs: current.stage.remainingMs,
+					receivedAt: current.receivedAt,
+				},
+				{ remainingMs: next.stage.remainingMs, receivedAt: next.receivedAt },
+			)
+		: { remainingMs: next.stage.remainingMs, receivedAt: next.receivedAt };
 	return {
 		...next,
+		receivedAt: time.receivedAt,
 		stage: {
 			...next.stage,
+			remainingMs: time.remainingMs,
 			answered: next.stage.answered || (sameQuestion && current.stage.answered),
 		},
 	};

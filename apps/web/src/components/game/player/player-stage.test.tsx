@@ -494,6 +494,7 @@ describe("PlayerStage: who joined in the middle (spec 012)", () => {
 describe("PlayerStage: the question on the device (spec 012)", () => {
 	const image = {
 		url: "https://media.test/mapa.png",
+		placement: "media" as const,
 		crop: { shape: "square" as const, zoom: 1.5, x: 0.5, y: 0.5 },
 		altText: "Mapa do Brasil",
 	};
@@ -557,6 +558,60 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 			picture.compareDocumentPosition(statement) &
 				Node.DOCUMENT_POSITION_FOLLOWING,
 		).toBeTruthy();
+		expect(
+			document.querySelector('[data-slot="device-question-background"]'),
+		).toBeNull();
+	});
+
+	it("lays the question out as in Kahoot: image, statement, answers, time", () => {
+		renderStage(stageAt({ question: onDevice({ image }) }));
+
+		const inOrder = [
+			document.querySelector('[data-slot="device-question-image"]'),
+			screen.getByRole("heading", { name: STATEMENT }),
+			screen.getByRole("group", { name: "Respostas" }),
+			screen.getByRole("timer", { name: "Tempo restante" }),
+		] as HTMLElement[];
+		for (const [index, element] of inOrder.entries()) {
+			const next = inOrder[index + 1];
+			if (next) {
+				expect(
+					element.compareDocumentPosition(next) &
+						Node.DOCUMENT_POSITION_FOLLOWING,
+				).toBeTruthy();
+			}
+		}
+		// The image takes what is left of the screen; the answers keep their size.
+		expect(inOrder[0]?.className).toMatch(/flex-1/);
+		expect(inOrder[2]?.parentElement?.className).not.toMatch(/flex-1/);
+	});
+
+	it("keeps the answers at the bottom without an image", () => {
+		renderStage(stageAt({ question: onDevice() }));
+
+		const room = document.querySelector('[data-slot="device-question-image"]');
+		expect(room?.className).toMatch(/flex-1/);
+		expect(room?.querySelector("img")).toBeNull();
+	});
+
+	it("shows a background image behind the whole phone", () => {
+		renderStage(
+			stageAt({
+				question: onDevice({ image: { ...image, placement: "background" } }),
+			}),
+		);
+
+		const background = document.querySelector(
+			'[data-slot="device-question-background"]',
+		);
+		expect(background?.querySelector("img")).toHaveAttribute("src", image.url);
+		expect(background?.querySelector("img")).toHaveAttribute(
+			"alt",
+			"Mapa do Brasil",
+		);
+		// Not in the middle too.
+		expect(document.querySelector('[data-slot="question-image"]')).toBeNull();
+		expect(screen.getByRole("heading", { name: STATEMENT })).toBeVisible();
 	});
 
 	it("shows no image and no statement with the option off", () => {
@@ -628,10 +683,10 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 		expect(screen.getByRole("heading", { name: statement }).className).toMatch(
 			/break-words/,
 		);
-		// The image never takes the buttons' room: it is bounded.
+		// The image gives way to the buttons: it may shrink, they may not.
 		expect(
 			document.querySelector('[data-slot="device-question-image"]')?.className,
-		).toMatch(/max-h-/);
+		).toMatch(/min-h-0/);
 		expect(screen.getByRole("timer", { name: "Tempo restante" })).toBeVisible();
 	});
 

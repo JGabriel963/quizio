@@ -1,5 +1,6 @@
 import type { GameRepository } from "@quizio/core/game/application/ports/game-repository";
 import type { Game } from "@quizio/core/game/domain/game";
+import { definedOptions } from "@quizio/core/game/domain/game-options";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { game as gameTable } from "../../schema/game";
@@ -88,17 +89,22 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 				.onConflictDoUpdate({ target: gameTable.id, set: fields });
 		},
 
-		async saveSettings(game) {
-			// Only these columns: where the game is belongs to `saveIfAt`.
+		async saveLocked(gameId, locked) {
+			// Only this column: where the game is belongs to `saveIfAt`.
 			await db
 				.update(gameTable)
-				.set({
-					locked: game.locked,
-					showQuestionsOnDevices: game.options.showQuestionsOnDevices,
-					randomizeQuestions: game.options.randomizeQuestions,
-					randomizeAnswers: game.options.randomizeAnswers,
-				})
-				.where(eq(gameTable.id, game.id));
+				.set({ locked })
+				.where(eq(gameTable.id, gameId));
+		},
+
+		async saveOptions(gameId, change) {
+			// Only the columns of the options that changed: one switch never
+			// writes over another turned at the same time.
+			const columns = definedOptions(change);
+			if (Object.keys(columns).length === 0) {
+				return;
+			}
+			await db.update(gameTable).set(columns).where(eq(gameTable.id, gameId));
 		},
 
 		async saveIfAt(game, from) {

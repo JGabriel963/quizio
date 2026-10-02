@@ -1,5 +1,9 @@
 import { requireOwnedGame } from "../domain/game";
-import { changeGameOptions, type GameOptions } from "../domain/game-options";
+import {
+	changeGameOptions,
+	definedOptions,
+	type GameOptions,
+} from "../domain/game-options";
 import { loadGame } from "./game-lifecycle";
 import {
 	type HostGameView,
@@ -29,10 +33,13 @@ export function createSetGameOptions(
 ): SetGameOptions {
 	return async ({ ownerId, gameId, options }) => {
 		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
-		const changed = changeGameOptions(game, options);
-		// Only the settings are written: the game may have moved on meanwhile.
-		await deps.games.saveSettings(changed);
-		await deps.preferences.save(ownerId, changed.options);
+		const change = definedOptions(options);
+		// Checked against the game as it was read; what is written is only the
+		// change. The game may have moved on meanwhile, and another switch may
+		// have been turned at the same time: neither is undone.
+		const changed = changeGameOptions(game, change);
+		await deps.games.saveOptions(game.id, change);
+		await deps.preferences.save(ownerId, change);
 		const latest = await loadGame(deps, gameId);
 		return loadHostGameView(deps, latest ?? changed);
 	};

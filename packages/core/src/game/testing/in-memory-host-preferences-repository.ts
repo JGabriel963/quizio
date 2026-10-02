@@ -1,5 +1,9 @@
 import type { HostPreferencesRepository } from "../application/ports/host-preferences-repository";
-import type { GameOptions } from "../domain/game-options";
+import {
+	DEFAULT_GAME_OPTIONS,
+	definedOptions,
+	type GameOptions,
+} from "../domain/game-options";
 
 export class InMemoryHostPreferencesRepository
 	implements HostPreferencesRepository
@@ -11,7 +15,10 @@ export class InMemoryHostPreferencesRepository
 		return options ? { ...options } : null;
 	}
 
-	async save(ownerId: string, options: GameOptions): Promise<void> {
-		this.#options.set(ownerId, { ...options });
+	async save(ownerId: string, change: Partial<GameOptions>): Promise<void> {
+		this.#options.set(ownerId, {
+			...(this.#options.get(ownerId) ?? DEFAULT_GAME_OPTIONS),
+			...definedOptions(change),
+		});
 	}
 }

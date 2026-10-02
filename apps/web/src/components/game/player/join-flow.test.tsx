@@ -1152,6 +1152,25 @@ describe("JoinFlow: playing (spec 009)", () => {
 		expect(await screen.findByText("+ 639")).toBeVisible();
 		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
 	});
+
+	it("the countdown does not go back when the device asks again (spec 012)", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("questionIntro"));
+		const timer = () => screen.getByRole("timer", { name: "Tempo de leitura" });
+		expect(timer()).toHaveTextContent("5");
+
+		// The check's answer says the 5 s are whole again, as a late answer
+		// would: the screen keeps the time it was already counting.
+		await act(() =>
+			vi.advanceTimersByTimeAsync(PLAY_CHECK_INTERVAL_MS - 1_000),
+		);
+		expect(timer()).toHaveTextContent("1");
+		await act(() => vi.advanceTimersByTimeAsync(1_200));
+
+		expect(timer()).toHaveTextContent("0");
+	});
 });
 
 describe("JoinFlow: coming back to a game (spec 008, RN-44a)", () => {

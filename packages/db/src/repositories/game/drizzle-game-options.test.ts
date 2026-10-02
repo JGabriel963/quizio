@@ -62,19 +62,38 @@ describe("game options repositories (spec 012)", () => {
 			);
 		});
 
-		it("saveSettings writes the lock and the options only", async () => {
-			await games.create(aGame());
+		it("saveOptions writes only the options it is given", async () => {
+			await games.create(aGame({ locked: true }));
 
-			await games.saveSettings(
-				aGame({ locked: true, options, title: "Outro título", pin: "111111" }),
-			);
+			await games.saveOptions("game-1", { showQuestionsOnDevices: true });
+			await games.saveOptions("game-1", { randomizeAnswers: true });
 
 			expect(await games.findById("game-1")).toEqual(
 				aGame({ locked: true, options }),
 			);
 		});
 
-		it("saveSettings does not undo an advance", async () => {
+		it("saveLocked writes only the lock", async () => {
+			await games.create(aGame({ options }));
+
+			await games.saveLocked("game-1", true);
+
+			expect(await games.findById("game-1")).toEqual(
+				aGame({ locked: true, options }),
+			);
+			await games.saveLocked("game-1", false);
+			expect((await games.findById("game-1"))?.locked).toBe(false);
+		});
+
+		it("saveOptions with nothing to change changes nothing", async () => {
+			await games.create(aGame({ options }));
+
+			await games.saveOptions("game-1", {});
+
+			expect(await games.findById("game-1")).toEqual(aGame({ options }));
+		});
+
+		it("the settings do not undo an advance", async () => {
 			const answering = aPlayingGame("answering", { since: now });
 			await games.create(answering);
 			// The game moves on after a request read it at the answers.
@@ -85,7 +104,8 @@ describe("game options repositories (spec 012)", () => {
 			});
 			await games.saveIfAt(results, { questionIndex: 0, phase: "answering" });
 
-			await games.saveSettings({ ...answering, locked: true, options });
+			await games.saveLocked("game-1", true);
+			await games.saveOptions("game-1", options);
 
 			expect(await games.findById("game-1")).toEqual({
 				...results,
@@ -173,6 +193,24 @@ describe("game options repositories (spec 012)", () => {
 			expect(await preferences.find("user-1")).toEqual({
 				showQuestionsOnDevices: false,
 				randomizeQuestions: true,
+				randomizeAnswers: true,
+			});
+		});
+
+		it("saves only the options it is given, over the ones kept", async () => {
+			// A first save of one option leaves the others off.
+			await preferences.save("user-1", { randomizeAnswers: true });
+			expect(await preferences.find("user-1")).toEqual({
+				showQuestionsOnDevices: false,
+				randomizeQuestions: false,
+				randomizeAnswers: true,
+			});
+
+			await preferences.save("user-1", { showQuestionsOnDevices: true });
+
+			expect(await preferences.find("user-1")).toEqual({
+				showQuestionsOnDevices: true,
+				randomizeQuestions: false,
 				randomizeAnswers: true,
 			});
 		});

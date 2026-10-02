@@ -1,8 +1,13 @@
 import type { ReactNode } from "react";
 
-import { QuestionImageView } from "@/components/editor/question-image-view";
+import {
+	QUESTION_IMAGE_FALLBACK_ALT,
+	QuestionImageView,
+} from "@/components/editor/question-image-view";
 import type { PlayerQuestionData, PlayerStageData } from "@/lib/api-types";
 import { useCountdown } from "@/lib/use-countdown";
+
+type DeviceImage = NonNullable<PlayerQuestionData["image"]>;
 
 /**
  * What the phone shows of the question itself when the host turned "Mostrar
@@ -56,9 +61,34 @@ export function DeviceQuestionIntro({
 }
 
 /**
- * The answers phase with the question on the phone (RN-18b): the image, if
- * any, the statement, the buttons (`children`) and the time left. An image
- * the editor set as background shows here like any other (RN-20).
+ * The question's image behind the whole phone, when the editor set it as the
+ * background: as on the host's screen, and as in Kahoot (RN-20).
+ */
+export function DeviceBackground({ image }: { image: DeviceImage | null }) {
+	if (image?.placement !== "background") {
+		return null;
+	}
+	return (
+		<div
+			data-slot="device-question-background"
+			className="absolute inset-0 -z-10"
+		>
+			<img
+				src={image.url}
+				alt={image.altText ?? QUESTION_IMAGE_FALLBACK_ALT}
+				draggable={false}
+				className="size-full object-cover"
+			/>
+			<div className="absolute inset-0 bg-black/30" />
+		</div>
+	);
+}
+
+/**
+ * The answers phase with the question on the phone, laid out as in Kahoot
+ * (RN-18b): the image takes the room at the top, and the statement, the
+ * buttons (`children`) and the time sit at the bottom, within the thumb's
+ * reach. A background image is drawn by `DeviceBackground`, behind it all.
  */
 export function DeviceQuestion({
 	stage,
@@ -72,30 +102,38 @@ export function DeviceQuestion({
 	/** The answer buttons. */
 	children: ReactNode;
 }) {
+	const media = question.image?.placement === "media" ? question.image : null;
+
 	return (
-		<main className="flex min-h-0 flex-1 flex-col motion-safe:animate-stage-in">
-			<div className="flex shrink-0 flex-col items-center gap-2 px-2 pt-1">
-				{question.image && (
-					<div
-						data-slot="device-question-image"
-						className="h-[22svh] max-h-48 w-full"
-					>
-						<QuestionImageView
-							image={question.image}
-							url={question.image.url}
-							className="rounded-md"
-						/>
-					</div>
+		<main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col motion-safe:animate-stage-in">
+			{/* Whatever is left of the screen: the buttons below keep their size. */}
+			<div
+				data-slot="device-question-image"
+				className="flex min-h-0 flex-1 basis-24 items-center justify-center px-2 pt-1"
+			>
+				{media && (
+					<QuestionImageView
+						image={media}
+						url={media.url}
+						className="max-h-full rounded-md"
+					/>
 				)}
-				{question.text !== null && <Statement>{question.text}</Statement>}
 			</div>
+			{question.text !== null && (
+				<div className="shrink-0 px-2 pt-2">
+					<Statement>{question.text}</Statement>
+				</div>
+			)}
 			{children}
 			<TimeBar stage={stage} receivedAt={receivedAt} />
 		</main>
 	);
 }
 
-/** The time left to answer: the seconds and a bar that runs out with them. */
+/**
+ * The time left to answer, as in Kahoot: a bar that runs out, with the
+ * seconds at its end.
+ */
 function TimeBar({
 	stage,
 	receivedAt,
@@ -110,22 +148,20 @@ function TimeBar({
 	const left = Math.min(1, Math.max(0, ms / (stage.durationMs ?? 1)));
 
 	return (
-		<div className="flex shrink-0 items-center gap-2 px-2 pb-2">
-			<p
-				role="timer"
-				aria-label="Tempo restante"
-				className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white font-black text-neutral-900 text-sm"
-			>
-				{seconds}
-			</p>
-			<div
-				aria-hidden="true"
-				className="h-3 min-w-0 flex-1 overflow-hidden rounded-full bg-black/30"
-			>
+		<div className="shrink-0 px-2 pb-2">
+			<div className="h-6 overflow-hidden rounded-full bg-black/40">
 				<div
-					className="h-full rounded-full bg-white transition-[width] duration-200 ease-linear"
+					className="flex h-full min-w-10 items-center justify-end rounded-full bg-brand-strong px-2.5 ring-1 ring-white/30 transition-[width] duration-200 ease-linear"
 					style={{ width: `${left * 100}%` }}
-				/>
+				>
+					<span
+						role="timer"
+						aria-label="Tempo restante"
+						className="font-black text-sm leading-none"
+					>
+						{seconds}
+					</span>
+				</div>
 			</div>
 		</div>
 	);

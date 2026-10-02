@@ -20,6 +20,15 @@ export const DEFAULT_GAME_OPTIONS: GameOptions = {
 	randomizeAnswers: false,
 };
 
+/** Only the options a change really carries: a key sent as undefined is no change. */
+export function definedOptions(
+	change: Partial<GameOptions>,
+): Partial<GameOptions> {
+	return Object.fromEntries(
+		Object.entries(change).filter(([, value]) => value !== undefined),
+	);
+}
+
 /** The random orders are drawn when the game starts: only the lobby changes them (RN-25). */
 export class GameOptionsFixedError extends DomainError {
 	readonly code = "GAME.OPTIONS_FIXED";
@@ -30,7 +39,7 @@ export function changeGameOptions(
 	change: Partial<GameOptions>,
 ): Game {
 	assertGameOpen(game);
-	const options = { ...game.options, ...change };
+	const options = { ...game.options, ...definedOptions(change) };
 	const drawn =
 		options.randomizeQuestions !== game.options.randomizeQuestions ||
 		options.randomizeAnswers !== game.options.randomizeAnswers;

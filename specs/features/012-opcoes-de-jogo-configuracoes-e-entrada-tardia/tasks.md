@@ -144,3 +144,9 @@ Cobertura: CA-01 a CA-39, com CA-22a, CA-22b e CA-22c, aparecem em ao menos uma 
 | 12 | T02, T08, T10, T18, T20 | 23 | T04, T10, T12 | 37 | T09 |
 | 13 | T09, T11 | 24 | T10 | 38 | T19 |
 | 14 | T10, T18 | 25 | T17, T18 | 39 | T17 |
+
+## Depois do fechamento (2026-10-02)
+
+- Layout do celular e dos cartões de resposta refeito a pedido do usuário, pelas capturas do Kahoot (ver o changelog da spec). O palco público passou a levar a posição da imagem (`PublicImage.placement`). Conferido no navegador com imagens de fundo, em perguntas de duas e de quatro alternativas; a imagem ao centro no celular ficou só nos testes.
+- Correção de uma atualização perdida nas configurações, pega pelo E2E de forma intermitente: duas chaves viradas em seguida podiam desfazer uma à outra, e o mesmo entre o bloqueio e uma opção, e nas preferências salvas. Cada configuração passou a ser gravada sozinha (`saveLocked`, `saveOptions`). Testes novos reproduzem a corrida no caso de uso e conferem as gravações no repositório.
+- A contagem do celular não volta mais: quando o aparelho consulta de novo a mesma fase, fica com a leitura que termina primeiro (`earliestDeadline`). Antes, cada resposta do servidor reiniciava a contagem com o atraso da própria resposta, e a barra recuava um pouco.

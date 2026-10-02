@@ -163,4 +163,98 @@ describe("setGameOptions (spec 012)", () => {
 		// And the lock of the first game stayed as the host left it.
 		expect((await deps.games.findById("game-1"))?.locked).toBe(true);
 	});
+
+	describe("two changes at the same time", () => {
+		/** Runs `other` right after the first request read the game, before it writes. */
+		function interleave(
+			deps: Awaited<ReturnType<typeof lobby>>,
+			other: () => Promise<unknown>,
+		) {
+			const findById = deps.games.findById.bind(deps.games);
+			let raced = false;
+			deps.games.findById = async (id) => {
+				const game = await findById(id);
+				if (!raced) {
+					raced = true;
+					await other();
+				}
+				return game;
+			};
+		}
+
+		it("two switches turned on together are both kept", async () => {
+			const deps = await lobby();
+			const setGameOptions = createSetGameOptions(deps);
+			interleave(deps, () =>
+				setGameOptions({ ...mine, options: { randomizeAnswers: true } }),
+			);
+
+			const view = await setGameOptions({
+				...mine,
+				options: { showQuestionsOnDevices: true },
+			});
+
+			const both = {
+				showQuestionsOnDevices: true,
+				randomizeQuestions: false,
+				randomizeAnswers: true,
+			};
+			expect((await deps.games.findById("game-1"))?.options).toEqual(both);
+			expect(await deps.preferences.find("user-1")).toEqual(both);
+			expect(view.options).toEqual(both);
+		});
+
+		it("an option does not undo a lock set meanwhile", async () => {
+			const deps = await lobby();
+			interleave(deps, () =>
+				createSetGameLocked(deps)({ ...mine, locked: true }),
+			);
+
+			await createSetGameOptions(deps)({
+				...mine,
+				options: { showQuestionsOnDevices: true },
+			});
+
+			expect(await deps.games.findById("game-1")).toMatchObject({
+				locked: true,
+				options: { showQuestionsOnDevices: true },
+			});
+		});
+
+		it("a lock does not undo an option set meanwhile", async () => {
+			const deps = await lobby();
+			interleave(deps, () =>
+				createSetGameOptions(deps)({
+					...mine,
+					options: { randomizeQuestions: true },
+				}),
+			);
+
+			await createSetGameLocked(deps)({ ...mine, locked: true });
+
+			expect(await deps.games.findById("game-1")).toMatchObject({
+				locked: true,
+				options: { randomizeQuestions: true },
+			});
+		});
+
+		it("ignores an option that was not sent", async () => {
+			const deps = await lobby();
+			await createSetGameOptions(deps)({
+				...mine,
+				options: { randomizeAnswers: true },
+			});
+
+			await createSetGameOptions(deps)({
+				...mine,
+				options: { showQuestionsOnDevices: true, randomizeAnswers: undefined },
+			});
+
+			expect((await deps.games.findById("game-1"))?.options).toEqual({
+				showQuestionsOnDevices: true,
+				randomizeQuestions: false,
+				randomizeAnswers: true,
+			});
+		});
+	});
 });

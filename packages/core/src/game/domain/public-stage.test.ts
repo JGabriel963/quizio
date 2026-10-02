@@ -68,6 +68,7 @@ describe("public stage with the questions on the devices (spec 012)", () => {
 			text: "Qual é a capital do Brasil?",
 			image: {
 				url: "https://media.test/quizzes/quiz-1/questions/a.png",
+				placement: "media",
 				crop: { shape: "square", zoom: 2, x: 0.5, y: 0.25 },
 				altText: "Mapa do Brasil",
 			},
@@ -93,7 +94,7 @@ describe("public stage with the questions on the devices (spec 012)", () => {
 		]);
 	});
 
-	it("an image set as background goes like any other", () => {
+	it("tells where the editor placed the image", () => {
 		const stage = publicStageOf(
 			showing("answering"),
 			aGameQuestion({ image: { ...image, placement: "background" } }),
@@ -102,6 +103,7 @@ describe("public stage with the questions on the devices (spec 012)", () => {
 
 		expect(stage.question?.image).toEqual({
 			url: "https://media.test/quizzes/quiz-1/questions/a.png",
+			placement: "background",
 			crop: image.crop,
 			altText: "Mapa do Brasil",
 		});

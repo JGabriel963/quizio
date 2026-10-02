@@ -243,3 +243,4 @@ Os testes das specs 008 e 009 que esperam "Este jogo já começou." passam a esp
 - **Os testes de `setGameLocked` e `findGameByPin` ficaram nos arquivos que já os tinham** (`host-lobby.test.ts`, `join-game.test.ts`); os de repositório, num arquivo novo, `drizzle-game-options.test.ts`.
 - **`GAME.ALREADY_STARTED` continua existindo** só para "Iniciar" numa partida que já começou; a mensagem "Este jogo já começou." saiu.
 - **`DrizzleHostPreferencesRepository` recebe um relógio opcional** para o `updated_at`, que é só registro da linha.
+- **`saveSettings` virou `saveLocked` e `saveOptions`** (corrigido depois do fechamento): gravar o bloqueio e as três opções de uma vez perdia uma mudança quando duas chaves eram viradas em seguida, porque o segundo pedido regravava a outra chave com o valor que tinha lido antes. Agora cada pedido grava só o que mudou, na partida e nas preferências. O E2E pegou a falha, de forma intermitente.

@@ -14,7 +14,11 @@ import { useCountdown } from "@/lib/use-countdown";
 import { AnswerButtons } from "./answer-buttons";
 import { FinalScreen } from "./final-screen";
 import { Centered, PlayerFrame, Spinner } from "./player-frame";
-import { DeviceQuestion, DeviceQuestionIntro } from "./question-on-device";
+import {
+	DeviceBackground,
+	DeviceQuestion,
+	DeviceQuestionIntro,
+} from "./question-on-device";
 
 const RESULTS: Record<
 	PlayerResultData,
@@ -276,7 +280,11 @@ export function PlayerStage({
 		/>
 	);
 	return (
-		<PlayerFrame {...frame} notice={notice}>
+		<PlayerFrame
+			{...frame}
+			notice={notice}
+			background={<DeviceBackground image={question.image} />}
+		>
 			{question.text === null ? (
 				answerButtons
 			) : (

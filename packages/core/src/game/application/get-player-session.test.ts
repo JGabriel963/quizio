@@ -571,6 +571,7 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 			text: "Qual é a capital do Brasil?",
 			image: {
 				url: "https://media.test/quizzes/quiz-1/questions/mapa.png",
+				placement: "background",
 				crop: image.crop,
 				altText: "Mapa do Brasil",
 			},

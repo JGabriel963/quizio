@@ -23,8 +23,9 @@ export function createSetGameLocked(deps: {
 	return async ({ ownerId, gameId, locked }) => {
 		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
 		const changed = setGameLocked(game, locked);
-		// Only the settings are written: the game may have moved on meanwhile.
-		await deps.games.saveSettings(changed);
+		// Only the lock is written: the game may have moved on meanwhile, and
+		// an option may have been changed at the same time.
+		await deps.games.saveLocked(game.id, changed.locked);
 		await publishToGame<LockChangedPayload>(
 			deps.realtime,
 			game.id,

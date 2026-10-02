@@ -276,6 +276,45 @@ describe("HostStage: answers (spec 009)", () => {
 		]);
 	});
 
+	it("sizes the cards by how many rows there are", () => {
+		const rowsOf = (count: number) => {
+			const question = {
+				...capitals(hidden),
+				choices: capitals(hidden).choices.slice(0, count),
+			};
+			const view = render(
+				<HostStage
+					game={{ ...game, stage: stageAt({ question }) }}
+					stage={stageAt({ question })}
+					origin="https://quizio.app"
+					receivedAt={Date.now()}
+					actions={{
+						advance: vi.fn(async () => {}),
+						setLocked: vi.fn(),
+						setOptions: vi.fn(),
+						end: vi.fn(),
+					}}
+				/>,
+			);
+			const list = screen.getByRole("list", { name: "Respostas" });
+			const result = {
+				rows: list.dataset.rows,
+				card: choices()[0]?.className ?? "",
+			};
+			view.unmount();
+			return result;
+		};
+
+		const two = rowsOf(2);
+		const four = rowsOf(4);
+
+		expect(two.rows).toBe("1");
+		expect(four.rows).toBe("2");
+		// One row of two answers is taller than each row of four.
+		expect(two.card).toMatch(/19svh/);
+		expect(four.card).toMatch(/12svh/);
+	});
+
 	it("shows six answers", () => {
 		renderStage(
 			stageAt({

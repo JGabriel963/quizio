@@ -1,5 +1,8 @@
 import type { QuestionType, SelectionMode } from "../../quiz/domain/question";
-import type { ImageCrop } from "../../quiz/domain/question-image";
+import type {
+	ImageCrop,
+	ImagePlacement,
+} from "../../quiz/domain/question-image";
 import {
 	type GamePhase,
 	type PlayingGame,
@@ -20,6 +23,8 @@ export interface PublicChoice {
 /** The question's image as a device draws it: an address, never a key (ADR 0003). */
 export interface PublicImage {
 	url: string;
+	/** In the middle or behind the whole screen, as on the host's (spec 012, RN-20). */
+	placement: ImagePlacement;
 	crop: ImageCrop | null;
 	altText: string | null;
 }
@@ -74,6 +79,7 @@ export function publicStageOf(
 				answersShown && shown.image
 					? {
 							url: imageUrlOf(shown.image.key),
+							placement: shown.image.placement,
 							crop: shown.image.crop,
 							altText: shown.image.altText,
 						}

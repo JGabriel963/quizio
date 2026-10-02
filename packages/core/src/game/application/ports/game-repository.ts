@@ -1,4 +1,5 @@
 import type { Game } from "../../domain/game";
+import type { GameOptions } from "../../domain/game-options";
 import type { StageRef } from "../../domain/game-progress";
 
 export interface GameRepository {
@@ -14,10 +15,13 @@ export interface GameRepository {
 	/** Rewrites the whole game: only for what ends it or settles its deadline. */
 	save(game: Game): Promise<void>;
 	/**
-	 * Stores the lock and the options, and nothing else: a setting changed
-	 * during the game never undoes a stage written meanwhile (spec 012).
+	 * Stores the lock and nothing else. Each setting is written on its own
+	 * (spec 012): changed during the game, it never undoes a stage written
+	 * meanwhile, and two settings changed at the same time are both kept.
 	 */
-	saveSettings(game: Game): Promise<void>;
+	saveLocked(gameId: string, locked: boolean): Promise<void>;
+	/** Stores only the options given, leaving the others as they are stored. */
+	saveOptions(gameId: string, change: Partial<GameOptions>): Promise<void>;
 	/**
 	 * Stores where the game is (status, progress, ending) only if the stored
 	 * game was not ended and is still at `from`, the lobby when null. False

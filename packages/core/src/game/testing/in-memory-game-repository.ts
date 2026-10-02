@@ -1,5 +1,6 @@
 import type { GameRepository } from "../application/ports/game-repository";
 import type { Game } from "../domain/game";
+import { definedOptions, type GameOptions } from "../domain/game-options";
 import { isAtStage, type StageRef } from "../domain/game-progress";
 
 export class InMemoryGameRepository implements GameRepository {
@@ -34,13 +35,22 @@ export class InMemoryGameRepository implements GameRepository {
 		this.#games.set(game.id, game);
 	}
 
-	async saveSettings(game: Game): Promise<void> {
-		const stored = this.#games.get(game.id);
+	async saveLocked(gameId: string, locked: boolean): Promise<void> {
+		const stored = this.#games.get(gameId);
 		if (stored) {
-			this.#games.set(game.id, {
+			this.#games.set(gameId, { ...stored, locked });
+		}
+	}
+
+	async saveOptions(
+		gameId: string,
+		change: Partial<GameOptions>,
+	): Promise<void> {
+		const stored = this.#games.get(gameId);
+		if (stored) {
+			this.#games.set(gameId, {
 				...stored,
-				locked: game.locked,
-				options: { ...game.options },
+				options: { ...stored.options, ...definedOptions(change) },
 			});
 		}
 	}

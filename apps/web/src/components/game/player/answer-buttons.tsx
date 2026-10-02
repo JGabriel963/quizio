@@ -45,7 +45,15 @@ export function AnswerButtons({
 	}
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden p-2">
+		<div
+			className={cn(
+				"flex min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden p-2",
+				// Only shapes: the buttons are the screen. With the texts they
+				// sit at the bottom, under the image and the statement, and keep
+				// their size: the list scrolls only if the screen is too short.
+				!withTexts && "flex-1",
+			)}
+		>
 			{multiple && (
 				<p className="shrink-0 rounded-md bg-black/40 px-3 py-2 text-center font-bold">
 					Selecione uma ou mais respostas!
@@ -55,11 +63,10 @@ export function AnswerButtons({
 				aria-label="Respostas"
 				className={cn(
 					"grid grid-cols-2 gap-2",
-					// Only shapes: the buttons share the screen. With texts they are
-					// low, each as tall as its text needs, and the list scrolls if
-					// it must (spec 012, RN-18b).
+					// With texts, cards of a good size for the thumb, as in Kahoot,
+					// that grow with a long text (spec 012, RN-18b).
 					withTexts
-						? "shrink-0 auto-rows-[minmax(5.5rem,auto)]"
+						? "shrink-0 auto-rows-[minmax(clamp(5.5rem,13svh,8.5rem),auto)]"
 						: "min-h-0 flex-1 auto-rows-fr",
 				)}
 			>
@@ -125,7 +132,7 @@ function AnswerButton({
 			className={cn(
 				"relative flex min-h-0 select-none flex-col items-center justify-center gap-2 rounded-md text-answer-foreground shadow-press outline-none transition-[filter,transform,box-shadow] hover:brightness-110 focus-visible:ring-4 focus-visible:ring-white/70 active:translate-y-0.5 active:shadow-press-sm",
 				ANSWER_COLOR_CLASSES[shape],
-				withText && "px-3 pt-8 pb-3",
+				withText && "px-3 py-8",
 				marked && "ring-4 ring-white",
 			)}
 		>
@@ -138,7 +145,7 @@ function AnswerButton({
 					/>
 					<span
 						data-slot="answer-button-text"
-						className="w-full break-words text-center font-bold text-base leading-tight sm:text-xl"
+						className="w-full break-words text-center font-bold text-lg leading-tight sm:text-2xl"
 					>
 						{choice.text}
 					</span>

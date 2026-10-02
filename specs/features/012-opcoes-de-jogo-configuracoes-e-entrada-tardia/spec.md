@@ -90,7 +90,7 @@ O anfitrião abre as Configurações pelo cabeçalho, no lobby ou durante o jogo
 | RN-18a | Ligada, na **abertura da pergunta** o celular mostra o **enunciado** em destaque e a barra do tempo de leitura, no lugar de "Pergunta 3" e "Preparar…". | referência visual do Kahoot (captura de 2026-10-02) |
 | RN-18b | Ligada, na **fase de respostas** o celular mostra, de cima para baixo: a **imagem da pergunta**, se houver, com o recorte e o texto alternativo; o **enunciado** numa faixa; os botões, cada um com a **forma pequena no canto** e o **texto da alternativa** ao centro; e uma **barra de tempo** com os segundos que restam. No Verdadeiro ou falso, os botões dizem "Verdadeiro" e "Falso". | referência visual do Kahoot (capturas de 2026-10-02) |
 | RN-19 | Desligado, o celular continua como na spec 009: só cor e forma. | spec 009, RN-14 |
-| RN-20 | O celular **nunca** mostra qual alternativa é a certa, com a opção ligada ou não. A imagem aparece no celular só com a opção ligada, e do mesmo jeito para as duas posições do editor (ao centro e como fundo). Altera a spec 009, RN-28. | spec 009, RN-21, RN-26 · constituição, artigo V · posição da imagem: decisão do produto (2026-10-02) |
+| RN-20 | O celular **nunca** mostra qual alternativa é a certa, com a opção ligada ou não. A imagem aparece no celular só com a opção ligada, na posição que o editor deu a ela: ao centro, no alto da tela, ou como fundo, atrás da tela inteira. Altera a spec 009, RN-28. | spec 009, RN-21, RN-26 · constituição, artigo V · posição da imagem: decisão do produto (2026-10-02) |
 | RN-21 | A opção pode mudar **durante o jogo** e vale a partir da **próxima fase** que os celulares mostrarem. | kahoot-reference §6.1 ("durante o jogo") · decisão do produto (2026-10-02) |
 
 ### Ordem aleatória
@@ -426,7 +426,7 @@ As telas seguem as capturas do Kahoot, no tema escuro do Quizio.
 - [x] **Imagem da pergunta no celular** (RN-20) — as capturas mostram a imagem no celular com a opção ligada; entrou.
 - [x] **Múltipla escolha no celular** (RN-28 a RN-32) — decidido pela captura: marcadores e botão "Enviar". Resolve a pergunta em aberto da spec 009.
 - [ ] **Marcadas e não enviadas** (RN-30) — contam como sem resposta. A alternativa é enviar sozinho o que estava marcado quando o tempo acaba.
-- [ ] **Imagem de fundo no celular** (RN-20) — a imagem que no anfitrião é fundo aparece no celular como as outras, acima do enunciado.
+- [x] **Imagem de fundo no celular** (RN-20) — decidido pelas capturas de 2026-10-02: a imagem de fundo fica atrás da tela inteira do celular, como no Kahoot.
 
 ## Changelog
 
@@ -435,3 +435,4 @@ As telas seguem as capturas do Kahoot, no tema escuro do Quizio.
 - 2026-10-02 — aprovada pelo usuário, com as decisões em aberto mantidas como propostas.
 - 2026-10-02 — plano aprovado pelo usuário e tarefas escritas ([plan.md](plan.md), [tasks.md](tasks.md)).
 - 2026-10-02 — implementada. Detalhes decididos na implementação, sem mudar regra: na abertura da pergunta só o enunciado vai para os celulares; a imagem e os textos das alternativas vão quando as respostas abrem, como na tela do anfitrião (RN-18a, RN-18b). A espera de quem entrou no meio mostra "Você entrou!" em destaque e "Aguarde a próxima pergunta." embaixo (RN-13). Com os textos, os botões do celular ficam baixos, da altura do texto, e a lista rola para baixo se precisar (CA-25). Em telas de celular, o cabeçalho do anfitrião esconde o nome do Quizio durante o jogo para caber o PIN (RN-11). Quem entra com o jogo em andamento vai direto para a tela do jogo, sem passar pela espera do lobby.
+- 2026-10-02 — ajuste de layout pedido pelo usuário, com capturas do Kahoot: no celular, a imagem ocupa o alto da tela, e o enunciado, as respostas e a barra de tempo ficam embaixo; a imagem de fundo passa a ficar atrás da tela inteira do celular (RN-20, alterada); a barra de tempo leva os segundos na ponta. Os cartões de resposta ganharam altura no celular e na tela do anfitrião, que os dimensiona pelo número de linhas.

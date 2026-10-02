@@ -1,4 +1,8 @@
 import type { HostPreferencesRepository } from "@quizio/core/game/application/ports/host-preferences-repository";
+import {
+	DEFAULT_GAME_OPTIONS,
+	definedOptions,
+} from "@quizio/core/game/domain/game-options";
 import { eq } from "drizzle-orm";
 
 import { hostPreferences } from "../../schema/game";
@@ -23,17 +27,14 @@ export function createDrizzleHostPreferencesRepository(
 			return row ?? null;
 		},
 
-		async save(ownerId, options) {
-			const fields = {
-				showQuestionsOnDevices: options.showQuestionsOnDevices,
-				randomizeQuestions: options.randomizeQuestions,
-				randomizeAnswers: options.randomizeAnswers,
-				updatedAt: now(),
-			};
+		async save(ownerId, change) {
+			// One statement: a first save starts from the defaults, a later one
+			// touches only the columns of the options that changed.
+			const changed = { ...definedOptions(change), updatedAt: now() };
 			await db
 				.insert(hostPreferences)
-				.values({ ownerId, ...fields })
-				.onConflictDoUpdate({ target: hostPreferences.ownerId, set: fields });
+				.values({ ownerId, ...DEFAULT_GAME_OPTIONS, ...changed })
+				.onConflictDoUpdate({ target: hostPreferences.ownerId, set: changed });
 		},
 	};
 }

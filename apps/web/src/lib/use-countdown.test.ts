@@ -1,7 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { msLeft, secondsLeft, useCountdown } from "./use-countdown";
+import {
+	earliestDeadline,
+	msLeft,
+	secondsLeft,
+	useCountdown,
+} from "./use-countdown";
 
 describe("msLeft (spec 009)", () => {
 	it("counts from the arrival, never below zero", () => {
@@ -69,5 +74,26 @@ describe("useCountdown (spec 009)", () => {
 		const { result } = renderHook(() => useCountdown(null, 0));
 
 		expect(result.current).toEqual({ ms: null, seconds: null });
+	});
+});
+
+describe("earliestDeadline (spec 012)", () => {
+	it("keeps the reading that ends first", () => {
+		const shown = { remainingMs: 5_000, receivedAt: 1_000 };
+		// Asked again 2 s later: the answer took 300 ms to arrive, so it says
+		// there is more time left than the screen is showing.
+		const late = { remainingMs: 3_000, receivedAt: 3_300 };
+		const sooner = { remainingMs: 2_900, receivedAt: 3_000 };
+
+		expect(earliestDeadline(shown, late)).toBe(shown);
+		expect(earliestDeadline(shown, sooner)).toBe(sooner);
+	});
+
+	it("takes the new reading when one of them has no deadline", () => {
+		const results = { remainingMs: null, receivedAt: 1_000 };
+		const answering = { remainingMs: 20_000, receivedAt: 2_000 };
+
+		expect(earliestDeadline(results, answering)).toBe(answering);
+		expect(earliestDeadline(answering, results)).toBe(results);
 	});
 });
