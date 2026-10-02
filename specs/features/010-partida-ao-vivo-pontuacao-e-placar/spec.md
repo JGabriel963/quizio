@@ -327,3 +327,4 @@ As telas seguem as capturas do jogo de verdade, no tema escuro do Quizio.
 - 2026-10-01 — spec criada, com as capturas de um jogo de verdade no Kahoot enviadas pelo usuário. Decisões tomadas sem consulta prévia, listadas nas perguntas em aberto: texto da posição fora do pódio (RN-15), desempate pela ordem de entrada (RN-19), placar depois da última pergunta (RN-23), sequência em pergunta sem pontos e com resposta parcialmente correta (RN-04, RN-10).
 - 2026-10-01 — aprovada pelo usuário, com as decisões em aberto mantidas como propostas.
 - 2026-10-01 — implementada. Sem mudança de regra. Um ajuste de texto: os pontos aparecem sem separador de milhar ("+ 1750"), como nas capturas do Kahoot.
+- 2026-10-01 — alterada pela spec 011: a última pergunta não tem mais placar (RN-23, CA-29), a revelação dela leva direto ao pódio; e o placar passa a ser animado (deixa de valer a divergência "Sem animação de troca de posições").

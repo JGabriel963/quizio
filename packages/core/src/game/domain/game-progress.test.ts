@@ -189,30 +189,8 @@ describe("phases of a game (spec 009)", () => {
 		});
 	});
 
-	it("the last question has its scoreboard too", () => {
-		expect(
-			nextStage(at("results", 2), {
-				timeLimitSeconds: 20,
-				skip: false,
-				now: later(1),
-			}),
-		).toMatchObject({
-			status: "playing",
-			progress: { questionIndex: 2, phase: "scoreboard" },
-		});
-	});
-
-	it("knows which question's points are revealed", () => {
-		expect(revealedThrough(at("gameIntro").progress)).toBe(-1);
-		expect(revealedThrough(at("answering", 0).progress)).toBe(-1);
-		expect(revealedThrough(at("results", 0).progress)).toBe(0);
-		expect(revealedThrough(at("scoreboard", 0).progress)).toBe(0);
-		expect(revealedThrough(at("questionIntro", 1).progress)).toBe(0);
-		expect(revealedThrough(at("answering", 1).progress)).toBe(0);
-	});
-
-	it("the last scoreboard finishes the game", () => {
-		const finished = nextStage(at("scoreboard", 2), {
+	it("the last results finish the game, without a scoreboard (spec 011)", () => {
+		const finished = nextStage(at("results", 2), {
 			timeLimitSeconds: 20,
 			skip: false,
 			now: later(60_000),
@@ -228,6 +206,36 @@ describe("phases of a game (spec 009)", () => {
 		// Finished is final: nothing ends or expires it afterwards.
 		expect(endGame(finished, "host", later(70_000))).toBe(finished);
 		expect(expireIfDue(finished, later(GAME_TTL_MS * 2))).toBe(finished);
+	});
+
+	it("a game of one question finishes at its results", () => {
+		expect(
+			nextStage(at("results", 0, 1), {
+				timeLimitSeconds: 20,
+				skip: false,
+				now: later(1),
+			}),
+		).toMatchObject({ status: "finished", progress: null });
+	});
+
+	it("knows which question's points are revealed", () => {
+		expect(revealedThrough(at("gameIntro").progress)).toBe(-1);
+		expect(revealedThrough(at("answering", 0).progress)).toBe(-1);
+		expect(revealedThrough(at("results", 0).progress)).toBe(0);
+		expect(revealedThrough(at("scoreboard", 0).progress)).toBe(0);
+		expect(revealedThrough(at("questionIntro", 1).progress)).toBe(0);
+		expect(revealedThrough(at("answering", 1).progress)).toBe(0);
+	});
+
+	it("a scoreboard left at the last question finishes the game", () => {
+		// Only a game that was there before spec 011: the last results end it now.
+		expect(
+			nextStage(at("scoreboard", 2), {
+				timeLimitSeconds: 20,
+				skip: false,
+				now: later(60_000),
+			}),
+		).toMatchObject({ status: "finished", progress: null });
 	});
 
 	it("a game that is not playing takes no transition", () => {

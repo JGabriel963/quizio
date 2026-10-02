@@ -179,25 +179,20 @@ describe("advanceGame (spec 009)", () => {
 		expect(view.stage?.phase).toBe("results");
 	});
 
-	it("finishes after the last scoreboard and frees the PIN", async () => {
+	it("finishes at the last results, without a scoreboard, and frees the PIN (spec 011)", async () => {
 		const { deps, host, advance, reach, stored } = await createStartedGame();
 		await reach("results", 1);
 
-		const board = await advance({
+		const view = await advance({
 			...host,
 			from: { questionIndex: 1, phase: "results" },
 		});
-		expect(board.stage).toMatchObject({
-			questionIndex: 1,
-			phase: "scoreboard",
-		});
 
-		const view = await advance({
-			...host,
-			from: { questionIndex: 1, phase: "scoreboard" },
+		expect(view).toMatchObject({
+			status: "finished",
+			stage: null,
+			final: { revealRemainingMs: 7_000 },
 		});
-
-		expect(view).toMatchObject({ status: "finished", stage: null });
 		expect(await stored()).toMatchObject({
 			status: "finished",
 			endedAt: deps.clock.now(),
@@ -212,18 +207,30 @@ describe("advanceGame (spec 009)", () => {
 		).rejects.toMatchObject({ code: "GAME.PIN_NOT_RECOGNIZED" });
 	});
 
-	it("a game that is over takes no transition", async () => {
-		const finished = await createStartedGame();
-		await finished.reach("scoreboard", 1);
-		const last = { questionIndex: 1, phase: "scoreboard" } as const;
-		await finished.advance({ ...finished.host, from: last });
+	it("a repeated request after the end changes nothing and gets the podium (spec 011)", async () => {
+		const { deps, host, advance, finish, stored } = await createStartedGame();
+		await finish();
+		const endedAt = (await stored()).endedAt;
+		const messages = deps.realtime.messages.length;
+		deps.clock.advanceBy(3_000);
 
-		await expect(
-			finished.advance({ ...finished.host, from: last }),
-		).rejects.toThrow(GameEndedError);
+		const again = await advance({
+			...host,
+			from: { questionIndex: 1, phase: "results" },
+		});
 
+		expect(again).toMatchObject({
+			status: "finished",
+			final: { revealRemainingMs: 4_000 },
+		});
+		expect((await stored()).endedAt).toEqual(endedAt);
+		expect(deps.realtime.messages).toHaveLength(messages);
+	});
+
+	it("an ended game takes no transition", async () => {
 		const ended = await createStartedGame();
 		await createEndGame(ended.deps)(ended.host);
+
 		await expect(
 			ended.advance({ ...ended.host, from: gameIntro }),
 		).rejects.toThrow(GameEndedError);

@@ -42,6 +42,7 @@ describe("getHostGame (spec 008)", () => {
 			],
 			questionCount: 0,
 			stage: null,
+			final: null,
 		});
 	});
 

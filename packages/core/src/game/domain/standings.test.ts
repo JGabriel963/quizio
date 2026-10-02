@@ -4,6 +4,7 @@ import { anAnswer } from "../testing/a-game-question";
 import {
 	rankPlayers,
 	SCOREBOARD_SIZE,
+	scoreboardLeavers,
 	scoreboardOf,
 	standingOf,
 	streakAfter,
@@ -87,8 +88,22 @@ describe("scoreboardOf (spec 010)", () => {
 		const current = rankPlayers(two, totals(639, 701));
 
 		expect(scoreboardOf(current, previous)).toEqual([
-			{ playerId: "p2", nickname: "Bia", total: 701, rank: 1, climbed: true },
-			{ playerId: "p1", nickname: "Ana", total: 639, rank: 2, climbed: false },
+			{
+				playerId: "p2",
+				nickname: "Bia",
+				total: 701,
+				rank: 1,
+				climbed: true,
+				previous: { rank: 2, total: 0 },
+			},
+			{
+				playerId: "p1",
+				nickname: "Ana",
+				total: 639,
+				rank: 2,
+				climbed: false,
+				previous: { rank: 1, total: 639 },
+			},
 		]);
 	});
 
@@ -99,6 +114,8 @@ describe("scoreboardOf (spec 010)", () => {
 		);
 
 		expect(board.every((entry) => !entry.climbed)).toBe(true);
+		// Nothing to start from: the rows count up from zero (spec 011, RN-28).
+		expect(board.every((entry) => entry.previous === null)).toBe(true);
 	});
 
 	it("has no arrows when nothing changed", () => {
@@ -107,6 +124,67 @@ describe("scoreboardOf (spec 010)", () => {
 		expect(
 			scoreboardOf(standings, standings).every((entry) => !entry.climbed),
 		).toBe(true);
+	});
+
+	it("tells where a row that comes into the first five starts from", () => {
+		const previous = rankPlayers(
+			players,
+			totals(700, 600, 500, 400, 300, 200, 100),
+		);
+		// Gil, the last one, scores and goes up to fourth.
+		const current = rankPlayers(
+			players,
+			totals(700, 600, 500, 400, 300, 200, 450),
+		);
+
+		expect(scoreboardOf(current, previous)[3]).toEqual({
+			playerId: "p7",
+			nickname: "Gil",
+			total: 450,
+			rank: 4,
+			climbed: true,
+			previous: { rank: 7, total: 100 },
+		});
+	});
+});
+
+describe("scoreboardLeavers (spec 011, RN-31)", () => {
+	it("lists who was among the first five and is not anymore", () => {
+		const previous = rankPlayers(
+			players,
+			totals(700, 600, 500, 400, 300, 200, 100),
+		);
+		const current = rankPlayers(
+			players,
+			totals(700, 600, 500, 400, 300, 200, 450),
+		);
+
+		expect(scoreboardLeavers(current, previous)).toEqual([
+			{
+				playerId: "p5",
+				nickname: "Eva",
+				total: 300,
+				rank: 6,
+				climbed: false,
+				previous: { rank: 5, total: 300 },
+			},
+		]);
+	});
+
+	it("nobody left when the five are the same", () => {
+		const previous = rankPlayers(players.slice(0, 3), totals(900, 500, 0));
+		const current = rankPlayers(players.slice(0, 3), totals(900, 1400, 0));
+
+		expect(scoreboardLeavers(current, previous)).toEqual([]);
+	});
+
+	it("nobody left in the first scoreboard", () => {
+		expect(
+			scoreboardLeavers(
+				rankPlayers(players, totals(1, 2, 3, 4, 5, 6, 7)),
+				null,
+			),
+		).toEqual([]);
 	});
 });
 

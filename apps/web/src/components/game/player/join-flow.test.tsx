@@ -36,6 +36,10 @@ class FakeJoinApi implements JoinApi {
 	ended = false;
 	blocked = false;
 	finished = false;
+	/** What is left of the podium's reveal, as the server would tell (spec 011). */
+	revealRemainingMs = 0;
+	/** The place each player finished in; the first by default. */
+	readonly ranks = new Map<string, number>();
 	/** The stage of a game in progress; null while in the lobby. */
 	stage: PublicStage | null = null;
 	/** What the server answers to an answer, when it refuses. */
@@ -123,6 +127,15 @@ class FakeJoinApi implements JoinApi {
 									? this.outcomeOf(input.playerId)
 									: null,
 						},
+			final:
+				over === "finished"
+					? {
+							title: "Capitais",
+							rank: this.ranks.get(input.playerId) ?? 1,
+							total: this.totals.get(input.playerId) ?? 0,
+							revealRemainingMs: this.revealRemainingMs,
+						}
+					: null,
 		};
 	}
 
@@ -768,7 +781,8 @@ describe("JoinFlow: playing (spec 009)", () => {
 		expect(answerButtons()).toHaveLength(4);
 	});
 
-	it("shows the end of the game, which a reload keeps", async () => {
+	it("goes from the last results to the wait and then the final screen, which a reload keeps (spec 011)", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
 		const api = new FakeJoinApi();
 		const store = memoryStore();
 		const flow = renderFlow({ api, store });
@@ -776,6 +790,8 @@ describe("JoinFlow: playing (spec 009)", () => {
 		moveTo(flow, stageOf("results"));
 
 		api.finished = true;
+		api.revealRemainingMs = 7_000;
+		api.totals.set("p1", 3127);
 		act(() =>
 			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.stageChanged, {
 				status: "finished",
@@ -783,14 +799,79 @@ describe("JoinFlow: playing (spec 009)", () => {
 			}),
 		);
 
-		expect(screen.getByRole("heading", { name: "Fim do jogo" })).toBeVisible();
-		expect(screen.getByText("Obrigado por jogar!")).toBeVisible();
+		expect(screen.getByRole("status")).toHaveTextContent("Rufem os tambores…");
+		await act(() => vi.advanceTimersByTimeAsync(6_000));
+		expect(screen.getByRole("status")).toBeVisible();
 
+		await act(() => vi.advanceTimersByTimeAsync(1_500));
+		expect(screen.getByRole("heading", { name: "Imbatível!" })).toBeVisible();
+		expect(
+			document.querySelector('[data-slot="player-total"]'),
+		).toHaveTextContent("3127");
+
+		// The reveal is over by then: a reload shows the place at once.
 		flow.unmount();
+		api.revealRemainingMs = 0;
 		renderFlow({ api, store, pin: PIN });
 		expect(
-			await screen.findByRole("heading", { name: "Fim do jogo" }),
+			await screen.findByRole("heading", { name: "Imbatível!" }),
 		).toBeVisible();
+		expect(screen.queryByRole("status")).toBeNull();
+	});
+
+	it("catches up on the end of the game when the event was missed (spec 011)", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, stageOf("results"));
+
+		flow.api.finished = true;
+		flow.api.ranks.set("p1", 5);
+		await act(() => vi.advanceTimersByTimeAsync(PLAY_CHECK_INTERVAL_MS));
+
+		expect(
+			screen.getByRole("heading", { name: "Você ficou em 5º lugar" }),
+		).toBeVisible();
+	});
+
+	it("enters another game from the final screen (spec 011)", async () => {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		api.finished = true;
+		first.unmount();
+		const flow = renderFlow({ api, store, pin: PIN });
+
+		await flow.user.click(
+			await screen.findByRole("button", { name: "Entrar em outro jogo" }),
+		);
+
+		expect(pinField()).toBeInTheDocument();
+		// Leaving by choice gives no reason to show.
+		expect(screen.getByRole("alert").textContent).toBe("");
+		expect(flow.onPinChange).toHaveBeenLastCalledWith(null);
+		expect(store.load(PIN)).toBeNull();
+	});
+
+	it("a removed player gets no final screen (spec 011)", async () => {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		const player = api.players.get("p1");
+		if (player) {
+			player.removed = true;
+		}
+		api.finished = true;
+		first.unmount();
+
+		renderFlow({ api, store, pin: PIN });
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Ah, não! Você foi expulso do jogo.",
+		);
+		expect(screen.queryByRole("heading", { name: "Imbatível!" })).toBeNull();
 	});
 
 	it("a finished game does not keep its PIN from being typed again", async () => {

@@ -47,6 +47,7 @@ describe("game router: the host (spec 008)", () => {
 			players: [],
 			questionCount: 0,
 			stage: null,
+			final: null,
 		});
 	});
 
@@ -154,7 +155,13 @@ describe("game router: the player (spec 008)", () => {
 				playerId: player.playerId,
 				secret: player.secret,
 			}),
-		).toEqual({ gameId, nickname: "ACT", status: "waiting", stage: null });
+		).toEqual({
+			gameId,
+			nickname: "ACT",
+			status: "waiting",
+			stage: null,
+			final: null,
+		});
 		expect((await host.game.view({ gameId })).players).toEqual([
 			{ id: player.playerId, nickname: "ACT" },
 		]);
@@ -485,6 +492,102 @@ describe("game router: playing (spec 009)", () => {
 			questionIndex: 1,
 			phase: "questionIntro",
 			scoreboard: null,
+		});
+	});
+});
+
+describe("game router: the end of the game (spec 011)", () => {
+	/** Ana answers the first question right; then the game is played to its end. */
+	async function finished() {
+		const game = await answering();
+		const { api, host, visitor, gameId, ana } = game;
+		api.clock.advanceBy(5_000);
+		await visitor.game.join.answer({
+			...ana,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+		const advance = (
+			questionIndex: number,
+			phase: "answering" | "results" | "scoreboard" | "questionIntro",
+		) =>
+			host.game.advance({
+				gameId,
+				from: { questionIndex, phase },
+				skip: phase === "answering",
+			});
+		await advance(0, "answering");
+		await advance(0, "results");
+		await advance(0, "scoreboard");
+		api.clock.advanceBy(5_000);
+		await advance(1, "questionIntro");
+		await advance(1, "answering");
+		return { ...game, podium: await advance(1, "results") };
+	}
+
+	it("finishes at the last results and shows the podium", async () => {
+		const { api, host, visitor, gameId, pin, ana, bia, podium } =
+			await finished();
+
+		expect(podium).toMatchObject({
+			status: "finished",
+			stage: null,
+			final: {
+				standings: [
+					{ playerId: ana.playerId, nickname: "Ana", total: 875, rank: 1 },
+					{ playerId: bia.playerId, nickname: "Bia", total: 0, rank: 2 },
+				],
+				revealRemainingMs: 7_000,
+			},
+		});
+		api.clock.advanceBy(7_000);
+		expect((await host.game.view({ gameId })).final).toEqual({
+			...podium.final,
+			revealRemainingMs: 0,
+		});
+		expect(await visitor.game.join.session(bia)).toEqual({
+			gameId,
+			nickname: "Bia",
+			status: "finished",
+			stage: null,
+			final: { title: "Capitais", rank: 2, total: 0, revealRemainingMs: 0 },
+		});
+		await expect(visitor.game.join.find({ pin })).rejects.toMatchObject({
+			cause: { code: "GAME.PIN_NOT_RECOGNIZED" },
+		});
+		// Places and points do not travel in events (RN-24).
+		expect(api.realtime.messagesOn(gameChannel(gameId)).at(-1)).toEqual({
+			channel: gameChannel(gameId),
+			event: GAME_EVENTS.stageChanged,
+			payload: { status: "finished", stage: null },
+		});
+	});
+
+	it("hosts the same quiz again after the end, and the podium stays", async () => {
+		const { host, gameId, pin } = await finished();
+
+		const again = await host.game.host({ quizId: "quiz-1" });
+
+		expect(again.gameId).not.toBe(gameId);
+		expect(await host.game.view({ gameId: again.gameId })).toMatchObject({
+			status: "lobby",
+			players: [],
+			final: null,
+		});
+		expect((await host.game.view({ gameId: again.gameId })).pin).not.toBe(pin);
+		expect(await host.game.view({ gameId })).toMatchObject({
+			status: "finished",
+			final: { standings: [{ nickname: "Ana" }, { nickname: "Bia" }] },
+		});
+	});
+
+	it("refuses to host again a quiz that went to the trash", async () => {
+		const { api, host } = await finished();
+		await api.quizzes.save(aPublishedQuiz({ title: "Capitais", trashedAt }));
+
+		await expect(host.game.host({ quizId: "quiz-1" })).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.QUIZ_NOT_PLAYABLE" },
 		});
 	});
 });

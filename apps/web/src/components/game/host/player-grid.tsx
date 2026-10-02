@@ -32,7 +32,8 @@ export function PlayerGrid({
 					className="flex flex-wrap justify-center gap-3"
 				>
 					{players.map((player) => (
-						<li key={player.id}>
+						// Each one pops in as it arrives (spec 011, RN-35).
+						<li key={player.id} className="motion-safe:animate-pop-in">
 							<Tooltip>
 								<TooltipTrigger
 									render={

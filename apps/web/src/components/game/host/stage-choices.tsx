@@ -105,7 +105,8 @@ export function AnswerBars({
 					>
 						<div
 							className={cn(
-								"min-h-1 rounded-t-md",
+								// Grows from the bottom as the results come up (spec 011, RN-35).
+								"min-h-1 origin-bottom rounded-t-md motion-safe:animate-bar-grow",
 								ANSWER_COLOR_CLASSES[shape],
 								choice.correct === false && "opacity-50",
 							)}

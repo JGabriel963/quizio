@@ -4,6 +4,7 @@ import { aQuestion } from "../../quiz/testing/a-question";
 import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
 import { createGetPlayerSession } from "./get-player-session";
+import { createRemovePlayer } from "./remove-player";
 
 const player = (number: number) => ({
 	gameId: "game-1",
@@ -44,6 +45,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 				total: 0,
 				outcome: null,
 			},
+			final: null,
 		});
 	});
 
@@ -164,11 +166,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 
 	it("is finished after the last question, and ended when the host closes it", async () => {
 		const finished = await createStartedGame();
-		await finished.reach("scoreboard", 1);
-		await finished.advance({
-			...finished.host,
-			from: { questionIndex: 1, phase: "scoreboard" },
-		});
+		await finished.finish();
 		expect(
 			await createGetPlayerSession(finished.deps)(player(1)),
 		).toMatchObject({ status: "finished", stage: null });
@@ -179,6 +177,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 		expect(await createGetPlayerSession(ended.deps)(player(1))).toMatchObject({
 			status: "ended",
 			stage: null,
+			final: null,
 		});
 	});
 });
@@ -333,5 +332,79 @@ describe("getPlayerSession: points, streak and place (spec 010)", () => {
 			behind: { nickname: "Ana", points: 925 },
 		});
 		expect(view.stage?.total).toBe(0);
+	});
+});
+
+describe("getPlayerSession: the final screen (spec 011)", () => {
+	it("a finished game tells the place, the total and the title", async () => {
+		const { deps, reach, answer, finish } = await createStartedGame({
+			players: ["Ana", "Bia", "Caio", "Duda"],
+		});
+		const getPlayerSession = createGetPlayerSession(deps);
+		await reach("answering");
+		await answer(2, "choice-1");
+		deps.clock.advanceBy(5_000);
+		await answer(3, "choice-1");
+		await reach("answering", 1);
+		await answer(3, "true");
+		await finish();
+
+		expect(await getPlayerSession(player(3))).toEqual({
+			gameId: "game-1",
+			nickname: "Caio",
+			status: "finished",
+			stage: null,
+			final: {
+				title: "Bom de Bíblia (Junho)",
+				rank: 1,
+				total: 1875,
+				revealRemainingMs: 7_000,
+			},
+		});
+		expect((await getPlayerSession(player(2))).final).toMatchObject({
+			rank: 2,
+			total: 1000,
+		});
+		// Nobody shares a place: ties go by arrival (RN-05).
+		expect((await getPlayerSession(player(1))).final).toMatchObject({
+			rank: 3,
+			total: 0,
+		});
+		expect((await getPlayerSession(player(4))).final).toMatchObject({
+			rank: 4,
+			total: 0,
+		});
+	});
+
+	it("the final stays the same when asked again, with the reveal over", async () => {
+		const { deps, finish } = await createStartedGame();
+		const getPlayerSession = createGetPlayerSession(deps);
+		await finish();
+		const first = await getPlayerSession(player(1));
+		deps.clock.advanceBy(60_000);
+
+		const again = await getPlayerSession(player(1));
+
+		expect(again.final).toEqual({ ...first.final, revealRemainingMs: 0 });
+	});
+
+	it("a removed player has no final", async () => {
+		const { deps, host, reach, finish } = await createStartedGame();
+		await reach("answering");
+		await createRemovePlayer(deps)({ ...host, playerId: "p2" });
+		await finish();
+
+		expect(await createGetPlayerSession(deps)(player(2))).toMatchObject({
+			status: "removed",
+			stage: null,
+			final: null,
+		});
+	});
+
+	it("has no final while the game is being played", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("results", 1);
+
+		expect((await createGetPlayerSession(deps)(player(1))).final).toBeNull();
 	});
 });

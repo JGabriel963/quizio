@@ -33,6 +33,20 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"GAME.INVALID_ANSWER": "Resposta inválida.",
 };
 
+/** "Jogar novamente" on a quiz that went to the trash, was deleted or is a draft again (spec 011, RN-16). */
+export const QUIZ_NOT_PLAYABLE_ANYMORE_MESSAGE =
+	"Este quiz não pode mais ser jogado.";
+
+const QUIZ_GONE_CODES = ["GAME.QUIZ_NOT_PLAYABLE", "GAME.QUIZ_NOT_FOUND"];
+
+/** Why "Jogar novamente" failed. */
+export function playAgainErrorMessage(error: unknown): string {
+	const domainCode = domainCodeOf(error);
+	return domainCode && QUIZ_GONE_CODES.includes(domainCode)
+		? QUIZ_NOT_PLAYABLE_ANYMORE_MESSAGE
+		: gameErrorMessage(error);
+}
+
 /** The `GAME.*` code of a failed call, or null for anything else. */
 export function gameErrorCode(error: unknown): string | null {
 	return domainCodeOf(error);

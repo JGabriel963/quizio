@@ -7,14 +7,14 @@ import type {
 	HostQuestionData,
 	HostStageData,
 } from "@/lib/api-types";
-import { renderWithRouter } from "@/testing/render-with-router";
+import { GAME_MOTION } from "@/lib/game-motion";
 
-import { GameFinished } from "./game-finished";
 import {
 	ADVANCE_RETRY_MS,
 	HostStage,
 	type HostStageActions,
 } from "./host-stage";
+import { SCOREBOARD_HOLD_MS } from "./scoreboard";
 
 const refusal = (domainCode: string) =>
 	Object.assign(new Error(domainCode), { data: { domainCode } });
@@ -49,6 +49,7 @@ function stageAt(overrides: Partial<HostStageData>): HostStageData {
 		answerCount: 0,
 		distribution: null,
 		scoreboard: null,
+		scoreboardLeavers: null,
 		...overrides,
 	};
 }
@@ -67,6 +68,7 @@ const game: HostGameData = {
 	],
 	questionCount: 10,
 	stage: null,
+	final: null,
 };
 
 function renderStage(
@@ -449,20 +451,6 @@ describe("HostStage: image and header (spec 009)", () => {
 	});
 });
 
-describe("GameFinished (spec 009)", () => {
-	it("says the game is over and leads back to the quiz", async () => {
-		renderWithRouter(<GameFinished title="Capitais" quizId="quiz-1" />);
-
-		expect(
-			await screen.findByRole("heading", { name: "Fim do jogo" }),
-		).toBeVisible();
-		expect(screen.getByText("Capitais")).toBeVisible();
-		expect(
-			screen.getByRole("link", { name: "Voltar ao quiz" }),
-		).toHaveAttribute("href", "/quizzes/quiz-1");
-	});
-});
-
 describe("HostStage: scoreboard (spec 010)", () => {
 	const board = stageAt({
 		questionIndex: 1,
@@ -471,24 +459,51 @@ describe("HostStage: scoreboard (spec 010)", () => {
 		durationMs: null,
 		question: null,
 		scoreboard: [
-			{ playerId: "p2", nickname: "John", total: 701, rank: 1, climbed: true },
+			{
+				playerId: "p2",
+				nickname: "John",
+				total: 701,
+				rank: 1,
+				climbed: true,
+				previous: { rank: 2, total: 0 },
+			},
 			{
 				playerId: "p1",
 				nickname: "Claude",
 				total: 639,
 				rank: 2,
 				climbed: false,
+				previous: { rank: 1, total: 639 },
 			},
-			{ playerId: "p3", nickname: "Bia", total: 0, rank: 3, climbed: false },
+			{
+				playerId: "p3",
+				nickname: "Bia",
+				total: 0,
+				rank: 3,
+				climbed: false,
+				previous: { rank: 3, total: 0 },
+			},
 		],
+		scoreboardLeavers: [],
 	});
+	/** The scoreboard's whole animation (spec 011): hold, count, rows settling. */
+	const SEQUENCE_MS = SCOREBOARD_HOLD_MS + GAME_MOTION.countMs + 1_000;
 	const entries = () =>
 		within(screen.getByRole("list", { name: "Placar" })).getAllByRole(
 			"listitem",
 		);
 
-	it("shows the scoreboard with the leader first and who climbed", () => {
+	it("shows the scoreboard with the leader first and who climbed", async () => {
+		vi.useFakeTimers();
 		renderStage(board);
+
+		// It opens as it was before the question (spec 011, RN-28).
+		expect(entries().map((entry) => entry.textContent)).toEqual([
+			"Claude639",
+			"John0",
+			"Bia0",
+		]);
+		await tick(SEQUENCE_MS);
 
 		expect(entries().map((entry) => entry.textContent)).toEqual([
 			"John701subiu de posição",
@@ -529,5 +544,56 @@ describe("HostStage: scoreboard (spec 010)", () => {
 
 		expect(screen.getByRole("button", { name: "Avançar" })).toBeVisible();
 		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+	});
+});
+
+describe("HostStage: animations hold nothing (spec 011, RN-25)", () => {
+	it("a new phase shows at once, in the middle of the scoreboard's animation", () => {
+		const scoreboard = stageAt({
+			phase: "scoreboard",
+			remainingMs: null,
+			durationMs: null,
+			question: null,
+			scoreboard: [
+				{
+					playerId: "p1",
+					nickname: "Ana",
+					total: 875,
+					rank: 1,
+					climbed: false,
+					previous: null,
+				},
+			],
+			scoreboardLeavers: [],
+		});
+		const actions: HostStageActions = { advance: vi.fn(), end: vi.fn() };
+		const ui = (stage: HostStageData) => (
+			<HostStage
+				game={{ ...game, stage }}
+				stage={stage}
+				receivedAt={Date.now()}
+				actions={actions}
+			/>
+		);
+		const view = render(ui(scoreboard));
+		expect(screen.getByRole("list", { name: "Placar" }).dataset.step).toBe(
+			"before",
+		);
+
+		view.rerender(
+			ui(
+				stageAt({
+					questionIndex: 1,
+					phase: "questionIntro",
+					remainingMs: 5_000,
+					durationMs: 5_000,
+				}),
+			),
+		);
+
+		expect(screen.queryByRole("list", { name: "Placar" })).toBeNull();
+		expect(
+			screen.getByRole("heading", { name: "Qual é a capital do Brasil?" }),
+		).toBeVisible();
 	});
 });

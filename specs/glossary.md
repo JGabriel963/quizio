@@ -104,7 +104,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Andamento | `GameProgress` | Onde a partida está: pergunta, fase e desde quando. O prazo da fase é esse instante mais a duração dela (spec 009) | ✅ |
 | Pergunta da partida | `GameQuestion` | A pergunta como a partida a usa, copiada ao iniciar: só as alternativas preenchidas, cada uma com a posição de cor e forma (spec 009) | ✅ |
 | Palco público | `PublicStage` | A parte de uma fase que todo aparelho pode saber: número da pergunta, fase, duração e formas das alternativas; sem textos e sem a correta (spec 009) | ✅ |
-| Fase | `GamePhase` | `gameIntro` (abertura da partida, 3 s) → `questionIntro` (5 s de leitura) → `answering` (limite de tempo da pergunta) → `results` → `scoreboard` (placar, até o anfitrião avançar) | ✅ |
+| Fase | `GamePhase` | `gameIntro` (abertura da partida, 3 s) → `questionIntro` (5 s de leitura) → `answering` (limite de tempo da pergunta) → `results` → `scoreboard` (placar, até o anfitrião avançar; a última pergunta não tem, vai direto ao pódio) | ✅ |
 | Avançar de fase | `advanceGame`, `StageRef` | Pedido da tela do anfitrião para a fase seguinte, dizendo de que fase parte; o servidor confere o prazo e aplica uma única vez (spec 009) | ✅ |
 | Pular o cronômetro | `advanceGame` com `skip` | O anfitrião fecha a fase de respostas antes do tempo (spec 009) | ✅ |
 | Resposta | `Answer` | Envio de um jogador para uma pergunta: uma por pergunta, sem troca, aceita só dentro do prazo (spec 009) | ✅ |
@@ -116,7 +116,9 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Posição | `rank` | Lugar do jogador pelo total de pontos; empate pela ordem de entrada na partida (spec 010) | ✅ (`rankPlayers`) |
 | Distribuição de respostas | `AnswerDistribution` | Quantos escolheram cada alternativa; divulgada só na revelação (spec 009) | ✅ |
 | Placar | `Scoreboard` | Fase depois da revelação de cada pergunta: os cinco primeiros, com apelido e total, e a seta em quem subiu de posição (spec 010) | ✅ (`scoreboardOf`) |
-| Pódio | `Podium` | Top 3 ao final | 📝 |
+| Pódio | `Podium` | Tela do fim da partida: os três primeiros da classificação final, revelados do 3º para o 1º; não é uma fase, é a leitura de uma partida terminada (spec 011) | ✅ (`HostGameView.final`, `podiumRevealRemainingMs`) |
+| Classificação final | `finalStandings` | Todos os jogadores da partida terminada, pelo total de pontos, com o empate pela ordem de entrada; não muda mais (spec 011) | ✅ (`final.standings`) |
+| Jogar novamente | `playAgain` | Ação do pódio: cria uma partida nova do mesmo quiz, com outro PIN e sem jogadores (spec 011) | ✅ (`game.host`, `usePlayAgain`) |
 | Equipe | `Team` | Grupo de jogadores; pontuação = média dos membros | 📝 |
 
 ## Library, Reports, Media

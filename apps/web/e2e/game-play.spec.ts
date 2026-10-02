@@ -105,6 +105,11 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 		await publishTwoQuestionQuiz(host, "Capitais");
 		const ana = await newParticipant(browser);
 		const bia = await newParticipant(browser);
+		// The phones' numbers count up (spec 011): with reduced motion they show
+		// at once, so the test reads the points and not a frame of the count.
+		// The host's screen keeps its animations.
+		await ana.emulateMedia({ reducedMotion: "reduce" });
+		await bia.emulateMedia({ reducedMotion: "reduce" });
 		const pin = await hostWithPlayers(host, [
 			{ page: ana, nickname: "Ana" },
 			{ page: bia, nickname: "Bia" },
@@ -248,38 +253,89 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 		await expect(biaPoints).toHaveText(`+ ${secondPoints}`);
 		await expect(playerTotal(bia)).toHaveText(String(secondPoints));
 
-		// Spec 010, CA-24, CA-29: the last question has its scoreboard, with an
-		// arrow by Bia only if she went past Ana.
+		// Spec 011, CA-01: the last results lead straight to the podium, with no
+		// scoreboard, and the phones wait for the reveal.
 		await host.getByRole("button", { name: "Avançar" }).click();
-		const biaLeads = secondPoints > firstPoints;
-		await expect(scoreboard(host)).toHaveText(
-			biaLeads
-				? [new RegExp(`^Bia${secondPoints}`), new RegExp(`^Ana${firstPoints}$`)]
-				: [
-						new RegExp(`^Ana${firstPoints}$`),
-						new RegExp(`^Bia${secondPoints}$`),
-					],
-		);
-		await expect(host.locator('[data-slot="scoreboard-climbed"]')).toHaveCount(
-			biaLeads ? 1 : 0,
-		);
+		await expect(heading(host, "Capitais")).toBeVisible();
+		await expect(host.getByRole("list", { name: "Placar" })).toHaveCount(0);
+		await expect(ana.getByText("Rufem os tambores…")).toBeVisible();
+		await expect(bia.getByText("Rufem os tambores…")).toBeVisible();
 
-		// CA-36: after the last scoreboard the game is over, and the PIN is free.
-		await host.getByRole("button", { name: "Avançar" }).click();
-		await expect(heading(host, "Fim do jogo")).toBeVisible();
-		await expect(
-			host.getByRole("link", { name: "Voltar ao quiz" }),
-		).toBeVisible();
-		await expect(heading(ana, "Fim do jogo")).toBeVisible();
-		await expect(bia.getByText("Obrigado por jogar!")).toBeVisible();
+		// The PIN is free as soon as the game finishes.
 		await late.goto(`/join/${pin}`);
 		await expect(notice(late)).toHaveText(
 			"Não foi possível reconhecer o PIN do jogo. Verifique-o e tente de novo.",
 		);
 
-		// The end survives a reload of the host's screen.
+		// CA-06, CA-08: two players, so the third step stays empty.
+		const biaWins = secondPoints > firstPoints;
+		const winner = biaWins
+			? { page: bia, nickname: "Bia", points: secondPoints }
+			: { page: ana, nickname: "Ana", points: firstPoints };
+		const runnerUp = biaWins
+			? { page: ana, nickname: "Ana", points: firstPoints }
+			: { page: bia, nickname: "Bia", points: secondPoints };
+		const step = (place: number) =>
+			host.locator(`[data-slot="podium-step"][data-place="${place}"]`);
+		const onStep = (place: number) =>
+			step(place).locator('[data-slot="podium-player"]');
+		await expect(onStep(2)).toHaveText(runnerUp.nickname, NEXT_PHASE);
+		await expect(onStep(1)).toHaveText(winner.nickname, NEXT_PHASE);
+		await expect(step(1).locator('[data-slot="podium-total"]')).toHaveText(
+			String(winner.points),
+		);
+		await expect(step(2).locator('[data-slot="podium-total"]')).toHaveText(
+			String(runnerUp.points),
+		);
+		await expect(onStep(3)).toHaveCount(0);
+
+		// CA-20 to CA-22: each phone shows its place and its total.
+		await expect(heading(winner.page, "Imbatível!")).toBeVisible(NEXT_PHASE);
+		await expect(heading(runnerUp.page, "Por pouco!")).toBeVisible();
+		await expect(winner.page.locator('[data-slot="quiz-title"]')).toHaveText(
+			"Capitais",
+		);
+		await expect(playerTotal(winner.page)).toHaveText(String(winner.points));
+		await expect(playerTotal(runnerUp.page)).toHaveText(
+			String(runnerUp.points),
+		);
+
+		// CA-24: a reload shows the final screen again, without the wait.
+		await winner.page.reload();
+		await expect(heading(winner.page, "Imbatível!")).toBeVisible();
+		await expect(winner.page.getByText("Rufem os tambores…")).toHaveCount(0);
+
+		// CA-13: the podium survives a reload of the host's screen, whole.
 		await host.reload();
-		await expect(heading(host, "Fim do jogo")).toBeVisible();
+		await expect(onStep(1)).toHaveText(winner.nickname);
+		await expect(onStep(2)).toHaveText(runnerUp.nickname);
+
+		// CA-16: the full standings, and back to the podium.
+		await host.getByRole("button", { name: "Classificação" }).click();
+		await expect(
+			host
+				.getByRole("list", { name: "Classificação final" })
+				.getByRole("listitem"),
+		).toHaveText([
+			new RegExp(`^1º${winner.nickname}.*${winner.points}$`),
+			new RegExp(`^2º${runnerUp.nickname}.*${runnerUp.points}$`),
+		]);
+		await host.getByRole("button", { name: "Voltar ao pódio" }).click();
+		await expect(onStep(1)).toHaveText(winner.nickname);
+
+		// CA-25: the player leaves the final screen for another game.
+		await runnerUp.page
+			.getByRole("button", { name: "Entrar em outro jogo" })
+			.click();
+		await expect(
+			runnerUp.page.getByRole("textbox", { name: "PIN" }),
+		).toBeVisible();
+
+		// CA-17: "Jogar novamente" opens a new lobby of the same quiz, with
+		// another PIN and nobody in it.
+		await host.getByRole("button", { name: "Jogar novamente" }).click();
+		await expect(host.locator('[data-slot="player-count"]')).toHaveText("0");
+		expect(await lobbyPin(host)).not.toBe(pin);
 	});
 
 	test("o tempo acaba sozinho, e o anfitrião encerra no meio do jogo", async ({

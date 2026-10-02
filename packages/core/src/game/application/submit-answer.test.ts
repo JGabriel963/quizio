@@ -163,9 +163,8 @@ describe("submitAnswer (spec 009)", () => {
 	});
 
 	it("a finished game takes no answer", async () => {
-		const { host, advance, submitAnswer, reach } = await createStartedGame();
-		await reach("scoreboard", 1);
-		await advance({ ...host, from: { questionIndex: 1, phase: "scoreboard" } });
+		const { submitAnswer, finish } = await createStartedGame();
+		await finish();
 
 		await expect(submitAnswer(fromPlayer(1, ["true"], 1))).rejects.toThrow(
 			AnswersClosedError,

@@ -4,6 +4,7 @@ import type { HostGameData } from "./api-types";
 import {
 	answerShapeName,
 	applyAnswerCount,
+	finalMessage,
 	positionMessage,
 	showsStage,
 	stageOrder,
@@ -29,7 +30,9 @@ const answering: HostGameData = {
 		answerCount: 2,
 		distribution: null,
 		scoreboard: null,
+		scoreboardLeavers: null,
 	},
+	final: null,
 };
 
 const publicStage = (
@@ -158,5 +161,25 @@ describe("positionMessage (spec 010)", () => {
 		expect(stageOrder({ questionIndex: 0, phase: "scoreboard" })).toBeLessThan(
 			stageOrder({ questionIndex: 1, phase: "questionIntro" }),
 		);
+	});
+});
+
+describe("finalMessage (spec 011)", () => {
+	it("gives the medal and a phrase up to third place", () => {
+		expect(finalMessage(1)).toEqual({
+			medal: 1,
+			title: "Imbatível!",
+			detail: null,
+		});
+		expect(finalMessage(2)).toMatchObject({ medal: 2, title: "Por pouco!" });
+		expect(finalMessage(3)).toMatchObject({ medal: 3, title: "No pódio!" });
+	});
+
+	it("tells the place from fourth on, without a medal", () => {
+		expect(finalMessage(5)).toEqual({
+			medal: null,
+			title: "Você ficou em 5º lugar",
+			detail: "Obrigado por jogar!",
+		});
 	});
 });

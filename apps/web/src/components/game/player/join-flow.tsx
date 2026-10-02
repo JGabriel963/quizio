@@ -7,7 +7,11 @@ import {
 import { parseGamePin } from "@quizio/core/game/domain/game-pin";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
-import type { PlayerSessionData, PlayerStageData } from "@/lib/api-types";
+import type {
+	PlayerFinalData,
+	PlayerSessionData,
+	PlayerStageData,
+} from "@/lib/api-types";
 import {
 	GAME_ENDED_MESSAGE,
 	gameErrorCode,
@@ -51,6 +55,8 @@ interface FoundGame {
 interface PlayView {
 	finished: boolean;
 	stage: PlayerStageData | null;
+	/** How the game ended for this player; null until the session tells (spec 011). */
+	final: PlayerFinalData | null;
 	/** This device's clock when the stage arrived: countdowns start from it. */
 	receivedAt: number;
 }
@@ -90,6 +96,7 @@ function toPlay(view: PlayerSessionData): PlayView | null {
 	return {
 		finished: view.status === "finished",
 		stage: view.stage,
+		final: view.final,
 		receivedAt: Date.now(),
 	};
 }
@@ -118,7 +125,8 @@ function mergePlay(
 		return next ?? current;
 	}
 	if (current.finished) {
-		return current;
+		// The end came by event; the place and the total come from the session.
+		return next.finished && !current.final ? next : current;
 	}
 	if (next.finished || !current.stage || !next.stage) {
 		return next;
@@ -260,8 +268,8 @@ export function JoinFlow({
 		};
 	}, [pin]);
 
-	/** Out of the game: back to the PIN, with the reason. */
-	function leave(notice: string) {
+	/** Out of the game: back to the PIN, with the reason, if there is one. */
+	function leave(notice: string | null) {
 		if (step.kind === "waiting" || step.kind === "nickname") {
 			store.clear(step.game.pin);
 		}
@@ -281,6 +289,8 @@ export function JoinFlow({
 	const channel = waiting ? gameChannel(waiting.game.gameId) : null;
 	const playerId = waiting?.session.playerId ?? null;
 	const playing = waiting?.play != null && !waiting.play.finished;
+	/** The game is over and the device knows how: there is nothing left to ask. */
+	const settled = waiting?.play?.final != null;
 
 	useRealtimeEvent<PlayerRemovedPayload>(
 		channel,
@@ -325,7 +335,14 @@ export function JoinFlow({
 		({ status, stage }) => {
 			const receivedAt = Date.now();
 			if (status === "finished") {
-				updatePlay(() => ({ finished: true, stage: null, receivedAt }));
+				// The device waits with the podium's reveal; where the player
+				// finished is never in an event (spec 011, RN-18, RN-24).
+				updatePlay((current) =>
+					current?.finished
+						? current
+						: { finished: true, stage: null, final: null, receivedAt },
+				);
+				void checkSession();
 				return;
 			}
 			if (status !== "playing" || !stage) {
@@ -333,6 +350,7 @@ export function JoinFlow({
 			}
 			const next: PlayView = {
 				finished: false,
+				final: null,
 				stage: {
 					...stage,
 					remainingMs: stage.durationMs,
@@ -372,7 +390,7 @@ export function JoinFlow({
 		? PLAY_CHECK_INTERVAL_MS
 		: SESSION_CHECK_INTERVAL_MS;
 	useEffect(() => {
-		if (!playerId) {
+		if (!playerId || settled) {
 			return;
 		}
 		const check = () => void checkSession();
@@ -391,7 +409,7 @@ export function JoinFlow({
 			window.removeEventListener("focus", check);
 			document.removeEventListener("visibilitychange", whenVisible);
 		};
-	}, [playerId, checkInterval]);
+	}, [playerId, settled, checkInterval]);
 
 	async function submitPin(rawPin: string) {
 		setBusy(true);
@@ -498,6 +516,7 @@ export function JoinFlow({
 				<PlayerStage
 					nickname={step.nickname}
 					finished={play.finished}
+					final={play.final}
 					stage={play.stage}
 					receivedAt={play.receivedAt}
 					late={questionIndex !== null && lateFor === questionIndex}
@@ -507,6 +526,7 @@ export function JoinFlow({
 							: null
 					}
 					onAnswer={submitAnswer}
+					onLeave={() => leave(null)}
 				/>
 			);
 		}

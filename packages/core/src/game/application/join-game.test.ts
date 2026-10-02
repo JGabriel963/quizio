@@ -261,6 +261,7 @@ describe("getPlayerSession (spec 008)", () => {
 			nickname: "ACT",
 			status: "waiting",
 			stage: null,
+			final: null,
 		});
 	});
 

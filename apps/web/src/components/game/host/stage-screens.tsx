@@ -23,7 +23,7 @@ function QuestionText({ children }: { children: ReactNode }) {
 /** The opening of the game: the name and the quiz (spec 009, RN-04). */
 export function GameIntro({ title }: { title: string }) {
 	return (
-		<main className="relative flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
+		<main className="relative flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center motion-safe:animate-stage-in">
 			<Wordmark className="text-7xl sm:text-9xl" />
 			<h1 className="break-words font-black text-3xl sm:text-5xl">{title}</h1>
 		</main>
@@ -51,7 +51,7 @@ export function QuestionIntro({
 	const position = stage.questionIndex + 1;
 
 	return (
-		<main className="relative flex flex-1 flex-col items-center justify-between gap-6 p-4 sm:p-8">
+		<main className="relative flex flex-1 flex-col items-center justify-between gap-6 p-4 motion-safe:animate-stage-in sm:p-8">
 			<p className="flex items-center gap-3 font-bold text-2xl">
 				<QuestionTypeIcon type={question.type} />
 				{questionTypeLabel(question.type)}

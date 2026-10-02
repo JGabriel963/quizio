@@ -37,9 +37,10 @@ export function createAdvanceGame(
 ): AdvanceGame {
 	return async ({ ownerId, gameId, from, skip = false }) => {
 		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
-		if (game.status === "finished" || game.status === "ended") {
+		if (game.status === "ended") {
 			throw new GameEndedError("The game is over");
 		}
+		// A finished game has left every stage: the answer is its podium (spec 011, RN-03).
 		if (!isAtStage(game, from)) {
 			return loadHostGameView(deps, game);
 		}

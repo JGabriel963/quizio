@@ -6,6 +6,7 @@ import {
 	GAME_PHASES,
 	type GamePhase,
 } from "@quizio/core/game/domain/game-progress";
+import { PODIUM_SIZE } from "@quizio/core/game/domain/podium";
 import {
 	type AnswerShapeName,
 	answerShapeAt,
@@ -87,9 +88,6 @@ export function answerShapeName(shapeIndex: number): string {
 	return SHAPE_NAMES[answerShapeAt(shapeIndex)];
 }
 
-/** How many places the podium has (spec 010, RN-15). */
-const PODIUM_PLACES = 3;
-
 /**
  * Where a question left the player (spec 010, RN-15): on the podium, or the
  * place and how far the player right ahead is.
@@ -97,7 +95,7 @@ const PODIUM_PLACES = 3;
 export function positionMessage(
 	outcome: Pick<PlayerOutcomeData, "rank" | "behind">,
 ): { title: string; detail: string | null } {
-	if (outcome.rank <= PODIUM_PLACES) {
+	if (outcome.rank <= PODIUM_SIZE) {
 		return { title: "Você está no pódio!", detail: null };
 	}
 	const { behind } = outcome;
@@ -107,4 +105,29 @@ export function positionMessage(
 			? `${behind.points} ${behind.points === 1 ? "ponto" : "pontos"} atrás de ${behind.nickname}`
 			: null,
 	};
+}
+
+const PODIUM_PHRASES: Record<number, string> = {
+	1: "Imbatível!",
+	2: "Por pouco!",
+	3: "No pódio!",
+};
+
+/**
+ * What the player reads at the end of the game (spec 011, RN-20, RN-21): the
+ * medal and a phrase up to third place, the place itself from fourth on.
+ */
+export function finalMessage(rank: number): {
+	medal: 1 | 2 | 3 | null;
+	title: string;
+	detail: string | null;
+} {
+	const phrase = PODIUM_PHRASES[rank];
+	return phrase
+		? { medal: rank as 1 | 2 | 3, title: phrase, detail: null }
+		: {
+				medal: null,
+				title: `Você ficou em ${rank}º lugar`,
+				detail: "Obrigado por jogar!",
+			};
 }

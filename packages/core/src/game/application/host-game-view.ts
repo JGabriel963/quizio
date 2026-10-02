@@ -15,9 +15,12 @@ import {
 } from "../domain/game-progress";
 import type { GameQuestion } from "../domain/game-question";
 import type { Player } from "../domain/player";
+import { podiumRevealRemainingMs } from "../domain/podium";
 import {
 	rankPlayers,
 	type ScoreboardEntry,
+	type Standing,
+	scoreboardLeavers,
 	scoreboardOf,
 } from "../domain/standings";
 import type { AnswerRepository } from "./ports/answer-repository";
@@ -70,6 +73,16 @@ export interface HostStageView {
 	distribution: AnswerDistribution | null;
 	/** The first five and who climbed; only in the scoreboard (spec 010). */
 	scoreboard: ScoreboardEntry[] | null;
+	/** Who was among the five before the question; only in the scoreboard (spec 011). */
+	scoreboardLeavers: ScoreboardEntry[] | null;
+}
+
+/** The end of a game that played every question (spec 011). */
+export interface HostFinalView {
+	/** Everybody, the first one first (RN-05); the podium is the first three. */
+	standings: Standing[];
+	/** Left of the podium's reveal by the server's clock; 0 once it is over (RN-10, RN-11). */
+	revealRemainingMs: number;
 }
 
 /** Everything the host's screen shows, in the lobby and during the game. */
@@ -86,6 +99,8 @@ export interface HostGameView {
 	questionCount: number;
 	/** Null unless the game is being played. */
 	stage: HostStageView | null;
+	/** Null unless the game is finished: one ended before that has no podium (RN-04). */
+	final: HostFinalView | null;
 }
 
 export interface HostGameViewDeps {
@@ -127,23 +142,58 @@ function toQuestionView(
 	};
 }
 
+/** Everybody by total after `questionIndex`: nothing but the answers stores a total (spec 010). */
+async function standingsAfter(
+	deps: HostGameViewDeps,
+	gameId: string,
+	players: readonly Player[],
+	questionIndex: number,
+): Promise<Standing[]> {
+	return rankPlayers(
+		players,
+		await deps.answers.totalsThrough(gameId, questionIndex),
+	);
+}
+
 /**
  * The first five after `questionIndex`, with who climbed since the question
- * before. Worked out from the answers on every read: nothing else stores a
- * total (spec 010).
+ * before and who left the five (spec 010; spec 011, RN-28, RN-31).
  */
 async function loadScoreboard(
 	deps: HostGameViewDeps,
 	gameId: string,
 	players: readonly Player[],
 	questionIndex: number,
-): Promise<ScoreboardEntry[]> {
-	const standingsAfter = async (index: number) =>
-		rankPlayers(players, await deps.answers.totalsThrough(gameId, index));
-	return scoreboardOf(
-		await standingsAfter(questionIndex),
-		questionIndex > 0 ? await standingsAfter(questionIndex - 1) : null,
-	);
+): Promise<{ entries: ScoreboardEntry[]; leavers: ScoreboardEntry[] }> {
+	const current = await standingsAfter(deps, gameId, players, questionIndex);
+	const previous =
+		questionIndex > 0
+			? await standingsAfter(deps, gameId, players, questionIndex - 1)
+			: null;
+	return {
+		entries: scoreboardOf(current, previous),
+		leavers: scoreboardLeavers(current, previous),
+	};
+}
+
+/** The final standings of a finished game: they do not change anymore (spec 011, RN-07). */
+async function loadFinalView(
+	deps: HostGameViewDeps,
+	game: Game,
+	players: readonly Player[],
+): Promise<HostFinalView | null> {
+	if (game.status !== "finished") {
+		return null;
+	}
+	return {
+		standings: await standingsAfter(
+			deps,
+			game.id,
+			players,
+			game.questionCount - 1,
+		),
+		revealRemainingMs: podiumRevealRemainingMs(game, deps.clock.now()),
+	};
 }
 
 async function loadStageView(
@@ -169,6 +219,10 @@ async function loadStageView(
 		revealed && question
 			? await deps.answers.listByQuestion(game.id, questionIndex)
 			: null;
+	const scoreboard =
+		phase === "scoreboard"
+			? await loadScoreboard(deps, game.id, players, questionIndex)
+			: null;
 
 	return {
 		questionIndex,
@@ -183,10 +237,8 @@ async function loadStageView(
 				: 0,
 		distribution:
 			answers && question ? answerDistribution(question, answers) : null,
-		scoreboard:
-			phase === "scoreboard"
-				? await loadScoreboard(deps, game.id, players, questionIndex)
-				: null,
+		scoreboard: scoreboard?.entries ?? null,
+		scoreboardLeavers: scoreboard?.leavers ?? null,
 	};
 }
 
@@ -211,5 +263,6 @@ export async function loadHostGameView(
 		players: players.map(toLobbyPlayerView),
 		questionCount: game.questionCount,
 		stage: await loadStageView(deps, game, players, question),
+		final: await loadFinalView(deps, game, players),
 	};
 }

@@ -4,7 +4,9 @@ import type { Question } from "../../quiz/domain/question";
 import { aQuestion, aTrueFalseQuestion } from "../../quiz/testing/a-question";
 import { somePlayableQuestions } from "../testing/game-deps";
 import { createStartedGame } from "../testing/started-game";
+import { createEndGame } from "./end-game";
 import { createGetHostGame } from "./get-host-game";
+import { createRemovePlayer } from "./remove-player";
 
 const mine = { ownerId: "user-1", gameId: "game-1" };
 
@@ -184,9 +186,8 @@ describe("getHostGame during a game (spec 009)", () => {
 	});
 
 	it("shows a finished game without a stage", async () => {
-		const { deps, host, advance, reach } = await createStartedGame();
-		await reach("scoreboard", 1);
-		await advance({ ...host, from: { questionIndex: 1, phase: "scoreboard" } });
+		const { deps, finish } = await createStartedGame();
+		await finish();
 
 		expect(await createGetHostGame(deps)(mine)).toMatchObject({
 			status: "finished",
@@ -206,6 +207,18 @@ const capital = (overrides: Parameters<typeof aQuestion>[0] = {}): Question =>
 
 describe("getHostGame: the scoreboard (spec 010)", () => {
 	const names = ["Ana", "Bia", "Caio", "Duda", "Eva", "Fábio", "Gil"];
+	/** A row of the first question's scoreboard: nothing to start from. */
+	const first = (
+		playerId: string,
+		nickname: string,
+		total: number,
+		rank: number,
+	) => ({ playerId, nickname, total, rank, climbed: false, previous: null });
+	/** The default two questions and one more, so the second has a scoreboard. */
+	const threeQuestions = () => [
+		...somePlayableQuestions(),
+		capital({ id: "question-3" }),
+	];
 
 	it("has no scoreboard before the scoreboard phase", async () => {
 		const { deps, reach, answer } = await createStartedGame();
@@ -239,18 +252,13 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 			remainingMs: null,
 		});
 		expect(stage?.scoreboard).toEqual([
-			{ playerId: "p3", nickname: "Caio", total: 975, rank: 1, climbed: false },
-			{ playerId: "p1", nickname: "Ana", total: 950, rank: 2, climbed: false },
-			{
-				playerId: "p6",
-				nickname: "Fábio",
-				total: 925,
-				rank: 3,
-				climbed: false,
-			},
-			{ playerId: "p2", nickname: "Bia", total: 900, rank: 4, climbed: false },
-			{ playerId: "p5", nickname: "Eva", total: 875, rank: 5, climbed: false },
+			first("p3", "Caio", 975, 1),
+			first("p1", "Ana", 950, 2),
+			first("p6", "Fábio", 925, 3),
+			first("p2", "Bia", 900, 4),
+			first("p5", "Eva", 875, 5),
 		]);
+		expect(stage?.scoreboardLeavers).toEqual([]);
 	});
 
 	it("shows everybody when there are few, zero included, ties by arrival", async () => {
@@ -275,7 +283,9 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 	});
 
 	it("shows the same scoreboard on a reload, with no arrow when nobody climbed", async () => {
-		const { deps, reach, answer } = await createStartedGame();
+		const { deps, reach, answer } = await createStartedGame({
+			questions: threeQuestions(),
+		});
 		await reach("answering");
 		await answer(1, "choice-1");
 		await reach("answering", 1);
@@ -286,18 +296,34 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 		await reach("scoreboard", 1);
 		const getHostGame = createGetHostGame(deps);
 
-		const first = (await getHostGame(mine)).stage?.scoreboard;
+		const shown = (await getHostGame(mine)).stage?.scoreboard;
 		const again = (await getHostGame(mine)).stage?.scoreboard;
 
-		expect(first).toEqual([
-			{ playerId: "p1", nickname: "Ana", total: 1000, rank: 1, climbed: false },
-			{ playerId: "p2", nickname: "Bia", total: 900, rank: 2, climbed: false },
+		expect(shown).toEqual([
+			{
+				playerId: "p1",
+				nickname: "Ana",
+				total: 1000,
+				rank: 1,
+				climbed: false,
+				previous: { rank: 1, total: 1000 },
+			},
+			{
+				playerId: "p2",
+				nickname: "Bia",
+				total: 900,
+				rank: 2,
+				climbed: false,
+				previous: { rank: 2, total: 0 },
+			},
 		]);
-		expect(again).toEqual(first);
+		expect(again).toEqual(shown);
 	});
 
 	it("gives the arrow to who went up, not to who went down", async () => {
-		const { deps, reach, answer } = await createStartedGame();
+		const { deps, reach, answer } = await createStartedGame({
+			questions: threeQuestions(),
+		});
 		await reach("answering");
 		deps.clock.advanceBy(10_000);
 		await answer(1, "choice-1");
@@ -308,14 +334,32 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 		const { stage } = await createGetHostGame(deps)(mine);
 
 		expect(stage?.scoreboard).toEqual([
-			{ playerId: "p2", nickname: "Bia", total: 1000, rank: 1, climbed: true },
-			{ playerId: "p1", nickname: "Ana", total: 750, rank: 2, climbed: false },
+			{
+				playerId: "p2",
+				nickname: "Bia",
+				total: 1000,
+				rank: 1,
+				climbed: true,
+				previous: { rank: 2, total: 0 },
+			},
+			{
+				playerId: "p1",
+				nickname: "Ana",
+				total: 750,
+				rank: 2,
+				climbed: false,
+				previous: { rank: 1, total: 750 },
+			},
 		]);
 	});
 
 	it("a no-points question changes nothing in the scoreboard", async () => {
 		const { deps, reach, answer } = await createStartedGame({
-			questions: [capital(), capital({ id: "question-2", points: "noPoints" })],
+			questions: [
+				capital(),
+				capital({ id: "question-2", points: "noPoints" }),
+				capital({ id: "question-3" }),
+			],
 		});
 		await reach("answering");
 		await answer(2, "choice-1");
@@ -326,13 +370,27 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 		const { stage } = await createGetHostGame(deps)(mine);
 
 		expect(stage?.scoreboard).toEqual([
-			{ playerId: "p2", nickname: "Bia", total: 1000, rank: 1, climbed: false },
-			{ playerId: "p1", nickname: "Ana", total: 0, rank: 2, climbed: false },
+			{
+				playerId: "p2",
+				nickname: "Bia",
+				total: 1000,
+				rank: 1,
+				climbed: false,
+				previous: { rank: 1, total: 1000 },
+			},
+			{
+				playerId: "p1",
+				nickname: "Ana",
+				total: 0,
+				rank: 2,
+				climbed: false,
+				previous: { rank: 2, total: 0 },
+			},
 		]);
 	});
 
 	it("plays the reference game: Beto 2900, Ana 2850", async () => {
-		const { deps, reach, submitAnswer } = await createStartedGame({
+		const { deps, reach, finish, submitAnswer } = await createStartedGame({
 			players: ["Ana", "Beto"],
 			questions: [
 				capital(),
@@ -371,16 +429,163 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 		await play(0, 4, 0.4);
 		await play(1, 10, null);
 		await play(2, 16, 2);
-		await reach("scoreboard", 2);
+		// The last question goes straight to the podium (spec 011, CA-14).
+		await finish();
+
+		const { final } = await createGetHostGame(deps)(mine);
+
+		expect(
+			final?.standings.map(({ nickname, total, rank }) => [
+				nickname,
+				total,
+				rank,
+			]),
+		).toEqual([
+			["Beto", 2900, 1],
+			["Ana", 2850, 2],
+		]);
+	});
+
+	it("tells who left the first five (spec 011, RN-31)", async () => {
+		const { deps, reach, answer } = await createStartedGame({
+			players: names,
+			questions: threeQuestions(),
+		});
+		await reach("answering");
+		// Eva answers late, and Fábio and Gil do not answer.
+		for (const number of [1, 2, 3, 4]) {
+			deps.clock.advanceBy(1_000);
+			await answer(number, "choice-1");
+		}
+		deps.clock.advanceBy(14_000);
+		await answer(5, "choice-1");
+		await reach("answering", 1);
+		await answer(7, "true");
+		await reach("scoreboard", 1);
 
 		const { stage } = await createGetHostGame(deps)(mine);
 
-		expect(
-			stage?.scoreboard?.map(({ nickname, total }) => [nickname, total]),
-		).toEqual([
-			["Beto", 2900],
-			["Ana", 2850],
+		expect(stage?.scoreboard?.map((entry) => entry.nickname)).toEqual([
+			"Gil",
+			"Ana",
+			"Bia",
+			"Caio",
+			"Duda",
 		]);
-		expect(stage?.scoreboard?.[0]?.climbed).toBe(true);
+		expect(stage?.scoreboard?.[0]).toMatchObject({
+			climbed: true,
+			previous: { rank: 7, total: 0 },
+		});
+		expect(stage?.scoreboardLeavers).toEqual([
+			{
+				playerId: "p5",
+				nickname: "Eva",
+				total: 550,
+				rank: 6,
+				climbed: false,
+				previous: { rank: 5, total: 550 },
+			},
+		]);
+	});
+});
+
+describe("getHostGame: the podium (spec 011)", () => {
+	const names = ["Ana", "Bia", "Caio", "Duda", "Eva", "Fábio", "Gil"];
+
+	it("a finished game has the final standings of everybody", async () => {
+		const { deps, reach, answer, finish } = await createStartedGame({
+			players: names,
+			questions: [capital()],
+		});
+		await reach("answering");
+		for (const number of [3, 1, 6, 2, 5, 4]) {
+			deps.clock.advanceBy(1_000);
+			await answer(number, "choice-1");
+		}
+		await answer(7, "choice-2");
+		await finish();
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view).toMatchObject({ status: "finished", stage: null });
+		expect(view.final?.standings).toEqual([
+			{ playerId: "p3", nickname: "Caio", total: 975, rank: 1 },
+			{ playerId: "p1", nickname: "Ana", total: 950, rank: 2 },
+			{ playerId: "p6", nickname: "Fábio", total: 925, rank: 3 },
+			{ playerId: "p2", nickname: "Bia", total: 900, rank: 4 },
+			{ playerId: "p5", nickname: "Eva", total: 875, rank: 5 },
+			{ playerId: "p4", nickname: "Duda", total: 850, rank: 6 },
+			{ playerId: "p7", nickname: "Gil", total: 0, rank: 7 },
+		]);
+	});
+
+	it("tells the time left of the reveal, by the server's clock", async () => {
+		const { deps, finish } = await createStartedGame();
+		const getHostGame = createGetHostGame(deps);
+		await finish();
+
+		expect((await getHostGame(mine)).final?.revealRemainingMs).toBe(7_000);
+		deps.clock.advanceBy(2_500);
+		expect((await getHostGame(mine)).final?.revealRemainingMs).toBe(4_500);
+		// The next day the podium is still there, whole (RN-07, CA-13).
+		deps.clock.advanceBy(24 * 60 * 60 * 1000);
+		const reopened = await getHostGame(mine);
+		expect(reopened.status).toBe("finished");
+		expect(reopened.final?.revealRemainingMs).toBe(0);
+		expect(reopened.final?.standings).toHaveLength(2);
+	});
+
+	it("ties and zeros stay in order of arrival", async () => {
+		const { deps, finish } = await createStartedGame({
+			players: ["Ana", "Bia", "Caio"],
+		});
+		await finish();
+
+		const { final } = await createGetHostGame(deps)(mine);
+
+		expect(
+			final?.standings.map(({ nickname, total, rank }) => [
+				nickname,
+				total,
+				rank,
+			]),
+		).toEqual([
+			["Ana", 0, 1],
+			["Bia", 0, 2],
+			["Caio", 0, 3],
+		]);
+	});
+
+	it("leaves out a player who was removed", async () => {
+		const { deps, host, reach, answer, finish } = await createStartedGame({
+			players: ["Ana", "Bia", "Caio"],
+		});
+		await reach("answering");
+		await answer(1, "choice-1");
+		deps.clock.advanceBy(4_000);
+		await answer(2, "choice-1");
+		await createRemovePlayer(deps)({ ...host, playerId: "p1" });
+		await finish();
+
+		const { final } = await createGetHostGame(deps)(mine);
+
+		expect(final?.standings.map((entry) => entry.nickname)).toEqual([
+			"Bia",
+			"Caio",
+		]);
+	});
+
+	it("only a finished game has a final", async () => {
+		const playing = await createStartedGame();
+		await playing.reach("results", 1);
+		expect((await createGetHostGame(playing.deps)(mine)).final).toBeNull();
+
+		const ended = await createStartedGame();
+		await ended.reach("scoreboard");
+		await createEndGame(ended.deps)(ended.host);
+		expect(await createGetHostGame(ended.deps)(mine)).toMatchObject({
+			status: "ended",
+			final: null,
+		});
 	});
 });

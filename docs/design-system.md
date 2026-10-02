@@ -63,6 +63,16 @@ Lista de opções sobre `@base-ui/react/select`, usada no lugar do `<select>` do
 - `variant="default"`: caixa de formulário.
 - `variant="answer"`: marcação redonda de "resposta correta" sobre um bloco de alternativa (spec 004); anel branco, preenchida de verde-claro (`answer-correct`) com o check branco quando marcada, para aparecer também sobre a alternativa verde.
 
+## Animações do jogo (spec 011)
+
+As telas do jogo (`.dark`, dentro de `GameScreen`) têm animações curtas, como no Kahoot. São só apresentação: nada no jogo espera por elas.
+
+- **Simples, em CSS**: keyframes em `globals.css`, usados com `motion-safe:` para respeitar o movimento reduzido. `animate-pop-in` (um elemento que salta ao entrar), `animate-stage-in` (o conteúdo de uma fase entrando), `animate-bar-grow` (barras crescendo, com `origin-bottom`), `animate-confetti-fall`, `animate-podium-glow`, `animate-drumroll`.
+- **O que muda de lugar, sai da tela ou é sequência**: a biblioteca `motion` (`motion.li` com `layout`, `AnimatePresence`), só em `apps/web/src/components/game/`.
+- **Números que sobem**: `CountUp` (`apps/web/src/lib/count-up.tsx`).
+- **Durações**: até cerca de 1 s por movimento (`GAME_MOTION` em `lib/game-motion.tsx`).
+- **Movimento reduzido**: `usePrefersReducedMotion()`; as telas mostram direto o estado final.
+
 ## Adicionando ou alterando componentes
 
 1. Primitivo compartilhado novo: `npx shadcn@latest add <componente> -c packages/ui`, depois ajuste as classes ao visual Kahoot (cantos `rounded-md`, `font-bold`, variantes pressionáveis quando for ação).

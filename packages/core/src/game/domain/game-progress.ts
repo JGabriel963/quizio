@@ -131,9 +131,24 @@ function moveTo(game: Game, stage: StageRef, now: Date): Game {
 }
 
 /**
+ * Finished is not "ended": there is no reason, and the PIN is freed. The
+ * podium's reveal counts from this instant (spec 011, RN-10).
+ */
+function finish(game: Game, now: Date): Game {
+	return {
+		...game,
+		status: "finished",
+		progress: null,
+		endedAt: now,
+		endReason: null,
+	};
+}
+
+/**
  * The stage after the current one, or the game finished after the last
- * scoreboard (spec 009, RN-30; spec 010, RN-23). A phase with a deadline only ends once it has passed;
- * `skip` ends the answers early ("Pular o cronômetro", RN-10).
+ * question's results, which have no scoreboard (spec 009, RN-30; spec 011,
+ * RN-01). A phase with a deadline only ends once it has passed; `skip` ends
+ * the answers early ("Pular o cronômetro", RN-10).
  */
 export function nextStage(
 	game: Game,
@@ -158,6 +173,8 @@ export function nextStage(
 		throw new StageNotDueError(`The ${phase} phase has ${remaining} ms left`);
 	}
 
+	const isLast = questionIndex + 1 >= game.questionCount;
+
 	switch (phase) {
 		case "gameIntro":
 			return moveTo(game, { questionIndex, phase: "questionIntro" }, input.now);
@@ -166,23 +183,17 @@ export function nextStage(
 		case "answering":
 			return moveTo(game, { questionIndex, phase: "results" }, input.now);
 		case "results":
-			return moveTo(game, { questionIndex, phase: "scoreboard" }, input.now);
+			return isLast
+				? finish(game, input.now)
+				: moveTo(game, { questionIndex, phase: "scoreboard" }, input.now);
 		case "scoreboard":
-			if (questionIndex + 1 < game.questionCount) {
-				return moveTo(
-					game,
-					{ questionIndex: questionIndex + 1, phase: "questionIntro" },
-					input.now,
-				);
-			}
-			// Finished is not "ended": there is no reason, and the PIN is freed.
-			return {
-				...game,
-				status: "finished",
-				progress: null,
-				endedAt: input.now,
-				endReason: null,
-			};
+			return isLast
+				? finish(game, input.now)
+				: moveTo(
+						game,
+						{ questionIndex: questionIndex + 1, phase: "questionIntro" },
+						input.now,
+					);
 	}
 }
 

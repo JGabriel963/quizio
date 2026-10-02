@@ -14,6 +14,7 @@ const lobby: HostGameData = {
 	players: [{ id: "p1", nickname: "Ana" }],
 	questionCount: 0,
 	stage: null,
+	final: null,
 };
 
 describe("applyLobbyEvent (spec 008)", () => {

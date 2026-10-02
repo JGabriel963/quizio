@@ -15,6 +15,12 @@ export interface Standing {
 export interface ScoreboardEntry extends Standing {
 	/** Went up since the previous question's scoreboard (RN-20). */
 	climbed: boolean;
+	/**
+	 * Where the row starts from when the scoreboard opens: the place and the
+	 * total before the question. Null in the first question's scoreboard, where
+	 * everybody starts from zero (spec 011, RN-28).
+	 */
+	previous: { rank: number; total: number } | null;
 }
 
 /** A player's own place, and who is right ahead (RN-15). */
@@ -59,13 +65,43 @@ export function scoreboardOf(
 	current: readonly Standing[],
 	previous: readonly Standing[] | null,
 ): ScoreboardEntry[] {
-	const previousRank = new Map(
-		previous?.map((standing) => [standing.playerId, standing.rank]),
+	return current
+		.slice(0, SCOREBOARD_SIZE)
+		.map((standing) => toEntry(standing, previous));
+}
+
+/**
+ * Who was among the first five before the question and is not anymore: their
+ * rows go down and out as the scoreboard changes (spec 011, RN-31).
+ */
+export function scoreboardLeavers(
+	current: readonly Standing[],
+	previous: readonly Standing[] | null,
+): ScoreboardEntry[] {
+	if (!previous) {
+		return [];
+	}
+	const wasShown = new Set(
+		previous.slice(0, SCOREBOARD_SIZE).map((standing) => standing.playerId),
 	);
-	return current.slice(0, SCOREBOARD_SIZE).map((standing) => ({
+	return current
+		.slice(SCOREBOARD_SIZE)
+		.filter((standing) => wasShown.has(standing.playerId))
+		.map((standing) => toEntry(standing, previous));
+}
+
+function toEntry(
+	standing: Standing,
+	previous: readonly Standing[] | null,
+): ScoreboardEntry {
+	const before = previous?.find(
+		(entry) => entry.playerId === standing.playerId,
+	);
+	return {
 		...standing,
-		climbed: standing.rank < (previousRank.get(standing.playerId) ?? 0),
-	}));
+		climbed: before !== undefined && standing.rank < before.rank,
+		previous: before ? { rank: before.rank, total: before.total } : null,
+	};
 }
 
 /**

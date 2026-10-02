@@ -1,84 +1,19 @@
 import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon, LoaderCircleIcon, XIcon } from "lucide-react";
-import type { ReactNode } from "react";
 
-import { QuestionTypeIcon } from "@/components/editor/question-type-icon";
 import type {
+	PlayerFinalData,
 	PlayerOutcomeData,
-	PlayerQuestionData,
 	PlayerResultData,
 	PlayerStageData,
 } from "@/lib/api-types";
+import { CountUp } from "@/lib/count-up";
 import { positionMessage, waitingPhrase } from "@/lib/game-stage";
-import { questionTypeLabel } from "@/lib/quiz-labels";
 import { useCountdown } from "@/lib/use-countdown";
 
-import { GameScreen } from "../game-screen";
 import { AnswerButtons } from "./answer-buttons";
-import { JoinNotice } from "./join-forms";
-
-/**
- * The frame of the player's game screens: the question on top, the nickname
- * and the total of points at the bottom (spec 010, RN-16).
- */
-function PlayerFrame({
-	nickname,
-	total,
-	questionNumber,
-	question,
-	notice = null,
-	children,
-}: {
-	nickname: string;
-	/** Null where there is no game going on to have points in. */
-	total: number | null;
-	questionNumber?: number;
-	question?: PlayerQuestionData | null;
-	notice?: string | null;
-	children: ReactNode;
-}) {
-	return (
-		<GameScreen className="flex h-svh flex-col overflow-hidden">
-			{question && questionNumber !== undefined && (
-				<header className="flex h-14 shrink-0 items-center justify-between px-3">
-					<span
-						data-slot="question-number"
-						aria-hidden="true"
-						className="flex size-9 items-center justify-center rounded-full bg-white/90 font-black text-neutral-800"
-					>
-						{questionNumber}
-					</span>
-					<span className="flex items-center gap-2 rounded-full bg-white/90 py-1 pr-4 pl-2 font-bold text-neutral-800 text-sm">
-						<QuestionTypeIcon type={question.type} className="h-7 w-5" />
-						{questionTypeLabel(question.type)}
-					</span>
-					<span className="size-9" />
-				</header>
-			)}
-			{children}
-			<footer className="flex h-12 shrink-0 items-center gap-3 bg-black/40 px-4">
-				<span data-slot="player-nickname" className="truncate font-bold">
-					{nickname}
-				</span>
-				{total !== null && (
-					<span className="rounded bg-black/40 px-2 py-0.5 font-bold text-sm">
-						<span className="sr-only">Pontos: </span>
-						<span data-slot="player-total">{total}</span>
-					</span>
-				)}
-			</footer>
-			<JoinNotice message={notice} />
-		</GameScreen>
-	);
-}
-
-function Centered({ children }: { children: ReactNode }) {
-	return (
-		<main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 p-6 text-center">
-			{children}
-		</main>
-	);
-}
+import { FinalScreen } from "./final-screen";
+import { Centered, PlayerFrame } from "./player-frame";
 
 function Spinner() {
 	return (
@@ -123,7 +58,7 @@ function ResultScreen({
 				data-slot="result-mark"
 				data-result={result}
 				className={cn(
-					"flex size-24 items-center justify-center rounded-full shadow-lg",
+					"flex size-24 items-center justify-center rounded-full shadow-lg motion-safe:animate-pop-in",
 					good ? "bg-success" : "bg-destructive",
 					result === "partiallyCorrect" && "bg-answer-yellow",
 				)}
@@ -144,7 +79,12 @@ function ResultScreen({
 			{good && outcome && outcome.points !== null && (
 				<p className={cn(stripClass, "font-black text-2xl")}>
 					<span className="sr-only">Pontos ganhos: </span>
-					<span data-slot="answer-points">+ {outcome.points}</span>
+					<CountUp
+						data-slot="answer-points"
+						prefix="+ "
+						from={0}
+						value={outcome.points}
+					/>
 				</p>
 			)}
 			{strip && <p className={stripClass}>{strip}</p>}
@@ -196,15 +136,19 @@ function QuestionIntro({
 export function PlayerStage({
 	nickname,
 	finished,
+	final,
 	stage,
 	receivedAt,
 	late,
 	notice,
 	onAnswer,
+	onLeave,
 }: {
 	nickname: string;
 	/** Every question was played (RN-30). */
 	finished: boolean;
+	/** How the game ended for this player; null until the session tells (spec 011). */
+	final: PlayerFinalData | null;
 	stage: PlayerStageData | null;
 	/** When `stage` arrived, by this device's clock. */
 	receivedAt: number;
@@ -213,15 +157,17 @@ export function PlayerStage({
 	/** A failure to send the answer, to try again. */
 	notice: string | null;
 	onAnswer: (choiceIds: string[]) => void;
+	/** "Entrar em outro jogo", from the final screen. */
+	onLeave: () => void;
 }) {
 	if (finished) {
 		return (
-			<PlayerFrame nickname={nickname} total={null}>
-				<Centered>
-					<h1 className="font-black text-5xl">Fim do jogo</h1>
-					<p className="font-bold text-2xl">Obrigado por jogar!</p>
-				</Centered>
-			</PlayerFrame>
+			<FinalScreen
+				nickname={nickname}
+				final={final}
+				receivedAt={receivedAt}
+				onLeave={onLeave}
+			/>
 		);
 	}
 

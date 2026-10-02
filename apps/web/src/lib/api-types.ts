@@ -25,6 +25,9 @@ export type HostQuestionData = NonNullable<HostStageData["question"]>;
 export type ScoreboardEntryData = NonNullable<
 	HostStageData["scoreboard"]
 >[number];
+/** The end of a finished game: the final standings and the podium's reveal (spec 011). */
+export type HostFinalData = NonNullable<HostGameData["final"]>;
+export type FinalStandingData = HostFinalData["standings"][number];
 
 /** What a player's device should be showing (specs 008, 009). */
 export type PlayerSessionData = RouterOutputs["game"]["join"]["session"];
@@ -33,3 +36,5 @@ export type PlayerQuestionData = NonNullable<PlayerStageData["question"]>;
 /** What a question left the player with: result, points, streak and place (spec 010). */
 export type PlayerOutcomeData = NonNullable<PlayerStageData["outcome"]>;
 export type PlayerResultData = PlayerOutcomeData["result"];
+/** How the game ended for this player (spec 011). */
+export type PlayerFinalData = NonNullable<PlayerSessionData["final"]>;

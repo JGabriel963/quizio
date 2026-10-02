@@ -13,18 +13,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 
-import { GameFinished } from "@/components/game/host/game-finished";
 import { GameUnavailable } from "@/components/game/host/game-unavailable";
 import { HostLobby } from "@/components/game/host/host-lobby";
 import { HostStage } from "@/components/game/host/host-stage";
+import { Podium } from "@/components/game/host/podium";
 import type { HostGameData } from "@/lib/api-types";
 import { gameErrorCode, gameErrorMessage } from "@/lib/game-error-messages";
 import { applyLobbyEvent, type LobbyEvent } from "@/lib/game-lobby";
+import { usePlayAgain } from "@/lib/game-mutations";
 import { applyAnswerCount, showsStage } from "@/lib/game-stage";
 import { useRealtimeEvent } from "@/lib/realtime";
 import { useTRPC } from "@/utils/trpc";
 
-/** The host's screen of a live game, full screen outside the creator shell (specs 008, 009). */
+/** The host's screen of a live game, full screen outside the creator shell (specs 008 to 011). */
 export const Route = createFileRoute("/_auth/host/$gameId")({
 	component: HostPage,
 });
@@ -48,10 +49,16 @@ function HostPage() {
 	const view = useQuery({
 		...trpc.game.view.queryOptions({ gameId }),
 		staleTime: 0,
-		refetchInterval: (query) =>
-			query.state.data?.status === "playing"
+		refetchInterval: (query) => {
+			const status = query.state.data?.status;
+			// A game that is over does not change anymore (spec 011, RN-07).
+			if (status === "finished" || status === "ended") {
+				return false;
+			}
+			return status === "playing"
 				? PLAYING_REFETCH_INTERVAL_MS
-				: LOBBY_REFETCH_INTERVAL_MS,
+				: LOBBY_REFETCH_INTERVAL_MS;
+		},
 		refetchOnWindowFocus: true,
 		refetchOnReconnect: true,
 		retry: (failureCount, error) =>
@@ -152,6 +159,7 @@ function HostPage() {
 	const advance = useMutation(
 		trpc.game.advance.mutationOptions({ networkMode: "always" }),
 	);
+	const playAgain = usePlayAgain();
 
 	/** The answer is the game after the transition; a refusal goes back to the screen that asked. */
 	async function advanceFrom(from: StageRef, skip: boolean) {
@@ -189,18 +197,21 @@ function HostPage() {
 	if (game.status === "ended") {
 		return <GameUnavailable state={{ kind: "ended", quizId }} />;
 	}
-	if (game.status === "finished") {
-		return <GameFinished title={game.title} quizId={quizId} />;
+	const toQuiz = () => navigate({ to: "/quizzes/$quizId", params: { quizId } });
+	if (game.status === "finished" && game.final) {
+		return (
+			<Podium
+				game={game}
+				final={game.final}
+				receivedAt={view.dataUpdatedAt}
+				playingAgain={playAgain.pending}
+				playAgainError={playAgain.error}
+				actions={{ playAgain: () => playAgain.start(quizId), exit: toQuiz }}
+			/>
+		);
 	}
 
-	const endGame = () =>
-		end.mutate(
-			{ gameId },
-			{
-				onSuccess: () =>
-					navigate({ to: "/quizzes/$quizId", params: { quizId } }),
-			},
-		);
+	const endGame = () => end.mutate({ gameId }, { onSuccess: toQuiz });
 
 	if (game.status === "playing" && game.stage) {
 		return (

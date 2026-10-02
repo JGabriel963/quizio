@@ -97,7 +97,10 @@ export function HostStage({
 
 			{phase === "scoreboard" ? (
 				<Scoreboard
+					// Each question's scoreboard plays its own animation.
+					key={questionIndex}
 					entries={stage.scoreboard ?? []}
+					leavers={stage.scoreboardLeavers ?? []}
 					busy={busy}
 					onAdvance={() => request(false)}
 				/>

@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -59,11 +59,13 @@ function renderStage(
 		<PlayerStage
 			nickname="ACT"
 			finished={false}
+			final={null}
 			stage={stage}
 			receivedAt={Date.now()}
 			late={false}
 			notice={null}
 			onAnswer={onAnswer}
+			onLeave={vi.fn()}
 			{...props}
 		/>,
 	);
@@ -288,20 +290,65 @@ describe("PlayerStage: results and end (spec 009)", () => {
 		expect(screen.queryByRole("heading")).toBeNull();
 	});
 
-	it("thanks the player at the end of the game", () => {
-		renderStage(null, { finished: true });
+	it("shows the final screen at the end of the game (spec 011)", () => {
+		renderStage(null, {
+			finished: true,
+			final: {
+				title: "Capitais",
+				rank: 4,
+				total: 1500,
+				revealRemainingMs: 0,
+			},
+		});
 
-		expect(screen.getByRole("heading", { name: "Fim do jogo" })).toBeVisible();
-		expect(screen.getByText("Obrigado por jogar!")).toBeVisible();
+		expect(
+			screen.getByRole("heading", { name: "Você ficou em 4º lugar" }),
+		).toBeVisible();
+		expect(slot("player-total")).toBe("1500");
 	});
 
-	it("tells the points, the streak, the place and the total (spec 010)", () => {
+	it("the footer's total ends at the new value when it goes up (spec 011)", async () => {
+		const view = render(
+			<PlayerStage
+				nickname="ACT"
+				finished={false}
+				final={null}
+				stage={stageAt({ answered: true, total: 639 })}
+				receivedAt={Date.now()}
+				late={false}
+				notice={null}
+				onAnswer={vi.fn()}
+				onLeave={vi.fn()}
+			/>,
+		);
+		expect(slot("player-total")).toBe("639");
+
+		view.rerender(
+			<PlayerStage
+				nickname="ACT"
+				finished={false}
+				final={null}
+				stage={results("correct", { points: 701 }, { total: 1340 })}
+				receivedAt={Date.now()}
+				late={false}
+				notice={null}
+				onAnswer={vi.fn()}
+				onLeave={vi.fn()}
+			/>,
+		);
+
+		await waitFor(() => expect(slot("player-total")).toBe("1340"));
+		await waitFor(() => expect(slot("answer-points")).toBe("+ 701"));
+	});
+
+	it("tells the points, the streak, the place and the total (spec 010)", async () => {
 		renderStage(results("correct"));
 
 		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
 		expect(screen.getByText("Sequência de respostas")).toBeVisible();
 		expect(slot("answer-streak")).toBe("2");
-		expect(slot("answer-points")).toBe("+ 639");
+		// The points count up from zero (spec 011, RN-35).
+		await waitFor(() => expect(slot("answer-points")).toBe("+ 639"));
 		expect(slot("player-position")).toBe("Você está no pódio!");
 		expect(slot("player-total")).toBe("1340");
 	});
@@ -340,11 +387,11 @@ describe("PlayerStage: results and end (spec 009)", () => {
 		expect(slot("answer-points")).toBeNull();
 	});
 
-	it("keeps the result on the phone during the host's scoreboard", () => {
+	it("keeps the result on the phone during the host's scoreboard", async () => {
 		renderStage(results("correct", {}, { phase: "scoreboard" }));
 
 		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
-		expect(slot("answer-points")).toBe("+ 639");
+		await waitFor(() => expect(slot("answer-points")).toBe("+ 639"));
 	});
 
 	it("shows the total, and nothing about the answer just sent, while waiting", () => {

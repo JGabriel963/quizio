@@ -21,6 +21,7 @@ const empty: HostGameData = {
 	players: [],
 	questionCount: 0,
 	stage: null,
+	final: null,
 };
 const act = { id: "p1", nickname: "ACT" };
 const bia = { id: "p2", nickname: "Bia" };

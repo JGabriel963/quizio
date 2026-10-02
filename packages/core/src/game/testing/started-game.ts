@@ -74,6 +74,13 @@ export async function createStartedGame(
 		);
 	}
 
+	/** Plays to the end: the last question's results, then the podium (spec 011). */
+	async function finish() {
+		const { questionCount } = await stored();
+		await reach("results", questionCount - 1);
+		return advance({ ...host, from: await stage() });
+	}
+
 	/** Player `number` (1-based) answers the question being asked. */
 	async function answer(number: number, ...choiceIds: string[]) {
 		const { questionIndex } = await stage();
@@ -86,5 +93,15 @@ export async function createStartedGame(
 		});
 	}
 
-	return { deps, host, advance, submitAnswer, stored, stage, reach, answer };
+	return {
+		deps,
+		host,
+		advance,
+		submitAnswer,
+		stored,
+		stage,
+		reach,
+		finish,
+		answer,
+	};
 }

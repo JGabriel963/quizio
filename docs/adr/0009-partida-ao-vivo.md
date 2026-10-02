@@ -72,6 +72,7 @@ O que pode ser divulgado é sempre calculado até a última pergunta revelada: a
 - Cada ação é uma requisição HTTP e uma escrita no banco. Serve para centenas de jogadores por partida (ADR 0002).
 - A consulta periódica custa uma leitura a cada 15 segundos por tela aberta, e a cada 5 segundos durante o jogo. Para 200 jogadores jogando, são cerca de 40 consultas por segundo, todas por chave primária.
 - Um evento de mudança de fase perdido custa tempo de resposta ao jogador, até a consulta seguinte.
+- O pódio (spec 011) não é uma fase: é a leitura de uma partida terminada. A classificação final sai das respostas, como o placar, e a revelação dos lugares é contada de `endedAt` pelo relógio do servidor, que diz às telas quanto falta. As animações ficam só no cliente e nada na partida espera por elas.
 - Para dar a posição, cada consulta de sessão na revelação soma os pontos da partida inteira. Se pesar, a saída é guardar a classificação de cada pergunta quando a fase fecha, sem mudar o domínio.
 - Se a tela do anfitrião estiver fechada, a partida não avança: o prazo das respostas continua valendo, mas a revelação espera ele voltar.
 - O segredo fica no `localStorage`: quem tem acesso ao navegador do jogador joga como ele. O dano é uma pontuação num jogo de perguntas.

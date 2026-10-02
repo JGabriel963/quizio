@@ -9,6 +9,7 @@ import {
 } from "../domain/game-progress";
 import type { GameQuestion } from "../domain/game-question";
 import { hasPlayerSecret, isActivePlayer, type Player } from "../domain/player";
+import { podiumRevealRemainingMs } from "../domain/podium";
 import { type PublicStage, publicStageOf } from "../domain/public-stage";
 import { rankPlayers, standingOf, streakAfter } from "../domain/standings";
 import { loadGame } from "./game-lifecycle";
@@ -62,12 +63,25 @@ export interface PlayerStageView extends PublicStage {
 	outcome: PlayerOutcome | null;
 }
 
+/** How the game ended for one player (spec 011, RN-18 to RN-21). */
+export interface PlayerFinalView {
+	/** The quiz's title, as the game keeps it. */
+	title: string;
+	/** The player's place in the final standings: nobody shares one (RN-05). */
+	rank: number;
+	total: number;
+	/** Left of the podium's reveal on the host's screen; the device waits for it (RN-18). */
+	revealRemainingMs: number;
+}
+
 export interface PlayerSessionView {
 	gameId: string;
 	nickname: string;
 	status: PlayerSessionStatus;
 	/** Null unless the game is being played. */
 	stage: PlayerStageView | null;
+	/** Null unless the game is finished and the player was in it to the end. */
+	final: PlayerFinalView | null;
 }
 
 export type GetPlayerSession = (input: {
@@ -157,6 +171,30 @@ export function createGetPlayerSession(deps: {
 		};
 	}
 
+	async function finalOf(
+		game: Game,
+		player: Player,
+	): Promise<PlayerFinalView | null> {
+		if (game.status !== "finished" || !isActivePlayer(player)) {
+			return null;
+		}
+		const standing = standingOf(
+			rankPlayers(
+				await deps.players.listActive(game.id),
+				await deps.answers.totalsThrough(game.id, game.questionCount - 1),
+			),
+			player.id,
+		);
+		return (
+			standing && {
+				title: game.title,
+				rank: standing.rank,
+				total: standing.total,
+				revealRemainingMs: podiumRevealRemainingMs(game, deps.clock.now()),
+			}
+		);
+	}
+
 	return async ({ gameId, playerId, secret }) => {
 		const game = await loadGame(deps, gameId);
 		const player = await deps.players.findById(playerId);
@@ -173,6 +211,7 @@ export function createGetPlayerSession(deps: {
 			nickname: player.nickname,
 			status: statusOf(game, player),
 			stage: await stageOf(game, player),
+			final: await finalOf(game, player),
 		};
 	};
 }
