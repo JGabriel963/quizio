@@ -23,6 +23,7 @@ import { applyLobbyEvent, type LobbyEvent } from "@/lib/game-lobby";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { applyAnswerCount, showsStage } from "@/lib/game-stage";
 import { useRealtimeEvent } from "@/lib/realtime";
+import { useOrigin } from "@/lib/use-origin";
 import { useTRPC } from "@/utils/trpc";
 
 /** The host's screen of a live game, full screen outside the creator shell (specs 008 to 011). */
@@ -43,7 +44,7 @@ function HostPage() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const navigate = Route.useNavigate();
-	const origin = typeof window === "undefined" ? "" : window.location.origin;
+	const origin = useOrigin();
 
 	const viewKey = trpc.game.view.queryKey({ gameId });
 	const view = useQuery({
@@ -177,7 +178,8 @@ function HostPage() {
 		}
 	}
 
-	if (view.isPending) {
+	// The lobby shows the address and a QR code of it: it waits for the origin.
+	if (view.isPending || origin === null) {
 		return <GameUnavailable state={{ kind: "loading", origin }} />;
 	}
 	if (view.isError) {

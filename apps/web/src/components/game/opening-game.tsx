@@ -1,12 +1,17 @@
 import { Button } from "@quizio/ui/components/button";
+import { cn } from "@quizio/ui/lib/utils";
 
 import type { OpeningGameState } from "@/lib/game-mutations";
 import { joinAddress } from "@/lib/join-link";
 
 import { GameScreen } from "./game-screen";
 
-/** The cartaz Kahoot shows while the lobby is not there yet (spec 008, RN-13). */
-export function PreparingLobby({ address }: { address: string }) {
+/**
+ * The cartaz Kahoot shows while the lobby is not there yet (spec 008, RN-13).
+ * `address` is null while the page's address is not known (on the server):
+ * the line keeps its place, without a made-up address.
+ */
+export function PreparingLobby({ address }: { address: string | null }) {
 	return (
 		<div
 			role="status"
@@ -16,7 +21,7 @@ export function PreparingLobby({ address }: { address: string }) {
 				Prepare-se para participar
 			</p>
 			<div className="flex flex-col items-stretch overflow-hidden rounded-md bg-white shadow-lg sm:flex-row sm:items-center">
-				<p className="px-5 py-3 text-lg">
+				<p className={cn("px-5 py-3 text-lg", address === null && "invisible")}>
 					Entre em <strong>{address}</strong>
 				</p>
 				<p className="m-2 rounded bg-neutral-800 px-4 py-2 text-center font-black text-lg text-white">

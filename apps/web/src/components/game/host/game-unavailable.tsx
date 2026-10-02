@@ -7,7 +7,8 @@ import { GameScreen } from "../game-screen";
 import { PreparingLobby } from "../opening-game";
 
 export type GameUnavailableState =
-	| { kind: "loading"; origin: string }
+	/** `origin` is null until the browser tells it: the server does not know the address. */
+	| { kind: "loading"; origin: string | null }
 	| { kind: "not-found" }
 	| { kind: "ended"; quizId: string }
 	| { kind: "error"; onRetry: () => void };
@@ -17,7 +18,9 @@ export function GameUnavailable({ state }: { state: GameUnavailableState }) {
 	return (
 		<GameScreen className="flex flex-col items-center justify-center gap-5 p-4 text-center">
 			{state.kind === "loading" && (
-				<PreparingLobby address={joinAddress(state.origin)} />
+				<PreparingLobby
+					address={state.origin === null ? null : joinAddress(state.origin)}
+				/>
 			)}
 			{state.kind === "not-found" && (
 				<>
