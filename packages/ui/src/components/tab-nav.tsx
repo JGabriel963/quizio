@@ -23,7 +23,7 @@ function TabNav({ className, ...props }: React.ComponentProps<"nav">) {
 }
 
 const tabNavItemVariants = cva(
-	"inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 font-semibold text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 [&>svg]:size-4",
+	"inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 font-semibold text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 [&>svg]:size-4",
 	{
 		variants: {
 			current: {
