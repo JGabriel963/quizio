@@ -883,6 +883,8 @@ describe("JoinFlow: playing (spec 009)", () => {
 		first.unmount();
 
 		const { user } = renderFlow({ api, store });
+		// The game is over, so the way back is not offered (RN-44a).
+		await screen.findByRole("textbox", { name: "PIN" });
 		await typePin(user, PIN);
 
 		expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -950,5 +952,129 @@ describe("JoinFlow: playing (spec 009)", () => {
 
 		expect(await screen.findByText("+ 639")).toBeVisible();
 		expect(screen.getByRole("heading", { name: "Correto" })).toBeVisible();
+	});
+});
+
+describe("JoinFlow: coming back to a game (spec 008, RN-44a)", () => {
+	/** A player who joined and then left the page, with the game still there. */
+	async function leftTheGame() {
+		const api = new FakeJoinApi();
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		first.unmount();
+		return { api, store };
+	}
+	const comeBack = () =>
+		screen.findByRole("button", { name: "Voltar como ACT" });
+
+	it("offers to come back as the same player while in the lobby", async () => {
+		const { api, store } = await leftTheGame();
+
+		const flow = renderFlow({ api, store });
+
+		expect(await comeBack()).toBeVisible();
+		expect(screen.queryByRole("textbox", { name: "PIN" })).toBeNull();
+
+		await flow.user.click(await comeBack());
+
+		expect(
+			await screen.findByText("Pronto! Está vendo seu apelido na tela?"),
+		).toBeVisible();
+		expect(flow.onPinChange).toHaveBeenLastCalledWith(PIN);
+		// The same player, not a new one.
+		expect(api.players.size).toBe(1);
+	});
+
+	it("comes back to where the game is", async () => {
+		const { api, store } = await leftTheGame();
+		api.stage = stageOf("answering");
+
+		const flow = renderFlow({ api, store });
+		await flow.user.click(await comeBack());
+
+		expect(
+			await screen.findByRole("button", { name: "Triângulo vermelho" }),
+		).toBeVisible();
+	});
+
+	it("shows the PIN step at once to who was in no game", () => {
+		renderFlow();
+
+		expect(pinField()).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /Voltar como/ })).toBeNull();
+	});
+
+	it.each([
+		[
+			"finished",
+			(api: FakeJoinApi) => {
+				api.finished = true;
+			},
+		],
+		[
+			"ended",
+			(api: FakeJoinApi) => {
+				api.ended = true;
+			},
+		],
+		[
+			"left by removal",
+			(api: FakeJoinApi) => {
+				const player = api.players.get("p1");
+				if (player) {
+					player.removed = true;
+				}
+			},
+		],
+	])("does not offer it once the game is %s", async (_state, change) => {
+		const { api, store } = await leftTheGame();
+		change(api);
+
+		renderFlow({ api, store });
+
+		expect(await screen.findByRole("textbox", { name: "PIN" })).toBeVisible();
+		expect(screen.queryByRole("button", { name: /Voltar como/ })).toBeNull();
+		// Nobody asked anything: there is no message to show.
+		expect(screen.getByRole("alert").textContent).toBe("");
+		expect(store.last()).toBeNull();
+	});
+
+	it("lets the player enter another PIN instead", async () => {
+		const { api, store } = await leftTheGame();
+		const flow = renderFlow({ api, store });
+		await comeBack();
+
+		await flow.user.click(
+			screen.getByRole("button", { name: "Entrar com outro PIN" }),
+		);
+
+		expect(pinField()).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /Voltar como/ })).toBeNull();
+	});
+
+	it("goes straight back with the PIN in the address, without asking", async () => {
+		const { api, store } = await leftTheGame();
+
+		renderFlow({ api, store, pin: PIN });
+
+		expect(
+			await screen.findByText("Pronto! Está vendo seu apelido na tela?"),
+		).toBeVisible();
+	});
+
+	it("stops offering after the player leaves the final screen", async () => {
+		const { api, store } = await leftTheGame();
+		api.finished = true;
+		const flow = renderFlow({ api, store, pin: PIN });
+		await flow.user.click(
+			await screen.findByRole("button", { name: "Entrar em outro jogo" }),
+		);
+		flow.unmount();
+
+		renderFlow({ api, store });
+
+		expect(pinField()).toBeInTheDocument();
+		expect(store.last()).toBeNull();
 	});
 });

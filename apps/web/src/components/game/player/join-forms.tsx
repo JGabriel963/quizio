@@ -3,7 +3,7 @@ import { NICKNAME_MAX_LENGTH } from "@quizio/core/game/domain/nickname";
 import { truncateCharacters } from "@quizio/core/shared/domain/text-length";
 import { Button } from "@quizio/ui/components/button";
 import { cn } from "@quizio/ui/lib/utils";
-import { CircleAlertIcon } from "lucide-react";
+import { ArrowRightIcon, CircleAlertIcon } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 
 import { GameScreen, Wordmark } from "../game-screen";
@@ -104,6 +104,48 @@ export function PinForm({
 					Entrar
 				</Button>
 			</form>
+		</JoinCard>
+	);
+}
+
+/**
+ * In place of the PIN, for who left a game that is still on: the way back as
+ * the same player, or another PIN (spec 008, RN-44a).
+ */
+export function RejoinForm({
+	nickname,
+	busy,
+	onRejoin,
+	onOtherPin,
+}: {
+	nickname: string;
+	busy: boolean;
+	onRejoin: () => void;
+	onOtherPin: () => void;
+}) {
+	return (
+		<JoinCard notice={null}>
+			<div className="flex w-full max-w-xs flex-col gap-3 rounded-md bg-white p-4 shadow-lg">
+				<Button
+					variant="game"
+					size="lg"
+					disabled={busy}
+					onClick={onRejoin}
+					className="h-auto min-h-12 whitespace-normal break-all"
+				>
+					Voltar como {nickname}
+					<ArrowRightIcon aria-hidden="true" />
+				</Button>
+				<Button
+					variant="ghost"
+					disabled={busy}
+					onClick={onOtherPin}
+					// The card is white inside the dark game screen.
+					className="text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900"
+				>
+					Entrar com outro PIN
+				</Button>
+			</div>
 		</JoinCard>
 	);
 }

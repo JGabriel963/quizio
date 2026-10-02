@@ -165,6 +165,12 @@ test.describe("ciclo da pergunta (spec 009)", () => {
 		await bia.reload();
 		await expect(answerButtons(bia)).toHaveCount(2);
 
+		// Spec 008, CA-45a: back at the PIN entry, the game still on offers the way back.
+		await bia.goto("/join");
+		await expect(bia.getByRole("textbox", { name: "PIN" })).toHaveCount(0);
+		await bia.getByRole("button", { name: "Voltar como Bia" }).click();
+		await expect(answerButtons(bia)).toHaveCount(2);
+
 		// CA-24: the last answer brings the results, without waiting for the time.
 		await answerButton(bia, "Losango azul").click();
 		await expect(host.getByRole("button", { name: "Avançar" })).toBeVisible();

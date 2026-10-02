@@ -125,6 +125,7 @@ O criador aciona "Organizar ao vivo" num quiz publicado e vê o lobby, com o PIN
 | RN-42 | O apelido é **único na partida**, sem diferenciar maiúsculas, minúsculas e acentos ("José" e "jose" são o mesmo). Um apelido em uso, ou bloqueado por remoção (RN-30), mostra **"Esse apelido já está em uso. Escolha outro."**, e o jogador continua na etapa do apelido. | kahoot-reference §9 · decisão do produto (2026-10-01) |
 | RN-43 | Depois de entrar, o jogador vê a **tela de espera**: o apelido em destaque e **"Pronto! Está vendo seu apelido na tela?"**. O apelido fica fixo até o fim da partida. | referência visual do Kahoot · kahoot-reference §9 |
 | RN-44 | O jogador é **anônimo** e pertence àquele navegador naquela partida: recarregar a página, ou abrir de novo o link ou o PIN no mesmo navegador, volta à tela de espera com o mesmo apelido, sem criar outro jogador. | kahoot-reference §9 (recomendação) · constituição, artigo VIII |
+| RN-44a | Quem volta à **entrada do PIN** (`/join`, sem PIN no endereço) com uma partida **ainda aberta** naquele navegador (no lobby ou em andamento) vê, no lugar do PIN, o botão **"Voltar como {apelido}"** e a opção **"Entrar com outro PIN"**. O botão leva de volta à partida como o mesmo jogador (RN-44). A oferta só aparece depois de o servidor confirmar que a partida está aberta e que o jogador continua nela; se a partida terminou ou foi encerrada, ou se ele foi removido, aparece a entrada do PIN comum, sem mensagem. | referência do Kahoot (descrição do usuário, 2026-10-02) |
 | RN-45 | Uma partida aceita no máximo **200 jogadores**. Cheia, quem tenta entrar vê "Este jogo está cheio." O limite é técnico (tamanho das mensagens em tempo real e da tela do anfitrião) e configurável; não há limite por plano. | kahoot-reference §6.3 · constituição, artigo VI |
 | RN-46 | O que o jogador vê depende do servidor: se ele foi removido ou a partida foi encerrada enquanto estava sem conexão, ao voltar ou recarregar ele vê a entrada do PIN com a mensagem correspondente (RN-29, RN-32). | constituição, artigos V e VIII |
 
@@ -428,6 +429,25 @@ O criador aciona "Organizar ao vivo" num quiz publicado e vê o lobby, com o PIN
 - **Quando** o anfitrião o remove e o celular volta a ter conexão
 - **Então** "ACT" vê a entrada do PIN com "Ah, não! Você foi expulso do jogo."
 
+#### CA-45a — Voltar como o mesmo jogador
+
+- **Dado** o jogador "ACT" numa partida aberta, que saiu da página
+- **Quando** ele abre a entrada do PIN no mesmo navegador
+- **Então** vê "Voltar como ACT" e "Entrar com outro PIN", sem o campo do PIN
+- **E** acionar "Voltar como ACT" o leva de volta à tela em que a partida está, como o mesmo jogador
+
+#### CA-45b — Sem oferta depois que a partida acaba
+
+- **Dado** o jogador "ACT" numa partida que terminou, foi encerrada ou da qual ele foi removido
+- **Quando** ele abre a entrada do PIN no mesmo navegador
+- **Então** vê o campo do PIN, sem a oferta de voltar e sem mensagem
+
+#### CA-45c — Entrar com outro PIN
+
+- **Dado** a oferta "Voltar como ACT" na tela
+- **Quando** o jogador aciona "Entrar com outro PIN"
+- **Então** vê o campo do PIN
+
 #### CA-46 — No celular
 
 - **Dado** a página de entrada aberta num celular
@@ -497,3 +517,5 @@ As telas da partida usam o tema escuro do Quizio, em roxo, com as cores e a tipo
 - 2026-10-01 — aprovada pelo usuário, que aceitou a regra de uma partida aberta por quiz (RN-07). Combinado: detalhes de interface e de regras podem ser ajustados durante o desenvolvimento, registrando aqui cada mudança de regra. As demais perguntas em aberto (Iniciar como "Em breve", limite de 200, textos sem captura) seguem com o valor proposto.
 - 2026-10-01 — ajuste vindo do plano: o limite de PINs errados passa de 10 por dispositivo para 30 por endereço de rede (RN-39, CA-38). O servidor só enxerga o IP, e uma sala inteira costuma sair pelo mesmo; 10 erros por minuto travariam uma turma grande.
 - 2026-10-01 — implementada (tarefas T01 a T16). Os critérios de aceite têm teste automatizado verde em domínio, casos de uso, PGlite, API, componentes e E2E com anfitrião e jogadores em navegadores separados, em desktop e celular; as exceções estão em `tasks.md`. Decisões de base no ADR 0009. Ajuste vindo da implementação: os formulários do jogador só aparecem quando a página está interativa.
+- 2026-10-02 — correção, sem mudar regra: abrir `/host/{id}` por carga completa dava erro de hidratação, porque o cartaz "Prepare-se para participar" (RN-13) mostrava o endereço do site, que o servidor não conhece. O cartaz agora espera o navegador dizer o endereço (`useOrigin`), e o lobby só aparece depois disso.
+- 2026-10-02 — a pedido do usuário, depois de ver o Kahoot oferecer a volta a um jogo em andamento: a entrada do PIN oferece "Voltar como {apelido}" enquanto a partida daquele navegador está aberta (RN-44a, CA-45a a CA-45c). Adianta uma parte da reconexão prevista na spec 012. O retorno direto ao recarregar `/join/{PIN}` não muda.

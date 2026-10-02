@@ -20,6 +20,7 @@ import {
 } from "@/lib/game-error-messages";
 import { stageOrder } from "@/lib/game-stage";
 import type {
+	LastGame,
 	PlayerSessionStore,
 	StoredPlayerSession,
 } from "@/lib/player-session";
@@ -29,6 +30,7 @@ import {
 	JoinLoading,
 	NicknameForm,
 	PinForm,
+	RejoinForm,
 	WaitingScreen,
 } from "./join-forms";
 import { PlayerStage } from "./player-stage";
@@ -63,8 +65,10 @@ interface PlayView {
 
 type Step =
 	| { kind: "pin"; notice: string | null; invalid: boolean }
-	/** A join link or a reload is being checked with the server. */
+	/** A join link, a reload or the last game is being checked with the server. */
 	| { kind: "resolving" }
+	/** A game this browser's player left is still on: the way back (spec 008, RN-44a). */
+	| { kind: "rejoin"; pin: string; nickname: string }
 	| { kind: "nickname"; game: FoundGame; error: string | null }
 	| {
 			/** In the game: waiting in the lobby while `play` is null, playing after. */
@@ -164,7 +168,7 @@ export function JoinFlow({
 	onPinChange: (pin: string | null) => void;
 }) {
 	const [step, setStep] = useState<Step>(() =>
-		pin ? { kind: "resolving" } : pinStep(),
+		pin || store.last() ? { kind: "resolving" } : pinStep(),
 	);
 	const [busy, setBusy] = useState(false);
 	/** The question whose answer the server refused for being late (spec 009, RN-20). */
@@ -198,6 +202,7 @@ export function JoinFlow({
 				const inGame = view.status === "waiting" || view.status === "playing";
 				// A reload after the last question still shows the end of the game.
 				if (inGame || (view.status === "finished" && !typed)) {
+					store.remember({ pin: parsed, nickname: view.nickname });
 					return {
 						kind: "waiting",
 						game: { gameId: stored.gameId, pin: parsed },
@@ -267,6 +272,60 @@ export function JoinFlow({
 			resolvedPin.current = null;
 		};
 	}, [pin]);
+
+	/**
+	 * Whether the game this browser's player was last in is still on, and the
+	 * player still in it: only then is the way back offered (RN-44a). Nobody
+	 * asked anything here, so a game that is over just leads to the PIN.
+	 */
+	async function rejoinOffer(last: LastGame): Promise<Step> {
+		const stored = store.load(last.pin);
+		if (!stored) {
+			store.forget();
+			return pinStep();
+		}
+		try {
+			const view = await api.session(stored);
+			if (view.status === "waiting" || view.status === "playing") {
+				return { kind: "rejoin", pin: last.pin, nickname: view.nickname };
+			}
+			// A finished game keeps its session: its link still shows the final screen.
+			if (view.status === "finished") {
+				store.forget();
+			} else {
+				store.clear(last.pin);
+			}
+		} catch (error) {
+			if (gameErrorCode(error) === "GAME.NOT_FOUND") {
+				store.clear(last.pin);
+			}
+			// A network failure keeps it for the next time.
+		}
+		return pinStep();
+	}
+
+	const offerRejoin = useEffectEvent(
+		async (last: LastGame, isCancelled: () => boolean) => {
+			const next = await rejoinOffer(last);
+			if (!isCancelled()) {
+				setStep(next);
+			}
+		},
+	);
+
+	// Arriving without a PIN: the game left behind, if it is still on.
+	const arrivedWithoutPin = useRef(pin === null);
+	useEffect(() => {
+		const last = arrivedWithoutPin.current ? store.last() : null;
+		if (!last) {
+			return;
+		}
+		let cancelled = false;
+		void offerRejoin(last, () => cancelled);
+		return () => {
+			cancelled = true;
+		};
+	}, [store]);
 
 	/** Out of the game: back to the PIN, with the reason, if there is one. */
 	function leave(notice: string | null) {
@@ -411,9 +470,10 @@ export function JoinFlow({
 		};
 	}, [playerId, settled, checkInterval]);
 
-	async function submitPin(rawPin: string) {
+	/** `typed` is false for the way back: the player did not write this PIN. */
+	async function submitPin(rawPin: string, typed = true) {
 		setBusy(true);
-		const next = await resolve(rawPin, true);
+		const next = await resolve(rawPin, typed);
 		setBusy(false);
 		show(next, parseGamePin(rawPin));
 	}
@@ -428,6 +488,7 @@ export function JoinFlow({
 				secret: joined.secret,
 			};
 			store.save(game.pin, session);
+			store.remember({ pin: game.pin, nickname: joined.nickname });
 			setStep({
 				kind: "waiting",
 				game,
@@ -495,7 +556,16 @@ export function JoinFlow({
 					notice={step.notice}
 					invalid={step.invalid}
 					busy={busy}
-					onSubmit={submitPin}
+					onSubmit={(typedPin) => submitPin(typedPin)}
+				/>
+			);
+		case "rejoin":
+			return (
+				<RejoinForm
+					nickname={step.nickname}
+					busy={busy}
+					onRejoin={() => submitPin(step.pin, false)}
+					onOtherPin={() => show(pinStep(), null)}
 				/>
 			);
 		case "nickname":
