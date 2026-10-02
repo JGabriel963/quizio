@@ -206,7 +206,7 @@ Ligações novas em `container.ts` / `composition-root.ts`: adapter `versions: Q
 ## Riscos e decisões
 
 - **O snapshot guarda só as perguntas**, não o quiz inteiro como o ADR 0008 (item 4) antecipava: título, descrição, capa e visibilidade valem na hora (spec, RN-06). A spec 008 decide o que a partida copia desses dados ao começar. Registrado no ADR 0008.
-- **Versões antigas são mantidas** em `quiz_version` (uma linha por número). Não há tela para elas; servem às partidas e aos relatórios das specs 008 e 010, que apontam para a versão.
+- **Versões antigas são mantidas** em `quiz_version` (uma linha por número). Não há tela para elas; servem às partidas e aos relatórios das specs 008 e 013, que apontam para a versão.
 - **Duas escritas no Salvar** (versão, depois quiz) sem transação entre repositórios. Se a segunda falhar, sobra uma linha de versão com o próximo número, que o Salvar seguinte substitui (`save` é upsert por `(quiz_id, number)`).
 - **`has_unpublished_changes` é um dado derivado.** Ele é recalculado a cada escrita do editor; uma escrita do título em paralelo regravava a linha inteira do quiz e poderia sobrepor a marca com um valor antigo. Mitigação: o título passa pela fila única de escritas do editor, e o editor calcula o próprio selo a partir do snapshot.
 - **Custo por escrita**: cada alteração num quiz publicado lê a linha da versão (até 200 perguntas em JSON). Aceitável para o volume do editor.

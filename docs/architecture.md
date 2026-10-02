@@ -121,7 +121,14 @@ A Vercel não mantém WebSockets nem processos vivos entre requisições. Por is
 - **O servidor é autoritativo e sem estado em memória.** O estado da partida (pergunta atual, instante de abertura, respostas) fica no Postgres. Tempo de resposta = `recebidoEm − perguntaAbertaEm`, ambos medidos no servidor; o cliente nunca informa quanto tempo levou.
 - **Clientes nunca publicam.** Jogador responde via mutation tRPC → caso de uso grava e calcula → `RealtimePublisher` notifica host e jogadores.
 - **Sem timers no servidor.** O prazo da pergunta é derivado de `perguntaAbertaEm + limite`. A tela do host dispara a transição ("tempo esgotado", "próxima"), e o servidor valida que a transição é permitida (idempotente). Respostas após o prazo (com pequena tolerância de latência definida na spec do jogo) são rejeitadas.
-- **Canais** seguem o padrão `game-{gameId}` (broadcast da partida) e, quando houver dados individuais, canais privados por jogador autorizados por um endpoint próprio — a ser definido na spec da partida ao vivo.
+- **Um canal público por partida**, `game-{gameId}` ([ADR 0009](adr/0009-partida-ao-vivo.md)). Nada individual vai por evento: o que é de um jogador só é buscado por uma chamada autenticada pelo segredo dele.
+- **Evento é aviso; a consulta é a verdade.** Cada tela tem uma consulta que devolve o estado inteiro (`game.view`, `game.join.session`), refeita ao reconectar, ao voltar o foco e periodicamente (15 segundos no lobby, 5 durante o jogo). Casos de uso gravam primeiro e publicam depois.
+- **Transições condicionais.** Cada mudança de fase é pedida com a fase de onde parte e gravada com `saveIfAt`, um `UPDATE` condicionado a essa fase: de dois pedidos iguais, um grava e o outro não faz nada (spec 009).
+- **O pódio é uma leitura, não uma fase.** A revelação da última pergunta termina a partida; o pódio e a classificação final saem das respostas de uma partida `finished`, e a revelação dos lugares é contada de `endedAt` (spec 011).
+- **Animação é só apresentação.** Fica no cliente, não muda estado nem prazo, e nada espera por ela (spec 011).
+- **Pontos gravados, classificação derivada.** Os pontos ficam na resposta; total, sequência, posição e placar saem das respostas a cada leitura, sempre até a última pergunta revelada (spec 010).
+- **A correta não sai do servidor antes da revelação**, nem para a tela do anfitrião, que é projetada. O jogador recebe só cor e forma das alternativas, e o próprio resultado.
+- **Jogador anônimo**: `playerId` público e um segredo guardado no navegador, sem Better Auth.
 
 Se o deploy mudar para um host com processos persistentes (VPS, Fly) ou para Cloudflare (Durable Objects), apenas os adapters de real-time e a composition root mudam.
 

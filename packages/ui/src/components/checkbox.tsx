@@ -6,7 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { CheckIcon } from "lucide-react";
 
 const checkboxVariants = cva(
-	"peer relative flex shrink-0 items-center justify-center outline-none transition-colors focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+	"peer relative flex shrink-0 cursor-pointer items-center justify-center outline-none transition-colors focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-disabled:cursor-not-allowed",
 	{
 		variants: {
 			variant: {

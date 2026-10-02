@@ -69,7 +69,7 @@ O criador aciona **Salvar** e, se o quiz estiver completo, ele passa a ter uma *
 | RN-13 | Quando faltam as duas coisas, o editor mostra **primeiro as perguntas incompletas**; o título é pedido no Salvar seguinte. | decisão do produto (2026-10-01) |
 | RN-14 | **O servidor é quem decide**: ele confere de novo título e perguntas no momento de congelar, e congela exatamente o que conferiu. Se recusar, nada muda e o editor mostra o motivo. Um quiz na lixeira, de outro dono ou inexistente não pode ser salvo (spec 001, RN-10, RN-22). | constituição, artigo II · spec 001, RN-10, RN-22 |
 | RN-15 | Salvar com sucesso torna o quiz **publicado**, cria a versão, zera as alterações não salvas e abre o diálogo **"O quiz está pronto"**, com as ações **Voltar para edição** e **Pronto**. **Pronto** leva à **Biblioteca** (Recentes). **Voltar para edição** (e Esc ou clicar fora) fecha o diálogo e deixa o criador no editor, com o quiz já publicado. | referência visual do Kahoot e comportamento informado pelo usuário (2026-10-01) |
-| RN-15a | O diálogo "O quiz está pronto" mostra as quatro opções do Kahoot — **Iniciar demonstração**, **Organizar ao vivo**, **Palestra** e **Compartilhar** —, todas marcadas **"Em breve"**: visíveis, indisponíveis e anunciadas como tal, como os demais pontos de entrada futuros (spec 002). Cada uma passa a funcionar com a feature correspondente, em outra entrega (specs 008, 013 e 017). | referência visual do Kahoot · decisão do usuário (2026-10-01) |
+| RN-15a | O diálogo "O quiz está pronto" mostra as quatro opções do Kahoot — **Iniciar demonstração**, **Organizar ao vivo**, **Palestra** e **Compartilhar** —, todas marcadas **"Em breve"**: visíveis, indisponíveis e anunciadas como tal, como os demais pontos de entrada futuros (spec 002). Cada uma passa a funcionar com a feature correspondente, em outra entrega (specs 008, 016 e 020). | referência visual do Kahoot · decisão do usuário (2026-10-01) |
 | RN-16 | Salvar um quiz publicado **sem alterações não salvas** não cria versão nova nem muda o número da versão: só abre o diálogo "O quiz está pronto". | decisão do produto (2026-10-01) |
 | RN-17 | Criar uma versão atualiza a **última modificação** do quiz. | spec 001, RN-18 · spec 003, RN-24 |
 
@@ -413,7 +413,7 @@ O criador aciona **Salvar** e, se o quiz estiver completo, ele passa a ter uma *
 
 - **Opções de "O quiz está pronto" como "Em breve"** (RN-15a). No Kahoot, Iniciar demonstração, Organizar ao vivo, Palestra e Compartilhar funcionam; aqui aparecem indisponíveis até as features correspondentes chegarem.
 - **O diálogo de saída só aparece em quiz publicado com alterações** (RN-23, RN-24). Num rascunho, Sair vai direto: não há versão jogável para a qual "Descartar" voltaria.
-- **"Toques finais" sem a promessa de visibilidade**. O texto do Kahoot fala em aumentar a visibilidade do kahoot na busca pública, que o Quizio ainda não tem (spec 017).
+- **"Toques finais" sem a promessa de visibilidade**. O texto do Kahoot fala em aumentar a visibilidade do kahoot na busca pública, que o Quizio ainda não tem (spec 022).
 - **Quiz publicado com alterações não aparece em Rascunhos** (RN-29). Fica só em Recentes, com o selo "Alterações não salvas".
 - **Dados do quiz valem na hora** (RN-06): título, descrição, capa e visibilidade não esperam o Salvar. O comportamento do Kahoot nesse ponto não está documentado na referência.
 - **Pergunta sem enunciado bloqueia o Salvar** (RN-09), como já decidido na spec 004 (RN-14); na referência esse motivo é inferido.
@@ -426,9 +426,9 @@ O criador aciona **Salvar** e, se o quiz estiver completo, ele passa a ter uma *
 - Descartar alterações fora do editor (pela página do quiz ou pela biblioteca).
 - Voltar um quiz publicado para rascunho.
 - Imagem nas perguntas e sua validação (spec 007); a versão passa a incluir as imagens quando elas existirem.
-- Outros tipos de pergunta e seus motivos de incompleta (specs 011 a 013).
+- Outros tipos de pergunta e seus motivos de incompleta (specs 014 a 016).
 - Edição do mesmo quiz em duas abas ao mesmo tempo (spec 003, fora de escopo).
-- Visibilidade pública e descoberta (spec 017).
+- Visibilidade pública e descoberta (spec 022).
 
 ## Perguntas em aberto
 
@@ -446,3 +446,5 @@ O criador aciona **Salvar** e, se o quiz estiver completo, ele passa a ter uma *
 - 2026-10-01 — segunda revisão do usuário: as opções de "O quiz está pronto" aparecem como "Em breve" (RN-15a, CA-41); o diálogo de saída segue a captura do Kahoot, "Algumas alterações não foram salvas", com Descartar / Deixar sem salvar / Voltar para edição (RN-24 a RN-26, CA-27 a CA-32); Sair passa a levar à Biblioteca (RN-23, CA-26), o que altera a spec 003, RN-06. Jogar fica para outra entrega (outra PR). Spec aprovada pelo usuário, com pedido para planejar e implementar em seguida.
 - 2026-10-01 — plano e tarefas escritos e aprovados junto com a spec (status `planned`).
 - 2026-10-01 — implementada (tarefas T01 a T19). Os 41 CAs têm teste automatizado verde: domínio, casos de uso, PGlite, API, componentes e E2E em desktop e celular. Desvios do plano registrados em `tasks.md`.
+- 2026-10-01 — renumeração do roadmap: a partida ao vivo virou quatro specs (008 a 011) e as features seguintes subiram três números (robustez 012, relatórios 013, mais tipos 014, opiniões 015, slides 016, atribuir 017, equipe 018, produtividade 019, extras 020). Só as referências mudaram.
+- 2026-10-01 — a spec 008 ativou "Organizar ao vivo" no diálogo "O quiz está pronto" (altera a RN-15a e o CA-41): a opção deixa de estar marcada "Em breve" e abre o lobby de uma partida. As outras três continuam "Em breve".

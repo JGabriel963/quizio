@@ -1,0 +1,835 @@
+import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
+import { PIN_ATTEMPT_LIMIT } from "@quizio/core/game/domain/game-pin";
+import { QUESTION_INTRO_MS } from "@quizio/core/game/domain/game-progress";
+import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
+import { somePlayableQuestions } from "@quizio/core/game/testing/game-deps";
+import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
+import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { describe, expect, it } from "vitest";
+
+import { createTestApi } from "../testing/test-context";
+
+const trashedAt = new Date("2026-05-01T00:00:00.000Z");
+
+async function published() {
+	const api = createTestApi();
+	await api.quizzes.save(aPublishedQuiz({ title: "Capitais" }));
+	await api.versions.save(
+		newQuizVersion({
+			quizId: "quiz-1",
+			number: 1,
+			questions: somePlayableQuestions(),
+			now: new Date("2026-02-01T10:00:00.000Z"),
+		}),
+	);
+	return api;
+}
+
+async function hosted() {
+	const api = await published();
+	const host = api.callerFor("user-1");
+	const { gameId } = await host.game.host({ quizId: "quiz-1" });
+	const { pin } = await host.game.view({ gameId });
+	return { api, host, gameId, pin };
+}
+
+describe("game router: the host (spec 008)", () => {
+	it("hosts a published quiz and shows its lobby", async () => {
+		const { host, gameId, pin } = await hosted();
+
+		expect(pin).toMatch(/^[1-9]\d{5}$/);
+		expect(await host.game.view({ gameId })).toEqual({
+			gameId,
+			quizId: "quiz-1",
+			title: "Capitais",
+			pin,
+			status: "lobby",
+			endReason: null,
+			locked: false,
+			options: {
+				showQuestionsOnDevices: false,
+				randomizeQuestions: false,
+				randomizeAnswers: false,
+			},
+			players: [],
+			questionCount: 0,
+			stage: null,
+			final: null,
+		});
+	});
+
+	it("requires a session to host and to open the lobby", async () => {
+		const { api, gameId } = await hosted();
+		const visitor = api.callerFor(null);
+
+		await expect(visitor.game.host({ quizId: "quiz-1" })).rejects.toMatchObject(
+			{ code: "UNAUTHORIZED" },
+		);
+		await expect(visitor.game.view({ gameId })).rejects.toMatchObject({
+			code: "UNAUTHORIZED",
+		});
+	});
+
+	it("refuses a draft and a quiz in the trash", async () => {
+		const api = createTestApi();
+		await api.quizzes.save(aQuiz({ id: "draft" }));
+		await api.quizzes.save(aPublishedQuiz({ id: "trashed", trashedAt }));
+		const host = api.callerFor("user-1");
+
+		for (const quizId of ["draft", "trashed"]) {
+			await expect(host.game.host({ quizId })).rejects.toMatchObject({
+				code: "BAD_REQUEST",
+				cause: { code: "GAME.QUIZ_NOT_PLAYABLE" },
+			});
+		}
+	});
+
+	it("another creator's quiz and game are not found", async () => {
+		const { api, gameId } = await hosted();
+		const other = api.callerFor("user-2");
+
+		await expect(other.game.host({ quizId: "quiz-1" })).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			cause: { code: "GAME.QUIZ_NOT_FOUND" },
+		});
+		for (const call of [
+			other.game.view({ gameId }),
+			other.game.setLocked({ gameId, locked: true }),
+			other.game.end({ gameId }),
+			other.game.removePlayer({ gameId, playerId: "any" }),
+		]) {
+			await expect(call).rejects.toMatchObject({
+				code: "NOT_FOUND",
+				cause: { code: "GAME.NOT_FOUND" },
+			});
+		}
+	});
+
+	it("locks, removes and ends, publishing each change", async () => {
+		const { api, host, gameId } = await hosted();
+		const player = await api
+			.callerFor(null)
+			.game.join.enter({ gameId, nickname: "ACT" });
+
+		await host.game.setLocked({ gameId, locked: true });
+		await host.game.removePlayer({ gameId, playerId: player.playerId });
+		await host.game.end({ gameId });
+
+		expect(await host.game.view({ gameId })).toMatchObject({
+			status: "ended",
+			endReason: "host",
+			locked: true,
+			players: [],
+		});
+		expect(
+			api.realtime.messagesOn(gameChannel(gameId)).map(({ event }) => event),
+		).toEqual([
+			GAME_EVENTS.playerJoined,
+			GAME_EVENTS.lockChanged,
+			GAME_EVENTS.playerRemoved,
+			GAME_EVENTS.gameEnded,
+		]);
+	});
+
+	it("deleting the quiz for good ends its open game", async () => {
+		const { api, host, gameId } = await hosted();
+		await api.quizzes.save(aPublishedQuiz({ title: "Capitais", trashedAt }));
+
+		await host.quiz.deletePermanently({ quizId: "quiz-1" });
+
+		expect(await api.games.findById(gameId)).toMatchObject({
+			status: "ended",
+			endReason: "quizDeleted",
+		});
+	});
+});
+
+describe("game router: the player (spec 008)", () => {
+	it("joins without an account and waits", async () => {
+		const { api, host, gameId, pin } = await hosted();
+		const visitor = api.callerFor(null);
+
+		const found = await visitor.game.join.find({ pin });
+		const player = await visitor.game.join.enter({
+			gameId: found.gameId,
+			nickname: "ACT",
+		});
+
+		expect(found).toEqual({ gameId, pin });
+		expect(
+			await visitor.game.join.session({
+				gameId,
+				playerId: player.playerId,
+				secret: player.secret,
+			}),
+		).toEqual({
+			gameId,
+			nickname: "ACT",
+			status: "waiting",
+			stage: null,
+			final: null,
+			hostIdleMs: 0,
+		});
+		expect((await host.game.view({ gameId })).players).toEqual([
+			{ id: player.playerId, nickname: "ACT" },
+		]);
+	});
+
+	it("maps the join errors to their domain codes", async () => {
+		const { api, host, gameId, pin } = await hosted();
+		const visitor = api.callerFor(null);
+		await visitor.game.join.enter({ gameId, nickname: "ACT" });
+
+		await expect(
+			visitor.game.join.find({ pin: "111111" }),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.PIN_NOT_RECOGNIZED" },
+		});
+		await expect(
+			visitor.game.join.enter({ gameId, nickname: "act" }),
+		).rejects.toMatchObject({ cause: { code: "GAME.NICKNAME_TAKEN" } });
+		await expect(
+			visitor.game.join.enter({ gameId, nickname: "   " }),
+		).rejects.toMatchObject({ cause: { code: "GAME.INVALID_NICKNAME" } });
+		await expect(
+			visitor.game.join.session({ gameId, playerId: "id-9", secret: "guess" }),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			cause: { code: "GAME.NOT_FOUND" },
+		});
+
+		await host.game.setLocked({ gameId, locked: true });
+		await expect(visitor.game.join.find({ pin })).rejects.toMatchObject({
+			cause: { code: "GAME.LOCKED" },
+		});
+		await expect(
+			visitor.game.join.enter({ gameId, nickname: "Bia" }),
+		).rejects.toMatchObject({ cause: { code: "GAME.LOCKED" } });
+	});
+
+	it("limits wrong PINs per network address", async () => {
+		const { api, pin } = await hosted();
+		const sameNetwork = api.callerFor(null, "198.51.100.7");
+		for (let attempt = 0; attempt < PIN_ATTEMPT_LIMIT; attempt++) {
+			await sameNetwork.game.join.find({ pin: "111111" }).catch(() => {});
+		}
+
+		await expect(sameNetwork.game.join.find({ pin })).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.TOO_MANY_PIN_ATTEMPTS" },
+		});
+		await expect(
+			api.callerFor(null, "198.51.100.8").game.join.find({ pin }),
+		).resolves.toMatchObject({ pin });
+	});
+
+	it("rejects oversized input before any use case runs", async () => {
+		const { api, gameId } = await hosted();
+		const visitor = api.callerFor(null);
+
+		await expect(
+			visitor.game.join.find({ pin: "1".repeat(17) }),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { name: "ZodError" },
+		});
+		await expect(
+			visitor.game.join.enter({ gameId, nickname: "a".repeat(101) }),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+	});
+});
+
+/** A hosted game with two players in, ready to start. */
+async function withPlayers() {
+	const { api, host, gameId, pin } = await hosted();
+	const visitor = api.callerFor(null);
+	const join = async (nickname: string) => {
+		const { playerId, secret } = await visitor.game.join.enter({
+			gameId,
+			nickname,
+		});
+		return { gameId, playerId, secret };
+	};
+	return {
+		api,
+		host,
+		visitor,
+		gameId,
+		pin,
+		ana: await join("Ana"),
+		bia: await join("Bia"),
+	};
+}
+
+/** Started and taken to the answers of the first question. */
+async function answering() {
+	const game = await withPlayers();
+	const { api, host, gameId } = game;
+	await host.game.start({ gameId });
+	api.clock.advanceBy(3_000);
+	await host.game.advance({
+		gameId,
+		from: { questionIndex: 0, phase: "gameIntro" },
+	});
+	api.clock.advanceBy(QUESTION_INTRO_MS);
+	await host.game.advance({
+		gameId,
+		from: { questionIndex: 0, phase: "questionIntro" },
+	});
+	return game;
+}
+
+describe("game router: playing (spec 009)", () => {
+	it("starts, advances and reveals", async () => {
+		const { api, host, visitor, gameId, ana, bia } = await answering();
+
+		expect((await host.game.view({ gameId })).stage).toMatchObject({
+			questionIndex: 0,
+			phase: "answering",
+			remainingMs: 20_000,
+			answerCount: 0,
+		});
+
+		api.clock.advanceBy(4_200);
+		await visitor.game.join.answer({
+			...ana,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+		await visitor.game.join.answer({
+			...bia,
+			questionIndex: 0,
+			choiceIds: ["choice-2"],
+		});
+
+		// Everybody answered: the results come without the host asking.
+		const view = await host.game.view({ gameId });
+		expect(view.stage).toMatchObject({
+			phase: "results",
+			answerCount: 2,
+			distribution: [
+				{ choiceId: "choice-1", count: 1 },
+				{ choiceId: "choice-2", count: 1 },
+				{ choiceId: "choice-3", count: 0 },
+				{ choiceId: "choice-4", count: 0 },
+			],
+		});
+		expect((await visitor.game.join.session(ana)).stage?.outcome?.result).toBe(
+			"correct",
+		);
+		expect((await visitor.game.join.session(bia)).stage?.outcome?.result).toBe(
+			"wrong",
+		);
+		expect(await api.answers.find(gameId, 0, ana.playerId)).toMatchObject({
+			responseTimeMs: 4_200,
+		});
+	});
+
+	it("requires a session to start and to advance, and the game's owner", async () => {
+		const { api, visitor, gameId } = await withPlayers();
+		const from = { questionIndex: 0, phase: "gameIntro" } as const;
+
+		await expect(visitor.game.start({ gameId })).rejects.toMatchObject({
+			code: "UNAUTHORIZED",
+		});
+		await expect(visitor.game.advance({ gameId, from })).rejects.toMatchObject({
+			code: "UNAUTHORIZED",
+		});
+		const other = api.callerFor("user-2");
+		for (const call of [
+			other.game.start({ gameId }),
+			other.game.advance({ gameId, from }),
+		]) {
+			await expect(call).rejects.toMatchObject({
+				code: "NOT_FOUND",
+				cause: { code: "GAME.NOT_FOUND" },
+			});
+		}
+		expect(await api.games.findById(gameId)).toMatchObject({ status: "lobby" });
+	});
+
+	it("maps the play errors to their domain codes", async () => {
+		const empty = await hosted();
+		await expect(
+			empty.host.game.start({ gameId: empty.gameId }),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.NO_PLAYERS" },
+		});
+
+		const { host, visitor, gameId, pin, ana } = await answering();
+		await expect(
+			host.game.advance({
+				gameId,
+				from: { questionIndex: 0, phase: "answering" },
+			}),
+		).rejects.toMatchObject({ cause: { code: "GAME.STAGE_NOT_DUE" } });
+		// A game in progress takes players (spec 012): its PIN is found.
+		await expect(visitor.game.join.find({ pin })).resolves.toMatchObject({
+			gameId,
+		});
+
+		const answer = { ...ana, questionIndex: 0, choiceIds: ["choice-1"] };
+		await expect(
+			visitor.game.join.answer({ ...answer, secret: "guess" }),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			cause: { code: "GAME.NOT_FOUND" },
+		});
+		await expect(
+			visitor.game.join.answer({ ...answer, choiceIds: ["choice-9"] }),
+		).rejects.toMatchObject({ cause: { code: "GAME.INVALID_ANSWER" } });
+		await visitor.game.join.answer(answer);
+		await expect(visitor.game.join.answer(answer)).rejects.toMatchObject({
+			cause: { code: "GAME.ALREADY_ANSWERED" },
+		});
+		await expect(
+			visitor.game.join.answer({ ...answer, questionIndex: 1 }),
+		).rejects.toMatchObject({ cause: { code: "GAME.ANSWERS_CLOSED" } });
+	});
+
+	it("never sends a player the right answer, the texts or the count per answer", async () => {
+		const { api, visitor, gameId, ana, bia } = await answering();
+		await visitor.game.join.answer({
+			...bia,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+
+		const session = await visitor.game.join.session(ana);
+		const published = api.realtime.messagesOn(gameChannel(gameId));
+
+		for (const sent of [session, published]) {
+			expect(JSON.stringify(sent)).not.toMatch(
+				/Brasília|capital|correct|distribution|points|rank|streak/i,
+			);
+		}
+		expect(published.at(-1)).toMatchObject({
+			event: GAME_EVENTS.answerCount,
+			payload: { questionIndex: 0, count: 1 },
+		});
+	});
+
+	it("rejects malformed play input before any use case runs", async () => {
+		const { host, visitor, gameId, ana } = await answering();
+
+		await expect(
+			host.game.advance({
+				gameId,
+				// @ts-expect-error not a phase
+				from: { questionIndex: 0, phase: "podium" },
+			}),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { name: "ZodError" },
+		});
+		await expect(
+			visitor.game.join.answer({
+				...ana,
+				questionIndex: 0,
+				choiceIds: Array.from({ length: 7 }, (_, index) => `choice-${index}`),
+			}),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { name: "ZodError" },
+		});
+	});
+
+	it("scores, ranks and shows the scoreboard (spec 010)", async () => {
+		const { api, host, visitor, gameId, ana, bia } = await answering();
+		api.clock.advanceBy(5_000);
+		await visitor.game.join.answer({
+			...ana,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+		api.clock.advanceBy(7_000);
+		await visitor.game.join.answer({
+			...bia,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+
+		expect((await visitor.game.join.session(bia)).stage).toMatchObject({
+			total: 700,
+			outcome: {
+				result: "correct",
+				points: 700,
+				streak: 1,
+				rank: 2,
+				behind: { nickname: "Ana", points: 175 },
+			},
+		});
+
+		const board = await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "results" },
+		});
+		expect(board.stage).toMatchObject({
+			phase: "scoreboard",
+			question: null,
+			scoreboard: [
+				{
+					playerId: ana.playerId,
+					nickname: "Ana",
+					total: 875,
+					rank: 1,
+					climbed: false,
+				},
+				{
+					playerId: bia.playerId,
+					nickname: "Bia",
+					total: 700,
+					rank: 2,
+					climbed: false,
+				},
+			],
+		});
+		expect((await host.game.view({ gameId })).stage?.scoreboard).toEqual(
+			board.stage?.scoreboard,
+		);
+
+		const next = await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "scoreboard" },
+		});
+		expect(next.stage).toMatchObject({
+			questionIndex: 1,
+			phase: "questionIntro",
+			scoreboard: null,
+		});
+	});
+});
+
+describe("game router: the end of the game (spec 011)", () => {
+	/** Ana answers the first question right; then the game is played to its end. */
+	async function finished() {
+		const game = await answering();
+		const { api, host, visitor, gameId, ana } = game;
+		api.clock.advanceBy(5_000);
+		await visitor.game.join.answer({
+			...ana,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+		const advance = (
+			questionIndex: number,
+			phase: "answering" | "results" | "scoreboard" | "questionIntro",
+		) =>
+			host.game.advance({
+				gameId,
+				from: { questionIndex, phase },
+				skip: phase === "answering",
+			});
+		await advance(0, "answering");
+		await advance(0, "results");
+		await advance(0, "scoreboard");
+		api.clock.advanceBy(QUESTION_INTRO_MS);
+		await advance(1, "questionIntro");
+		await advance(1, "answering");
+		return { ...game, podium: await advance(1, "results") };
+	}
+
+	it("finishes at the last results and shows the podium", async () => {
+		const { api, host, visitor, gameId, pin, ana, bia, podium } =
+			await finished();
+
+		expect(podium).toMatchObject({
+			status: "finished",
+			stage: null,
+			final: {
+				standings: [
+					{ playerId: ana.playerId, nickname: "Ana", total: 875, rank: 1 },
+					{ playerId: bia.playerId, nickname: "Bia", total: 0, rank: 2 },
+				],
+				revealRemainingMs: 7_000,
+			},
+		});
+		api.clock.advanceBy(7_000);
+		expect((await host.game.view({ gameId })).final).toEqual({
+			...podium.final,
+			revealRemainingMs: 0,
+		});
+		expect(await visitor.game.join.session(bia)).toEqual({
+			gameId,
+			nickname: "Bia",
+			status: "finished",
+			stage: null,
+			final: { title: "Capitais", rank: 2, total: 0, revealRemainingMs: 0 },
+			hostIdleMs: null,
+		});
+		await expect(visitor.game.join.find({ pin })).rejects.toMatchObject({
+			cause: { code: "GAME.PIN_NOT_RECOGNIZED" },
+		});
+		// Places and points do not travel in events (RN-24).
+		expect(api.realtime.messagesOn(gameChannel(gameId)).at(-1)).toEqual({
+			channel: gameChannel(gameId),
+			event: GAME_EVENTS.stageChanged,
+			payload: { status: "finished", stage: null },
+		});
+	});
+
+	it("hosts the same quiz again after the end, and the podium stays", async () => {
+		const { host, gameId, pin } = await finished();
+
+		const again = await host.game.host({ quizId: "quiz-1" });
+
+		expect(again.gameId).not.toBe(gameId);
+		expect(await host.game.view({ gameId: again.gameId })).toMatchObject({
+			status: "lobby",
+			players: [],
+			final: null,
+		});
+		expect((await host.game.view({ gameId: again.gameId })).pin).not.toBe(pin);
+		expect(await host.game.view({ gameId })).toMatchObject({
+			status: "finished",
+			final: { standings: [{ nickname: "Ana" }, { nickname: "Bia" }] },
+		});
+	});
+
+	it("refuses to host again a quiz that went to the trash", async () => {
+		const { api, host } = await finished();
+		await api.quizzes.save(aPublishedQuiz({ title: "Capitais", trashedAt }));
+
+		await expect(host.game.host({ quizId: "quiz-1" })).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.QUIZ_NOT_PLAYABLE" },
+		});
+	});
+});
+
+describe("game router: the options (spec 012)", () => {
+	const allOff = {
+		showQuestionsOnDevices: false,
+		randomizeQuestions: false,
+		randomizeAnswers: false,
+	};
+
+	it("changes the options and keeps them for the next game", async () => {
+		const { api, host, gameId } = await hosted();
+		await host.game.setLocked({ gameId, locked: true });
+
+		const view = await host.game.setOptions({
+			gameId,
+			options: { showQuestionsOnDevices: true, randomizeAnswers: true },
+		});
+
+		const options = {
+			showQuestionsOnDevices: true,
+			randomizeQuestions: false,
+			randomizeAnswers: true,
+		};
+		expect(view).toMatchObject({ gameId, locked: true, options });
+		expect((await host.game.view({ gameId })).options).toEqual(options);
+
+		await api.quizzes.save(aPublishedQuiz({ id: "quiz-2", title: "Rios" }));
+		const next = await host.game.host({ quizId: "quiz-2" });
+		// The options come along; the lock does not (RN-05, RN-06).
+		expect(await host.game.view({ gameId: next.gameId })).toMatchObject({
+			locked: false,
+			options,
+		});
+	});
+
+	it("another creator's game is not found", async () => {
+		const { api, host, gameId } = await hosted();
+
+		await expect(
+			api.callerFor("user-2").game.setOptions({
+				gameId,
+				options: { showQuestionsOnDevices: true },
+			}),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			cause: { code: "GAME.NOT_FOUND" },
+		});
+		expect((await host.game.view({ gameId })).options).toEqual(allOff);
+	});
+
+	it("needs a session and well-formed options", async () => {
+		const { api, host, gameId } = await hosted();
+
+		await expect(
+			api.callerFor(null).game.setOptions({
+				gameId,
+				options: { showQuestionsOnDevices: true },
+			}),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		await expect(
+			host.game.setOptions({
+				gameId,
+				// @ts-expect-error not a switch
+				options: { showQuestionsOnDevices: "yes" },
+			}),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { name: "ZodError" },
+		});
+		expect((await host.game.view({ gameId })).options).toEqual(allOff);
+	});
+
+	it("refuses the random orders after the start", async () => {
+		const { host, gameId } = await answering();
+
+		for (const options of [
+			{ randomizeQuestions: true },
+			{ randomizeAnswers: true },
+		]) {
+			await expect(
+				host.game.setOptions({ gameId, options }),
+			).rejects.toMatchObject({
+				code: "BAD_REQUEST",
+				cause: { code: "GAME.OPTIONS_FIXED" },
+			});
+		}
+		expect((await host.game.view({ gameId })).options).toEqual(allOff);
+	});
+
+	it("locks and unlocks during the game", async () => {
+		const { host, visitor, gameId, pin } = await answering();
+
+		await host.game.setLocked({ gameId, locked: true });
+		await expect(visitor.game.join.find({ pin })).rejects.toMatchObject({
+			cause: { code: "GAME.LOCKED" },
+		});
+		expect((await host.game.view({ gameId })).stage?.phase).toBe("answering");
+
+		await host.game.setLocked({ gameId, locked: false });
+		await expect(visitor.game.join.find({ pin })).resolves.toMatchObject({
+			gameId,
+		});
+	});
+
+	it("a player joins a game in progress", async () => {
+		const { host, visitor, gameId, pin } = await answering();
+
+		const found = await visitor.game.join.find({ pin });
+		const caio = await visitor.game.join.enter({
+			gameId: found.gameId,
+			nickname: "Caio",
+		});
+
+		const session = await visitor.game.join.session({
+			gameId,
+			playerId: caio.playerId,
+			secret: caio.secret,
+		});
+		expect(session).toMatchObject({
+			status: "playing",
+			stage: { phase: "answering", sittingOut: true, question: null, total: 0 },
+		});
+		expect((await host.game.view({ gameId })).players).toHaveLength(3);
+		// The question in course is not his to answer.
+		await expect(
+			visitor.game.join.answer({
+				gameId,
+				playerId: caio.playerId,
+				secret: caio.secret,
+				questionIndex: 0,
+				choiceIds: ["choice-1"],
+			}),
+		).rejects.toMatchObject({ cause: { code: "GAME.ANSWERS_CLOSED" } });
+	});
+
+	it("the device gets the texts and no right answer with the option on", async () => {
+		const { api, host, visitor, gameId, ana } = await answering();
+
+		await host.game.setOptions({
+			gameId,
+			options: { showQuestionsOnDevices: true },
+		});
+
+		const session = await visitor.game.join.session(ana);
+		expect(session.stage?.question).toMatchObject({
+			text: "Qual é a capital do Brasil?",
+			choices: [
+				{ id: "choice-1", text: "Brasília" },
+				{ id: "choice-2", text: "Rio de Janeiro" },
+				{ id: "choice-3", text: "Salvador" },
+				{ id: "choice-4", text: "Recife" },
+			],
+		});
+
+		// The channel follows from the next stage on (RN-21).
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "answering" },
+			skip: true,
+		});
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "results" },
+		});
+		api.clock.advanceBy(0);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "scoreboard" },
+		});
+		const published = api.realtime.messagesOn(gameChannel(gameId));
+		expect(published.at(-1)).toMatchObject({
+			event: GAME_EVENTS.stageChanged,
+			payload: {
+				stage: {
+					phase: "questionIntro",
+					question: { text: "A capital do Brasil é Brasília" },
+				},
+			},
+		});
+		for (const sent of [session, published]) {
+			expect(JSON.stringify(sent)).not.toMatch(/"correct"|distribution/);
+		}
+	});
+});
+
+describe("game router: the host's signal (spec 013)", () => {
+	async function withPlayer() {
+		const game = await hosted();
+		const guest = game.api.callerFor(null);
+		const { playerId, secret } = await guest.game.join.enter({
+			gameId: game.gameId,
+			nickname: "Ana",
+		});
+		const session = () =>
+			guest.game.join.session({ gameId: game.gameId, playerId, secret });
+		return { ...game, session };
+	}
+
+	it("game.signal needs a session", async () => {
+		const { api, gameId } = await hosted();
+
+		await expect(
+			api.callerFor(null).game.signal({ gameId }),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("game.signal is not found for another creator", async () => {
+		const { api, gameId } = await hosted();
+
+		await expect(
+			api.callerFor("user-2").game.signal({ gameId }),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			cause: { code: "GAME.NOT_FOUND" },
+		});
+	});
+
+	it("the player's session tells a host that went silent", async () => {
+		const { api, session } = await withPlayer();
+		api.clock.advanceBy(HOST_AWAY_AFTER_MS + 500);
+
+		expect((await session()).hostIdleMs).toBe(HOST_AWAY_AFTER_MS + 500);
+	});
+
+	it("after a signal the player's session tells the host is there", async () => {
+		const { api, host, gameId, session } = await withPlayer();
+		api.clock.advanceBy(HOST_AWAY_AFTER_MS + 500);
+
+		expect(await host.game.signal({ gameId })).toEqual({ status: "lobby" });
+
+		expect((await session()).hostIdleMs).toBe(0);
+		expect(api.realtime.messagesOn(gameChannel(gameId)).at(-1)).toMatchObject({
+			event: GAME_EVENTS.hostBack,
+		});
+	});
+});

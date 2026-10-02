@@ -422,7 +422,7 @@ O criador coloca uma imagem em qualquer pergunta, enviando um arquivo do computa
 - **Limites da política de mídia do Quizio** (RN-02): 10 MB e JPEG, PNG, GIF ou WebP, em vez dos 50 MB do diálogo do Kahoot. São os mesmos limites da capa.
 - **Imagem de fundo para todos** (RN-27): no Kahoot é recurso pago.
 - **Ação de recorte some com a imagem como fundo** (RN-24): o Kahoot mantém o ícone visível, mas ele não recorta o fundo. Aqui a ação simplesmente não aparece.
-- **Sem "Visualizar" no aviso do fundo**: o Quizio ainda não tem pré-visualização do quiz (spec 017).
+- **Sem "Visualizar" no aviso do fundo**: o Quizio ainda não tem pré-visualização do quiz (spec 022).
 - **Sem "Fonte dos créditos"** nos detalhes da mídia: só existe para imagens da biblioteca do Kahoot.
 - **Sem "Revelação de imagem"** (a imagem aparecendo aos poucos em blocos 3×3, 5×5, 8×8): é um efeito da partida, pago no Kahoot. Fica para depois da partida ao vivo.
 
@@ -432,8 +432,8 @@ O criador coloca uma imagem em qualquer pergunta, enviando um arquivo do computa
 - Vídeo (YouTube, Vimeo), áudio e leitura em voz alta.
 - Biblioteca de imagens, GIFs, figurinhas e geração de imagem por IA.
 - Revelação de imagem.
-- Como a imagem, o fundo, o recorte e o texto alternativo aparecem **na partida**, na tela do anfitrião e no dispositivo do jogador (spec 008).
-- Pré-visualização do quiz (spec 017).
+- Como a imagem, o fundo, o recorte e o texto alternativo aparecem **na partida**, na tela do anfitrião e no dispositivo do jogador (spec 009).
+- Pré-visualização do quiz (spec 022).
 - Editar a imagem além do recorte (girar, filtros) e escolher uma forma "sem recorte" depois de recortar.
 - Desfazer a remoção de uma imagem.
 
@@ -450,3 +450,4 @@ O criador coloca uma imagem em qualquer pergunta, enviando um arquivo do computa
 - 2026-10-01 — revisão com a segunda leva de capturas (imagem recortada nas quatro formas, diálogo reaberto, imagem como fundo). O diálogo de recorte passa a abrir sempre da imagem original, o que também desfaz o recorte (RN-21, RN-22, CA-25); a área de mídia é 3:2 e as formas mais estreitas ficam centralizadas (RN-14, CA-20); confirmado que o fundo não é recortado (RN-24). O usuário aceitou trocar por remover e inserir (RN-16, RN-17) e as proporções do recorte.
 - 2026-10-01 — aprovada pelo usuário, com o pedido de manter o storage fácil de trocar (R2 hoje; S3, Firebase ou outro no futuro). Plano e tarefas escritos e aprovados em seguida.
 - 2026-10-01 — implementada (tarefas T01 a T16). Os 41 CAs têm teste automatizado verde: domínio, casos de uso, PGlite, API, componentes e E2E em desktop e celular. Desvios do plano registrados em `tasks.md`. O ADR 0003 ganhou a seção "Trocar de provedor".
+- 2026-10-01 — renumeração do roadmap: a partida ao vivo virou quatro specs (008 a 011) e as features seguintes subiram três números (robustez 012, relatórios 013, mais tipos 014, opiniões 015, slides 016, atribuir 017, equipe 018, produtividade 019, extras 020). Só as referências mudaram.

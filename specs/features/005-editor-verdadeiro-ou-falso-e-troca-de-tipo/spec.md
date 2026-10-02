@@ -275,14 +275,14 @@ O criador escolhe o tipo ao adicionar uma pergunta, monta uma pergunta Verdadeir
 
 ## Fora de escopo
 
-- Outros tipos de pergunta e slides (specs 011 a 013 e 017), e os grupos do seletor.
-- Abas Procurar, Gerar e Importar ao adicionar (specs 016 e 017).
+- Outros tipos de pergunta e slides (specs 014 a 016 e 020), e os grupos do seletor.
+- Abas Procurar, Gerar e Importar ao adicionar (specs 019 e 020).
 - Guardar as respostas do tipo anterior depois de sair do editor ou recarregar (RN-18).
 - Converter respostas entre tipos (por exemplo, aproveitar "Sim"/"Não" do Quiz como Verdadeiro/Falso).
 - Trocar o tipo de várias perguntas de uma vez.
 - Salvar a versão jogável, que é quem de fato bloqueia uma pergunta incompleta (spec 006).
 - Imagem na pergunta (spec 007).
-- Como Verdadeiro ou falso aparece e pontua na partida (spec 008).
+- Como Verdadeiro ou falso aparece e pontua na partida (specs 009 e 010).
 
 ## Perguntas em aberto
 
@@ -296,3 +296,4 @@ O criador escolhe o tipo ao adicionar uma pergunta, monta uma pergunta Verdadeir
 - 2026-10-01 — implementada (tarefas T01 a T18).
 - 2026-10-01 — ajustes de layout pedidos pelo usuário: "Tipo de pergunta" com cartões e ícone, como no Kahoot; a dica da correta virou balão e segue a spec 004, RN-16a.
 - 2026-10-01 — alterada pela spec 006 (RN-10a): os motivos do alerta da lista passam a usar os textos do Kahoot (CA-12). O balão "Marque a resposta correta" junto às alternativas não mudou.
+- 2026-10-01 — renumeração do roadmap: a partida ao vivo virou quatro specs (008 a 011) e as features seguintes subiram três números (robustez 012, relatórios 013, mais tipos 014, opiniões 015, slides 016, atribuir 017, equipe 018, produtividade 019, extras 020). Só as referências mudaram.

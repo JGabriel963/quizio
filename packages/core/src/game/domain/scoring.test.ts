@@ -115,3 +115,33 @@ describe("calculateAnswerScore", () => {
 		},
 	);
 });
+
+describe("calculateAnswerScore: multiple selection (spec 010, RN-06)", () => {
+	const score = (correctAnswers: number) =>
+		calculateAnswerScore({
+			isCorrect: true,
+			responseTimeMs: 8_000,
+			timeLimitMs: 30_000,
+			pointsMultiplier: "standard",
+			correctAnswers,
+		});
+
+	it("scores each right answer marked, rounding once at the end", () => {
+		expect(score(3)).toBe(2600);
+		// Rounding each answer first would give 2 × 867 = 1734.
+		expect(score(2)).toBe(1733);
+		expect(score(1)).toBe(867);
+	});
+
+	it("gives the full points of every right answer under half a second", () => {
+		expect(
+			calculateAnswerScore({
+				isCorrect: true,
+				responseTimeMs: 300,
+				timeLimitMs: 30_000,
+				pointsMultiplier: "double",
+				correctAnswers: 2,
+			}),
+		).toBe(4000);
+	});
+});

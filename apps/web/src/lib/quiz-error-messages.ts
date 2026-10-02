@@ -54,7 +54,7 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 };
 
 /** The API's `data.domainCode`, or the code of a rule the client applied itself. */
-function domainCodeOf(error: unknown): string | null {
+export function domainCodeOf(error: unknown): string | null {
 	if (error instanceof DomainError) {
 		return error.code;
 	}

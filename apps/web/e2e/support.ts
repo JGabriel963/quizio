@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { type Browser, expect, type Page } from "@playwright/test";
 
 export const E2E_PASSWORD = "senha-e2e-123";
 
@@ -133,4 +133,25 @@ export async function createQuiz(
 
 export async function openQuizActions(page: Page, title: string) {
 	await page.getByRole("button", { name: `Ações para ${title}` }).click();
+}
+
+/** Each participant of a live game is another browser, as in a real game. */
+export async function newParticipant(browser: Browser): Promise<Page> {
+	const context = await browser.newContext();
+	const page = await context.newPage();
+	await useUniqueClientIp(page);
+	return page;
+}
+
+/** The host's lobby is open: returns the PIN as the player types it. */
+export async function lobbyPin(host: Page): Promise<string> {
+	await expect(host).toHaveURL(/\/host\//);
+	const pin = host.locator('[data-slot="game-pin"]');
+	await expect(pin).toHaveText(/^\d{3} \d{3}$/);
+	return ((await pin.textContent()) ?? "").replace(" ", "");
+}
+
+export async function enterNickname(player: Page, nickname: string) {
+	await player.getByRole("textbox", { name: "Apelido" }).fill(nickname);
+	await player.getByRole("button", { name: "Ok, vamos lá!" }).click();
 }

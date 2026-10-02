@@ -85,23 +85,44 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 
 | PT | EN (código) | Definição | Status |
 | --- | --- | --- | --- |
-| Partida ao vivo | `GameSession` | Instância de apresentação de um quiz | 📝 |
+| Partida ao vivo | `Game` | Instância de apresentação de um quiz: usa a versão jogável e o título do momento em que é criada; no máximo uma aberta por quiz (spec 008) | ✅ |
 | Modo de jogo | `GameMode` | `classic`, `team`, … | 📝 |
-| PIN do jogo | `GamePin` | Código numérico temporário para entrar na partida | 📝 |
-| Opções de jogo | `GameOptions` | Randomizar perguntas/alternativas, mostrar no dispositivo, gerador de apelidos, autoplay… | 📝 |
-| Lobby | `Lobby` | Sala de espera antes do início | 📝 |
-| Jogador | `Player` | Participante anônimo identificado por apelido na partida | 📝 |
-| Apelido | `Nickname` | Nome do jogador na partida | 📝 |
-| Anfitrião | `Host` | Usuário que conduz a partida | 📝 |
-| Fase da pergunta | `QuestionPhase` | `intro` → `answering` → `results` → `scoreboard` | 📝 |
-| Resposta | `Answer` | Envio de um jogador para uma pergunta (`received` / `timeout`) | 📝 |
+| PIN do jogo | `GamePin` | Código de 6 dígitos, sem zero à esquerda, único entre as partidas abertas; vale até a partida ser encerrada ou completar 8 horas (spec 008) | ✅ |
+| Opções de jogo | `GameOptions` | O que o anfitrião ajusta no painel de Configurações: mostrar perguntas nos dispositivos, perguntas e respostas em ordem aleatória; salvas por criador (spec 012). Gerador de apelidos, reprodução automática e música chegam na spec 014 | ✅ |
+| Entrada durante o jogo | `lateJoin` | Entrar numa partida em andamento, enquanto a entrada não está bloqueada: 0 pontos, jogando a partir da próxima pergunta cujas respostas ainda não abriram (spec 012). O jogador guarda a primeira pergunta que pode responder (`Player.firstQuestionIndex`); enquanto a pergunta em curso é anterior a ela, o celular espera (`sittingOut`) | ✅ |
+| Preferências do anfitrião | `HostPreferences` | As opções de jogo que o criador deixou na última partida; a próxima começa com elas. O bloqueio não entra (spec 012) | ✅ |
+| Lobby | `Lobby` | Sala de espera antes do início: PIN, QR, link, lista e total de jogadores (spec 008) | ✅ |
+| Organizar ao vivo | `hostGame` (`game.host`) | Ação do dono de um quiz publicado que cria a partida e abre o lobby (spec 008) | ✅ |
+| Link de entrada | `joinLink` | Endereço `/join/{PIN}`, também contido no QR code, que leva o jogador direto à etapa do apelido (spec 008) | ✅ |
+| Entrada bloqueada | `locked` | Estado da partida em que ninguém novo entra; quem já entrou permanece (spec 008) | ✅ |
+| Remover participante | `removePlayer` | O anfitrião tira um jogador da partida; o apelido removido fica bloqueado nela (spec 008) | ✅ |
+| Encerrar o jogo | `endGame`, `GameEndReason` | Fecha a partida: o PIN deixa de funcionar e os jogadores são avisados (spec 008) | ✅ |
+| Conexão perdida | `isConnectionFailure`, `useConnectionWatch` | A tela (do anfitrião ou do jogador) não consegue falar com o servidor; ela avisa e tenta de novo sozinha a cada 5 s. Uma resposta de erro do servidor não é falta de conexão (spec 013) | ✅ |
+| Anfitrião ausente | `isHostAway`, `Game.hostSeenAt`, `hostIdleMs` | A tela do anfitrião está há 10 s sem dar sinal ao servidor (queda ou aba fechada); os celulares avisam "O anfitrião se desconectou". O jogo não avança, mas os prazos correm e as respostas valem (spec 013) | ✅ |
+| Limite de jogadores | `GAME_MAX_PLAYERS` | Máximo de 200 jogadores por partida, técnico e configurável (spec 008) | ✅ |
+| Jogador | `Player` | Participante anônimo identificado por apelido na partida; pertence ao navegador em que entrou (spec 008) | ✅ |
+| Apelido | `Nickname` | Nome do jogador na partida: 1 a 15 caracteres, único sem diferenciar maiúsculas e acentos, fixo depois de entrar (spec 008) | ✅ |
+| Anfitrião | `Host` | Criador que conduz a partida; é o dono do quiz (spec 008) | ✅ |
+| Estado da partida | `GameStatus` | `lobby` → `playing` → `finished`, ou `ended` quando é encerrada antes do fim (specs 008 e 009) | ✅ |
+| Iniciar | `startGame` | Passa a partida do lobby para em andamento; exige ao menos um jogador, fecha a entrada e copia as perguntas da versão jogável (spec 009) | ✅ |
+| Andamento | `GameProgress` | Onde a partida está: pergunta, fase e desde quando. O prazo da fase é esse instante mais a duração dela (spec 009) | ✅ |
+| Pergunta da partida | `GameQuestion` | A pergunta como a partida a usa, copiada ao iniciar: só as alternativas preenchidas, cada uma com a posição de cor e forma (spec 009) | ✅ |
+| Palco público | `PublicStage` | A parte de uma fase que todo aparelho pode saber: número da pergunta, fase, duração e formas das alternativas; nunca a correta (spec 009). Com "Mostrar perguntas nos dispositivos", leva também o enunciado, a imagem e os textos das alternativas (spec 012) | ✅ |
+| Fase | `GamePhase` | `gameIntro` (abertura da partida, 3 s) → `questionIntro` (5 s de leitura) → `answering` (limite de tempo da pergunta) → `results` → `scoreboard` (placar, até o anfitrião avançar; a última pergunta não tem, vai direto ao pódio) | ✅ |
+| Avançar de fase | `advanceGame`, `StageRef` | Pedido da tela do anfitrião para a fase seguinte, dizendo de que fase parte; o servidor confere o prazo e aplica uma única vez (spec 009) | ✅ |
+| Pular o cronômetro | `advanceGame` com `skip` | O anfitrião fecha a fase de respostas antes do tempo (spec 009) | ✅ |
+| Resposta | `Answer` | Envio de um jogador para uma pergunta: uma por pergunta, sem troca, aceita só dentro do prazo (spec 009) | ✅ |
 | Tempo de resposta | `ResponseTime` | Instante do envio − abertura das respostas, medido no servidor | ✅ (`responseTimeMs`) |
-| Correção | `Correctness` | `correct`, `wrong`, `partiallyCorrect`, `almostCorrect` | 📝 |
-| Pontuação da resposta | `AnswerScore` | Pontos pela fórmula de velocidade; cheia abaixo de 0,5 s | ✅ (`calculateAnswerScore`) |
-| Sequência de acertos | `AnswerStreak` | Acertos consecutivos; apenas exibida, não dá pontos | 📝 |
-| Distribuição de respostas | `AnswerDistribution` | Quantos escolheram cada alternativa | 📝 |
-| Placar | `Scoreboard` | Top 5 entre perguntas | 📝 |
-| Pódio | `Podium` | Top 3 ao final | 📝 |
+| Correção | `Correctness` | `correct`, `partiallyCorrect` (múltipla escolha: parte das certas, nenhuma errada), `wrong`; sem resposta é `timeout` (`PlayerResult`, spec 009). `almostCorrect` chega com outros tipos | ✅ |
+| Pontuação da resposta | `AnswerScore` | Pontos pela fórmula de velocidade; cheia abaixo de 0,5 s; por alternativa correta marcada na múltipla escolha; gravada com a resposta (spec 010) | ✅ (`calculateAnswerScore`, `answerPoints`) |
+| Sequência de acertos | `AnswerStreak` | Perguntas seguidas com resposta correta ou parcialmente correta; zera com erro ou sem resposta; apenas exibida, não dá pontos (spec 010) | ✅ (`streakAfter`) |
+| Total de pontos | `totalScore` | Soma dos pontos das respostas de um jogador na partida; divulgado só a partir da revelação (spec 010) | ✅ |
+| Posição | `rank` | Lugar do jogador pelo total de pontos; empate pela ordem de entrada na partida (spec 010) | ✅ (`rankPlayers`) |
+| Distribuição de respostas | `AnswerDistribution` | Quantos escolheram cada alternativa; divulgada só na revelação (spec 009) | ✅ |
+| Placar | `Scoreboard` | Fase depois da revelação de cada pergunta: os cinco primeiros, com apelido e total, e a seta em quem subiu de posição (spec 010) | ✅ (`scoreboardOf`) |
+| Pódio | `Podium` | Tela do fim da partida: os três primeiros da classificação final, revelados do 3º para o 1º; não é uma fase, é a leitura de uma partida terminada (spec 011) | ✅ (`HostGameView.final`, `podiumRevealRemainingMs`) |
+| Classificação final | `finalStandings` | Todos os jogadores da partida terminada, pelo total de pontos, com o empate pela ordem de entrada; não muda mais (spec 011) | ✅ (`final.standings`) |
+| Jogar novamente | `playAgain` | Ação do pódio: cria uma partida nova do mesmo quiz, com outro PIN e sem jogadores (spec 011) | ✅ (`game.host`, `usePlayAgain`) |
 | Equipe | `Team` | Grupo de jogadores; pontuação = média dos membros | 📝 |
 
 ## Library, Reports, Media

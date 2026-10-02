@@ -5,8 +5,10 @@ import { toast } from "sonner";
 
 import { EditorUnavailable } from "@/components/editor/editor-unavailable";
 import { QuizEditor } from "@/components/editor/quiz-editor";
+import { OpeningGame } from "@/components/game/opening-game";
 import { QuizFormDialog } from "@/components/quiz/quiz-form-dialog";
 import type { QuizEditorData } from "@/lib/api-types";
+import { useHostGame } from "@/lib/game-mutations";
 import { useEditorActions } from "@/lib/question-mutations";
 import { SaveTrackerProvider, useSaveTracker } from "@/lib/save-tracker";
 import { useTRPC } from "@/utils/trpc";
@@ -32,6 +34,7 @@ function Creator({ quizId }: { quizId: string }) {
 	const navigate = Route.useNavigate();
 	const tracker = useSaveTracker();
 	const actions = useEditorActions(quizId);
+	const hosting = useHostGame(quizId);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [titleRevision, setTitleRevision] = useState(0);
 	const editor = useQuery({
@@ -84,7 +87,13 @@ function Creator({ quizId }: { quizId: string }) {
 				onExit={(destination) =>
 					navigate({ to: destination === "home" ? "/" : "/library" })
 				}
+				onHostLive={hosting.start}
 				onError={(message) => toast.error(message)}
+			/>
+			<OpeningGame
+				state={hosting.state}
+				onRetry={hosting.start}
+				onCancel={hosting.cancel}
 			/>
 			<QuizFormDialog
 				state={settingsOpen ? { quiz: editor.data.quiz } : null}
