@@ -11,6 +11,11 @@ export interface GameOptions {
 	showQuestionsOnDevices: boolean;
 	randomizeQuestions: boolean;
 	randomizeAnswers: boolean;
+	/**
+	 * The game starts and moves through the questions by itself (spec 014).
+	 * The game also keeps since when: `Game.autoplaySince`.
+	 */
+	autoplay: boolean;
 }
 
 /** A host who never touched the settings (RN-07). */
@@ -18,6 +23,7 @@ export const DEFAULT_GAME_OPTIONS: GameOptions = {
 	showQuestionsOnDevices: false,
 	randomizeQuestions: false,
 	randomizeAnswers: false,
+	autoplay: false,
 };
 
 /** Only the options a change really carries: a key sent as undefined is no change. */
@@ -34,9 +40,14 @@ export class GameOptionsFixedError extends DomainError {
 	readonly code = "GAME.OPTIONS_FIXED";
 }
 
+/**
+ * `now` is the instant autoplay counts from when the change turns it on
+ * (spec 014, RN-08, RN-15); one already on keeps the instant it has.
+ */
 export function changeGameOptions(
 	game: Game,
 	change: Partial<GameOptions>,
+	now: Date,
 ): Game {
 	assertGameOpen(game);
 	const options = { ...game.options, ...definedOptions(change) };
@@ -48,5 +59,6 @@ export function changeGameOptions(
 			"The random orders can only change before the game starts",
 		);
 	}
-	return { ...game, options };
+	const autoplaySince = options.autoplay ? (game.autoplaySince ?? now) : null;
+	return { ...game, options, autoplaySince };
 }

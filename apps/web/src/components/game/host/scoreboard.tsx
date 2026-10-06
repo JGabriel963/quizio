@@ -9,6 +9,8 @@ import { CountUp } from "@/lib/count-up";
 import { GAME_MOTION, usePrefersReducedMotion } from "@/lib/game-motion";
 import { scoreboardSteps } from "@/lib/scoreboard-animation";
 
+import { AutoCountdown } from "./auto-countdown";
+
 /** How long the scoreboard shows as it was before the points start going up. */
 export const SCOREBOARD_HOLD_MS = 600;
 
@@ -27,12 +29,15 @@ type Step = "before" | "counting" | "after";
 export function Scoreboard({
 	entries,
 	leavers,
+	auto = null,
 	busy,
 	onAdvance,
 }: {
 	entries: ScoreboardEntryData[];
 	/** Who was among the five before the question: their rows go out. */
 	leavers: ScoreboardEntryData[];
+	/** Autoplay's countdown to move on, in the button's place (spec 014, RN-12, RN-13). */
+	auto?: { remainingMs: number; receivedAt: number } | null;
 	busy: boolean;
 	onAdvance: () => void;
 }) {
@@ -68,10 +73,18 @@ export function Scoreboard({
 	return (
 		<main className="relative flex min-h-0 flex-1 flex-col">
 			<div className="flex justify-end p-2 sm:p-4">
-				<Button variant="secondary" disabled={busy} onClick={onAdvance}>
-					Avançar
-					<ChevronRightIcon aria-hidden="true" />
-				</Button>
+				{auto ? (
+					<AutoCountdown
+						label="Avança em"
+						remainingMs={auto.remainingMs}
+						receivedAt={auto.receivedAt}
+					/>
+				) : (
+					<Button variant="secondary" disabled={busy} onClick={onAdvance}>
+						Avançar
+						<ChevronRightIcon aria-hidden="true" />
+					</Button>
+				)}
 			</div>
 			<div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-4 pb-8">
 				<h1 className="sr-only">Placar</h1>

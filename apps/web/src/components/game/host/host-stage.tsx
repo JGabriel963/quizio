@@ -67,15 +67,24 @@ export function HostStage({
 
 	const { questionIndex, phase, question } = told;
 	const stageKey = `${questionIndex}:${phase}`;
+	// With autoplay the results and the scoreboard have a countdown too (spec
+	// 014). It is named by its token: turned off and on again, it starts over.
+	const auto = told.remainingMs === null ? told.autoAdvance : null;
 	// The screen asks about the game every few seconds: the countdown of the
 	// stage it is showing goes on from where it is, instead of jumping back by
 	// the time each answer took to arrive (spec 012).
 	const { remainingMs, receivedAt } = useSteadyTimeLeft(
-		stageKey,
-		told.remainingMs,
+		auto ? `${stageKey}:${auto.token}` : stageKey,
+		told.remainingMs ?? auto?.remainingMs ?? null,
 		toldAt,
 	);
-	const stage = { ...told, remainingMs };
+	// The stage's own time stays what the server said it is: none in the results.
+	const stage = {
+		...told,
+		remainingMs: told.remainingMs === null ? null : remainingMs,
+	};
+	const countdown =
+		auto && remainingMs !== null ? { remainingMs, receivedAt } : null;
 
 	const advance = useEffectEvent((skip: boolean) =>
 		actions.advance({ questionIndex, phase }, skip),
@@ -132,6 +141,7 @@ export function HostStage({
 					key={questionIndex}
 					entries={stage.scoreboard ?? []}
 					leavers={stage.scoreboardLeavers ?? []}
+					auto={countdown}
 					busy={busy}
 					onAdvance={() => request(false)}
 				/>
@@ -159,6 +169,7 @@ export function HostStage({
 				<Results
 					stage={stage}
 					question={question}
+					auto={countdown}
 					busy={busy}
 					onAdvance={() => request(false)}
 				/>

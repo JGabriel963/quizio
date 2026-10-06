@@ -37,8 +37,9 @@ export function createSetGameOptions(
 		// Checked against the game as it was read; what is written is only the
 		// change. The game may have moved on meanwhile, and another switch may
 		// have been turned at the same time: neither is undone.
-		const changed = changeGameOptions(game, change);
-		await deps.games.saveOptions(game.id, change);
+		const now = deps.clock.now();
+		const changed = changeGameOptions(game, change, now);
+		await deps.games.saveOptions(game.id, change, now);
 		await deps.preferences.save(ownerId, change);
 		const latest = await loadGame(deps, gameId);
 		return loadHostGameView(deps, latest ?? changed);

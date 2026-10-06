@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, act as settle, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { HostGameData } from "@/lib/api-types";
 import { renderWithRouter } from "@/testing/render-with-router";
@@ -22,9 +22,11 @@ const empty: HostGameData = {
 		showQuestionsOnDevices: false,
 		randomizeQuestions: false,
 		randomizeAnswers: false,
+		autoplay: false,
 	},
 	players: [],
 	questionCount: 0,
+	autoStart: null,
 	stage: null,
 	final: null,
 };
@@ -35,16 +37,29 @@ function renderLobby(lobby: HostGameData = empty) {
 	const actions: HostLobbyActions = {
 		setLocked: vi.fn(),
 		setOptions: vi.fn(),
-		start: vi.fn(),
+		start: vi.fn(async () => {}),
 		removePlayer: vi.fn(),
 		end: vi.fn(),
 	};
 	const user = userEvent.setup();
+	const receivedAt = Date.now();
 	const view = render(
-		<HostLobby lobby={lobby} origin={ORIGIN} actions={actions} />,
+		<HostLobby
+			lobby={lobby}
+			origin={ORIGIN}
+			receivedAt={receivedAt}
+			actions={actions}
+		/>,
 	);
 	const rerender = (next: HostGameData) =>
-		view.rerender(<HostLobby lobby={next} origin={ORIGIN} actions={actions} />);
+		view.rerender(
+			<HostLobby
+				lobby={next}
+				origin={ORIGIN}
+				receivedAt={receivedAt}
+				actions={actions}
+			/>,
+		);
 	return { actions, user, rerender };
 }
 
@@ -153,7 +168,7 @@ describe("HostLobby (spec 008)", () => {
 		const actions: HostLobbyActions = {
 			setLocked: vi.fn(),
 			setOptions: vi.fn(),
-			start: vi.fn(),
+			start: vi.fn(async () => {}),
 			removePlayer: vi.fn(),
 			end: vi.fn(),
 		};
@@ -161,6 +176,7 @@ describe("HostLobby (spec 008)", () => {
 			<HostLobby
 				lobby={{ ...empty, players: [act] }}
 				origin={ORIGIN}
+				receivedAt={Date.now()}
 				actions={actions}
 				starting
 			/>,
@@ -297,7 +313,7 @@ describe("HostLobby (spec 008)", () => {
 			const panel = await openSettings(user);
 
 			const switches = within(panel).getAllByRole("switch");
-			expect(switches).toHaveLength(4);
+			expect(switches).toHaveLength(5);
 			for (const control of switches) {
 				expect(control).not.toHaveAttribute("aria-disabled", "true");
 			}
@@ -377,5 +393,158 @@ describe("GameUnavailable (spec 008)", () => {
 		expect(await screen.findByRole("status")).toHaveTextContent(
 			"Prepare-se para participar",
 		);
+	});
+});
+
+describe("HostLobby: autoplay (spec 014)", () => {
+	const refusal = (domainCode: string) =>
+		Object.assign(new Error(domainCode), { data: { domainCode } });
+	const counting = (remainingMs: number, token = "t1"): HostGameData => ({
+		...empty,
+		players: [act],
+		options: { ...empty.options, autoplay: true },
+		autoStart: { remainingMs, token },
+	});
+	const actionsWith = (start: HostLobbyActions["start"]): HostLobbyActions => ({
+		setLocked: vi.fn(),
+		setOptions: vi.fn(),
+		start,
+		removePlayer: vi.fn(),
+		end: vi.fn(),
+	});
+	const at = (
+		lobby: HostGameData,
+		on: HostLobbyActions,
+		options: { connected?: boolean; receivedAt?: number } = {},
+	) => (
+		<HostLobby
+			lobby={lobby}
+			origin={ORIGIN}
+			receivedAt={options.receivedAt ?? Date.now()}
+			connected={options.connected ?? true}
+			actions={on}
+		/>
+	);
+	const tick = (ms: number) => settle(() => vi.advanceTimersByTimeAsync(ms));
+	const countdown = () => screen.queryByRole("timer", { name: "Inicia em" });
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("shows the countdown beside Iniciar", () => {
+		render(at(counting(8_000), actionsWith(vi.fn(async () => {}))));
+
+		expect(countdown()).toHaveTextContent("8");
+		expect(screen.getByRole("button", { name: "Iniciar" })).toBeEnabled();
+	});
+
+	it("shows no countdown without one", () => {
+		render(
+			at({ ...empty, players: [act] }, actionsWith(vi.fn(async () => {}))),
+		);
+
+		expect(countdown()).toBeNull();
+	});
+
+	it("asks for the automatic start at zero", async () => {
+		vi.useFakeTimers();
+		const start = vi.fn(async () => {});
+		render(at(counting(3_000), actionsWith(start)));
+
+		await tick(2_900);
+		expect(start).not.toHaveBeenCalled();
+
+		await tick(200);
+		expect(start).toHaveBeenCalledExactlyOnceWith(true);
+	});
+
+	it("asks again when the server says it is not time yet", async () => {
+		vi.useFakeTimers();
+		// The device's clock ran a little ahead of the server's.
+		const start = vi
+			.fn<HostLobbyActions["start"]>()
+			.mockRejectedValueOnce(refusal("GAME.STAGE_NOT_DUE"))
+			.mockResolvedValue(undefined);
+		render(at(counting(1_000), actionsWith(start)));
+
+		await tick(1_100);
+		expect(start).toHaveBeenCalledTimes(1);
+
+		await tick(500);
+		expect(start).toHaveBeenCalledTimes(2);
+		expect(start).toHaveBeenLastCalledWith(true);
+	});
+
+	it("a new countdown starts over, even ending later", async () => {
+		vi.useFakeTimers();
+		const start = vi.fn(async () => {});
+		const on = actionsWith(start);
+		const view = render(at(counting(2_000, "t1"), on));
+		await tick(1_000);
+
+		// Bia got in: the server counts 15 s again, from another instant.
+		view.rerender(at(counting(15_000, "t2"), on));
+		await tick(1_500);
+
+		expect(start).not.toHaveBeenCalled();
+		expect(countdown()).toHaveTextContent("14");
+	});
+
+	it("the same countdown asked about again does not go back", async () => {
+		vi.useFakeTimers();
+		const on = actionsWith(vi.fn(async () => {}));
+		const view = render(at(counting(10_000, "t1"), on));
+		await tick(4_000);
+
+		// The answer took a while: it says 6.8 s from now, more than the screen shows.
+		view.rerender(at(counting(6_800, "t1"), on));
+		await tick(200);
+
+		expect(countdown()).toHaveTextContent("6");
+	});
+
+	it("the countdown going away cancels the start", async () => {
+		vi.useFakeTimers();
+		const start = vi.fn(async () => {});
+		const on = actionsWith(start);
+		const view = render(at(counting(2_000), on));
+		await tick(1_000);
+
+		// The switch was turned off.
+		view.rerender(at({ ...empty, players: [act] }, on));
+		await tick(5_000);
+
+		expect(start).not.toHaveBeenCalled();
+		expect(countdown()).toBeNull();
+	});
+
+	it("Iniciar starts before the countdown ends", async () => {
+		const start = vi.fn<HostLobbyActions["start"]>(async () => {});
+		const user = userEvent.setup();
+		render(at(counting(9_000), actionsWith(start)));
+
+		await user.click(screen.getByRole("button", { name: "Iniciar" }));
+
+		// A click, not the countdown: the server does not check the time.
+		expect(start).toHaveBeenCalledTimes(1);
+		expect(start.mock.calls[0]?.[0] ?? false).toBe(false);
+	});
+
+	it("does not ask while disconnected, and starts when the connection returns and the countdown is over", async () => {
+		vi.useFakeTimers();
+		const start = vi.fn(async () => {});
+		const on = actionsWith(start);
+		const lobby = counting(2_000);
+		const receivedAt = Date.now();
+		const view = render(at(lobby, on, { connected: false, receivedAt }));
+
+		await tick(30_000);
+		expect(start).not.toHaveBeenCalled();
+
+		view.rerender(at(lobby, on, { connected: true, receivedAt }));
+		await tick(50);
+
+		expect(start).toHaveBeenCalledExactlyOnceWith(true);
 	});
 });

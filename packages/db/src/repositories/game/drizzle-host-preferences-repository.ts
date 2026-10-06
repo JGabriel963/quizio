@@ -20,6 +20,7 @@ export function createDrizzleHostPreferencesRepository(
 					showQuestionsOnDevices: hostPreferences.showQuestionsOnDevices,
 					randomizeQuestions: hostPreferences.randomizeQuestions,
 					randomizeAnswers: hostPreferences.randomizeAnswers,
+					autoplay: hostPreferences.autoplay,
 				})
 				.from(hostPreferences)
 				.where(eq(hostPreferences.ownerId, ownerId))

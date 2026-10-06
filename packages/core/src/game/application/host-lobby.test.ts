@@ -41,12 +41,14 @@ describe("getHostGame (spec 008)", () => {
 				showQuestionsOnDevices: false,
 				randomizeQuestions: false,
 				randomizeAnswers: false,
+				autoplay: false,
 			},
 			players: [
 				{ id: "p1", nickname: "Ana" },
 				{ id: "p2", nickname: "Bia" },
 			],
 			questionCount: 0,
+			autoStart: null,
 			stage: null,
 			final: null,
 		});

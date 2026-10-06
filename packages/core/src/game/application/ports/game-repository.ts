@@ -20,8 +20,16 @@ export interface GameRepository {
 	 * meanwhile, and two settings changed at the same time are both kept.
 	 */
 	saveLocked(gameId: string, locked: boolean): Promise<void>;
-	/** Stores only the options given, leaving the others as they are stored. */
-	saveOptions(gameId: string, change: Partial<GameOptions>): Promise<void>;
+	/**
+	 * Stores only the options given, leaving the others as they are stored.
+	 * `at` is the instant autoplay counts from when the change turns it on
+	 * (spec 014); one already on keeps the instant it has.
+	 */
+	saveOptions(
+		gameId: string,
+		change: Partial<GameOptions>,
+		at: Date,
+	): Promise<void>;
 	/**
 	 * Stores where the game is (status, progress, ending) only if the stored
 	 * game was not ended and is still at `from`, the lobby when null. False

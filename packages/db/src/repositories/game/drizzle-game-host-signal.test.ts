@@ -52,7 +52,7 @@ describe("the host's signal (spec 013)", () => {
 		// The game moves on and a switch is turned after the signal read it.
 		const advanced = nextStage(read, closing);
 		await games.saveIfAt(advanced, { questionIndex: 0, phase: "answering" });
-		await games.saveOptions("game-1", { showQuestionsOnDevices: true });
+		await games.saveOptions("game-1", { showQuestionsOnDevices: true }, now);
 		await games.saveLocked("game-1", true);
 
 		await games.saveHostSeen("game-1", later(21_000));

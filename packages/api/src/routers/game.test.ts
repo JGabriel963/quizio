@@ -1,3 +1,7 @@
+import {
+	AUTOPLAY_ADVANCE_MS,
+	AUTOPLAY_START_MS,
+} from "@quizio/core/game/domain/autoplay";
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
 import { PIN_ATTEMPT_LIMIT } from "@quizio/core/game/domain/game-pin";
 import { QUESTION_INTRO_MS } from "@quizio/core/game/domain/game-progress";
@@ -50,9 +54,11 @@ describe("game router: the host (spec 008)", () => {
 				showQuestionsOnDevices: false,
 				randomizeQuestions: false,
 				randomizeAnswers: false,
+				autoplay: false,
 			},
 			players: [],
 			questionCount: 0,
+			autoStart: null,
 			stage: null,
 			final: null,
 		});
@@ -604,6 +610,7 @@ describe("game router: the options (spec 012)", () => {
 		showQuestionsOnDevices: false,
 		randomizeQuestions: false,
 		randomizeAnswers: false,
+		autoplay: false,
 	};
 
 	it("changes the options and keeps them for the next game", async () => {
@@ -619,6 +626,7 @@ describe("game router: the options (spec 012)", () => {
 			showQuestionsOnDevices: true,
 			randomizeQuestions: false,
 			randomizeAnswers: true,
+			autoplay: false,
 		};
 		expect(view).toMatchObject({ gameId, locked: true, options });
 		expect((await host.game.view({ gameId })).options).toEqual(options);
@@ -831,5 +839,128 @@ describe("game router: the host's signal (spec 013)", () => {
 		expect(api.realtime.messagesOn(gameChannel(gameId)).at(-1)).toMatchObject({
 			event: GAME_EVENTS.hostBack,
 		});
+	});
+});
+
+describe("game router: autoplay (spec 014)", () => {
+	const notDue = {
+		code: "BAD_REQUEST",
+		cause: { code: "GAME.STAGE_NOT_DUE" },
+	};
+
+	async function withAutoplay() {
+		const game = await hosted();
+		await game.host.game.setOptions({
+			gameId: game.gameId,
+			options: { autoplay: true },
+		});
+		const guest = game.api.callerFor(null);
+		const join = (nickname: string) =>
+			guest.game.join.enter({ gameId: game.gameId, nickname });
+		return { ...game, guest, join };
+	}
+
+	it("game.setOptions turns autoplay on and the lobby tells its countdown", async () => {
+		const { api, host, gameId, join } = await withAutoplay();
+
+		expect(await host.game.view({ gameId })).toMatchObject({
+			options: { autoplay: true },
+			autoStart: null,
+		});
+
+		await join("Ana");
+		api.clock.advanceBy(4_000);
+
+		expect((await host.game.view({ gameId })).autoStart).toEqual({
+			remainingMs: AUTOPLAY_START_MS - 4_000,
+			token: expect.any(String),
+		});
+	});
+
+	it("game.start with auto before the time is refused", async () => {
+		const { api, host, gameId, join } = await withAutoplay();
+		await join("Ana");
+		api.clock.advanceBy(AUTOPLAY_START_MS - 1);
+
+		await expect(host.game.start({ gameId, auto: true })).rejects.toMatchObject(
+			notDue,
+		);
+		expect((await host.game.view({ gameId })).status).toBe("lobby");
+	});
+
+	it("game.start with auto after the countdown starts the game", async () => {
+		const { api, host, gameId, join } = await withAutoplay();
+		await join("Ana");
+		api.clock.advanceBy(AUTOPLAY_START_MS);
+
+		expect(await host.game.start({ gameId, auto: true })).toMatchObject({
+			status: "playing",
+			stage: { phase: "gameIntro" },
+		});
+	});
+
+	it("a game of a host with autoplay saved starts with it on", async () => {
+		const { api, host } = await withAutoplay();
+		await api.quizzes.save(aPublishedQuiz({ id: "quiz-2", title: "Rios" }));
+
+		const next = await host.game.host({ quizId: "quiz-2" });
+
+		expect((await host.game.view({ gameId: next.gameId })).options).toEqual({
+			showQuestionsOnDevices: false,
+			randomizeQuestions: false,
+			randomizeAnswers: false,
+			autoplay: true,
+		});
+	});
+
+	it("with autoplay, game.advance from the results is refused before 5 s", async () => {
+		const { api, host, gameId, join } = await withAutoplay();
+		const ana = await join("Ana");
+		await host.game.start({ gameId });
+		api.clock.advanceBy(3_000);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "gameIntro" },
+		});
+		api.clock.advanceBy(QUESTION_INTRO_MS);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "questionIntro" },
+		});
+		// The only player answers: the results come at once.
+		await api.callerFor(null).game.join.answer({
+			gameId,
+			playerId: ana.playerId,
+			secret: ana.secret,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+		const results = { questionIndex: 0, phase: "results" } as const;
+		expect((await host.game.view({ gameId })).stage).toMatchObject({
+			phase: "results",
+			autoAdvance: { remainingMs: AUTOPLAY_ADVANCE_MS },
+		});
+
+		api.clock.advanceBy(AUTOPLAY_ADVANCE_MS - 1);
+		await expect(
+			host.game.advance({ gameId, from: results }),
+		).rejects.toMatchObject(notDue);
+
+		api.clock.advanceBy(1);
+		expect(
+			(await host.game.advance({ gameId, from: results })).stage,
+		).toMatchObject({ phase: "scoreboard" });
+	});
+
+	it("needs a well-formed switch", async () => {
+		const { host, gameId } = await hosted();
+
+		await expect(
+			host.game.setOptions({
+				gameId,
+				// @ts-expect-error not a switch
+				options: { autoplay: "yes" },
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	});
 });

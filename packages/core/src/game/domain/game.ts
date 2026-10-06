@@ -44,6 +44,12 @@ export interface Game {
 	locked: boolean;
 	/** What the host chose in the settings (spec 012). */
 	options: GameOptions;
+	/**
+	 * Since when autoplay is on in this game; null while it is off, so it is
+	 * always `options.autoplay` told another way. The countdowns of the lobby,
+	 * the results and the scoreboard count from it (spec 014).
+	 */
+	autoplaySince: Date | null;
 	createdAt: Date;
 	expiresAt: Date;
 	/** Set when the game is finished or ended: it frees the PIN. */
@@ -127,6 +133,7 @@ export function newGame(input: {
 		status: "lobby",
 		locked: false,
 		options: { ...input.options },
+		autoplaySince: input.options.autoplay ? input.now : null,
 		createdAt: input.now,
 		expiresAt: new Date(input.now.getTime() + GAME_TTL_MS),
 		endedAt: null,

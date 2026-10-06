@@ -168,6 +168,7 @@ describe("hostGame (spec 008)", () => {
 			showQuestionsOnDevices: true,
 			randomizeQuestions: false,
 			randomizeAnswers: true,
+			autoplay: false,
 		};
 		await deps.preferences.save("user-1", saved);
 		await deps.preferences.save("user-2", {
@@ -178,6 +179,26 @@ describe("hostGame (spec 008)", () => {
 		const { gameId } = await createHostGame(deps)(host);
 
 		expect((await deps.games.findById(gameId))?.options).toEqual(saved);
+	});
+
+	it("a game of a host with autoplay saved starts with it on (spec 014)", async () => {
+		const deps = createGameDeps();
+		await deps.preferences.save("user-1", { autoplay: true });
+
+		const { gameId } = await createHostGame(deps)(host);
+
+		expect(await deps.games.findById(gameId)).toMatchObject({
+			options: { ...DEFAULT_GAME_OPTIONS, autoplay: true },
+			autoplaySince: deps.clock.now(),
+		});
+	});
+
+	it("a first game has autoplay off (spec 014)", async () => {
+		const deps = createGameDeps();
+
+		const { gameId } = await createHostGame(deps)(host);
+
+		expect((await deps.games.findById(gameId))?.autoplaySince).toBeNull();
 	});
 
 	it("a new game is never locked (spec 012)", async () => {

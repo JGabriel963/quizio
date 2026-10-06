@@ -1,14 +1,17 @@
 import type { GameRepository } from "@quizio/core/game/application/ports/game-repository";
 import type { Game } from "@quizio/core/game/domain/game";
 import { definedOptions } from "@quizio/core/game/domain/game-options";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
 import { game as gameTable } from "../../schema/game";
 import type { Database } from "../../types";
 
 type GameRow = typeof gameTable.$inferSelect;
 
-/** The progress is three columns, set together; the options are one each. */
+/**
+ * The progress is three columns, set together; the options are one each.
+ * Autoplay is on while its instant is set (spec 014).
+ */
 function toGame(row: GameRow): Game {
 	const {
 		questionIndex,
@@ -21,7 +24,12 @@ function toGame(row: GameRow): Game {
 	} = row;
 	return {
 		...game,
-		options: { showQuestionsOnDevices, randomizeQuestions, randomizeAnswers },
+		options: {
+			showQuestionsOnDevices,
+			randomizeQuestions,
+			randomizeAnswers,
+			autoplay: game.autoplaySince !== null,
+		},
 		progress:
 			questionIndex !== null && phase !== null && phaseStartedAt !== null
 				? { questionIndex, phase, phaseStartedAt }
@@ -33,6 +41,7 @@ function toRow(game: Game): GameRow {
 	const { progress, options, ...row } = game;
 	return {
 		...row,
+		// `autoplaySince` is the column: `options.autoplay` only repeats it.
 		showQuestionsOnDevices: options.showQuestionsOnDevices,
 		randomizeQuestions: options.randomizeQuestions,
 		randomizeAnswers: options.randomizeAnswers,
@@ -97,10 +106,21 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 				.where(eq(gameTable.id, gameId));
 		},
 
-		async saveOptions(gameId, change) {
+		async saveOptions(gameId, change, at) {
 			// Only the columns of the options that changed: one switch never
 			// writes over another turned at the same time.
-			const columns = definedOptions(change);
+			const { autoplay, ...switches } = definedOptions(change);
+			const columns = {
+				...switches,
+				...(autoplay === undefined
+					? {}
+					: {
+							// One already on keeps the instant it counts from.
+							autoplaySince: autoplay
+								? sql`coalesce(${gameTable.autoplaySince}, ${at.toISOString()}::timestamptz)`
+								: null,
+						}),
+			};
 			if (Object.keys(columns).length === 0) {
 				return;
 			}

@@ -17,6 +17,14 @@ export class InMemoryPlayerRepository implements PlayerRepository {
 		return (await this.listActive(gameId)).length;
 	}
 
+	async lastJoinedAt(gameId: string): Promise<Date | null> {
+		return this.allOf(gameId).reduce<Date | null>(
+			(last, player) =>
+				last === null || player.joinedAt > last ? player.joinedAt : last,
+			null,
+		);
+	}
+
 	async countEligible(gameId: string, questionIndex: number): Promise<number> {
 		return (await this.listActive(gameId)).filter((player) =>
 			canAnswer(player, questionIndex),

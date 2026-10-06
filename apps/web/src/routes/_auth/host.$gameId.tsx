@@ -121,15 +121,29 @@ function HostPage() {
 	}, [viewError, report]);
 
 	const channel = gameChannel(gameId);
+	// With autoplay, who is in the lobby moves its countdown, which is the
+	// server's (spec 014, RN-06, RN-07): the list changes at once, and the
+	// game is asked about again for the time.
+	const recount = () => {
+		if (queryClient.getQueryData<HostGameData>(viewKey)?.options.autoplay) {
+			void refresh();
+		}
+	};
 	useRealtimeEvent<PlayerJoinedPayload>(
 		channel,
 		GAME_EVENTS.playerJoined,
-		({ player }) => applyLobby({ type: "playerJoined", player }),
+		({ player }) => {
+			applyLobby({ type: "playerJoined", player });
+			recount();
+		},
 	);
 	useRealtimeEvent<PlayerRemovedPayload>(
 		channel,
 		GAME_EVENTS.playerRemoved,
-		({ playerId }) => applyLobby({ type: "playerRemoved", playerId }),
+		({ playerId }) => {
+			applyLobby({ type: "playerRemoved", playerId });
+			recount();
+		},
 	);
 	useRealtimeEvent<LockChangedPayload>(
 		channel,
@@ -182,8 +196,14 @@ function HostPage() {
 			networkMode: "always",
 			onMutate: ({ options }) =>
 				void applyLobby({ type: "optionsChanged", options }),
-			onSuccess: ({ options }) =>
-				void applyLobby({ type: "optionsChanged", options }),
+			onSuccess: ({ options }, { options: asked }) => {
+				applyLobby({ type: "optionsChanged", options });
+				// Autoplay's countdowns are the server's: the game is asked about
+				// again for them (spec 014, RN-08, RN-15).
+				if (asked.autoplay !== undefined) {
+					void refresh();
+				}
+			},
 			onError: (error) => {
 				toast.error(settingErrorMessage(error));
 				report(error);
@@ -197,6 +217,7 @@ function HostPage() {
 			networkMode: "always",
 			onMutate: ({ playerId }) =>
 				void applyLobby({ type: "playerRemoved", playerId }),
+			onSuccess: recount,
 			onError: failed,
 		}),
 	);
@@ -207,11 +228,7 @@ function HostPage() {
 		}),
 	);
 	const start = useMutation(
-		trpc.game.start.mutationOptions({
-			networkMode: "always",
-			onSuccess: show,
-			onError: failed,
-		}),
+		trpc.game.start.mutationOptions({ networkMode: "always" }),
 	);
 	const advance = useMutation(
 		trpc.game.advance.mutationOptions({ networkMode: "always" }),
@@ -224,6 +241,28 @@ function HostPage() {
 	useLeaveWarning(
 		status === "lobby" || status === "playing" || status === "finished",
 	);
+
+	/**
+	 * "Iniciar", or autoplay's countdown running out (`auto`, spec 014). The
+	 * server may say the countdown is not over: a player joined at the last
+	 * moment. The screen then asks about the game again, without a notice.
+	 */
+	async function startGame(auto = false) {
+		try {
+			show(await start.mutateAsync({ gameId, auto }));
+		} catch (error) {
+			if (gameErrorCode(error) === "GAME.STAGE_NOT_DUE") {
+				void refresh();
+			} else if (auto && isConnectionFailure(error)) {
+				// Nobody asked: the dialog tells, and the start is asked for again
+				// when the connection is back (RN-19).
+				report(error);
+			} else {
+				failed(error);
+			}
+			throw error;
+		}
+	}
 
 	/** The answer is the game after the transition; a refusal goes back to the screen that asked. */
 	async function advanceFrom(from: StageRef, skip: boolean) {
@@ -313,11 +352,13 @@ function HostPage() {
 			<HostLobby
 				lobby={game}
 				origin={origin}
+				receivedAt={view.dataUpdatedAt}
+				connected={!watch.lost}
 				starting={start.isPending}
 				actions={{
 					...settings,
 					removePlayer: (playerId) => removePlayer.mutate({ gameId, playerId }),
-					start: () => start.mutate({ gameId }),
+					start: startGame,
 					end: endGame,
 				}}
 			/>

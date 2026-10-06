@@ -8,6 +8,7 @@ import type { Player } from "../domain/player";
 /** Test builder: an open lobby of quiz-1, hosted by user-1. */
 export function aGame(overrides: Partial<Game> = {}): Game {
 	const createdAt = overrides.createdAt ?? new Date("2026-06-01T12:00:00.000Z");
+	const options = overrides.options ?? DEFAULT_GAME_OPTIONS;
 	return {
 		id: "game-1",
 		ownerId: "user-1",
@@ -17,7 +18,9 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		pin: "265914",
 		status: "lobby",
 		locked: false,
-		options: DEFAULT_GAME_OPTIONS,
+		options,
+		// As `newGame` leaves it: on since the game was created, or off.
+		autoplaySince: options.autoplay ? createdAt : null,
 		createdAt,
 		expiresAt: new Date(createdAt.getTime() + GAME_TTL_MS),
 		endedAt: null,

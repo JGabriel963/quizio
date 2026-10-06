@@ -31,8 +31,19 @@ export function applyLobbyEvent(
 			};
 		case "lockChanged":
 			return { ...view, locked: event.locked };
-		case "optionsChanged":
-			return { ...view, options: { ...view.options, ...event.options } };
+		case "optionsChanged": {
+			const options = { ...view.options, ...event.options };
+			// Autoplay off: its countdowns go away at once (spec 014, RN-08,
+			// RN-15). On, they come with the server's answer, which has the time.
+			return options.autoplay
+				? { ...view, options }
+				: {
+						...view,
+						options,
+						autoStart: null,
+						stage: view.stage && { ...view.stage, autoAdvance: null },
+					};
+		}
 		case "gameEnded":
 			return view.status === "ended"
 				? view

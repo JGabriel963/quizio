@@ -25,9 +25,11 @@ const answering: HostGameData = {
 		showQuestionsOnDevices: false,
 		randomizeQuestions: false,
 		randomizeAnswers: false,
+		autoplay: false,
 	},
 	players: [{ id: "p1", nickname: "Ana" }],
 	questionCount: 3,
+	autoStart: null,
 	stage: {
 		questionIndex: 1,
 		phase: "answering",
@@ -38,6 +40,7 @@ const answering: HostGameData = {
 		distribution: null,
 		scoreboard: null,
 		scoreboardLeavers: null,
+		autoAdvance: null,
 	},
 	final: null,
 };

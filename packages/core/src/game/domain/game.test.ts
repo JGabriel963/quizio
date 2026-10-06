@@ -52,6 +52,26 @@ describe("game (spec 008)", () => {
 		expect(isGameOpen(game)).toBe(true);
 	});
 
+	it("a new game with autoplay counts from its creation (spec 014)", () => {
+		const base = {
+			id: "game-1",
+			ownerId: "user-1",
+			quizId: "quiz-1",
+			quizVersion: 1,
+			title: "Capitais",
+			pin: "265914",
+			now,
+		};
+
+		expect(
+			newGame({ ...base, options: { ...DEFAULT_GAME_OPTIONS, autoplay: true } })
+				.autoplaySince,
+		).toEqual(now);
+		expect(
+			newGame({ ...base, options: DEFAULT_GAME_OPTIONS }).autoplaySince,
+		).toBeNull();
+	});
+
 	it("a new game was seen by its host when created (spec 013)", () => {
 		const game = newGame({
 			id: "game-1",
@@ -124,6 +144,7 @@ describe("game (spec 008)", () => {
 			showQuestionsOnDevices: true,
 			randomizeQuestions: false,
 			randomizeAnswers: true,
+			autoplay: false,
 		};
 		const game = newGame({
 			id: "game-1",

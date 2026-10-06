@@ -1,6 +1,14 @@
 import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
 import type { Player } from "@quizio/core/game/domain/player";
-import { and, asc, count as countRows, eq, isNull, lte } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count as countRows,
+	eq,
+	isNull,
+	lte,
+	max,
+} from "drizzle-orm";
 
 import { gamePlayer as playerTable } from "../../schema/game";
 import type { Database } from "../../types";
@@ -38,6 +46,15 @@ export function createDrizzlePlayerRepository(db: Database): PlayerRepository {
 				.from(playerTable)
 				.where(activeIn(gameId));
 			return row?.total ?? 0;
+		},
+
+		async lastJoinedAt(gameId) {
+			// Removed players too: taking one out must not move the countdown.
+			const [row] = await db
+				.select({ last: max(playerTable.joinedAt) })
+				.from(playerTable)
+				.where(eq(playerTable.gameId, gameId));
+			return row?.last ?? null;
 		},
 
 		async countEligible(gameId, questionIndex) {

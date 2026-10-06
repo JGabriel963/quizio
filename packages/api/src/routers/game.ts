@@ -68,12 +68,15 @@ export const gameRouter = router({
 	),
 
 	/** "Iniciar" (spec 009, RN-01). */
-	start: protectedProcedure.input(gameReference).mutation(({ ctx, input }) =>
-		ctx.container.useCases.startGame({
-			ownerId: ctx.session.user.id,
-			...input,
-		}),
-	),
+	start: protectedProcedure
+		// `auto`: autoplay's countdown ran out on the host's screen (spec 014).
+		.input(gameReference.extend({ auto: z.boolean().optional() }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.startGame({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
 
 	/** The host's screen asks for each transition, saying where it is (RN-12). */
 	advance: protectedProcedure
@@ -118,6 +121,7 @@ export const gameRouter = router({
 					showQuestionsOnDevices: z.boolean().optional(),
 					randomizeQuestions: z.boolean().optional(),
 					randomizeAnswers: z.boolean().optional(),
+					autoplay: z.boolean().optional(),
 				}),
 			}),
 		)

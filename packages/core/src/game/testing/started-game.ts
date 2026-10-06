@@ -3,6 +3,7 @@ import { createAdvanceGame } from "../application/advance-game";
 import { createJoinGame } from "../application/join-game";
 import { createStartGame } from "../application/start-game";
 import { createSubmitAnswer } from "../application/submit-answer";
+import { autoAdvanceRemainingMs } from "../domain/autoplay";
 import { DEFAULT_GAME_OPTIONS, type GameOptions } from "../domain/game-options";
 import {
 	type GamePhase,
@@ -66,7 +67,7 @@ export async function createStartedGame(
 
 	/**
 	 * Advances until the game is at that stage: intros run their time, answers
-	 * are skipped and results are advanced at once.
+	 * are skipped and results are advanced at once, or after autoplay's wait.
 	 */
 	async function reach(phase: GamePhase, questionIndex = 0) {
 		const target = { questionIndex, phase };
@@ -77,7 +78,11 @@ export async function createStartedGame(
 			}
 			const from = await stage();
 			if (from.phase !== "answering") {
-				deps.clock.advanceBy(phaseDurationMs(from.phase, 0) ?? 0);
+				deps.clock.advanceBy(
+					phaseDurationMs(from.phase, 0) ??
+						autoAdvanceRemainingMs(game, deps.clock.now()) ??
+						0,
+				);
 			}
 			await advance({ ...host, from, skip: from.phase === "answering" });
 		}

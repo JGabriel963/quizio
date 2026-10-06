@@ -184,3 +184,40 @@ describe("Scoreboard: the animation (spec 011)", () => {
 		expect(arrows()).toBe(1);
 	});
 });
+
+describe("Scoreboard: autoplay (spec 014)", () => {
+	it("shows the countdown in place of Avançar", () => {
+		render(
+			<GameScreen>
+				<Scoreboard
+					entries={[entry("Ana", 1, 900, null)]}
+					leavers={[]}
+					busy={false}
+					auto={{ remainingMs: 5_000, receivedAt: Date.now() }}
+					onAdvance={() => {}}
+				/>
+			</GameScreen>,
+		);
+
+		expect(screen.getByRole("timer", { name: "Avança em" })).toHaveTextContent(
+			"5",
+		);
+		expect(screen.queryByRole("button", { name: "Avançar" })).toBeNull();
+	});
+
+	it("keeps Avançar without a countdown", () => {
+		render(
+			<GameScreen>
+				<Scoreboard
+					entries={[entry("Ana", 1, 900, null)]}
+					leavers={[]}
+					busy={false}
+					onAdvance={() => {}}
+				/>
+			</GameScreen>,
+		);
+
+		expect(screen.queryByRole("timer")).toBeNull();
+		expect(screen.getByRole("button", { name: "Avançar" })).toBeEnabled();
+	});
+});

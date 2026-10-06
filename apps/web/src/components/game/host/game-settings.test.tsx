@@ -10,6 +10,7 @@ const allOff: GameOptionsData = {
 	showQuestionsOnDevices: false,
 	randomizeQuestions: false,
 	randomizeAnswers: false,
+	autoplay: false,
 };
 
 const NAMES = [
@@ -17,6 +18,7 @@ const NAMES = [
 	"Bloquear jogo",
 	"Mostrar perguntas em ordem aleatória",
 	"Mostrar respostas em ordem aleatória",
+	"Reprodução automática",
 ];
 
 function renderSettings(
@@ -46,7 +48,7 @@ function renderSettings(
 }
 
 describe("GameSettings (spec 012)", () => {
-	it("shows the four switches with their explanations and the footer", () => {
+	it("shows the five switches with their explanations and the footer", () => {
 		const { panel } = renderSettings();
 
 		expect(
@@ -60,6 +62,7 @@ describe("GameSettings (spec 012)", () => {
 			"Bloqueie o jogo para impedir que outros participantes entrem.",
 			"As perguntas saem numa ordem sorteada a cada partida.",
 			"As alternativas trocam de posição a cada partida.",
+			"O jogo começa e avança pelas perguntas sozinho.",
 		]) {
 			expect(within(panel).getByText(explanation)).toBeInTheDocument();
 		}
@@ -87,7 +90,7 @@ describe("GameSettings (spec 012)", () => {
 
 		expect(
 			NAMES.map((name) => switchOf(name).getAttribute("aria-checked")),
-		).toEqual(["true", "false", "false", "true"]);
+		).toEqual(["true", "false", "false", "true", "false"]);
 	});
 
 	it("asks for the change at once", async () => {
@@ -238,5 +241,62 @@ describe("GameSettings: Encerrar agora (spec 013)", () => {
 		expect(
 			screen.getByRole("dialog", { name: "Configurações" }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("GameSettings: Reprodução automática (spec 014)", () => {
+	const NAME = "Reprodução automática";
+
+	it("shows Reprodução automática, off, before Encerrar jogo", () => {
+		const { panel, switchOf } = renderSettings();
+		const autoplay = switchOf(NAME);
+		const answers = switchOf("Mostrar respostas em ordem aleatória");
+		const end = within(panel).getByText("Encerrar jogo");
+
+		expect(autoplay).toHaveAttribute("aria-checked", "false");
+		expect(autoplay).toHaveAccessibleDescription(
+			"O jogo começa e avança pelas perguntas sozinho.",
+		);
+		expect(
+			answers.compareDocumentPosition(autoplay) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(
+			autoplay.compareDocumentPosition(end) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("asks for the change at once", async () => {
+		const { user, switchOf, onOptionsChange, onLockedChange } =
+			renderSettings();
+
+		await user.click(switchOf(NAME));
+
+		expect(onOptionsChange).toHaveBeenCalledExactlyOnceWith({ autoplay: true });
+		expect(onLockedChange).not.toHaveBeenCalled();
+	});
+
+	it("shows it on and turns it off", async () => {
+		const { user, switchOf, onOptionsChange } = renderSettings({
+			options: { ...allOff, autoplay: true },
+		});
+
+		expect(switchOf(NAME)).toHaveAttribute("aria-checked", "true");
+		await user.click(switchOf(NAME));
+
+		expect(onOptionsChange).toHaveBeenCalledExactlyOnceWith({
+			autoplay: false,
+		});
+	});
+
+	it("is free during the game", async () => {
+		const { user, switchOf, onOptionsChange } = renderSettings({
+			playing: true,
+		});
+
+		expect(switchOf(NAME)).not.toHaveAttribute("aria-disabled", "true");
+		await user.click(switchOf(NAME));
+
+		expect(onOptionsChange).toHaveBeenCalledExactlyOnceWith({ autoplay: true });
 	});
 });

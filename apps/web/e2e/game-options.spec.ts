@@ -106,7 +106,7 @@ test.describe("opções de jogo (spec 012)", () => {
 		// CA-01, CA-05: the panel opens in the lobby with everything off.
 		await host.getByRole("button", { name: "Configurações" }).click();
 		const switches = settings(host).getByRole("switch");
-		await expect(switches).toHaveCount(4);
+		await expect(switches).toHaveCount(5);
 		for (const control of await switches.all()) {
 			await expect(control).toHaveAttribute("aria-checked", "false");
 		}
@@ -143,6 +143,11 @@ test.describe("opções de jogo (spec 012)", () => {
 				"Não foi possível salvar a configuração. Tente novamente.",
 			),
 		).toBeVisible();
+		// A request without an answer also opens "Conexão perdida" (spec 013),
+		// which covers the panel until the next try, 5 s later, is answered.
+		await expect(
+			host.getByRole("alertdialog", { name: "Conexão perdida" }),
+		).toHaveCount(0, { timeout: 15_000 });
 		await expect(randomQuestions).toHaveAttribute("aria-checked", "false");
 		await host.unroute("**/api/trpc/game.setOptions**");
 		await settings(host).getByRole("button", { name: "Fechar" }).click();

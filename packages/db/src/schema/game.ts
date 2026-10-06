@@ -50,6 +50,11 @@ export const game = pgTable(
 			.default(false),
 		randomizeQuestions: boolean("randomize_questions").notNull().default(false),
 		randomizeAnswers: boolean("randomize_answers").notNull().default(false),
+		/**
+		 * Since when autoplay is on; null while it is off (spec 014). One column
+		 * for the switch and for the instant its countdowns count from.
+		 */
+		autoplaySince: timestamp("autoplay_since", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 		endedAt: timestamp("ended_at", { withTimezone: true }),
@@ -121,6 +126,7 @@ export const hostPreferences = pgTable("host_preferences", {
 		.default(false),
 	randomizeQuestions: boolean("randomize_questions").notNull().default(false),
 	randomizeAnswers: boolean("randomize_answers").notNull().default(false),
+	autoplay: boolean("autoplay").notNull().default(false),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 

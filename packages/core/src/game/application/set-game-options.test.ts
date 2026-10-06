@@ -38,6 +38,7 @@ describe("setGameOptions (spec 012)", () => {
 			showQuestionsOnDevices: true,
 			randomizeQuestions: false,
 			randomizeAnswers: true,
+			autoplay: false,
 		};
 		expect(view.options).toEqual(options);
 		expect((await deps.games.findById("game-1"))?.options).toEqual(options);
@@ -198,6 +199,7 @@ describe("setGameOptions (spec 012)", () => {
 				showQuestionsOnDevices: true,
 				randomizeQuestions: false,
 				randomizeAnswers: true,
+				autoplay: false,
 			};
 			expect((await deps.games.findById("game-1"))?.options).toEqual(both);
 			expect(await deps.preferences.find("user-1")).toEqual(both);
@@ -254,7 +256,101 @@ describe("setGameOptions (spec 012)", () => {
 				showQuestionsOnDevices: true,
 				randomizeQuestions: false,
 				randomizeAnswers: true,
+				autoplay: false,
 			});
 		});
+	});
+});
+
+describe("setGameOptions: autoplay (spec 014)", () => {
+	it("autoplay is saved for the next game", async () => {
+		const deps = await lobby();
+
+		const view = await createSetGameOptions(deps)({
+			...mine,
+			options: { autoplay: true },
+		});
+
+		expect(view.options.autoplay).toBe(true);
+		expect((await deps.preferences.find("user-1"))?.autoplay).toBe(true);
+
+		deps.clock.advanceBy(60_000);
+		const { gameId } = await createHostGame(deps)({
+			ownerId: "user-1",
+			quizId: "quiz-2",
+		});
+		// On from the start: its countdown counts from the game's creation.
+		expect(await deps.games.findById(gameId)).toMatchObject({
+			options: { autoplay: true },
+			autoplaySince: deps.clock.now(),
+		});
+	});
+
+	it("turning autoplay on in the lobby counts from then", async () => {
+		const deps = await lobby();
+		deps.clock.advanceBy(60_000);
+
+		await createSetGameOptions(deps)({ ...mine, options: { autoplay: true } });
+
+		expect(await deps.games.findById("game-1")).toMatchObject({
+			options: { autoplay: true },
+			autoplaySince: deps.clock.now(),
+		});
+	});
+
+	it("turning it on again keeps the instant it has", async () => {
+		const deps = await lobby();
+		const setGameOptions = createSetGameOptions(deps);
+		await setGameOptions({ ...mine, options: { autoplay: true } });
+		const since = deps.clock.now();
+		deps.clock.advanceBy(8_000);
+
+		await setGameOptions({ ...mine, options: { autoplay: true } });
+		await setGameOptions({
+			...mine,
+			options: { showQuestionsOnDevices: true },
+		});
+
+		expect((await deps.games.findById("game-1"))?.autoplaySince).toEqual(since);
+	});
+
+	it("turns autoplay on and off during the game", async () => {
+		const { deps, host, reach, stage } = await createStartedGame();
+		await reach("results");
+		const setGameOptions = createSetGameOptions(deps);
+
+		await setGameOptions({ ...host, options: { autoplay: true } });
+		expect(await deps.games.findById("game-1")).toMatchObject({
+			options: { autoplay: true },
+			autoplaySince: deps.clock.now(),
+		});
+
+		await setGameOptions({ ...host, options: { autoplay: false } });
+		expect(await deps.games.findById("game-1")).toMatchObject({
+			options: { autoplay: false },
+			autoplaySince: null,
+		});
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
+	});
+
+	it("turning it on does not undo a stage written meanwhile", async () => {
+		const { deps, host, reach, stage } = await createStartedGame();
+		await reach("answering");
+		// The request reads the game, and the answers close before it writes.
+		const findById = deps.games.findById.bind(deps.games);
+		let raced = false;
+		deps.games.findById = async (id) => {
+			const game = await findById(id);
+			if (!raced) {
+				raced = true;
+				await reach("results");
+			}
+			return game;
+		};
+
+		await createSetGameOptions(deps)({ ...host, options: { autoplay: true } });
+
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
+		expect((await deps.games.findById("game-1"))?.options.autoplay).toBe(true);
 	});
 });

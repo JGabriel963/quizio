@@ -625,6 +625,7 @@ describe("getHostGame: options and who joined in the middle (spec 012)", () => {
 			showQuestionsOnDevices: true,
 			randomizeQuestions: false,
 			randomizeAnswers: true,
+			autoplay: false,
 		});
 	});
 

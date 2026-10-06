@@ -11,6 +11,7 @@ import { questionTypeLabel } from "@/lib/quiz-labels";
 import { useCountdown } from "@/lib/use-countdown";
 
 import { Wordmark } from "../game-screen";
+import { AutoCountdown } from "./auto-countdown";
 import { AnswerBars, StageChoices } from "./stage-choices";
 import { StageImage } from "./stage-image";
 
@@ -234,16 +235,20 @@ export function Answering({
 
 /**
  * The results: who chose what, and which answers were right. They stay until
- * the host advances (spec 009, RN-11, RN-22).
+ * the host advances (spec 009, RN-11, RN-22) or, with autoplay, until its
+ * countdown, which takes the button's place (spec 014, RN-11, RN-13).
  */
 export function Results({
 	stage,
 	question,
+	auto = null,
 	busy,
 	onAdvance,
 }: {
 	stage: HostStageData;
 	question: HostQuestionData;
+	/** Autoplay's countdown to move on, when it is on. */
+	auto?: { remainingMs: number; receivedAt: number } | null;
 	busy: boolean;
 	onAdvance: () => void;
 }) {
@@ -251,10 +256,18 @@ export function Results({
 		<QuestionStage
 			question={question}
 			action={
-				<Button variant="secondary" disabled={busy} onClick={onAdvance}>
-					Avançar
-					<ChevronRightIcon aria-hidden="true" />
-				</Button>
+				auto ? (
+					<AutoCountdown
+						label="Avança em"
+						remainingMs={auto.remainingMs}
+						receivedAt={auto.receivedAt}
+					/>
+				) : (
+					<Button variant="secondary" disabled={busy} onClick={onAdvance}>
+						Avançar
+						<ChevronRightIcon aria-hidden="true" />
+					</Button>
+				)
 			}
 		>
 			{question.image?.placement === "media" && (

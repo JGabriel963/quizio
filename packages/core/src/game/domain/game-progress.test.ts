@@ -299,3 +299,67 @@ describe("answer window (spec 009)", () => {
 		expect(responseTimeOf(progress, 20, later(20_300))).toBe(20_000);
 	});
 });
+
+describe("phases with autoplay (spec 014)", () => {
+	const at = (ms: number) => ({
+		timeLimitSeconds: 20,
+		skip: false,
+		now: later(ms),
+	});
+	const withAutoplay = (phase: "results" | "scoreboard" | "answering") =>
+		aPlayingGame(phase, { since: now }, { autoplaySince: now });
+
+	it("the results move on 5 s in with autoplay", () => {
+		expect(nextStage(withAutoplay("results"), at(5_000))).toMatchObject({
+			progress: { questionIndex: 0, phase: "scoreboard" },
+		});
+	});
+
+	it("refuses to leave the results before that", () => {
+		expect(() => nextStage(withAutoplay("results"), at(4_999))).toThrow(
+			StageNotDueError,
+		);
+		// A skip is for the answers only.
+		expect(() =>
+			nextStage(withAutoplay("results"), { ...at(1_000), skip: true }),
+		).toThrow(StageNotDueError);
+	});
+
+	it("the scoreboard moves on 5 s in with autoplay", () => {
+		expect(() => nextStage(withAutoplay("scoreboard"), at(2_000))).toThrow(
+			StageNotDueError,
+		);
+		expect(nextStage(withAutoplay("scoreboard"), at(5_000))).toMatchObject({
+			progress: { questionIndex: 1, phase: "questionIntro" },
+		});
+	});
+
+	it("the results wait for the host without autoplay", () => {
+		const game = aPlayingGame("results", { since: now });
+
+		expect(nextStage(game, at(0))).toMatchObject({
+			progress: { phase: "scoreboard" },
+		});
+		expect(remainingMsOf(game.progress, 20, later(60_000))).toBeNull();
+	});
+
+	it("autoplay leaves the answers' time alone", () => {
+		const game = withAutoplay("answering");
+
+		expect(() => nextStage(game, at(19_000))).toThrow(StageNotDueError);
+		expect(nextStage(game, at(20_000))).toMatchObject({
+			progress: { phase: "results" },
+		});
+		expect(nextStage(game, { ...at(3_000), skip: true })).toMatchObject({
+			progress: { phase: "results" },
+		});
+	});
+
+	it("what goes to the devices has no deadline in the results", () => {
+		const game = withAutoplay("results");
+
+		expect(remainingMsOf(game.progress, 20, later(1_000))).toBeNull();
+		expect(phaseDurationMs("results", 20)).toBeNull();
+		expect(phaseDurationMs("scoreboard", 20)).toBeNull();
+	});
+});

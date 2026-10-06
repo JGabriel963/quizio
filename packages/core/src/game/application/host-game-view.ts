@@ -6,6 +6,12 @@ import type {
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { type AnswerDistribution, answerDistribution } from "../domain/answer";
+import {
+	autoAdvanceRemainingMs,
+	autoAdvanceToken,
+	autoStartRemainingMs,
+	autoStartToken,
+} from "../domain/autoplay";
 import type { Game, GameEndReason, GameStatus } from "../domain/game";
 import type { GameOptions } from "../domain/game-options";
 import {
@@ -59,6 +65,27 @@ export interface HostQuestionView {
 	image: HostImageView | null;
 }
 
+/**
+ * A countdown of autoplay, for the host's screen only (spec 014): the lobby
+ * about to start, or the results and the scoreboard about to move on.
+ */
+export interface AutoCountdownView {
+	/** By the server's clock when the view was made. */
+	remainingMs: number;
+	/**
+	 * Names the countdown: it changes when the countdown starts over (a player
+	 * joined, the switch was turned). Never to be compared with a clock.
+	 */
+	token: string;
+}
+
+function toCountdown(
+	remainingMs: number | null,
+	token: string | null,
+): AutoCountdownView | null {
+	return remainingMs === null || token === null ? null : { remainingMs, token };
+}
+
 /** Where a game in progress is, as its host sees it (spec 009, RN-07 to RN-11). */
 export interface HostStageView {
 	questionIndex: number;
@@ -76,6 +103,8 @@ export interface HostStageView {
 	scoreboard: ScoreboardEntry[] | null;
 	/** Who was among the five before the question; only in the scoreboard (spec 011). */
 	scoreboardLeavers: ScoreboardEntry[] | null;
+	/** With autoplay, in the results and the scoreboard (spec 014, RN-11, RN-12). */
+	autoAdvance: AutoCountdownView | null;
 }
 
 /** The end of a game that played every question (spec 011). */
@@ -100,6 +129,8 @@ export interface HostGameView {
 	/** Active players, in order of arrival: who joined in the middle too. */
 	players: LobbyPlayerView[];
 	questionCount: number;
+	/** With autoplay and somebody in the lobby (spec 014, RN-05). */
+	autoStart: AutoCountdownView | null;
 	/** Null unless the game is being played. */
 	stage: HostStageView | null;
 	/** Null unless the game is finished: one ended before that has no podium (RN-04). */
@@ -107,7 +138,7 @@ export interface HostGameView {
 }
 
 export interface HostGameViewDeps {
-	players: Pick<PlayerRepository, "listActive">;
+	players: Pick<PlayerRepository, "listActive" | "lastJoinedAt">;
 	gameQuestions: Pick<GameQuestionRepository, "find">;
 	answers: Pick<
 		AnswerRepository,
@@ -242,7 +273,31 @@ async function loadStageView(
 			answers && question ? answerDistribution(question, answers) : null,
 		scoreboard: scoreboard?.entries ?? null,
 		scoreboardLeavers: scoreboard?.leavers ?? null,
+		autoAdvance: toCountdown(
+			autoAdvanceRemainingMs(game, deps.clock.now()),
+			autoAdvanceToken(game),
+		),
 	};
+}
+
+/** The lobby's countdown to start by itself (spec 014, RN-05 to RN-08). */
+async function loadAutoStart(
+	deps: HostGameViewDeps,
+	game: Game,
+	players: readonly Player[],
+): Promise<AutoCountdownView | null> {
+	if (game.status !== "lobby" || game.autoplaySince === null) {
+		return null;
+	}
+	const lastJoinedAt = await deps.players.lastJoinedAt(game.id);
+	return toCountdown(
+		autoStartRemainingMs(
+			game,
+			{ activePlayers: players.length, lastJoinedAt },
+			deps.clock.now(),
+		),
+		autoStartToken(game, lastJoinedAt),
+	);
 }
 
 /**
@@ -266,6 +321,7 @@ export async function loadHostGameView(
 		options: { ...game.options },
 		players: players.map(toLobbyPlayerView),
 		questionCount: game.questionCount,
+		autoStart: await loadAutoStart(deps, game, players),
 		stage: await loadStageView(deps, game, players, question),
 		final: await loadFinalView(deps, game, players),
 	};

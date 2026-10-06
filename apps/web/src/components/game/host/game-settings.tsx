@@ -12,6 +12,7 @@ import {
 	ListOrderedIcon,
 	LockIcon,
 	type LucideIcon,
+	PlayIcon,
 	PowerIcon,
 	ShuffleIcon,
 	SmartphoneIcon,
@@ -99,6 +100,13 @@ export function GameSettings({
 							onChange={(randomizeAnswers) =>
 								onOptionsChange({ randomizeAnswers })
 							}
+						/>
+						<Setting
+							icon={PlayIcon}
+							name="Reprodução automática"
+							explanation="O jogo começa e avança pelas perguntas sozinho."
+							checked={options.autoplay}
+							onChange={(autoplay) => onOptionsChange({ autoplay })}
 						/>
 					</ul>
 					<div className="flex items-center gap-4 border-t px-5 py-4">

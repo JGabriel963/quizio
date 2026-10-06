@@ -1,4 +1,5 @@
 import { DomainError } from "../../shared/domain/domain-error";
+import { autoAdvanceRemainingMs } from "./autoplay";
 import {
 	assertGameOpen,
 	type Game,
@@ -171,7 +172,11 @@ export function nextStage(
 	}
 	const { progress } = game;
 	const { questionIndex, phase } = progress;
-	const remaining = remainingMsOf(progress, input.timeLimitSeconds, input.now);
+	// With autoplay the results and the scoreboard have a deadline too (spec
+	// 014, RN-11, RN-12); without it they wait for the host, as before.
+	const remaining =
+		remainingMsOf(progress, input.timeLimitSeconds, input.now) ??
+		autoAdvanceRemainingMs(game, input.now);
 	const skipped = input.skip && phase === "answering";
 	if (remaining !== null && remaining > 0 && !skipped) {
 		throw new StageNotDueError(`The ${phase} phase has ${remaining} ms left`);

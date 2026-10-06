@@ -55,6 +55,7 @@ function stageAt(overrides: Partial<HostStageData>): HostStageData {
 		distribution: null,
 		scoreboard: null,
 		scoreboardLeavers: null,
+		autoAdvance: null,
 		...overrides,
 	};
 }
@@ -71,12 +72,14 @@ const game: HostGameData = {
 		showQuestionsOnDevices: false,
 		randomizeQuestions: false,
 		randomizeAnswers: false,
+		autoplay: false,
 	},
 	players: [
 		{ id: "p1", nickname: "Ana" },
 		{ id: "p2", nickname: "Bia" },
 	],
 	questionCount: 10,
+	autoStart: null,
 	stage: null,
 	final: null,
 };
@@ -815,7 +818,7 @@ describe("HostStage: settings and late joining (spec 012)", () => {
 
 		const panel = await openSettings(user);
 
-		expect(within(panel).getAllByRole("switch")).toHaveLength(4);
+		expect(within(panel).getAllByRole("switch")).toHaveLength(5);
 		expect(
 			within(panel).getAllByText("Só antes de iniciar a partida."),
 		).toHaveLength(2);
@@ -1026,5 +1029,155 @@ describe("HostStage: a lost connection (spec 013)", () => {
 		await tick(200);
 
 		expect(timeLeft()).toHaveTextContent("12");
+	});
+});
+
+describe("HostStage: autoplay (spec 014)", () => {
+	const actions = (advance: HostStageActions["advance"]): HostStageActions => ({
+		advance,
+		setLocked: vi.fn(),
+		setOptions: vi.fn(),
+		end: vi.fn(),
+	});
+	const resultsWith = (
+		autoAdvance: HostStageData["autoAdvance"],
+	): HostStageData =>
+		stageAt({
+			phase: "results",
+			remainingMs: null,
+			durationMs: null,
+			question: capitals(revealed),
+			autoAdvance,
+		});
+	const at = (
+		stage: HostStageData,
+		on: HostStageActions,
+		options: { connected?: boolean; receivedAt?: number } = {},
+	) => (
+		<HostStage
+			game={{ ...game, stage }}
+			stage={stage}
+			origin="https://quizio.app"
+			receivedAt={options.receivedAt ?? Date.now()}
+			connected={options.connected ?? true}
+			actions={on}
+		/>
+	);
+	const countdown = () => screen.queryByRole("timer", { name: "Avança em" });
+	const advanceButton = () => screen.queryByRole("button", { name: "Avançar" });
+
+	it("shows the countdown in place of Avançar in the results and asks at zero", async () => {
+		vi.useFakeTimers();
+		const advance = vi.fn(async () => {});
+		render(
+			at(resultsWith({ remainingMs: 5_000, token: "a" }), actions(advance)),
+		);
+
+		expect(countdown()).toHaveTextContent("5");
+		expect(advanceButton()).toBeNull();
+
+		await tick(4_800);
+		expect(advance).not.toHaveBeenCalled();
+		await tick(300);
+
+		expect(advance).toHaveBeenCalledExactlyOnceWith(
+			{ questionIndex: 0, phase: "results" },
+			false,
+		);
+	});
+
+	it("shows the countdown in the scoreboard and asks at zero", async () => {
+		vi.useFakeTimers();
+		const advance = vi.fn(async () => {});
+		render(
+			at(
+				stageAt({
+					phase: "scoreboard",
+					remainingMs: null,
+					durationMs: null,
+					question: null,
+					scoreboard: [],
+					scoreboardLeavers: [],
+					autoAdvance: { remainingMs: 5_000, token: "s" },
+				}),
+				actions(advance),
+			),
+		);
+
+		expect(countdown()).toHaveTextContent("5");
+		expect(advanceButton()).toBeNull();
+		await tick(5_100);
+
+		expect(advance).toHaveBeenCalledExactlyOnceWith(
+			{ questionIndex: 0, phase: "scoreboard" },
+			false,
+		);
+	});
+
+	it("without a countdown the results wait for Avançar", async () => {
+		vi.useFakeTimers();
+		const advance = vi.fn(async () => {});
+		render(at(resultsWith(null), actions(advance)));
+
+		await tick(30_000);
+
+		expect(countdown()).toBeNull();
+		expect(advanceButton()).not.toBeNull();
+		expect(advance).not.toHaveBeenCalled();
+	});
+
+	it("Avançar is back when the countdown goes", async () => {
+		vi.useFakeTimers();
+		const advance = vi.fn(async () => {});
+		const on = actions(advance);
+		const view = render(
+			at(resultsWith({ remainingMs: 3_000, token: "a" }), on),
+		);
+		await tick(1_000);
+
+		// The switch was turned off.
+		view.rerender(at(resultsWith(null), on));
+		await tick(10_000);
+
+		expect(countdown()).toBeNull();
+		expect(advanceButton()).not.toBeNull();
+		expect(advance).not.toHaveBeenCalled();
+	});
+
+	it("a countdown turned on again starts over", async () => {
+		vi.useFakeTimers();
+		const advance = vi.fn(async () => {});
+		const on = actions(advance);
+		const view = render(
+			at(resultsWith({ remainingMs: 2_000, token: "a" }), on),
+		);
+		await tick(1_000);
+
+		// Off and on again: 5 s from then, which ends later than the first one.
+		view.rerender(at(resultsWith({ remainingMs: 5_000, token: "b" }), on));
+		await tick(1_500);
+
+		expect(advance).not.toHaveBeenCalled();
+		expect(countdown()).toHaveTextContent("4");
+	});
+
+	it("asks for the next stage when the connection returns", async () => {
+		vi.useFakeTimers();
+		const advance = vi.fn(async () => {});
+		const on = actions(advance);
+		const stage = resultsWith({ remainingMs: 5_000, token: "a" });
+		const receivedAt = Date.now();
+		const view = render(at(stage, on, { connected: false, receivedAt }));
+
+		await tick(20_000);
+		expect(advance).not.toHaveBeenCalled();
+
+		view.rerender(at(stage, on, { connected: true, receivedAt }));
+		await tick(50);
+
+		expect(advance).toHaveBeenCalledExactlyOnceWith(
+			{ questionIndex: 0, phase: "results" },
+			false,
+		);
 	});
 });

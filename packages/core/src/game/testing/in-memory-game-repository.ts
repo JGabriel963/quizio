@@ -45,12 +45,15 @@ export class InMemoryGameRepository implements GameRepository {
 	async saveOptions(
 		gameId: string,
 		change: Partial<GameOptions>,
+		at: Date,
 	): Promise<void> {
 		const stored = this.#games.get(gameId);
 		if (stored) {
+			const options = { ...stored.options, ...definedOptions(change) };
 			this.#games.set(gameId, {
 				...stored,
-				options: { ...stored.options, ...definedOptions(change) },
+				options,
+				autoplaySince: options.autoplay ? (stored.autoplaySince ?? at) : null,
 			});
 		}
 	}

@@ -19,6 +19,7 @@ const options = {
 	showQuestionsOnDevices: true,
 	randomizeQuestions: false,
 	randomizeAnswers: true,
+	autoplay: false,
 };
 
 describe("game options repositories (spec 012)", () => {
@@ -65,8 +66,8 @@ describe("game options repositories (spec 012)", () => {
 		it("saveOptions writes only the options it is given", async () => {
 			await games.create(aGame({ locked: true }));
 
-			await games.saveOptions("game-1", { showQuestionsOnDevices: true });
-			await games.saveOptions("game-1", { randomizeAnswers: true });
+			await games.saveOptions("game-1", { showQuestionsOnDevices: true }, now);
+			await games.saveOptions("game-1", { randomizeAnswers: true }, now);
 
 			expect(await games.findById("game-1")).toEqual(
 				aGame({ locked: true, options }),
@@ -88,7 +89,7 @@ describe("game options repositories (spec 012)", () => {
 		it("saveOptions with nothing to change changes nothing", async () => {
 			await games.create(aGame({ options }));
 
-			await games.saveOptions("game-1", {});
+			await games.saveOptions("game-1", {}, now);
 
 			expect(await games.findById("game-1")).toEqual(aGame({ options }));
 		});
@@ -105,7 +106,7 @@ describe("game options repositories (spec 012)", () => {
 			await games.saveIfAt(results, { questionIndex: 0, phase: "answering" });
 
 			await games.saveLocked("game-1", true);
-			await games.saveOptions("game-1", options);
+			await games.saveOptions("game-1", options, now);
 
 			expect(await games.findById("game-1")).toEqual({
 				...results,
@@ -124,6 +125,148 @@ describe("game options repositories (spec 012)", () => {
 			);
 
 			expect((await games.findById("game-1"))?.options).toEqual(options);
+		});
+	});
+
+	describe("autoplay (spec 014)", () => {
+		const later = (ms: number) => new Date(now.getTime() + ms);
+
+		it("stores and reads autoplay and its instant", async () => {
+			const game = aGame({
+				createdAt: now,
+				options: { ...options, autoplay: true },
+			});
+
+			await games.create(game);
+
+			expect(await games.findById("game-1")).toEqual(game);
+			expect(game.autoplaySince).toEqual(now);
+		});
+
+		it("a game without autoplay reads it off", async () => {
+			await games.create(aGame({ options }));
+
+			expect(await games.findById("game-1")).toMatchObject({
+				options: { autoplay: false },
+				autoplaySince: null,
+			});
+		});
+
+		it("turning autoplay on twice keeps the first instant", async () => {
+			await games.create(aGame({ options }));
+
+			await games.saveOptions("game-1", { autoplay: true }, later(3_000));
+			await games.saveOptions("game-1", { autoplay: true }, later(9_000));
+
+			expect(await games.findById("game-1")).toMatchObject({
+				options: { ...options, autoplay: true },
+				autoplaySince: later(3_000),
+			});
+		});
+
+		it("turning it off clears the instant, and on again counts from then", async () => {
+			await games.create(aGame({ options: { ...options, autoplay: true } }));
+
+			await games.saveOptions("game-1", { autoplay: false }, later(3_000));
+			expect(await games.findById("game-1")).toMatchObject({
+				options: { autoplay: false },
+				autoplaySince: null,
+			});
+
+			await games.saveOptions("game-1", { autoplay: true }, later(9_000));
+			expect((await games.findById("game-1"))?.autoplaySince).toEqual(
+				later(9_000),
+			);
+		});
+
+		it("another option leaves autoplay alone", async () => {
+			await games.create(
+				aGame({ createdAt: now, options: { ...options, autoplay: true } }),
+			);
+
+			await games.saveOptions(
+				"game-1",
+				{ showQuestionsOnDevices: false },
+				later(9_000),
+			);
+
+			expect(await games.findById("game-1")).toMatchObject({
+				options: { showQuestionsOnDevices: false, autoplay: true },
+				autoplaySince: now,
+			});
+		});
+
+		it("turning it on does not undo a stage written before", async () => {
+			const answering = aPlayingGame("answering", { since: now });
+			await games.create(answering);
+			const results = nextStage(answering, {
+				timeLimitSeconds: 20,
+				skip: true,
+				now: later(5_000),
+			});
+			await games.saveIfAt(results, { questionIndex: 0, phase: "answering" });
+
+			await games.saveOptions("game-1", { autoplay: true }, later(6_000));
+
+			expect(await games.findById("game-1")).toEqual({
+				...results,
+				options: { ...results.options, autoplay: true },
+				autoplaySince: later(6_000),
+			});
+		});
+
+		it("an advance leaves autoplay alone", async () => {
+			const answering = aPlayingGame("answering", { since: now });
+			await games.create(answering);
+			await games.saveOptions("game-1", { autoplay: true }, later(1_000));
+
+			// The request that advances read the game before the switch was turned.
+			await games.saveIfAt(
+				nextStage(answering, { timeLimitSeconds: 20, skip: true, now }),
+				{ questionIndex: 0, phase: "answering" },
+			);
+
+			expect(await games.findById("game-1")).toMatchObject({
+				progress: { phase: "results" },
+				options: { autoplay: true },
+				autoplaySince: later(1_000),
+			});
+		});
+
+		it("lastJoinedAt counts removed players", async () => {
+			await games.create(aGame());
+			await players.add(
+				aPlayer({ id: "p1", nickname: "Ana", joinedAt: later(2_000) }),
+			);
+			await players.add(
+				aPlayer({
+					id: "p2",
+					nickname: "Bia",
+					joinedAt: later(7_000),
+					removedAt: later(9_000),
+				}),
+			);
+
+			expect(await players.lastJoinedAt("game-1")).toEqual(later(7_000));
+		});
+
+		it("lastJoinedAt of an empty game is null", async () => {
+			await games.create(aGame());
+
+			expect(await players.lastJoinedAt("game-1")).toBeNull();
+		});
+
+		it("stores and reads the host's autoplay, leaving the other options", async () => {
+			await preferences.save("user-1", { randomizeAnswers: true });
+
+			await preferences.save("user-1", { autoplay: true });
+
+			expect(await preferences.find("user-1")).toEqual({
+				showQuestionsOnDevices: false,
+				randomizeQuestions: false,
+				randomizeAnswers: true,
+				autoplay: true,
+			});
 		});
 	});
 
@@ -194,6 +337,7 @@ describe("game options repositories (spec 012)", () => {
 				showQuestionsOnDevices: false,
 				randomizeQuestions: true,
 				randomizeAnswers: true,
+				autoplay: false,
 			});
 		});
 
@@ -204,6 +348,7 @@ describe("game options repositories (spec 012)", () => {
 				showQuestionsOnDevices: false,
 				randomizeQuestions: false,
 				randomizeAnswers: true,
+				autoplay: false,
 			});
 
 			await preferences.save("user-1", { showQuestionsOnDevices: true });
@@ -212,6 +357,7 @@ describe("game options repositories (spec 012)", () => {
 				showQuestionsOnDevices: true,
 				randomizeQuestions: false,
 				randomizeAnswers: true,
+				autoplay: false,
 			});
 		});
 

@@ -1,7 +1,12 @@
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
 import type { Shuffler } from "../../shared/application/ports/shuffler";
+import { autoStartRemainingMs } from "../domain/autoplay";
 import { QuizNotPlayableError, requireOwnedGame } from "../domain/game";
-import { isPlaying, startGame } from "../domain/game-progress";
+import {
+	isPlaying,
+	StageNotDueError,
+	startGame,
+} from "../domain/game-progress";
 import { arrangeGameQuestions } from "../domain/game-question";
 import { loadGame, publishStage } from "./game-lifecycle";
 import {
@@ -17,6 +22,12 @@ import type { PlayerRepository } from "./ports/player-repository";
 export type StartGame = (input: {
 	ownerId: string;
 	gameId: string;
+	/**
+	 * Autoplay's countdown ran out on the host's screen (spec 014, RN-05). The
+	 * server checks it by its own clock: a player may have joined at the last
+	 * moment, which starts the countdown over.
+	 */
+	auto?: boolean;
 }) => Promise<HostGameView>;
 
 /**
@@ -28,18 +39,38 @@ export type StartGame = (input: {
 export function createStartGame(
 	deps: HostGameViewDeps & {
 		games: GameRepository;
-		players: Pick<PlayerRepository, "listActive" | "countActive">;
+		players: Pick<
+			PlayerRepository,
+			"listActive" | "countActive" | "lastJoinedAt"
+		>;
 		playableQuizzes: Pick<PlayableQuizQuery, "questions">;
 		gameQuestions: GameQuestionRepository;
 		shuffler: Shuffler;
 		realtime: RealtimePublisher;
 	},
 ): StartGame {
-	return async ({ ownerId, gameId }) => {
+	return async ({ ownerId, gameId, auto = false }) => {
 		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
 		if (isPlaying(game)) {
 			// A repeated request: the game goes on from where it is.
 			return loadHostGameView(deps, game);
+		}
+		if (auto && game.status === "lobby") {
+			const remaining = autoStartRemainingMs(
+				game,
+				{
+					activePlayers: await deps.players.countActive(game.id),
+					lastJoinedAt: await deps.players.lastJoinedAt(game.id),
+				},
+				deps.clock.now(),
+			);
+			if (remaining === null || remaining > 0) {
+				throw new StageNotDueError(
+					remaining === null
+						? "The lobby is not counting down to start"
+						: `The lobby has ${remaining} ms left`,
+				);
+			}
 		}
 
 		const questions = arrangeGameQuestions(

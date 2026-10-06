@@ -34,9 +34,11 @@ const game: HostGameData = {
 		showQuestionsOnDevices: false,
 		randomizeQuestions: false,
 		randomizeAnswers: false,
+		autoplay: false,
 	},
 	players: NAMES.map((nickname, index) => ({ id: `p${index + 1}`, nickname })),
 	questionCount: 3,
+	autoStart: null,
 	stage: null,
 	final: null,
 };
