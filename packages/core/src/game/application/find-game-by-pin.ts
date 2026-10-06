@@ -29,12 +29,15 @@ export function createFindGameByPin(deps: {
 	return async ({ pin: rawPin, clientKey }) => {
 		const now = deps.clock.now();
 		const attemptKey = `pin:${clientKey}`;
-		const wrongAttempts = await deps.attempts.count(
+		// The attempt is taken before the PIN is looked up, so a burst of
+		// guesses cannot all get in under the limit.
+		const allowed = await deps.attempts.reserve(
 			attemptKey,
 			PIN_ATTEMPT_WINDOW_MS,
+			PIN_ATTEMPT_LIMIT,
 			now,
 		);
-		if (wrongAttempts >= PIN_ATTEMPT_LIMIT) {
+		if (!allowed) {
 			throw new TooManyPinAttemptsError("Too many wrong PINs; wait a moment");
 		}
 
@@ -42,10 +45,10 @@ export function createFindGameByPin(deps: {
 		const stored = pin ? await deps.games.findUnendedByPin(pin) : null;
 		const game = stored ? await settleGame(deps, stored) : null;
 		if (!game || !isGameOpen(game)) {
-			// Only wrong PINs count: a whole classroom shares one address.
-			await deps.attempts.record(attemptKey, PIN_ATTEMPT_WINDOW_MS, now);
 			throw new GamePinNotRecognizedError("No open game has this PIN");
 		}
+		// Only wrong PINs count: a whole classroom shares one address.
+		await deps.attempts.release(attemptKey, PIN_ATTEMPT_WINDOW_MS, now);
 		assertJoinable(game);
 		return { gameId: game.id, pin: game.pin };
 	};

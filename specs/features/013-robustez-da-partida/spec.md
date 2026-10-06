@@ -388,3 +388,4 @@ Nenhuma. Resolvidas em 2026-10-02, como proposto:
 - 2026-10-02 — implementação: a barra do jogador fica na borda de baixo, por cima do apelido, para não cobrir as alternativas nem o "Enviar"; enquanto ela está aberta, o aviso "Sua resposta não foi enviada." aparece no alto da tela (RN-15, RN-23).
 - 2026-10-02 — decisão do usuário durante a implementação: uma ação que o anfitrião pede (travar, mudar uma opção, remover, encerrar) e que falha por falta de conexão continua mostrando o aviso da própria ação (spec 012, RN-04), além de abrir o diálogo "Conexão perdida". Só o avanço automático de fase não avisa.
 - 2026-10-02 — spec entregue.
+- 2026-10-06 — revisão da PR (Codex): "a remoção continua só no lobby" era garantida só pela tela, que não oferece o botão durante o jogo. O servidor passou a recusar o pedido depois do início ("Esta partida já foi iniciada.").

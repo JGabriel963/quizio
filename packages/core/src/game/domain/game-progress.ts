@@ -1,11 +1,6 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { autoAdvanceRemainingMs } from "./autoplay";
-import {
-	assertGameOpen,
-	type Game,
-	GameAlreadyStartedError,
-	GameEndedError,
-} from "./game";
+import { assertInLobby, type Game, GameEndedError } from "./game";
 
 /**
  * The phases a game in progress goes through (spec 009, RN-04, RN-06): one
@@ -70,10 +65,7 @@ export function startGame(
 	game: Game,
 	input: { playerCount: number; questionCount: number; now: Date },
 ): Game {
-	assertGameOpen(game);
-	if (game.status !== "lobby") {
-		throw new GameAlreadyStartedError("The game has already started");
-	}
+	assertInLobby(game);
 	if (input.playerCount < 1) {
 		throw new GameHasNoPlayersError("A game needs at least one player");
 	}

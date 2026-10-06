@@ -141,8 +141,8 @@ export interface GameRepository {
 	/** The game that holds the PIN and has not been ended (it may be past its deadline). */
 	findUnendedByPin(pin: string): Promise<Game | null>;
 	listUnendedByQuiz(quizId: string): Promise<Game[]>;
-	/** Inserts; "pinTaken" when another unended game holds the PIN. */
-	create(game: Game): Promise<"created" | "pinTaken">;
+	/** Inserts; "taken" when another unended game holds the PIN or is of the same quiz. */
+	create(game: Game): Promise<"created" | "taken">;
 	save(game: Game): Promise<void>;
 }
 

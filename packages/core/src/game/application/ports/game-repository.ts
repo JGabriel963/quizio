@@ -10,8 +10,11 @@ export interface GameRepository {
 	 */
 	findUnendedByPin(pin: string): Promise<Game | null>;
 	listUnendedByQuiz(quizId: string): Promise<Game[]>;
-	/** Inserts; "pinTaken" when another game that was not ended holds the PIN. */
-	create(game: Game): Promise<"created" | "pinTaken">;
+	/**
+	 * Inserts; "taken" when another game that was not ended holds the PIN or
+	 * is of the same quiz (spec 008, RN-07, RN-09).
+	 */
+	create(game: Game): Promise<"created" | "taken">;
 	/** Rewrites the whole game: only for what ends it or settles its deadline. */
 	save(game: Game): Promise<void>;
 	/**

@@ -7,6 +7,7 @@ import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-sto
 import { InMemoryRealtimePublisher } from "../../shared/testing/in-memory-realtime-publisher";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import type { PlayableQuiz } from "../application/ports/playable-quiz-query";
+import { removePlayer } from "../domain/player";
 import { InMemoryAnswerRepository } from "./in-memory-answer-repository";
 import { InMemoryGameQuestionRepository } from "./in-memory-game-question-repository";
 import { InMemoryGameRepository } from "./in-memory-game-repository";
@@ -77,4 +78,19 @@ export function createGameDeps(
 		clock: new FixedClock("2026-06-01T12:00:00.000Z"),
 		realtime: new InMemoryRealtimePublisher(),
 	};
+}
+
+/**
+ * A player the host took out in the lobby, for the tests that look at one from
+ * a game already in progress, where removing is refused (spec 013).
+ */
+export async function markRemoved(
+	deps: Pick<ReturnType<typeof createGameDeps>, "players" | "clock">,
+	playerId: string,
+): Promise<void> {
+	const player = await deps.players.findById(playerId);
+	if (!player) {
+		throw new Error(`${playerId} is not a player`);
+	}
+	await deps.players.save(removePlayer(player, deps.clock.now()));
 }

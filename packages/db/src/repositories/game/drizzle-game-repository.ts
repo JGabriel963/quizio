@@ -81,13 +81,14 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 		},
 
 		async create(game) {
-			// The only unique rule a new game can hit is the PIN among unended games.
+			// The unique rules a new game can hit are both among unended games:
+			// the PIN, and one game per quiz.
 			const inserted = await db
 				.insert(gameTable)
 				.values(toRow(game))
 				.onConflictDoNothing()
 				.returning({ id: gameTable.id });
-			return inserted.length > 0 ? "created" : "pinTaken";
+			return inserted.length > 0 ? "created" : "taken";
 		},
 
 		async save(game) {

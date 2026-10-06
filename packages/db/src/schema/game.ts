@@ -85,7 +85,8 @@ export const game = pgTable(
 		uniqueIndex("game_unended_pin_idx")
 			.on(table.pin)
 			.where(sql`${table.endedAt} is null`),
-		index("game_unended_quiz_idx")
+		/** A quiz has one game that was not ended (RN-07). */
+		uniqueIndex("game_unended_quiz_idx")
 			.on(table.quizId)
 			.where(sql`${table.endedAt} is null`),
 		/** The reports list: a creator's games by their end (spec 015). */

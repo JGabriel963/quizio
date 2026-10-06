@@ -23,9 +23,14 @@ export class InMemoryGameRepository implements GameRepository {
 		);
 	}
 
-	async create(game: Game): Promise<"created" | "pinTaken"> {
-		if (await this.findUnendedByPin(game.pin)) {
-			return "pinTaken";
+	async create(game: Game): Promise<"created" | "taken"> {
+		const taken = this.all().some(
+			(other) =>
+				other.endedAt === null &&
+				(other.pin === game.pin || other.quizId === game.quizId),
+		);
+		if (taken) {
+			return "taken";
 		}
 		this.#games.set(game.id, game);
 		return "created";

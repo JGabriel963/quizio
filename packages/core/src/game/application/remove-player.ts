@@ -1,7 +1,7 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
 import {
-	assertGameOpen,
+	assertInLobby,
 	GameNotFoundError,
 	requireOwnedGame,
 } from "../domain/game";
@@ -18,8 +18,9 @@ export type RemovePlayer = (input: {
 }) => Promise<void>;
 
 /**
- * The host takes a player out. The player's row stays, which keeps the
- * nickname blocked in the game (spec 008, RN-29, RN-30).
+ * The host takes a player out, in the lobby only: a game in progress keeps
+ * who is in it (spec 013). The player's row stays, which keeps the nickname
+ * blocked in the game (spec 008, RN-29, RN-30).
  */
 export function createRemovePlayer(deps: {
 	games: GameRepository;
@@ -29,7 +30,7 @@ export function createRemovePlayer(deps: {
 }): RemovePlayer {
 	return async ({ ownerId, gameId, playerId }) => {
 		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
-		assertGameOpen(game);
+		assertInLobby(game);
 		const player = await deps.players.findById(playerId);
 		if (!player || player.gameId !== game.id) {
 			throw new GameNotFoundError("Player not found");

@@ -73,6 +73,9 @@ export function createHostGame(deps: {
 			if ((await deps.games.create(game)) === "created") {
 				return { gameId: game.id };
 			}
+			// Another request got there first, with this PIN or for this quiz:
+			// the last game to be asked for is the one that stays (RN-07).
+			await endGamesOfQuiz({ quizId: quiz.id, reason: "replaced" });
 		}
 		throw new Error("Could not draw a free game PIN");
 	};

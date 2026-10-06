@@ -3,13 +3,27 @@ import type { AttemptLimiter } from "../application/ports/attempt-limiter";
 export class InMemoryAttemptLimiter implements AttemptLimiter {
 	readonly #counts = new Map<string, number>();
 
-	async count(key: string, windowMs: number, now: Date): Promise<number> {
-		return this.#counts.get(slotOf(key, windowMs, now)) ?? 0;
+	async reserve(
+		key: string,
+		windowMs: number,
+		limit: number,
+		now: Date,
+	): Promise<boolean> {
+		const slot = slotOf(key, windowMs, now);
+		const taken = this.#counts.get(slot) ?? 0;
+		if (taken >= limit) {
+			return false;
+		}
+		this.#counts.set(slot, taken + 1);
+		return true;
 	}
 
-	async record(key: string, windowMs: number, now: Date): Promise<void> {
+	async release(key: string, windowMs: number, now: Date): Promise<void> {
 		const slot = slotOf(key, windowMs, now);
-		this.#counts.set(slot, (this.#counts.get(slot) ?? 0) + 1);
+		const taken = this.#counts.get(slot) ?? 0;
+		if (taken > 0) {
+			this.#counts.set(slot, taken - 1);
+		}
 	}
 }
 

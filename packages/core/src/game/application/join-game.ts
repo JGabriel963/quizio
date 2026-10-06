@@ -28,7 +28,7 @@ export type JoinGame = (input: {
  */
 export function createJoinGame(deps: {
 	games: GameRepository;
-	players: Pick<PlayerRepository, "countActive" | "add">;
+	players: Pick<PlayerRepository, "add">;
 	ids: IdGenerator;
 	clock: Clock;
 	realtime: RealtimePublisher;
@@ -37,10 +37,6 @@ export function createJoinGame(deps: {
 		const game = await loadGame(deps, gameId);
 		assertJoinable(game);
 		const nickname = parseNickname(rawNickname);
-		if ((await deps.players.countActive(game.id)) >= GAME_MAX_PLAYERS) {
-			throw new GameFullError("The game is full");
-		}
-
 		const player = newPlayer({
 			id: deps.ids.generate(),
 			gameId: game.id,
@@ -49,7 +45,12 @@ export function createJoinGame(deps: {
 			firstQuestionIndex: firstQuestionFor(game),
 			now: deps.clock.now(),
 		});
-		if ((await deps.players.add(player)) === "nicknameTaken") {
+		// The place and the nickname are taken with the insert itself.
+		const added = await deps.players.add(player, GAME_MAX_PLAYERS);
+		if (added === "full") {
+			throw new GameFullError("The game is full");
+		}
+		if (added === "nicknameTaken") {
 			throw new NicknameTakenError("This nickname is taken in the game");
 		}
 		await publishToGame<PlayerJoinedPayload>(

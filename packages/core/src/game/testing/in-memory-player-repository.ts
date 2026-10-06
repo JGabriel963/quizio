@@ -31,7 +31,16 @@ export class InMemoryPlayerRepository implements PlayerRepository {
 		).length;
 	}
 
-	async add(player: Player): Promise<"added" | "nicknameTaken"> {
+	async add(
+		player: Player,
+		maxActive?: number,
+	): Promise<"added" | "nicknameTaken" | "full"> {
+		if (
+			maxActive !== undefined &&
+			this.allOf(player.gameId).filter(isActivePlayer).length >= maxActive
+		) {
+			return "full";
+		}
 		const taken = this.allOf(player.gameId).some(
 			(other) => other.nicknameKey === player.nicknameKey,
 		);

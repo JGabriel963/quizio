@@ -3,12 +3,11 @@ import { describe, expect, it } from "vitest";
 import { aQuestion } from "../../quiz/testing/a-question";
 import { HOST_AWAY_AFTER_MS } from "../domain/host-presence";
 import { aGame, aPlayer } from "../testing/a-game";
-import { createGameDeps } from "../testing/game-deps";
+import { createGameDeps, markRemoved } from "../testing/game-deps";
 import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
 import { createGetHostGame } from "./get-host-game";
 import { createGetPlayerSession } from "./get-player-session";
-import { createRemovePlayer } from "./remove-player";
 
 const player = (number: number) => ({
 	gameId: "game-1",
@@ -399,9 +398,9 @@ describe("getPlayerSession: the final screen (spec 011)", () => {
 	});
 
 	it("a removed player has no final", async () => {
-		const { deps, host, reach, finish } = await createStartedGame();
+		const { deps, reach, finish } = await createStartedGame();
 		await reach("answering");
-		await createRemovePlayer(deps)({ ...host, playerId: "p2" });
+		await markRemoved(deps, "p2");
 		await finish();
 
 		expect(await createGetPlayerSession(deps)(player(2))).toMatchObject({
@@ -722,8 +721,8 @@ describe("getPlayerSession: the host's silence (spec 013)", () => {
 	});
 
 	it("tells no idle time to a removed player", async () => {
-		const { deps, host } = await createStartedGame();
-		await createRemovePlayer(deps)({ ...host, playerId: "p1" });
+		const { deps } = await createStartedGame();
+		await markRemoved(deps, "p1");
 		deps.clock.advanceBy(60_000);
 
 		expect(await createGetPlayerSession(deps)(player(1))).toMatchObject({

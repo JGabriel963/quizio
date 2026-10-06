@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { GAME_TTL_MS, GameEndedError, GameNotFoundError } from "../domain/game";
+import {
+	GAME_TTL_MS,
+	GameAlreadyStartedError,
+	GameEndedError,
+	GameNotFoundError,
+} from "../domain/game";
 import { GAME_EVENTS, gameChannel } from "../domain/game-events";
 import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps } from "../testing/game-deps";
@@ -209,6 +214,18 @@ describe("removePlayer (spec 008)", () => {
 		await expect(
 			removePlayer({ ownerId: "user-2", gameId: "game-1", playerId: "p2" }),
 		).rejects.toThrow(GameNotFoundError);
+	});
+
+	it("is for the lobby: a game that started keeps its players (spec 013)", async () => {
+		const { deps, host } = await createStartedGame();
+
+		await expect(
+			createRemovePlayer(deps)({ ...host, playerId: "p1" }),
+		).rejects.toThrow(GameAlreadyStartedError);
+		expect(await deps.players.countActive("game-1")).toBe(2);
+		expect(
+			deps.realtime.messagesOn(gameChannel("game-1")).map(({ event }) => event),
+		).not.toContain(GAME_EVENTS.playerRemoved);
 	});
 });
 

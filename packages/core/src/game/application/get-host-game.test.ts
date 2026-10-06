@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { Question } from "../../quiz/domain/question";
 import { aQuestion, aTrueFalseQuestion } from "../../quiz/testing/a-question";
-import { somePlayableQuestions } from "../testing/game-deps";
+import { markRemoved, somePlayableQuestions } from "../testing/game-deps";
 import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
 import { createGetHostGame } from "./get-host-game";
-import { createRemovePlayer } from "./remove-player";
 
 const mine = { ownerId: "user-1", gameId: "game-1" };
 
@@ -557,14 +556,14 @@ describe("getHostGame: the podium (spec 011)", () => {
 	});
 
 	it("leaves out a player who was removed", async () => {
-		const { deps, host, reach, answer, finish } = await createStartedGame({
+		const { deps, reach, answer, finish } = await createStartedGame({
 			players: ["Ana", "Bia", "Caio"],
 		});
 		await reach("answering");
 		await answer(1, "choice-1");
 		deps.clock.advanceBy(4_000);
 		await answer(2, "choice-1");
-		await createRemovePlayer(deps)({ ...host, playerId: "p1" });
+		await markRemoved(deps, "p1");
 		await finish();
 
 		const { final } = await createGetHostGame(deps)(mine);

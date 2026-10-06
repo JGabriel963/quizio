@@ -104,7 +104,10 @@ export class GameEndedError extends DomainError {
 	readonly code = "GAME.ENDED";
 }
 
-/** "Iniciar" on a game that is already being played (spec 009, RN-02). */
+/**
+ * "Iniciar", or something only the lobby takes, on a game that is already
+ * being played (spec 009, RN-02).
+ */
 export class GameAlreadyStartedError extends DomainError {
 	readonly code = "GAME.ALREADY_STARTED";
 }
@@ -182,6 +185,17 @@ export function requireOwnedGame(game: Game | null, ownerId: string): Game {
 export function assertGameOpen(game: Game): void {
 	if (!isGameOpen(game)) {
 		throw new GameEndedError("The game has ended");
+	}
+}
+
+/**
+ * What only the lobby takes, such as removing a player: once the game
+ * started, who is in it stays (spec 013).
+ */
+export function assertInLobby(game: Game): void {
+	assertGameOpen(game);
+	if (game.status !== "lobby") {
+		throw new GameAlreadyStartedError("The game has already started");
 	}
 }
 

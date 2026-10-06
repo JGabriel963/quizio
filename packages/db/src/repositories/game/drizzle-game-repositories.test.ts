@@ -56,8 +56,31 @@ describe("game repositories (spec 008)", () => {
 
 			expect(
 				await games.create(aGame({ id: "game-2", quizId: "quiz-2" })),
-			).toBe("pinTaken");
+			).toBe("taken");
 			expect(await games.findById("game-2")).toBeNull();
+		});
+
+		it("refuses a second unended game of the same quiz", async () => {
+			await games.create(aGame());
+
+			expect(await games.create(aGame({ id: "game-2", pin: "111111" }))).toBe(
+				"taken",
+			);
+			expect(
+				await games.create(
+					aGame({ id: "game-3", pin: "222222", quizId: "quiz-2" }),
+				),
+			).toBe("created");
+		});
+
+		it("two games of a quiz created at the same time: one is kept", async () => {
+			const created = await Promise.all([
+				games.create(aGame({ id: "a", pin: "111111" })),
+				games.create(aGame({ id: "b", pin: "222222" })),
+			]);
+
+			expect(created.sort()).toEqual(["created", "taken"]);
+			expect(await games.listUnendedByQuiz("quiz-1")).toHaveLength(1);
 		});
 
 		it("frees the PIN once the game is ended", async () => {
@@ -240,6 +263,43 @@ describe("game repositories (spec 008)", () => {
 				"nicknameTaken",
 			);
 			expect(await players.findById("p2")).toBeNull();
+		});
+
+		it("refuses who would go over the given number of active players", async () => {
+			await players.add(aPlayer({ id: "p1", nickname: "Ana" }));
+			await players.add(aPlayer({ id: "p2", nickname: "Bia" }));
+			await players.save(
+				removePlayer(
+					aPlayer({ id: "p2", nickname: "Bia" }),
+					at("2026-06-01T12:05:00.000Z"),
+				),
+			);
+
+			// One active and one removed: there is room for one more of two.
+			expect(
+				await players.add(aPlayer({ id: "p3", nickname: "Caio" }), 2),
+			).toBe("added");
+			expect(
+				await players.add(aPlayer({ id: "p4", nickname: "Duda" }), 2),
+			).toBe("full");
+			expect(await players.findById("p4")).toBeNull();
+			// A full game says so before looking at the nickname.
+			expect(await players.add(aPlayer({ id: "p5", nickname: "ana" }), 2)).toBe(
+				"full",
+			);
+		});
+
+		it("players racing for the last place: one gets it", async () => {
+			await players.add(aPlayer({ id: "p1", nickname: "Ana" }));
+
+			const race = await Promise.all(
+				["Bia", "Caio", "Duda"].map((nickname, index) =>
+					players.add(aPlayer({ id: `r${index}`, nickname }), 2),
+				),
+			);
+
+			expect(race.sort()).toEqual(["added", "full", "full"]);
+			expect(await players.countActive("game-1")).toBe(2);
 		});
 
 		it("the same nickname is free in another game", async () => {

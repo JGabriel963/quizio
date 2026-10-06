@@ -8,8 +8,8 @@ import {
 import { type Game, GameNotFoundError } from "../domain/game";
 import { GAME_EVENTS } from "../domain/game-events";
 import { HOST_AWAY_AFTER_MS, isHostAway } from "../domain/host-presence";
+import { markRemoved } from "../testing/game-deps";
 import { createStartedGame } from "../testing/started-game";
-import { createRemovePlayer } from "./remove-player";
 
 const fromPlayer = (
 	number: number,
@@ -121,12 +121,8 @@ describe("submitAnswer (spec 009)", () => {
 	});
 
 	it("refuses a wrong secret, a removed player and a player of another game", async () => {
-		const { deps, host, submitAnswer } = await answering([
-			"Ana",
-			"Bia",
-			"Caio",
-		]);
-		await createRemovePlayer(deps)({ ...host, playerId: "p2" });
+		const { deps, submitAnswer } = await answering(["Ana", "Bia", "Caio"]);
+		await markRemoved(deps, "p2");
 
 		await expect(
 			submitAnswer({ ...fromPlayer(1, ["choice-1"]), secret: "guess" }),
@@ -192,8 +188,8 @@ describe("submitAnswer (spec 009)", () => {
 	});
 
 	it("does not wait for a player who was removed", async () => {
-		const { deps, host, answer, stage } = await answering();
-		await createRemovePlayer(deps)({ ...host, playerId: "p2" });
+		const { deps, answer, stage } = await answering();
+		await markRemoved(deps, "p2");
 
 		await answer(1, "choice-1");
 

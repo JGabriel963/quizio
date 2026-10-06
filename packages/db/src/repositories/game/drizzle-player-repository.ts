@@ -8,6 +8,7 @@ import {
 	isNull,
 	lte,
 	max,
+	sql,
 } from "drizzle-orm";
 
 import { gamePlayer as playerTable } from "../../schema/game";
@@ -70,14 +71,32 @@ export function createDrizzlePlayerRepository(db: Database): PlayerRepository {
 			return row?.total ?? 0;
 		},
 
-		async add(player) {
+		async add(player, maxActive) {
 			// Two players racing for a nickname: the unique index picks one.
-			const inserted = await db
-				.insert(playerTable)
-				.values(player)
-				.onConflictDoNothing()
-				.returning({ id: playerTable.id });
-			return inserted.length > 0 ? "added" : "nicknameTaken";
+			const insert = async (into: Database) => {
+				const inserted = await into
+					.insert(playerTable)
+					.values(player)
+					.onConflictDoNothing()
+					.returning({ id: playerTable.id });
+				return inserted.length > 0 ? "added" : "nicknameTaken";
+			};
+			if (maxActive === undefined) {
+				return insert(db);
+			}
+			// Two players racing for the last place: who joins the game goes one
+			// at a time, so each count sees the players that got in before. The
+			// lock is the game's own and is let go with the transaction.
+			return db.transaction(async (tx) => {
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtext(${`game-players:${player.gameId}`}))`,
+				);
+				const [row] = await tx
+					.select({ total: countRows() })
+					.from(playerTable)
+					.where(activeIn(player.gameId));
+				return (row?.total ?? 0) >= maxActive ? "full" : insert(tx);
+			});
 		},
 
 		async save(player) {

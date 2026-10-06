@@ -105,6 +105,23 @@ describe("hostGame (spec 008)", () => {
 		]);
 	});
 
+	it("two requests at the same time leave one open game of the quiz", async () => {
+		const deps = createGameDeps({ pins: ["111111", "222222", "333333"] });
+		const hostGame = createHostGame(deps);
+
+		const [first, second] = await Promise.all([hostGame(host), hostGame(host)]);
+
+		const open = await deps.games.listUnendedByQuiz("quiz-1");
+		expect(open).toHaveLength(1);
+		const replaced = [first, second].find(
+			({ gameId }) => gameId !== open[0]?.id,
+		);
+		expect(await deps.games.findById(replaced?.gameId ?? "")).toMatchObject({
+			status: "ended",
+			endReason: "replaced",
+		});
+	});
+
 	it("games of different quizzes stay open side by side", async () => {
 		const deps = createGameDeps({
 			quizzes: [aPlayableQuiz(), aPlayableQuiz({ id: "quiz-2" })],
