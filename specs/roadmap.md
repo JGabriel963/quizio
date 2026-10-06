@@ -48,9 +48,8 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 ## Pendências técnicas fora de features
 
 - **Verificação de e-mail e recuperação de senha**: exige um provedor de envio de e-mails, atrás de uma porta. Mitiga o risco aceito no [ADR 0007](../docs/adr/0007-autenticacao-better-auth-google.md) (tomada de conta pré-criada via vínculo com Google). Especificar como feature antes de abrir o Quizio ao público.
-- **Deploy na Vercel**: configurar o preset de deploy do TanStack Start, variáveis de ambiente, bucket R2 (CORS + acesso público) e app Pusher. Checklist herdado da feature 001:
-  - **Google OAuth**: criar um cliente OAuth "Web application" no Google Cloud Console com a redirect URI `{BETTER_AUTH_URL}/api/auth/callback/google`, definir `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` e fazer o smoke manual dos CA-07/08/09 da spec 001.
-  - **IP do limite de tentativas**: o Better Auth lê `x-forwarded-for`, que um cliente pode enviar. Na Vercel, configurar `advanced.ipAddress.ipAddressHeaders` para priorizar `x-vercel-forwarded-for`/`x-real-ip`, que a plataforma controla, com teste cobrindo a prioridade.
+- **Deploy na Vercel**: o código está pronto ([ADR 0011](../docs/adr/0011-deploy-com-nitro.md)): build com Nitro (Vercel agora, servidor Node numa VPS depois), migrations versionadas e cabeçalho do IP configurável (`CLIENT_IP_HEADER`). Falta o que depende das contas, seguindo o [guia de deploy](../docs/deploy.md):
+  - criar o banco, o bucket R2 (CORS + acesso público) e o app Pusher, e definir as variáveis na Vercel (as migrations são aplicadas pelo build de produção);
+  - **Google OAuth**: criar um cliente OAuth "Web application" no Google Cloud Console com a redirect URI `{BETTER_AUTH_URL}/api/auth/callback/google`, definir `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` e fazer o smoke manual dos CA-07/08/09 da spec 001;
   - **Cadastro**: decidir o valor de `AUTH_SIGN_UP_ENABLED` para a instância pública.
 - **CI**: pipeline com `pnpm check`, `pnpm test`, typecheck e, com *services* (Postgres, RustFS, Soketi), `pnpm test:int` e `pnpm test:e2e`.
-- **Migrations**: hoje o schema é aplicado com `db:push`; antes do primeiro deploy, adotar `db:generate` + `db:migrate`.

@@ -25,9 +25,9 @@ pnpm test:int             # *.int.test.ts adapter tests against the containers (
 pnpm test:e2e             # Playwright (desktop + mobile), reuses/starts the dev server (needs infra:up)
 pnpm vitest run <path>    # a single test file or directory
 pnpm db:start             # only the postgres service
-pnpm db:push              # push schema to DB (no migration files)
-pnpm db:generate          # generate migration SQL into packages/db/src/migrations
-pnpm db:migrate           # apply migrations
+pnpm db:push              # push schema to the local DB (dev only)
+pnpm db:generate          # generate migration SQL into packages/db/src/migrations — commit it with every schema change
+pnpm db:migrate           # apply migrations (how production gets its schema; see docs/deploy.md)
 pnpm db:studio            # Drizzle Studio
 ```
 
@@ -43,12 +43,15 @@ Env lives in **`apps/web/.env`** (not the repo root; template in `apps/web/.env.
 
 - `DATABASE_URL`, `BETTER_AUTH_SECRET` (min 32 chars), `BETTER_AUTH_URL` (also the only trusted origin and the CORS origin for uploads)
 - `AUTH_SIGN_UP_ENABLED` (default `true`) — instance switch for new creator accounts
+- `CLIENT_IP_HEADER` (default `x-forwarded-for`) — header the proxy in front of the app reports the client address in; keys both rate limits (Better Auth sign-in, wrong game PINs). Fine as is on Vercel; on a VPS set the one your proxy controls
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — optional, both or neither (checked in `packages/auth/src/index.ts`); without them the Google button is hidden
 - `STORAGE_*` — S3-protocol object storage (Cloudflare R2 in prod, RustFS locally)
 - `PUSHER_*` — Pusher-protocol realtime (Pusher cloud or Soketi); `PUSHER_HOST`/`PUSHER_PORT` only for self-hosted
 - `VITE_PUSHER_*` — client half, validated in `packages/env/src/web.ts`
 
 Set `SKIP_ENV_VALIDATION=1` to bypass server validation (e.g. in a build container).
+
+Deploy (`docs/deploy.md`, ADR 0011): the `nitro/vite` plugin in `apps/web/vite.config.ts` emits Vercel functions when built on Vercel and a Node server (`apps/web/.output`, run with `pnpm -F web start`) anywhere else; `NITRO_PRESET=vercel` forces the Vercel output locally. `apps/web/vercel.json` applies pending migrations before the build on production deploys only (previews never migrate), so schema changes must stay compatible with the previously deployed code. Keep the code free of Vercel-only APIs — the app is meant to move to a VPS.
 
 ## Architecture
 

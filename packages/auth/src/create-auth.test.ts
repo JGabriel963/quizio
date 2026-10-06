@@ -215,6 +215,33 @@ describe("createAuth", () => {
 			expect(blocked.status).toBe(429);
 			expect(afterWindow.status).toBe(200);
 		});
+
+		it("counts attempts by the configured proxy header, not by one the client sends", async () => {
+			const auth = createAuth(options({ clientIpHeader: "x-real-ip" }));
+			const signIn = (forwardedFor: string) =>
+				auth.handler(
+					new Request(`${BASE_URL}/api/auth/sign-in/email`, {
+						method: "POST",
+						headers: {
+							"content-type": "application/json",
+							origin: BASE_URL,
+							"x-real-ip": "203.0.113.200",
+							"x-forwarded-for": forwardedFor,
+						},
+						body: JSON.stringify({
+							email: ana.email,
+							password: "senha-errada",
+						}),
+					}),
+				);
+			for (let attempt = 1; attempt <= 5; attempt++) {
+				await signIn(uniqueIp());
+			}
+
+			const blocked = await signIn(uniqueIp());
+
+			expect(blocked.status).toBe(429);
+		});
 	});
 
 	describe("Google", () => {
