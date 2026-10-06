@@ -61,7 +61,7 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 | RN-11 | Todo quiz criado nesta feature é um **rascunho (`Draft`)** com zero perguntas. Perguntas e publicação da versão jogável ficam para a feature 003. | kahoot-reference §3.6 |
 | RN-12 | O **título** é opcional no rascunho e tem no máximo **95 caracteres**. Espaços nas pontas são ignorados, e um título vazio ou só com espaços conta como ausente. Sem título, o quiz é exibido como "Quiz sem título". | kahoot-reference §3.1, §3.6 |
 | RN-13 | A **descrição** é opcional e tem no máximo **500 caracteres**. | kahoot-reference §3.1 |
-| RN-14 | A **visibilidade (`Visibility`)** é **Privado** (padrão) ou **Não listado**. Nesta feature ela é só registrada e exibida: nenhum quiz fica visível para outras pessoas, em nenhum dos dois casos. O efeito aparece nas features de partida e compartilhamento; "Público" chega com a descoberta pública (013). | kahoot-reference §3.1 · decisão do produto |
+| RN-14 | A **visibilidade (`Visibility`)** é **Privado** (padrão) ou **Não listado**. Nesta feature ela é só registrada e exibida: nenhum quiz fica visível para outras pessoas, em nenhum dos dois casos. O efeito aparece nas features de partida e compartilhamento; "Público" chega com a descoberta pública (020). | kahoot-reference §3.1 · decisão do produto |
 | RN-15 | A **capa (`CoverImage`)** é opcional e aceita **JPEG, PNG, GIF ou WebP de até 10 MB**. Pode ser trocada ou removida. Sem capa, o quiz mostra uma imagem padrão. | decisão do produto — política de mídia (ADR 0003) |
 | RN-16 | A seção **Recentes** mostra todos os quizzes do criador que estão fora da lixeira, do mais recentemente modificado para o menos recente. | kahoot-reference §11.1 |
 | RN-17 | A seção **Rascunhos** mostra os quizzes em rascunho que estão fora da lixeira, na mesma ordem. | kahoot-reference §11.1 |
@@ -285,7 +285,7 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 
 - **Rascunhos vão para a lixeira** (RN-21). No Kahoot, excluir um rascunho apaga para sempre. No Quizio, tudo passa pela lixeira para evitar perda por engano, principalmente enquanto todos os quizzes ainda são rascunhos.
 - **Regras da capa** (RN-15). O Kahoot aceita PNG, JPEG ou GIF de até 5 MB e 3264×3264 px. O Quizio segue a política de mídia do projeto: acrescenta WebP, vai até 10 MB e não limita dimensões.
-- **Visibilidade reduzida** (RN-14). Só Privado e Não listado nesta etapa. "Público" depende da descoberta pública (feature 017), e "Organização" não se aplica a um uso pessoal.
+- **Visibilidade reduzida** (RN-14). Só Privado e Não listado nesta etapa. "Público" depende da descoberta pública (feature 020), e "Organização" não se aplica a um uso pessoal.
 - **Controle de cadastro** (RN-05). O Kahoot não tem esse conceito; ele existe porque o Quizio é uma instância própria, sem planos pagos.
 
 ## Fora de escopo
@@ -294,7 +294,7 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 - Edição de perfil, troca de senha, exclusão de conta e outros provedores de login além do Google.
 - Tela de administração para abrir ou fechar cadastros: nesta feature, isso é configuração da instância.
 - Perguntas, editor e publicação da versão jogável (feature 003).
-- Favoritos, pastas, "Compartilhados comigo" (feature 016), visibilidade pública e descoberta (feature 017).
+- Favoritos, pastas, "Compartilhados comigo" (feature 019), visibilidade pública e descoberta (feature 020).
 - Idioma, tema e música do lobby do quiz.
 - Alternar entre grade e lista, e escolher a ordenação da biblioteca.
 - Esvaziar a lixeira inteira de uma vez, ou restaurar e excluir vários quizzes ao mesmo tempo.
@@ -317,3 +317,4 @@ Jogadores não aparecem nesta feature: eles nunca precisam de conta (kahoot-refe
 - 2026-09-25 — alterada pela spec 002: a ação **Criar** passou a levar à tela do quiz criado (RN-13 da 002) e as seções da biblioteca saíram da coluna lateral para **abas** no topo do conteúdo (RN-22 da 002). As regras de seção, ordenação, pesquisa e lixeira desta spec continuam valendo sem mudança.
 - 2026-09-25 — renumeração do roadmap: o editor virou cinco specs (003 a 007) e as features seguintes subiram quatro números (partida 008, relatórios 010, atribuir 014, produtividade 016, extras 017). Só as referências mudaram.
 - 2026-09-25 — alterada pela spec 003: duplicar um quiz passa a copiar as perguntas (RN-20), a exclusão definitiva leva as perguntas junto (RN-24) e o número de perguntas deixa de ser sempre 0 (RN-11).
+- 2026-10-01 — renumeração do roadmap: a partida ao vivo virou quatro specs (008 a 011) e as features seguintes subiram três números (robustez 012, relatórios 013, mais tipos 014, opiniões 015, slides 016, atribuir 017, equipe 018, produtividade 019, extras 020). Só as referências mudaram.

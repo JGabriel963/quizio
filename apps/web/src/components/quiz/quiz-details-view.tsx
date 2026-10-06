@@ -2,7 +2,7 @@ import { quizPublishState } from "@quizio/core/quiz/domain/quiz";
 import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
 import { Button, buttonVariants } from "@quizio/ui/components/button";
 import { Link } from "@tanstack/react-router";
-import { PencilIcon } from "lucide-react";
+import { MonitorPlayIcon, PencilIcon } from "lucide-react";
 import type { QuizDetailsData } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
@@ -12,6 +12,8 @@ import { QuizStatusBadge } from "./quiz-status-badge";
 import { VisibilityBadge } from "./visibility-badge";
 
 export interface QuizDetailsActions {
+	/** "Organizar ao vivo": opens a live game of the quiz (spec 008). */
+	onHost: () => void;
 	onEdit: () => void;
 	onDuplicate: () => void;
 	onMoveToTrash: () => void;
@@ -29,6 +31,13 @@ export function QuizDetailsView({
 	now?: Date;
 }) {
 	const inTrash = quiz.trashedAt !== null;
+	const playable = quiz.status === "published";
+	// What is said next to "Organizar ao vivo" (spec 008, RN-02, RN-05).
+	const hostHint = !playable
+		? "Salve o quiz no editor para poder jogar."
+		: quiz.hasUnpublishedChanges
+			? "A partida usa a última versão salva."
+			: null;
 
 	return (
 		<article className="flex flex-col gap-6">
@@ -81,11 +90,20 @@ export function QuizDetailsView({
 							</>
 						) : (
 							<>
+								<Button
+									variant="success"
+									disabled={!playable}
+									aria-describedby={hostHint ? "host-hint" : undefined}
+									onClick={actions.onHost}
+								>
+									<MonitorPlayIcon data-icon="inline-start" />
+									Organizar ao vivo
+								</Button>
 								{/* The editor holds the questions (spec 003, RN-05). */}
 								<Link
 									to="/creator/$quizId"
 									params={{ quizId: quiz.id }}
-									className={buttonVariants()}
+									className={buttonVariants({ variant: "outline" })}
 								>
 									<PencilIcon data-icon="inline-start" />
 									Editar
@@ -102,6 +120,11 @@ export function QuizDetailsView({
 							</>
 						)}
 					</div>
+					{!inTrash && hostHint && (
+						<p id="host-hint" className="text-muted-foreground text-sm">
+							{hostHint}
+						</p>
+					)}
 				</div>
 			</div>
 		</article>

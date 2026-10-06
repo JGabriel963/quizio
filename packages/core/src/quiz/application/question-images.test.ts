@@ -13,6 +13,7 @@ import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
+import { RecordingQuizGames } from "../testing/recording-quiz-games";
 import { createDeleteQuestion } from "./delete-question";
 import { createDeleteQuizPermanently } from "./delete-quiz-permanently";
 import { createDiscardQuizChanges } from "./discard-quiz-changes";
@@ -46,6 +47,7 @@ describe("question images", () => {
 		storage: InMemoryObjectStorage;
 		clock: FixedClock;
 		ids: SequentialIdGenerator;
+		quizGames: RecordingQuizGames;
 	};
 
 	beforeEach(async () => {
@@ -60,6 +62,7 @@ describe("question images", () => {
 			storage,
 			clock: new FixedClock("2026-06-01T12:00:00.000Z"),
 			ids: new SequentialIdGenerator("new"),
+			quizGames: new RecordingQuizGames(),
 		};
 		storage.simulateUpload(PONTE);
 		storage.simulateUpload(MAPA);

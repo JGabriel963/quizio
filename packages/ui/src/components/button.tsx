@@ -8,13 +8,15 @@ const pressable =
 	"pb-1 shadow-press hover:brightness-90 active:not-aria-[haspopup]:translate-y-0.5 active:not-aria-[haspopup]:pb-0.5 active:not-aria-[haspopup]:shadow-press-sm";
 
 const buttonVariants = cva(
-	"group/button inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border border-transparent bg-clip-padding font-bold outline-none transition-[filter,transform,box-shadow,background-color] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+	"group/button inline-flex shrink-0 cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border border-transparent bg-clip-padding font-bold outline-none transition-[filter,transform,box-shadow,background-color] focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
 	{
 		variants: {
 			variant: {
 				default: cn("bg-primary text-primary-foreground", pressable),
 				brand: cn("bg-brand text-brand-foreground", pressable),
 				success: cn("bg-success text-success-foreground", pressable),
+				// The near-black button of the player's join screens (spec 008).
+				game: cn("bg-neutral-800 text-white", pressable),
 				destructive: cn(
 					"bg-destructive text-destructive-foreground",
 					pressable,

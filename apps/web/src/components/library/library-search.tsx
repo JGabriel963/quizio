@@ -8,8 +8,11 @@ const SEARCH_DEBOUNCE_MS = 300;
 export function LibrarySearch({
 	value,
 	onSearch,
+	label = "Pesquisar quizzes",
 }: {
 	value: string;
+	/** What the box searches, for screen readers. */
+	label?: string;
 	onSearch: (value: string) => void;
 }) {
 	const [text, setText] = useState(value);
@@ -36,7 +39,7 @@ export function LibrarySearch({
 			/>
 			<Input
 				type="search"
-				aria-label="Pesquisar quizzes"
+				aria-label={label}
 				placeholder="Pesquisar"
 				value={text}
 				onChange={(event) => setText(event.target.value)}

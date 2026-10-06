@@ -27,6 +27,7 @@ const quiz: QuizDetailsData = {
 
 function fakeActions(): QuizDetailsActions {
 	return {
+		onHost: vi.fn(),
 		onEdit: vi.fn(),
 		onDuplicate: vi.fn(),
 		onMoveToTrash: vi.fn(),
@@ -173,5 +174,77 @@ describe("QuizDetailsView status", () => {
 			"data-slot",
 			"badge",
 		);
+	});
+});
+
+describe("QuizDetailsView: Organizar ao vivo (spec 008)", () => {
+	const published: QuizDetailsData = {
+		...quiz,
+		status: "published",
+		publishedVersion: 1,
+		publishedAt: "2026-06-01T12:00:00.000Z",
+		questionCount: 3,
+	};
+
+	it("hosts a published quiz", async () => {
+		const actions = fakeActions();
+		renderWithRouter(
+			<QuizDetailsView quiz={published} actions={actions} now={now} />,
+		);
+
+		await userEvent
+			.setup()
+			.click(await screen.findByRole("button", { name: "Organizar ao vivo" }));
+
+		expect(actions.onHost).toHaveBeenCalledOnce();
+		expect(
+			screen.queryByText("A partida usa a última versão salva."),
+		).toBeNull();
+	});
+
+	it("is unavailable in a draft, and says why", async () => {
+		renderWithRouter(
+			<QuizDetailsView quiz={quiz} actions={fakeActions()} now={now} />,
+		);
+
+		const button = await screen.findByRole("button", {
+			name: "Organizar ao vivo",
+		});
+		expect(button).toBeDisabled();
+		expect(button).toHaveAccessibleDescription(
+			"Salve o quiz no editor para poder jogar.",
+		);
+	});
+
+	it("warns that the game uses the last saved version", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={{ ...published, hasUnpublishedChanges: true }}
+				actions={fakeActions()}
+				now={now}
+			/>,
+		);
+
+		expect(
+			await screen.findByRole("button", { name: "Organizar ao vivo" }),
+		).toBeEnabled();
+		expect(
+			screen.getByText("A partida usa a última versão salva."),
+		).toBeInTheDocument();
+	});
+
+	it("is not offered in the trash", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={{ ...published, trashedAt: "2026-06-10T12:00:00.000Z" }}
+				actions={fakeActions()}
+				now={now}
+			/>,
+		);
+
+		await screen.findByText("Este quiz está na lixeira.");
+		expect(
+			screen.queryByRole("button", { name: "Organizar ao vivo" }),
+		).toBeNull();
 	});
 });

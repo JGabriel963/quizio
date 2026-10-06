@@ -1,4 +1,64 @@
 import {
+	type AdvanceGame,
+	createAdvanceGame,
+} from "@quizio/core/game/application/advance-game";
+import {
+	createEndGame,
+	type EndGame,
+} from "@quizio/core/game/application/end-game";
+import { createEndGamesOfQuiz } from "@quizio/core/game/application/end-games-of-quiz";
+import {
+	createFindGameByPin,
+	type FindGameByPin,
+} from "@quizio/core/game/application/find-game-by-pin";
+import {
+	createGetHostGame,
+	type GetHostGame,
+} from "@quizio/core/game/application/get-host-game";
+import {
+	createGetPlayerSession,
+	type GetPlayerSession,
+} from "@quizio/core/game/application/get-player-session";
+import {
+	createHostGame,
+	type HostGame,
+} from "@quizio/core/game/application/host-game";
+import {
+	createJoinGame,
+	type JoinGame,
+} from "@quizio/core/game/application/join-game";
+import type { AnswerRepository } from "@quizio/core/game/application/ports/answer-repository";
+import type { GamePinGenerator } from "@quizio/core/game/application/ports/game-pin-generator";
+import type { GameQuestionRepository } from "@quizio/core/game/application/ports/game-question-repository";
+import type { GameRepository } from "@quizio/core/game/application/ports/game-repository";
+import type { HostPreferencesRepository } from "@quizio/core/game/application/ports/host-preferences-repository";
+import type { PlayableQuizQuery } from "@quizio/core/game/application/ports/playable-quiz-query";
+import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
+import {
+	createRemovePlayer,
+	type RemovePlayer,
+} from "@quizio/core/game/application/remove-player";
+import {
+	createSetGameLocked,
+	type SetGameLocked,
+} from "@quizio/core/game/application/set-game-locked";
+import {
+	createSetGameOptions,
+	type SetGameOptions,
+} from "@quizio/core/game/application/set-game-options";
+import {
+	createSignalHost,
+	type SignalHost,
+} from "@quizio/core/game/application/signal-host";
+import {
+	createStartGame,
+	type StartGame,
+} from "@quizio/core/game/application/start-game";
+import {
+	createSubmitAnswer,
+	type SubmitAnswer,
+} from "@quizio/core/game/application/submit-answer";
+import {
 	createGetHomeOverview,
 	type GetHomeOverview,
 } from "@quizio/core/library/application/get-home-overview";
@@ -82,10 +142,46 @@ import {
 	createUpdateQuizDetails,
 	type UpdateQuizDetails,
 } from "@quizio/core/quiz/application/update-quiz-details";
+import {
+	createDeleteReportsPermanently,
+	type DeleteReportsPermanently,
+} from "@quizio/core/reports/application/delete-reports-permanently";
+import {
+	createGetReport,
+	type GetReport,
+} from "@quizio/core/reports/application/get-report";
+import {
+	createGetReportParticipant,
+	type GetReportParticipant,
+} from "@quizio/core/reports/application/get-report-participant";
+import {
+	createGetReportQuestion,
+	type GetReportQuestion,
+} from "@quizio/core/reports/application/get-report-question";
+import {
+	createListReports,
+	type ListReports,
+} from "@quizio/core/reports/application/list-reports";
+import {
+	createMoveReportsToTrash,
+	type MoveReportsToTrash,
+} from "@quizio/core/reports/application/move-reports-to-trash";
+import type { ReportGameQuery } from "@quizio/core/reports/application/ports/report-game-query";
+import type { ReportRepository } from "@quizio/core/reports/application/ports/report-repository";
+import {
+	createRenameReport,
+	type RenameReport,
+} from "@quizio/core/reports/application/rename-report";
+import {
+	createRestoreReports,
+	type RestoreReports,
+} from "@quizio/core/reports/application/restore-reports";
+import type { AttemptLimiter } from "@quizio/core/shared/application/ports/attempt-limiter";
 import type { Clock } from "@quizio/core/shared/application/ports/clock";
 import type { IdGenerator } from "@quizio/core/shared/application/ports/id-generator";
 import type { ObjectStorage } from "@quizio/core/shared/application/ports/object-storage";
 import type { RealtimePublisher } from "@quizio/core/shared/application/ports/realtime-publisher";
+import type { Shuffler } from "@quizio/core/shared/application/ports/shuffler";
 
 /** Public sign-in options the login screen needs to know about. */
 export interface AuthSettings {
@@ -103,6 +199,18 @@ export interface Adapters {
 	questions: QuestionRepository;
 	versions: QuizVersionRepository;
 	libraryQuizzes: LibraryQuizQuery;
+	games: GameRepository;
+	players: PlayerRepository;
+	gameQuestions: GameQuestionRepository;
+	answers: AnswerRepository;
+	playableQuizzes: PlayableQuizQuery;
+	preferences: HostPreferencesRepository;
+	/** The live games as the reports read them (spec 015). */
+	reportGames: ReportGameQuery;
+	reports: ReportRepository;
+	pins: GamePinGenerator;
+	shuffler: Shuffler;
+	attempts: AttemptLimiter;
 	authSettings: AuthSettings;
 }
 
@@ -128,6 +236,27 @@ export interface Container extends Adapters {
 		applyTimeLimitToAll: ApplyTimeLimitToAll;
 		listLibrary: ListLibrary;
 		getHomeOverview: GetHomeOverview;
+		hostGame: HostGame;
+		getHostGame: GetHostGame;
+		startGame: StartGame;
+		advanceGame: AdvanceGame;
+		signalHost: SignalHost;
+		setGameLocked: SetGameLocked;
+		setGameOptions: SetGameOptions;
+		removePlayer: RemovePlayer;
+		endGame: EndGame;
+		findGameByPin: FindGameByPin;
+		joinGame: JoinGame;
+		getPlayerSession: GetPlayerSession;
+		submitAnswer: SubmitAnswer;
+		deleteReportsPermanently: DeleteReportsPermanently;
+		getReport: GetReport;
+		getReportParticipant: GetReportParticipant;
+		getReportQuestion: GetReportQuestion;
+		listReports: ListReports;
+		moveReportsToTrash: MoveReportsToTrash;
+		renameReport: RenameReport;
+		restoreReports: RestoreReports;
 	};
 }
 
@@ -136,6 +265,17 @@ export interface Container extends Adapters {
  * build a container from in-memory fakes and exercise real routers.
  */
 export function createContainer(adapters: Adapters): Container {
+	// The quiz context reaches the live games through its own port (spec 008, RN-34).
+	const endGamesOfQuiz = createEndGamesOfQuiz(adapters);
+	const quizGames = {
+		// The open ones end; the ones that never started go with the quiz, and
+		// the ones that started stay, as reports (spec 015, RN-05).
+		endGamesOfDeletedQuiz: async (quizId: string) => {
+			await endGamesOfQuiz({ quizId, reason: "quizDeleted" });
+			await adapters.games.deleteUnstartedByQuiz(quizId);
+		},
+	};
+
 	return {
 		...adapters,
 		useCases: {
@@ -146,7 +286,10 @@ export function createContainer(adapters: Adapters): Container {
 			duplicateQuiz: createDuplicateQuiz(adapters),
 			moveQuizToTrash: createMoveQuizToTrash(adapters),
 			restoreQuiz: createRestoreQuiz(adapters),
-			deleteQuizPermanently: createDeleteQuizPermanently(adapters),
+			deleteQuizPermanently: createDeleteQuizPermanently({
+				...adapters,
+				quizGames,
+			}),
 			getQuizEditor: createGetQuizEditor(adapters),
 			renameQuiz: createRenameQuiz(adapters),
 			publishQuiz: createPublishQuiz(adapters),
@@ -159,6 +302,27 @@ export function createContainer(adapters: Adapters): Container {
 			applyTimeLimitToAll: createApplyTimeLimitToAll(adapters),
 			listLibrary: createListLibrary(adapters),
 			getHomeOverview: createGetHomeOverview(adapters),
+			hostGame: createHostGame(adapters),
+			getHostGame: createGetHostGame(adapters),
+			startGame: createStartGame(adapters),
+			advanceGame: createAdvanceGame(adapters),
+			signalHost: createSignalHost(adapters),
+			setGameLocked: createSetGameLocked(adapters),
+			setGameOptions: createSetGameOptions(adapters),
+			removePlayer: createRemovePlayer(adapters),
+			endGame: createEndGame(adapters),
+			findGameByPin: createFindGameByPin(adapters),
+			joinGame: createJoinGame(adapters),
+			getPlayerSession: createGetPlayerSession(adapters),
+			submitAnswer: createSubmitAnswer(adapters),
+			deleteReportsPermanently: createDeleteReportsPermanently(adapters),
+			getReport: createGetReport(adapters),
+			getReportParticipant: createGetReportParticipant(adapters),
+			getReportQuestion: createGetReportQuestion(adapters),
+			listReports: createListReports(adapters),
+			moveReportsToTrash: createMoveReportsToTrash(adapters),
+			renameReport: createRenameReport(adapters),
+			restoreReports: createRestoreReports(adapters),
 		},
 	};
 }

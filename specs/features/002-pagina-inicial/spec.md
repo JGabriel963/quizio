@@ -54,7 +54,7 @@ Jogadores não aparecem nesta feature: eles entram pelo PIN, nunca pela área do
 | ID | Regra | Fonte |
 | --- | --- | --- |
 | RN-04 | Todas as telas do criador compartilham a mesma **navegação principal (`MainNav`)**, nesta ordem: **Início**, **Biblioteca**, **Relatórios**, **Descobrir**, **Grupos**. Ela fica na **barra lateral** e em nenhum outro lugar: a barra superior não tem itens de navegação. | decisão do produto (2026-09-25) |
-| RN-05 | Os itens cujas features ainda não foram entregues aparecem marcados **"Em breve"**: não navegam, não são acionáveis por teclado como link e são anunciados como indisponíveis. Hoje isso vale para Relatórios (010), Descobrir e Grupos (017). Cada feature entregue ativa o seu item. | decisão do produto (2026-09-25) |
+| RN-05 | Os itens cujas features ainda não foram entregues aparecem marcados **"Em breve"**: não navegam, não são acionáveis por teclado como link e são anunciados como indisponíveis. Hoje isso vale para Relatórios (013), Descobrir e Grupos (020). Cada feature entregue ativa o seu item. | decisão do produto (2026-09-25) |
 | RN-06 | O item correspondente à tela aberta fica destacado. **Biblioteca** é o item ativo em qualquer uma das suas seções (Recentes, Rascunhos, Lixeira) e nas telas de um quiz. | decisão do produto (2026-09-25) |
 | RN-07 | A navegação principal só aparece para quem tem sessão. A apresentação pública não a exibe. | decisão do produto (2026-09-25) |
 | RN-08 | Em telas estreitas, a navegação principal fica atrás de um botão que a abre e a fecha, com os mesmos itens, na mesma ordem e com as mesmas marcações. | decisão do produto (2026-09-25) · constituição, artigo VIII |
@@ -73,7 +73,7 @@ Jogadores não aparecem nesta feature: eles entram pelo PIN, nunca pela área do
 | RN-09 | A barra superior das telas do criador tem, e só tem: a marca (que leva à página inicial), a **pesquisa**, a ação **Criar** e o menu do usuário já existente. Nenhum link de navegação mora nela (RN-04). | decisão do produto (2026-09-25) |
 | RN-10 | A pesquisa da barra superior busca **nos quizzes do próprio criador**, com as mesmas regras da RN-19 da spec 001 (filtra por título, ignorando maiúsculas/minúsculas e acentos). Enviá-la leva à Biblioteca, seção **Recentes**, com o texto já aplicado. | decisão do produto (2026-09-25) · spec 001 RN-19 |
 | RN-11 | Uma pesquisa vazia ou só com espaços não navega nem filtra nada. | decisão do produto (2026-09-25) |
-| RN-12 | A pesquisa **não** busca conteúdo público de outras pessoas; isso chega com a descoberta pública (017). | decisão do produto (2026-09-25) |
+| RN-12 | A pesquisa **não** busca conteúdo público de outras pessoas; isso chega com a descoberta pública (020). | decisão do produto (2026-09-25) |
 | RN-13 | A ação **Criar** abre o mesmo formulário de dados do quiz da spec 001 e, ao salvar, leva à tela do quiz criado. Ela está disponível em todas as telas do criador. | decisão do produto (2026-09-25) · spec 001 |
 
 ### Conteúdo do painel
@@ -85,7 +85,7 @@ Jogadores não aparecem nesta feature: eles entram pelo PIN, nunca pela área do
 | RN-16 | Cada quiz do painel mostra capa (ou a imagem padrão), título (ou "Quiz sem título"), número de perguntas e última modificação em tempo relativo, e abre o quiz ao ser acionado. As demais ações (editar dados, duplicar, excluir) continuam só na biblioteca. | decisão do produto (2026-09-25) · spec 001 RN-12, RN-15 |
 | RN-17 | O cartão "Seus quizzes" traz um link **"Ver tudo (N)"** para a seção Recentes, onde `N` é o total de quizzes do criador fora da lixeira. Com 6 quizzes ou menos, o link continua aparecendo. | decisão do produto (2026-09-25) |
 | RN-18 | Um criador sem nenhum quiz fora da lixeira vê, no lugar da lista, um estado vazio que convida a criar o primeiro quiz. | decisão do produto (2026-09-25) |
-| RN-19 | O cartão **"Relatórios mais recentes"** aparece marcado "Em breve", sem dados, explicando que os relatórios chegam com as partidas. Ele passa a mostrar conteúdo real na feature 010. | decisão do produto (2026-09-25) |
+| RN-19 | O cartão **"Relatórios mais recentes"** aparece marcado "Em breve", sem dados, explicando que os relatórios chegam com as partidas. Ele passa a mostrar conteúdo real na feature 013. | decisão do produto (2026-09-25) |
 | RN-20 | Quizzes na lixeira nunca aparecem no painel. | spec 001 RN-22 |
 | RN-21 | Todos os textos das telas desta feature são em português do Brasil. | constituição, artigo IX |
 
@@ -263,14 +263,14 @@ Jogadores não aparecem nesta feature: eles entram pelo PIN, nunca pela área do
 - **Sem cartões promocionais**. A home do Kahoot abre com um carrossel de propaganda de recursos pagos e um banner de upgrade. O Quizio não tem planos (constituição, artigo VI), então nada disso existe.
 - **Sem "Lista de tarefas", "Cursos" e "Sessões do curso"**. Cursos são outro tipo de conteúdo, declarado fora de escopo na referência (§11.1); a lista de tarefas é onboarding do produto pago.
 - **Sem "Kahootopia!", "Aprendizagem de idiomas" e "Features"** na navegação: são produtos e vitrines comerciais do Kahoot, não funcionalidades do Quizio.
-- **Sem cartão "Atribuições"** por ora. Atribuir chega na feature 014; quando chegar, ela decide se ganha espaço no painel.
-- **A pesquisa da barra superior busca a própria biblioteca** (RN-10). No Kahoot ela busca conteúdo público, que o Quizio só terá na descoberta (017). Quando a descoberta existir, esta spec precisa ser revisitada.
-- **A Lixeira é uma aba** (RN-22). No Kahoot, a biblioteca tem uma segunda coluna (Kahoots, Histórias, Cursos, Minhas pastas, Lixeira) e só então as abas (Recentes, Rascunhos, Favoritos, Compartilhados comigo). O Quizio não tem histórias nem cursos, então essa coluna ficaria com um item só; as três seções viram abas no mesmo nível. Pastas e favoritos chegam na 016 e decidem então se a coluna volta.
+- **Sem cartão "Atribuições"** por ora. Atribuir chega na feature 017; quando chegar, ela decide se ganha espaço no painel.
+- **A pesquisa da barra superior busca a própria biblioteca** (RN-10). No Kahoot ela busca conteúdo público, que o Quizio só terá na descoberta (020). Quando a descoberta existir, esta spec precisa ser revisitada.
+- **A Lixeira é uma aba** (RN-22). No Kahoot, a biblioteca tem uma segunda coluna (Kahoots, Histórias, Cursos, Minhas pastas, Lixeira) e só então as abas (Recentes, Rascunhos, Favoritos, Compartilhados comigo). O Quizio não tem histórias nem cursos, então essa coluna ficaria com um item só; as três seções viram abas no mesmo nível. Pastas e favoritos chegam na 019 e decidem então se a coluna volta.
 - **Pontos de entrada do que ainda não existe ficam visíveis** (RN-05). O Kahoot não mostra o que não vende; o Quizio mostra o próprio roadmap, porque é um produto pessoal em construção e isso evita redesenhar a navegação a cada feature.
 
 ## Fora de escopo
 
-- Qualquer dado real de relatórios, atribuições, grupos ou descoberta: estes cartões e itens são apenas marcações "Em breve" (features 010, 014 e 017).
+- Qualquer dado real de relatórios, atribuições, grupos ou descoberta: estes cartões e itens são apenas marcações "Em breve" (features 013, 017 e 020).
 - Ações de quiz no painel além de abrir (editar dados, duplicar e excluir continuam na biblioteca).
 - Notificações, central de ajuda e qualquer conteúdo promocional.
 - Personalização do painel: escolher, reordenar ou esconder cartões.
@@ -296,3 +296,5 @@ Jogadores não aparecem nesta feature: eles entram pelo PIN, nunca pela área do
   - A barra superior transbordava na horizontal em 412 px, o que fazia o Chrome reduzir o zoom e jogar os avisos para fora da área visível; em telas estreitas a pesquisa passou a ocupar a própria linha.
 - 2026-09-25 — renumeração do roadmap: o editor virou cinco specs (003 a 007) e as features seguintes subiram quatro números (partida 008, relatórios 010, atribuir 014, produtividade 016, extras 017). Só as referências mudaram.
 - 2026-09-25 — alterada pela spec 003: a ação **Criar** (RN-13) deixa de abrir o formulário de dados e passa a criar um rascunho com uma pergunta em branco e abrir o editor em `/creator/<id>`. O editor é a única tela do criador sem a navegação principal (exceção à RN-04).
+- 2026-10-01 — renumeração do roadmap: a partida ao vivo virou quatro specs (008 a 011) e as features seguintes subiram três números (robustez 012, relatórios 013, mais tipos 014, opiniões 015, slides 016, atribuir 017, equipe 018, produtividade 019, extras 020). Só as referências mudaram.
+- 2026-10-06 — spec 015: o item Relatórios da navegação e o cartão "Relatórios mais recentes" deixam de ser "Em breve" (RN-05, RN-19) quando ela for entregue.

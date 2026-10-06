@@ -16,3 +16,43 @@ export type HomeQuizView = HomeOverviewView["quizzes"][number];
 /** Everything the editor opens with (spec 003). */
 export type QuizEditorData = RouterOutputs["quiz"]["editor"];
 export type QuestionData = QuizEditorData["questions"][number];
+
+/** The host's screen: the lobby and the game in progress (specs 008, 009). */
+export type HostGameData = RouterOutputs["game"]["view"];
+export type LobbyPlayerData = HostGameData["players"][number];
+/** What the settings panel shows and changes (spec 012). */
+export type GameOptionsData = HostGameData["options"];
+export type HostStageData = NonNullable<HostGameData["stage"]>;
+export type HostQuestionData = NonNullable<HostStageData["question"]>;
+export type ScoreboardEntryData = NonNullable<
+	HostStageData["scoreboard"]
+>[number];
+/** The end of a finished game: the final standings and the podium's reveal (spec 011). */
+export type HostFinalData = NonNullable<HostGameData["final"]>;
+export type FinalStandingData = HostFinalData["standings"][number];
+
+/** What a player's device should be showing (specs 008, 009). */
+export type PlayerSessionData = RouterOutputs["game"]["join"]["session"];
+export type PlayerStageData = NonNullable<PlayerSessionData["stage"]>;
+export type PlayerQuestionData = NonNullable<PlayerStageData["question"]>;
+/** What a question left the player with: result, points, streak and place (spec 010). */
+export type PlayerOutcomeData = NonNullable<PlayerStageData["outcome"]>;
+export type PlayerResultData = PlayerOutcomeData["result"];
+/** How the game ended for this player (spec 011). */
+export type PlayerFinalData = NonNullable<PlayerSessionData["final"]>;
+
+/** The reports' list and one of its lines (spec 015). */
+export type ReportListData = RouterOutputs["report"]["list"];
+export type ReportListItemData = ReportListData["items"][number];
+/** A report open: header, summary, participants and questions. */
+export type ReportData = RouterOutputs["report"]["get"];
+export type ReportHeaderData = ReportData["header"];
+export type ReportSummaryData = ReportData["summary"];
+export type ReportParticipantData = ReportData["participants"][number];
+export type ReportQuestionData = ReportData["questions"][number];
+/** What a participant did, question by question. */
+export type ParticipantDetailData = RouterOutputs["report"]["participant"];
+export type AnswerResultData =
+	ParticipantDetailData["answers"][number]["result"];
+/** How the group answered one question. */
+export type QuestionDetailData = RouterOutputs["report"]["question"];

@@ -8,6 +8,7 @@ import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
 import { InMemoryQuizVersionRepository } from "../testing/in-memory-quiz-version-repository";
+import { RecordingQuizGames } from "../testing/recording-quiz-games";
 import {
 	createDeleteQuizPermanently,
 	type DeleteQuizPermanently,
@@ -21,6 +22,7 @@ describe("deleteQuizPermanently", () => {
 	let questions: InMemoryQuestionRepository;
 	let versions: InMemoryQuizVersionRepository;
 	let storage: InMemoryObjectStorage;
+	let games: RecordingQuizGames;
 	let deleteQuizPermanently: DeleteQuizPermanently;
 
 	beforeEach(() => {
@@ -28,11 +30,13 @@ describe("deleteQuizPermanently", () => {
 		questions = new InMemoryQuestionRepository();
 		versions = new InMemoryQuizVersionRepository();
 		storage = new InMemoryObjectStorage();
+		games = new RecordingQuizGames();
 		deleteQuizPermanently = createDeleteQuizPermanently({
 			quizzes,
 			questions,
 			versions,
 			storage,
+			quizGames: games,
 		});
 	});
 
@@ -99,6 +103,24 @@ describe("deleteQuizPermanently", () => {
 
 		expect(versions.allOf("quiz-1")).toEqual([]);
 		expect(versions.allOf("quiz-2")).toHaveLength(1);
+	});
+
+	it("ends the open games of the quiz (spec 008, RN-34)", async () => {
+		await quizzes.save(aQuiz({ trashedAt }));
+
+		await deleteQuizPermanently({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(games.endedQuizIds).toEqual(["quiz-1"]);
+	});
+
+	it("leaves the games alone when the deletion is refused", async () => {
+		await quizzes.save(aQuiz());
+
+		await deleteQuizPermanently({ ownerId: "user-1", quizId: "quiz-1" }).catch(
+			() => {},
+		);
+
+		expect(games.endedQuizIds).toEqual([]);
 	});
 
 	it("treats another owner's quiz as not found", async () => {

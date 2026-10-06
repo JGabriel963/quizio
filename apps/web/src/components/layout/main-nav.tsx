@@ -16,6 +16,7 @@ type MainNavItem = {
 } & (
 	| { to: "/"; search?: undefined }
 	| { to: "/library"; search: { section: "recent" } }
+	| { to: "/reports"; search: { section: "reports" } }
 	| { to?: undefined; comingSoon: true }
 );
 
@@ -31,7 +32,12 @@ export const MAIN_NAV_ITEMS: readonly MainNavItem[] = [
 		to: "/library",
 		search: { section: "recent" },
 	},
-	{ label: "Relatórios", icon: ChartColumnIcon, comingSoon: true },
+	{
+		label: "Relatórios",
+		icon: ChartColumnIcon,
+		to: "/reports",
+		search: { section: "reports" },
+	},
 	{ label: "Descobrir", icon: CompassIcon, comingSoon: true },
 	{ label: "Grupos", icon: UsersIcon, comingSoon: true },
 ];
@@ -46,6 +52,10 @@ export function activeMainNavLabel(pathname: string): string | null {
 	}
 	if (pathname.startsWith("/library") || pathname.startsWith("/quizzes")) {
 		return "Biblioteca";
+	}
+	// The list and an open report (spec 015, RN-22).
+	if (pathname.startsWith("/reports")) {
+		return "Relatórios";
 	}
 	return null;
 }

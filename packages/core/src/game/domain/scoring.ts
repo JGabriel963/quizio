@@ -23,6 +23,11 @@ export interface AnswerScoreInput {
 	responseTimeMs: number;
 	timeLimitMs: number;
 	pointsMultiplier: PointsMultiplier;
+	/**
+	 * Right answers marked in a multiple-selection question: each is worth the
+	 * question's points (spec 010, RN-06). 1 for every other question.
+	 */
+	correctAnswers?: number;
 }
 
 /**
@@ -33,6 +38,7 @@ export interface AnswerScoreInput {
  *
  * Answers within the first 500ms earn full points. Answer streaks award no
  * points (Kahoot removed the streak bonus in 2020); they are display-only.
+ * In multiple selection the points are per right answer marked, rounded once.
  * Source: specs/product/kahoot-reference.md, section 5.
  *
  * Accepting or rejecting late answers is the live game's decision, so a
@@ -43,6 +49,7 @@ export function calculateAnswerScore({
 	responseTimeMs,
 	timeLimitMs,
 	pointsMultiplier,
+	correctAnswers = 1,
 }: AnswerScoreInput): number {
 	if (timeLimitMs <= 0) {
 		throw new InvalidResponseTimeError(
@@ -59,9 +66,15 @@ export function calculateAnswerScore({
 	}
 
 	const pointsPossible =
-		BASE_QUESTION_POINTS * POINTS_MULTIPLIERS[pointsMultiplier];
+		BASE_QUESTION_POINTS *
+		POINTS_MULTIPLIERS[pointsMultiplier] *
+		correctAnswers;
 	if (responseTimeMs < FULL_POINTS_WINDOW_MS) {
 		return pointsPossible;
 	}
-	return Math.round((1 - responseTimeMs / timeLimitMs / 2) * pointsPossible);
+	// The same formula with one division at the end: 19.9 s of 20 s is exactly
+	// 502.5 this way, where `1 - t / T / 2` drifts to 502.4999… and rounds down.
+	return Math.round(
+		((2 * timeLimitMs - responseTimeMs) * pointsPossible) / (2 * timeLimitMs),
+	);
 }
