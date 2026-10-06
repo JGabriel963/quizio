@@ -16,7 +16,6 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { quiz } from "./quiz";
 
 export const gameStatus = pgEnum("game_status", GAME_STATUSES);
 export const gameEndReason = pgEnum("game_end_reason", GAME_END_REASONS);
@@ -34,10 +33,12 @@ export const game = pgTable(
 		ownerId: text("owner_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		/** Games go with a quiz deleted for good; reports (spec 013) may revisit. */
-		quizId: text("quiz_id")
-			.notNull()
-			.references(() => quiz.id, { onDelete: "cascade" }),
+		/**
+		 * A reference by id, not a foreign key: a game that started outlives its
+		 * quiz, as a report (spec 015, RN-05; ADR 0010). The ones that never
+		 * started are deleted with the quiz, by `deleteUnstartedByQuiz`.
+		 */
+		quizId: text("quiz_id").notNull(),
 		/** The playable version the game was created with (RN-04). */
 		quizVersion: integer("quiz_version").notNull(),
 		title: text("title").notNull(),
@@ -56,6 +57,8 @@ export const game = pgTable(
 		 */
 		autoplaySince: timestamp("autoplay_since", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+		/** When "Iniciar" took it out of the lobby; null until then (spec 015). */
+		startedAt: timestamp("started_at", { withTimezone: true }),
 		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 		endedAt: timestamp("ended_at", { withTimezone: true }),
 		endReason: gameEndReason("end_reason"),
@@ -85,6 +88,8 @@ export const game = pgTable(
 		index("game_unended_quiz_idx")
 			.on(table.quizId)
 			.where(sql`${table.endedAt} is null`),
+		/** The reports list: a creator's games by their end (spec 015). */
+		index("game_owner_ended_idx").on(table.ownerId, table.endedAt),
 	],
 );
 

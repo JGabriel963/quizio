@@ -37,7 +37,11 @@ test("a signed-in creator lands on the dashboard and opens a quiz from it", asyn
 		name: /Relatórios mais recentes/,
 	});
 	await expect(reports).toBeVisible();
-	await expect(reports.getByText("Em breve")).toBeVisible();
+	// No game yet: the card says where reports come from (spec 015, RN-31).
+	await expect(
+		reports.getByText("Você ainda não tem relatórios."),
+	).toBeVisible();
+	await expect(reports.getByText("Em breve")).toHaveCount(0);
 
 	await createQuiz(page, { title: "Bom de Bíblia (Junho)" });
 	await page.goto("/");
@@ -77,11 +81,18 @@ test.describe("tela larga", () => {
 		await signUp(page);
 
 		const nav = page.getByRole("navigation", { name: "Navegação principal" });
-		for (const area of ["Relatórios", "Descobrir", "Grupos"]) {
+		for (const area of ["Descobrir", "Grupos"]) {
 			await expect(nav.getByText(area)).toBeVisible();
 			await expect(nav.getByRole("link", { name: area })).toHaveCount(0);
 		}
 		await expect(page).toHaveURL(/\/$/);
+
+		// Relatórios is built (spec 015, RN-22): it opens its area.
+		await nav.getByRole("link", { name: "Relatórios" }).click();
+		await expect(page).toHaveURL(/\/reports/);
+		await expect(
+			page.getByRole("heading", { level: 1, name: "Relatórios" }),
+		).toBeVisible();
 	});
 });
 

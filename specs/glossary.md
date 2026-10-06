@@ -143,8 +143,15 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Duplicar | `duplicateQuiz` | Criar um rascunho independente com os dados e uma cópia da capa de outro quiz (spec 001) | ✅ |
 | Pasta | `Folder` | Organização de quizzes | 📝 |
 | Favorito | `Favorite` | Marcação para acesso rápido | 📝 |
-| Relatório | `Report` | Resultado consolidado de uma partida | 📝 |
-| Pergunta difícil | `DifficultQuestion` | Acertada por menos de 35% dos participantes | 📝 |
+| Relatório | `Report` | Resultado de uma partida ao vivo que foi iniciada e já acabou, do criador que a organizou; independente do quiz (spec 015) | ✅ |
+| Participante | `Participant` | No relatório, o jogador que estava na partida quando ela foi iniciada ou que entrou durante o jogo; removidos no lobby não contam (spec 015) | ✅ |
+| Pergunta jogada | `playedQuestion` | Pergunta que chegou à revelação; as únicas que entram nas contas do relatório (spec 015) | ✅ |
+| Percentual geral | `overallAccuracy` | Respostas corretas da partida sobre as respostas possíveis, somadas as perguntas de cada participante (spec 015) | ✅ |
+| Ajuda necessária | `needsHelp` | Participantes que acertaram menos de 35% das perguntas deles no jogo inteiro (spec 015) | ✅ |
+| Não concluiu | `didNotFinish` | Participantes com ao menos uma pergunta sem resposta (spec 015) | ✅ |
+| Nome do relatório | `Report.name` | Começa igual ao título do quiz na partida; renomear muda só o relatório (spec 015) | ✅ |
+| Lixeira de relatórios | `Report.trashedAt` | Relatórios excluídos, restauráveis; a exclusão definitiva apaga a partida e as respostas (spec 015) | ✅ |
+| Pergunta difícil | `DifficultQuestion` | Pergunta jogada acertada por menos de 35% dos participantes que podiam respondê-la (spec 015) | ✅ |
 | Mídia | `Media` | Arquivo enviado pelo usuário (imagem) | ✅ |
 | Política de mídia | `MediaPolicy` | Tipos aceitos (JPEG, PNG, GIF, WebP) e tamanho máximo (10 MB) | ✅ |
 | Upload pré-assinado | `PresignedUpload` | URL temporária para o navegador enviar direto ao storage | ✅ |

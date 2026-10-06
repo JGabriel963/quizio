@@ -42,4 +42,10 @@ export interface GameRepository {
 	 * setting written meanwhile.
 	 */
 	saveHostSeen(gameId: string, at: Date): Promise<void>;
+	/**
+	 * Deletes the games of a quiz that never left the lobby, open or ended
+	 * (spec 015, RN-05): the ones that started stay, as reports, when their
+	 * quiz is deleted for good.
+	 */
+	deleteUnstartedByQuiz(quizId: string): Promise<void>;
 }

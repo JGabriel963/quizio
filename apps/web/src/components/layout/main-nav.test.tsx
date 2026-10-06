@@ -17,6 +17,8 @@ describe("activeMainNavLabel", () => {
 		["/library", "Biblioteca"],
 		["/library/", "Biblioteca"],
 		["/quizzes/quiz-1", "Biblioteca"],
+		["/reports", "Relatórios"],
+		["/reports/game-1", "Relatórios"],
 		["/login", null],
 	])("marks %s as %s", (pathname, label) => {
 		expect(activeMainNavLabel(pathname)).toBe(label);
@@ -44,9 +46,9 @@ describe("MainNav", () => {
 		await renderNav("/");
 
 		expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(
-			["Início", "Biblioteca"],
+			["Início", "Biblioteca", "Relatórios"],
 		);
-		for (const label of ["Relatórios", "Descobrir", "Grupos"]) {
+		for (const label of ["Descobrir", "Grupos"]) {
 			const item = screen.getByText(label).closest("li") as HTMLElement;
 
 			expect(within(item).getByText("Em breve")).toBeVisible();
@@ -65,5 +67,17 @@ describe("MainNav", () => {
 		expect(
 			screen.getByRole("link", { name: "Biblioteca" }),
 		).not.toHaveAttribute("aria-current");
+	});
+
+	it("Relatórios is a link to /reports, marked on a report's page (spec 015)", async () => {
+		await renderNav("/reports/game-1");
+
+		const reports = screen.getByRole("link", { name: "Relatórios" });
+
+		expect(reports).toHaveAttribute("href", "/reports?section=reports");
+		expect(reports).toHaveAttribute("aria-current", "page");
+		expect(
+			within(reports.closest("li") as HTMLElement).queryByText("Em breve"),
+		).toBeNull();
 	});
 });

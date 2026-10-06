@@ -22,6 +22,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		// As `newGame` leaves it: on since the game was created, or off.
 		autoplaySince: options.autoplay ? createdAt : null,
 		createdAt,
+		startedAt: null,
 		expiresAt: new Date(createdAt.getTime() + GAME_TTL_MS),
 		endedAt: null,
 		endReason: null,
@@ -46,6 +47,7 @@ export function aPlayingGame(
 	return {
 		...aGame(overrides),
 		status: "playing",
+		startedAt: overrides.startedAt ?? new Date("2026-06-01T12:00:00.000Z"),
 		questionCount: options.questionCount ?? 3,
 		progress: {
 			questionIndex: options.questionIndex ?? 0,

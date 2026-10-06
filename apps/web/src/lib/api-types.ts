@@ -40,3 +40,19 @@ export type PlayerOutcomeData = NonNullable<PlayerStageData["outcome"]>;
 export type PlayerResultData = PlayerOutcomeData["result"];
 /** How the game ended for this player (spec 011). */
 export type PlayerFinalData = NonNullable<PlayerSessionData["final"]>;
+
+/** The reports' list and one of its lines (spec 015). */
+export type ReportListData = RouterOutputs["report"]["list"];
+export type ReportListItemData = ReportListData["items"][number];
+/** A report open: header, summary, participants and questions. */
+export type ReportData = RouterOutputs["report"]["get"];
+export type ReportHeaderData = ReportData["header"];
+export type ReportSummaryData = ReportData["summary"];
+export type ReportParticipantData = ReportData["participants"][number];
+export type ReportQuestionData = ReportData["questions"][number];
+/** What a participant did, question by question. */
+export type ParticipantDetailData = RouterOutputs["report"]["participant"];
+export type AnswerResultData =
+	ParticipantDetailData["answers"][number]["result"];
+/** How the group answered one question. */
+export type QuestionDetailData = RouterOutputs["report"]["question"];

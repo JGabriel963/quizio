@@ -317,7 +317,12 @@ function HostPage() {
 					receivedAt={view.dataUpdatedAt}
 					playingAgain={playAgain.pending}
 					playAgainError={playAgain.error}
-					actions={{ playAgain: () => playAgain.start(quizId), exit: toQuiz }}
+					actions={{
+						playAgain: () => playAgain.start(quizId),
+						report: () =>
+							navigate({ to: "/reports/$gameId", params: { gameId } }),
+						exit: toQuiz,
+					}}
 				/>
 				{connectionLost}
 			</>

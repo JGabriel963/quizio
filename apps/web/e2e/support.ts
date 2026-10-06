@@ -155,3 +155,16 @@ export async function enterNickname(player: Page, nickname: string) {
 	await player.getByRole("textbox", { name: "Apelido" }).fill(nickname);
 	await player.getByRole("button", { name: "Ok, vamos lá!" }).click();
 }
+
+/**
+ * Hides the dev server's floating devtools button, which sits over the bottom
+ * corner of a phone's screen and takes the clicks meant for what is under it.
+ * It hides the one on the screen now: call it again after a reload.
+ */
+export async function hideDevtools(page: Page) {
+	await page
+		.getByRole("button", { name: "Open TanStack Router Devtools" })
+		.evaluate((button) => {
+			(button as HTMLElement).style.display = "none";
+		});
+}

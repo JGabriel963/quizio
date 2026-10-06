@@ -34,6 +34,7 @@ describe("game repositories (spec 008)", () => {
 	afterAll(() => testDb.close());
 
 	beforeEach(async () => {
+		await testDb.db.delete(gameTable);
 		await testDb.db.delete(quizTable);
 		await quizzes.save(aPublishedQuiz({ id: "quiz-1" }));
 		await quizzes.save(aPublishedQuiz({ id: "quiz-2" }));
@@ -76,6 +77,59 @@ describe("game repositories (spec 008)", () => {
 			});
 		});
 
+		it("stores when the game started (spec 015)", async () => {
+			const startedAt = at("2026-06-01T12:03:00.456Z");
+			await games.create(aGame());
+
+			expect((await games.findById("game-1"))?.startedAt).toBeNull();
+			await games.save({ ...aGame(), startedAt });
+
+			expect((await games.findById("game-1"))?.startedAt).toEqual(startedAt);
+		});
+
+		it("deleting the quiz keeps its games (spec 015)", async () => {
+			await games.create(aGame());
+
+			await quizzes.delete("quiz-1");
+
+			expect(await games.findById("game-1")).toMatchObject({
+				quizId: "quiz-1",
+			});
+		});
+
+		it("deleteUnstartedByQuiz drops the games that never started and keeps the others (spec 015)", async () => {
+			const ended = at("2026-06-01T12:30:00.000Z");
+			await games.create(aGame({ id: "lobby", pin: "111111" }));
+			await games.create(
+				aGame({
+					id: "ended-in-lobby",
+					pin: "222222",
+					status: "ended",
+					endedAt: ended,
+					endReason: "host",
+				}),
+			);
+			await games.create(
+				aGame({
+					id: "finished",
+					pin: "333333",
+					status: "finished",
+					questionCount: 3,
+					endedAt: ended,
+				}),
+			);
+			await games.create(
+				aGame({ id: "other-quiz", pin: "444444", quizId: "quiz-2" }),
+			);
+
+			await games.deleteUnstartedByQuiz("quiz-1");
+
+			expect(await games.findById("lobby")).toBeNull();
+			expect(await games.findById("ended-in-lobby")).toBeNull();
+			expect(await games.findById("finished")).not.toBeNull();
+			expect(await games.findById("other-quiz")).not.toBeNull();
+		});
+
 		it("saves the padlock", async () => {
 			await games.create(aGame());
 
@@ -100,10 +154,12 @@ describe("game repositories (spec 008)", () => {
 			).toEqual(["a"]);
 		});
 
-		it("a quiz deleted for good takes its games and players", async () => {
+		it("an unstarted game deleted with its quiz takes its players", async () => {
 			await games.create(aGame());
 			await players.add(aPlayer());
 
+			// What deleting a quiz for good does to its games (spec 015, RN-05).
+			await games.deleteUnstartedByQuiz("quiz-1");
 			await quizzes.delete("quiz-1");
 
 			expect(await games.findById("game-1")).toBeNull();

@@ -138,12 +138,19 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 		async saveIfAt(game, from) {
 			// One statement: of two requests leaving the same stage, the database
 			// lets one through (spec 009, RN-12).
-			const { status, questionCount, questionIndex, phase, phaseStartedAt } =
-				toRow(game);
+			const {
+				status,
+				startedAt,
+				questionCount,
+				questionIndex,
+				phase,
+				phaseStartedAt,
+			} = toRow(game);
 			const updated = await db
 				.update(gameTable)
 				.set({
 					status,
+					startedAt,
 					questionCount,
 					questionIndex,
 					phase,
@@ -166,6 +173,15 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 				)
 				.returning({ id: gameTable.id });
 			return updated.length > 0;
+		},
+
+		async deleteUnstartedByQuiz(quizId) {
+			// A game has questions from the moment it starts (spec 009, RN-29).
+			await db
+				.delete(gameTable)
+				.where(
+					and(eq(gameTable.quizId, quizId), eq(gameTable.questionCount, 0)),
+				);
 		},
 	};
 }

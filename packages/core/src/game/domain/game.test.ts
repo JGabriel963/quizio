@@ -45,6 +45,8 @@ describe("game (spec 008)", () => {
 			locked: false,
 			quizVersion: 3,
 			title: "Capitais",
+			// It has not started (spec 015).
+			startedAt: null,
 			endedAt: null,
 			endReason: null,
 		});

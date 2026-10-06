@@ -1,6 +1,6 @@
 import { Button } from "@quizio/ui/components/button";
 import { cn } from "@quizio/ui/lib/utils";
-import { ListOrderedIcon, RotateCcwIcon } from "lucide-react";
+import { ChartColumnIcon, ListOrderedIcon, RotateCcwIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 
@@ -19,6 +19,8 @@ import { GameHeader } from "./game-header";
 export interface PodiumActions {
 	/** "Jogar novamente": a new game of the same quiz. */
 	playAgain: () => void;
+	/** "Ver relatório": the report of this game (spec 015, RN-49). */
+	report: () => void;
 	/** Back to the quiz: the game is over, so nothing is asked (RN-12). */
 	exit: () => void;
 }
@@ -170,6 +172,10 @@ export function Podium({
 								>
 									<RotateCcwIcon aria-hidden="true" />
 									Jogar novamente
+								</Button>
+								<Button variant="game" onClick={actions.report}>
+									<ChartColumnIcon aria-hidden="true" />
+									Ver relatório
 								</Button>
 								<Button variant="game" onClick={actions.exit}>
 									Voltar ao quiz

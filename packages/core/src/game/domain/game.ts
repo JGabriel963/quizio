@@ -51,6 +51,8 @@ export interface Game {
 	 */
 	autoplaySince: Date | null;
 	createdAt: Date;
+	/** When "Iniciar" took it out of the lobby; null until then (spec 015). */
+	startedAt: Date | null;
 	expiresAt: Date;
 	/** Set when the game is finished or ended: it frees the PIN. */
 	endedAt: Date | null;
@@ -135,6 +137,7 @@ export function newGame(input: {
 		options: { ...input.options },
 		autoplaySince: input.options.autoplay ? input.now : null,
 		createdAt: input.now,
+		startedAt: null,
 		expiresAt: new Date(input.now.getTime() + GAME_TTL_MS),
 		endedAt: null,
 		endReason: null,

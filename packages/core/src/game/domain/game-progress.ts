@@ -80,6 +80,7 @@ export function startGame(
 	return {
 		...game,
 		status: "playing",
+		startedAt: input.now,
 		questionCount: input.questionCount,
 		progress: {
 			questionIndex: 0,

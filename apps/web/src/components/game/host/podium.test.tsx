@@ -47,7 +47,11 @@ function renderPodium(
 	final: HostFinalData,
 	props: Partial<Parameters<typeof Podium>[0]> = {},
 ) {
-	const actions: PodiumActions = { playAgain: vi.fn(), exit: vi.fn() };
+	const actions: PodiumActions = {
+		playAgain: vi.fn(),
+		report: vi.fn(),
+		exit: vi.fn(),
+	};
 	render(
 		<Podium
 			game={game}
@@ -178,7 +182,12 @@ describe("Podium: after the reveal (spec 011)", () => {
 		expect(action("Classificação")).toBeNull();
 
 		await tick(700);
-		for (const name of ["Classificação", "Jogar novamente", "Voltar ao quiz"]) {
+		for (const name of [
+			"Classificação",
+			"Jogar novamente",
+			"Ver relatório",
+			"Voltar ao quiz",
+		]) {
 			expect(action(name)).toBeVisible();
 		}
 	});
@@ -258,6 +267,17 @@ describe("Podium: after the reveal (spec 011)", () => {
 			"Este quiz não pode mais ser jogado.",
 		);
 		expect(screen.getByRole("list", { name: "Pódio" })).toBeVisible();
+	});
+
+	it("the podium links to the report (spec 015)", async () => {
+		const { actions } = renderPodium(finalOf(3, 0));
+
+		await userEvent.click(
+			screen.getByRole("button", { name: "Ver relatório" }),
+		);
+
+		expect(actions.report).toHaveBeenCalledOnce();
+		expect(actions.exit).not.toHaveBeenCalled();
 	});
 
 	it("leaves without asking, by the header or by Voltar ao quiz", async () => {

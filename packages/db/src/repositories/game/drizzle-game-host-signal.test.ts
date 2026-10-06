@@ -4,6 +4,7 @@ import { aPublishedQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { user } from "../../schema/auth";
+import { game as gameTable } from "../../schema/game";
 import { quiz as quizTable } from "../../schema/quiz";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
 import { createDrizzleQuizRepository } from "../quiz/drizzle-quiz-repository";
@@ -32,6 +33,7 @@ describe("the host's signal (spec 013)", () => {
 
 	beforeEach(async () => {
 		// Games go with the quiz.
+		await testDb.db.delete(gameTable);
 		await testDb.db.delete(quizTable);
 		await quizzes.save(aPublishedQuiz({ id: "quiz-1" }));
 	});

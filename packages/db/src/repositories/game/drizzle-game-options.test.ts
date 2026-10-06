@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { user } from "../../schema/auth";
-import { hostPreferences } from "../../schema/game";
+import { game as gameTable, hostPreferences } from "../../schema/game";
 import { quiz as quizTable } from "../../schema/quiz";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
 import { createDrizzleQuizRepository } from "../quiz/drizzle-quiz-repository";
@@ -46,6 +46,7 @@ describe("game options repositories (spec 012)", () => {
 
 	beforeEach(async () => {
 		// Games and players go with the quiz.
+		await testDb.db.delete(gameTable);
 		await testDb.db.delete(quizTable);
 		await testDb.db.delete(hostPreferences);
 		await quizzes.save(aPublishedQuiz({ id: "quiz-1" }));

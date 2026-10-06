@@ -137,12 +137,30 @@ describe("game router: the host (spec 008)", () => {
 		]);
 	});
 
-	it("deleting the quiz for good ends its open game", async () => {
+	it("deleting the quiz for good ends its lobby, and the game goes with the quiz", async () => {
 		const { api, host, gameId } = await hosted();
 		await api.quizzes.save(aPublishedQuiz({ title: "Capitais", trashedAt }));
 
 		await host.quiz.deletePermanently({ quizId: "quiz-1" });
 
+		// The screens are told before the game is gone (spec 015, RN-05).
+		expect(api.realtime.messagesOn(gameChannel(gameId)).at(-1)).toEqual({
+			channel: gameChannel(gameId),
+			event: GAME_EVENTS.gameEnded,
+			payload: { reason: "quizDeleted" },
+		});
+		expect(await api.games.findById(gameId)).toBeNull();
+	});
+
+	it("deleting the quiz for good ends a game being played, which stays", async () => {
+		const { api, host, gameId } = await hosted();
+		await api.callerFor(null).game.join.enter({ gameId, nickname: "Ana" });
+		await host.game.start({ gameId });
+		await api.quizzes.save(aPublishedQuiz({ title: "Capitais", trashedAt }));
+
+		await host.quiz.deletePermanently({ quizId: "quiz-1" });
+
+		// It started: it is a report from now on.
 		expect(await api.games.findById(gameId)).toMatchObject({
 			status: "ended",
 			endReason: "quizDeleted",

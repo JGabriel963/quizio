@@ -12,6 +12,7 @@ import { quizSearchText } from "@quizio/core/quiz/domain/quiz-details";
 import { InMemoryQuestionRepository } from "@quizio/core/quiz/testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "@quizio/core/quiz/testing/in-memory-quiz-repository";
 import { InMemoryQuizVersionRepository } from "@quizio/core/quiz/testing/in-memory-quiz-version-repository";
+import { InMemoryReportStore } from "@quizio/core/reports/testing/in-memory-report-store";
 import { FixedClock } from "@quizio/core/shared/testing/fixed-clock";
 import { FixedShuffler } from "@quizio/core/shared/testing/fixed-shuffler";
 import { InMemoryAttemptLimiter } from "@quizio/core/shared/testing/in-memory-attempt-limiter";
@@ -41,6 +42,8 @@ export interface TestApi {
 	games: InMemoryGameRepository;
 	players: InMemoryPlayerRepository;
 	answers: InMemoryAnswerRepository;
+	/** Reports are put here directly: it does not read the games above. */
+	reports: InMemoryReportStore;
 	realtime: InMemoryRealtimePublisher;
 	clock: FixedClock;
 }
@@ -72,6 +75,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const games = new InMemoryGameRepository();
 	const players = new InMemoryPlayerRepository();
 	const answers = new InMemoryAnswerRepository();
+	const reports = new InMemoryReportStore();
 	const realtime = new InMemoryRealtimePublisher();
 	const clock = new FixedClock("2026-06-01T12:00:00.000Z");
 	const adapters: Adapters = {
@@ -102,6 +106,8 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 				(await versions.find(quizId, version))?.questions ?? [],
 		),
 		preferences: new InMemoryHostPreferencesRepository(),
+		reportGames: reports,
+		reports,
 		pins: new SequentialGamePinGenerator("265914"),
 		shuffler: new FixedShuffler(),
 		attempts: new InMemoryAttemptLimiter(),
@@ -127,6 +133,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		games,
 		players,
 		answers,
+		reports,
 		realtime,
 		clock,
 	};

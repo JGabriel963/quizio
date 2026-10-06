@@ -10,6 +10,8 @@ import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/d
 import { createDrizzleQuestionRepository } from "@quizio/db/repositories/quiz/drizzle-question-repository";
 import { createDrizzleQuizRepository } from "@quizio/db/repositories/quiz/drizzle-quiz-repository";
 import { createDrizzleQuizVersionRepository } from "@quizio/db/repositories/quiz/drizzle-quiz-version-repository";
+import { createDrizzleReportGameQuery } from "@quizio/db/repositories/reports/drizzle-report-game-query";
+import { createDrizzleReportRepository } from "@quizio/db/repositories/reports/drizzle-report-repository";
 import { createDrizzleAttemptLimiter } from "@quizio/db/repositories/shared/drizzle-attempt-limiter";
 import { env } from "@quizio/env/server";
 import { createPusherRealtimePublisher } from "@quizio/realtime/pusher-realtime-publisher";
@@ -56,6 +58,8 @@ export function createAdaptersFromEnv(): Adapters {
 		answers: createDrizzleAnswerRepository(db),
 		playableQuizzes: createDrizzlePlayableQuizQuery(db),
 		preferences: createDrizzleHostPreferencesRepository(db),
+		reportGames: createDrizzleReportGameQuery(db),
+		reports: createDrizzleReportRepository(db),
 		pins: createRandomGamePinGenerator(),
 		shuffler: createRandomShuffler(),
 		attempts: createDrizzleAttemptLimiter(db),

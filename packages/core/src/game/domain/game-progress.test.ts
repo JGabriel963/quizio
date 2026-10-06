@@ -53,6 +53,15 @@ describe("starting a game (spec 009)", () => {
 		expect(isGameOpen(started)).toBe(true);
 	});
 
+	it("starting records when the game started (spec 015)", () => {
+		const lobby = aGame({ createdAt: later(-60_000) });
+
+		expect(lobby.startedAt).toBeNull();
+		expect(
+			startGame(lobby, { playerCount: 1, questionCount: 3, now }).startedAt,
+		).toEqual(now);
+	});
+
 	it("needs at least one player", () => {
 		expect(() =>
 			startGame(aGame(), { playerCount: 0, questionCount: 10, now }),

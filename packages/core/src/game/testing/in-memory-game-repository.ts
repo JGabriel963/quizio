@@ -70,6 +70,7 @@ export class InMemoryGameRepository implements GameRepository {
 		this.#games.set(game.id, {
 			...stored,
 			status: game.status,
+			startedAt: game.startedAt,
 			questionCount: game.questionCount,
 			progress: game.progress,
 			endedAt: game.endedAt,
@@ -82,6 +83,14 @@ export class InMemoryGameRepository implements GameRepository {
 		const stored = this.#games.get(gameId);
 		if (stored) {
 			this.#games.set(gameId, { ...stored, hostSeenAt: at });
+		}
+	}
+
+	async deleteUnstartedByQuiz(quizId: string): Promise<void> {
+		for (const game of this.all()) {
+			if (game.quizId === quizId && game.questionCount === 0) {
+				this.#games.delete(game.id);
+			}
 		}
 	}
 

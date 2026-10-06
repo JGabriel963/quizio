@@ -68,6 +68,17 @@ describe("startGame (spec 009)", () => {
 		]);
 	});
 
+	it("stores when the game started (spec 015)", async () => {
+		const deps = await lobby();
+		deps.clock.advanceBy(90_000);
+
+		await createStartGame(deps)(mine);
+
+		expect((await deps.games.findById("game-1"))?.startedAt).toEqual(
+			deps.clock.now(),
+		);
+	});
+
 	it("tells the screens, without any question yet", async () => {
 		const deps = await lobby();
 
