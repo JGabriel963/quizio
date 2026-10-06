@@ -29,6 +29,11 @@ export interface CreateAuthOptions {
 	signUpEnabled: boolean;
 	/** Google sign-in is offered only when configured. */
 	google?: GoogleSignInOptions;
+	/**
+	 * Header the proxy in front of the app reports the client address in; the
+	 * rate limit is keyed on it. Defaults to Better Auth's `x-forwarded-for`.
+	 */
+	clientIpHeader?: string;
 	plugins?: BetterAuthPlugin[];
 }
 
@@ -47,6 +52,7 @@ export function createAuth({
 	secret,
 	signUpEnabled,
 	google,
+	clientIpHeader,
 	plugins = [],
 }: CreateAuthOptions) {
 	return betterAuth({
@@ -97,6 +103,9 @@ export function createAuth({
 				},
 			},
 		},
+		advanced: clientIpHeader
+			? { ipAddress: { ipAddressHeaders: [clientIpHeader] } }
+			: undefined,
 		rateLimit: {
 			// On even in development so the behavior is testable (spec 001, RN-07).
 			enabled: true,

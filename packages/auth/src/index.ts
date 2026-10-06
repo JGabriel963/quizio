@@ -32,5 +32,6 @@ export const auth = createAuth({
 	secret: env.BETTER_AUTH_SECRET,
 	signUpEnabled: env.AUTH_SIGN_UP_ENABLED,
 	google,
+	clientIpHeader: env.CLIENT_IP_HEADER,
 	plugins: [tanstackStartCookies()],
 });

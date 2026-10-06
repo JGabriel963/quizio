@@ -67,6 +67,9 @@ export function createAdaptersFromEnv(): Adapters {
 	};
 }
 
+/** The header the proxy in front of this instance reports the caller's address in. */
+export const clientIpHeader = env.CLIENT_IP_HEADER;
+
 let container: Container | undefined;
 
 /** Lazily built once per server instance (one per warm serverless function). */

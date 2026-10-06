@@ -1,0 +1,4 @@
+{
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"buildCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then pnpm -F @quizio/db db:migrate:deploy; fi && pnpm build"
+}

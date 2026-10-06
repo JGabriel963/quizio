@@ -13,6 +13,10 @@ export const env = createEnv({
 		// Redirect URI: {BETTER_AUTH_URL}/api/auth/callback/google
 		GOOGLE_CLIENT_ID: z.string().min(1).optional(),
 		GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+		// Header the proxy in front of the app reports the client address in; it
+		// keys the rate limits, so it must be one a client cannot set. Vercel
+		// overwrites x-forwarded-for; behind your own proxy use what it sets.
+		CLIENT_IP_HEADER: z.string().min(1).default("x-forwarded-for"),
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),
