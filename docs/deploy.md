@@ -13,7 +13,7 @@ Para testar a saída da Vercel na sua máquina: `NITRO_PRESET=vercel pnpm -F web
 
 ### 1. Serviços
 
-- **Postgres** (Neon, Supabase ou outro). Use a string de conexão **com pooler**: cada função serverless abre o seu próprio pool.
+- **Postgres** (Neon, Supabase ou outro), em São Paulo (`sa-east-1`), a mesma região das funções. Use a string de conexão **com pooler**: cada função serverless abre o seu próprio pool.
 - **Cloudflare R2**: um bucket com acesso público de leitura (domínio próprio ou `r2.dev`) e um token de API com leitura e escrita. O navegador envia as imagens direto para o bucket, então ele precisa de uma regra de CORS liberando `PUT` e `GET` para a origem do app (`BETTER_AUTH_URL`), com o cabeçalho `content-type`. Detalhes no [ADR 0003](adr/0003-storage-r2.md).
 - **Pusher Channels**: um app, de preferência no cluster `sa1` (São Paulo). O plano gratuito limita conexões simultâneas; cada jogador e cada anfitrião usa uma.
 - **Google OAuth** (opcional): cliente do tipo "Web application" com a redirect URI `{BETTER_AUTH_URL}/api/auth/callback/google`.
@@ -25,6 +25,8 @@ Importe o repositório na Vercel com:
 - **Root Directory**: `apps/web` (mantenha ligada a opção de incluir arquivos fora da raiz, pois os pacotes ficam em `packages/`).
 - **Framework, Build e Install**: os padrões detectados (`pnpm install`, `pnpm build`).
 - **Node.js**: 22 ou mais novo.
+
+As funções rodam em **São Paulo** (`"regions": ["gru1"]` em `apps/web/vercel.json`), ao lado do banco e do Pusher. Cada chamada faz mais de uma consulta em sequência, então a função precisa ficar na mesma região do banco: se o banco for para outro lugar, mude a região junto. O padrão da Vercel é Washington (`iad1`).
 
 ### 3. Variáveis de ambiente
 
