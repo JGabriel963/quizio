@@ -17,6 +17,7 @@
 		"@quizio/core": "workspace:*",
 		"@quizio/db": "workspace:*",
 		"@quizio/env": "workspace:*",
+		"@tanstack/react-start": "catalog:",
 		"better-auth": "catalog:",
 		"dotenv": "catalog:",
 		"zod": "catalog:"
