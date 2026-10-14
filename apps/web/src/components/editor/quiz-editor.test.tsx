@@ -409,19 +409,26 @@ describe("QuizEditor", () => {
 		expect(actions.deleteQuestion).toHaveBeenCalledExactlyOnceWith("b");
 	});
 
-	it("the list and properties open from buttons on narrow screens", async () => {
-		const { user } = await renderEditor(editorData(question("a", "A?")));
+	it("on narrow screens the list stays on screen and the properties open from the ⋮", async () => {
+		const { actions, user } = await renderEditor(
+			editorData(question("a", "A?")),
+		);
 
-		const listToggle = screen.getByRole("button", {
-			name: "Lista de perguntas",
-		});
-		expect(listToggle).toHaveAttribute("aria-expanded", "false");
-		await user.click(listToggle);
-
-		expect(listToggle).toHaveAttribute("aria-expanded", "true");
 		expect(
-			within(document.body).getByRole("button", { name: "Propriedades" }),
-		).toHaveAttribute("aria-expanded", "false");
+			screen.getByRole("complementary", { name: "Lista de perguntas" }),
+		).toBeVisible();
+		await user.click(
+			screen.getByRole("button", { name: "Propriedades da pergunta" }),
+		);
+		await user.click(await screen.findByRole("menuitem", { name: "Pontos" }));
+		const points = await screen.findByRole("dialog", { name: "Pontos" });
+		await user.click(within(points).getByRole("radio", { name: /Sem pontos/ }));
+		await user.click(within(points).getByRole("button", { name: "Pronto" }));
+
+		expect(actions.changeQuestion).toHaveBeenCalledWith("a", {
+			kind: "points",
+			points: "noPoints",
+		});
 	});
 
 	it("wires the canvas and the properties to the selected question", async () => {

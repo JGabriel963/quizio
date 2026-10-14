@@ -4,16 +4,17 @@ import {
 	DndContext,
 	type DragEndEvent,
 	KeyboardSensor,
-	PointerSensor,
+	MouseSensor,
 	type ScreenReaderInstructions,
+	TouchSensor,
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
 import {
+	rectSortingStrategy,
 	SortableContext,
 	sortableKeyboardCoordinates,
 	useSortable,
-	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { QuestionType } from "@quizio/core/quiz/domain/question";
@@ -31,7 +32,13 @@ import {
 	ImageIcon,
 	Trash2Icon,
 } from "lucide-react";
-import { useId } from "react";
+import {
+	type MouseEventHandler,
+	type TouchEventHandler,
+	useEffect,
+	useId,
+	useRef,
+} from "react";
 
 import type { QuestionData } from "@/lib/api-types";
 import { questionIssueLabel } from "@/lib/question-labels";
@@ -60,7 +67,8 @@ export interface QuestionListProps {
 /**
  * Left panel: the ordered questions, sortable by drag or keyboard (spec 003),
  * with each one's time and an alert when incomplete (spec 004), and the type
- * picker to add one (spec 005).
+ * picker to add one (spec 005). On compact screens it is a horizontal strip of
+ * plain thumbnails, reordered by holding and dragging a card (as in Kahoot).
  */
 export function QuestionList({
 	questions,
@@ -74,12 +82,24 @@ export function QuestionList({
 	onMove,
 }: QuestionListProps) {
 	const sensors = useSensors(
-		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+		useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+		// Hold to drag on touch screens, so a swipe still scrolls the strip.
+		useSensor(TouchSensor, {
+			activationConstraint: { delay: 250, tolerance: 5 },
+		}),
 		useSensor(KeyboardSensor, {
 			coordinateGetter: sortableKeyboardCoordinates,
 		}),
 	);
 	const { deleteReason, growReason } = questionActionReasons(questions.length);
+	const listRef = useRef<HTMLDivElement>(null);
+
+	// Keeps the selected question in view, e.g. one just added at the end of a long list.
+	useEffect(() => {
+		listRef.current
+			?.querySelector(`[data-question-id="${selectedId}"]`)
+			?.scrollIntoView?.({ block: "nearest" });
+	}, [selectedId]);
 	const positionOf = (id: string | number) =>
 		questions.findIndex((question) => question.id === id) + 1;
 
@@ -105,40 +125,51 @@ export function QuestionList({
 	};
 
 	return (
-		<div className="flex flex-col gap-3 p-3">
-			<DndContext
-				sensors={sensors}
-				collisionDetection={closestCenter}
-				onDragEnd={handleDragEnd}
-				accessibility={{ announcements, screenReaderInstructions }}
+		<div className="flex min-h-0 flex-col max-lg:flex-row max-lg:items-center">
+			{/* Grows with the questions; once they overflow, only they scroll and the picker stays below (as in Kahoot). */}
+			<div
+				ref={listRef}
+				className="min-h-0 overflow-y-auto p-3 pb-0 max-lg:min-w-0 max-lg:flex-1 max-lg:overflow-x-auto max-lg:overflow-y-hidden max-lg:pb-3"
 			>
-				<SortableContext
-					items={questions.map(({ id }) => id)}
-					strategy={verticalListSortingStrategy}
+				<DndContext
+					sensors={sensors}
+					collisionDetection={closestCenter}
+					onDragEnd={handleDragEnd}
+					accessibility={{ announcements, screenReaderInstructions }}
 				>
-					<ol aria-label="Perguntas" className="flex flex-col gap-2">
-						{questions.map((question, index) => (
-							<QuestionListItem
-								key={question.id}
-								question={question}
-								imageUrl={
-									question.image ? imageUrls[question.image.key] : undefined
-								}
-								position={index + 1}
-								selected={question.id === selectedId}
-								quiet={quietIds.has(question.id)}
-								deleteReason={deleteReason}
-								duplicateReason={growReason}
-								onSelect={onSelect}
-								onDuplicate={onDuplicate}
-								onDelete={onDelete}
-							/>
-						))}
-					</ol>
-				</SortableContext>
-			</DndContext>
+					<SortableContext
+						items={questions.map(({ id }) => id)}
+						strategy={rectSortingStrategy}
+					>
+						<ol
+							aria-label="Perguntas"
+							className="flex flex-col gap-2 max-lg:flex-row"
+						>
+							{questions.map((question, index) => (
+								<QuestionListItem
+									key={question.id}
+									question={question}
+									imageUrl={
+										question.image ? imageUrls[question.image.key] : undefined
+									}
+									position={index + 1}
+									selected={question.id === selectedId}
+									quiet={quietIds.has(question.id)}
+									deleteReason={deleteReason}
+									duplicateReason={growReason}
+									onSelect={onSelect}
+									onDuplicate={onDuplicate}
+									onDelete={onDelete}
+								/>
+							))}
+						</ol>
+					</SortableContext>
+				</DndContext>
+			</div>
 
-			<QuestionTypePicker unavailableReason={growReason} onPick={onAdd} />
+			<div className="shrink-0 p-3 max-lg:pl-1">
+				<QuestionTypePicker unavailableReason={growReason} onPick={onAdd} />
+			</div>
 		</div>
 	);
 }
@@ -185,16 +216,20 @@ function QuestionListItem({
 	return (
 		<li
 			ref={setNodeRef}
+			data-question-id={question.id}
 			style={{ transform: CSS.Transform.toString(transform), transition }}
 			className={cn(
-				"flex flex-col gap-1 rounded-md p-1",
+				"flex flex-col gap-1 rounded-md p-1 max-lg:shrink-0 max-lg:flex-row max-lg:items-start",
 				selected && "bg-accent",
 				isDragging && "relative z-10 opacity-80",
 			)}
 		>
-			<p className="font-bold text-xs">{`${position} ${typeLabel}`}</p>
+			<p className="font-bold text-xs">
+				{position}
+				<span className="max-lg:hidden">{` ${typeLabel}`}</span>
+			</p>
 			<div className="flex items-stretch gap-1">
-				<div className="flex flex-col items-center justify-center gap-1">
+				<div className="flex flex-col items-center justify-center gap-1 max-lg:hidden">
 					<button
 						type="button"
 						ref={setActivatorNodeRef}
@@ -233,16 +268,24 @@ function QuestionListItem({
 						type="button"
 						aria-label={`Pergunta ${position}: ${question.text ?? "sem texto"}`}
 						aria-current={selected ? "true" : undefined}
+						// The card drags too, by mouse or by holding it (as in Kahoot); the
+						// keyboard keeps Enter and Space for selecting, and moves by the handle.
+						onMouseDown={
+							listeners?.onMouseDown as MouseEventHandler | undefined
+						}
+						onTouchStart={
+							listeners?.onTouchStart as TouchEventHandler | undefined
+						}
 						onClick={() => onSelect(question.id)}
 						className={cn(
-							"flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-md border-2 bg-card p-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+							"flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-md border-2 bg-card p-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 max-lg:w-24 max-lg:justify-center",
 							selected ? "border-primary" : "border-border hover:border-input",
 						)}
 					>
 						{/* Same height with or without text, so every card lines up. */}
 						<span
 							className={cn(
-								"h-4 w-full truncate text-center text-xs leading-4",
+								"h-4 w-full truncate text-center text-xs leading-4 max-lg:hidden",
 								question.text === null
 									? "text-muted-foreground/70"
 									: "font-semibold text-foreground/80",
@@ -255,7 +298,7 @@ function QuestionListItem({
 							aria-hidden="true"
 							className="relative flex h-7 w-full items-center justify-center"
 						>
-							<span className="absolute left-0 flex size-6 items-center justify-center rounded-full border border-border bg-card font-bold text-[0.625rem] text-muted-foreground">
+							<span className="absolute left-0 flex size-6 items-center justify-center rounded-full border border-border bg-card font-bold text-[0.625rem] text-muted-foreground max-lg:hidden">
 								{question.timeLimitSeconds}
 							</span>
 							{question.image && imageUrl ? (
@@ -275,7 +318,10 @@ function QuestionListItem({
 								</span>
 							)}
 						</span>
-						<span aria-hidden="true" className="grid w-full grid-cols-2 gap-1">
+						<span
+							aria-hidden="true"
+							className="grid w-full grid-cols-2 gap-1 max-lg:hidden"
+						>
 							{answerBars(question).map((bar) => (
 								<span
 									key={bar.key}

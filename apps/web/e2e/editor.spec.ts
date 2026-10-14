@@ -16,17 +16,53 @@ const titleField = (page: Page) =>
 const questionItems = (page: Page) =>
 	page.getByRole("list", { name: "Perguntas" }).getByRole("listitem");
 
-/** On narrow screens the question list sits behind a button. */
-async function openQuestionList(page: Page) {
-	// After a reload the editor may still be loading.
+/** After a reload the editor may still be loading. */
+async function waitForEditor(page: Page) {
 	await expect(questionText(page)).toBeVisible();
-	const toggle = page.getByRole("button", { name: "Lista de perguntas" });
-	if (
-		(await toggle.isVisible()) &&
-		(await toggle.getAttribute("aria-expanded")) === "false"
-	) {
-		await toggle.click();
+}
+
+const questionCard = (page: Page, position: number) =>
+	page.getByRole("button", { name: new RegExp(`^Pergunta ${position}:`) });
+
+/**
+ * Wide screens have Duplicar and Excluir beside each question; on phones the
+ * list is a strip, and they sit in the ⋮ beside the selected question's text.
+ */
+async function questionAction(
+	page: Page,
+	isMobile: boolean,
+	position: number,
+	action: "Duplicar" | "Excluir",
+) {
+	if (!isMobile) {
+		await page
+			.getByRole("button", { name: `${action} pergunta ${position}` })
+			.click();
+		return;
 	}
+	await questionCard(page, position).click();
+	await expect(questionCard(page, position)).toHaveAttribute(
+		"aria-current",
+		"true",
+	);
+	await page.getByRole("button", { name: "Propriedades da pergunta" }).click();
+	await page.getByRole("menuitem", { name: action }).click();
+}
+
+/** Drags from the middle of one element to the given point, holding first as a finger would. */
+async function drag(
+	page: Page,
+	from: { x: number; y: number; width: number; height: number },
+	to: { x: number; y: number },
+	holdMs = 0,
+) {
+	await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+	await page.mouse.down();
+	if (holdMs > 0) {
+		await page.waitForTimeout(holdMs);
+	}
+	await page.mouse.move(to.x, to.y, { steps: 20 });
+	await page.mouse.up();
 }
 
 async function writeQuestion(page: Page, text: string) {
@@ -36,7 +72,7 @@ async function writeQuestion(page: Page, text: string) {
 }
 
 async function addQuestion(page: Page, text: string) {
-	await openQuestionList(page);
+	await waitForEditor(page);
 	const count = await questionItems(page).count();
 	await pickNewQuestionType(page);
 	await expect(questionItems(page)).toHaveCount(count + 1);
@@ -45,7 +81,7 @@ async function addQuestion(page: Page, text: string) {
 }
 
 async function expectOrder(page: Page, texts: string[]) {
-	await openQuestionList(page);
+	await waitForEditor(page);
 	await expect(questionItems(page)).toHaveCount(texts.length);
 	for (const [index, text] of texts.entries()) {
 		await expect(questionItems(page).nth(index)).toContainText(
@@ -78,7 +114,7 @@ test("Criar opens the editor with one blank Quiz question, listed in Rascunhos a
 		"placeholder",
 		"Comece a digitar a pergunta",
 	);
-	await openQuestionList(page);
+	await waitForEditor(page);
 	await expect(questionItems(page)).toHaveCount(1);
 	await expect(questionItems(page).first()).toContainText("1 Quiz");
 	await expect(
@@ -103,8 +139,9 @@ test("typed text and title survive a reload", async ({ page }) => {
 	await expectOrder(page, ["Qual é a capital do Brasil?"]);
 });
 
-test("adds after the selected, duplicates, drags C before A, and the order survives a reload", async ({
+test("adds after the selected, duplicates, moves C before A, and the order survives a reload", async ({
 	page,
+	isMobile,
 }) => {
 	await quizWithQuestionsABC(page);
 
@@ -114,7 +151,7 @@ test("adds after the selected, duplicates, drags C before A, and the order survi
 	await expectOrder(page, ["Pergunta A", "Nova", "Pergunta B", "Pergunta C"]);
 
 	// The copy goes right after the original, with its text (RN-12).
-	await page.getByRole("button", { name: "Duplicar pergunta 3" }).click();
+	await questionAction(page, isMobile, 3, "Duplicar");
 	await expect(questionText(page)).toHaveValue("Pergunta B");
 	await expectOrder(page, [
 		"Pergunta A",
@@ -124,19 +161,23 @@ test("adds after the selected, duplicates, drags C before A, and the order survi
 		"Pergunta C",
 	]);
 
-	// Drag the last question to the top (RN-13).
-	const handle = page.getByRole("button", { name: "Mover pergunta 5" });
-	const target = page.getByRole("button", { name: "Mover pergunta 1" });
-	const from = await handle.boundingBox();
-	const to = await target.boundingBox();
-	if (!from || !to) {
-		throw new Error("Drag handles are not visible");
+	// Drag the last question to the top (RN-13): by the handle, or on phones by
+	// the card itself, one place at a time along the strip.
+	if (isMobile) {
+		// The strip may scroll during a drag and carry the card further, so
+		// follow where C is instead of counting on one place per drag.
+		for (let drags = 0; drags < 4; drags++) {
+			const position = await positionOf(page, "Pergunta C");
+			if (position === 1) {
+				break;
+			}
+			await dragCardOnePlaceLeft(page, position);
+			await expectSaved(page);
+		}
+	} else {
+		await dragLastToTop(page);
+		await expectSaved(page);
 	}
-	await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
-	await page.mouse.down();
-	await page.mouse.move(to.x + to.width / 2, to.y - 20, { steps: 20 });
-	await page.mouse.up();
-	await expectSaved(page);
 
 	await page.reload();
 	await expectOrder(page, [
@@ -148,7 +189,46 @@ test("adds after the selected, duplicates, drags C before A, and the order survi
 	]);
 });
 
-test("moves a question with the keyboard", async ({ page }) => {
+async function dragLastToTop(page: Page) {
+	const handle = page.getByRole("button", { name: "Mover pergunta 5" });
+	const target = page.getByRole("button", { name: "Mover pergunta 1" });
+	const from = await handle.boundingBox();
+	const to = await target.boundingBox();
+	if (!from || !to) {
+		throw new Error("Drag handles are not visible");
+	}
+	await drag(page, from, { x: to.x + to.width / 2, y: to.y - 20 });
+}
+
+/** Where the question with this text is in the list, from 1. */
+async function positionOf(page: Page, text: string) {
+	const names = await page
+		.getByRole("list", { name: "Perguntas" })
+		.getByRole("button", { name: /^Pergunta \d+:/ })
+		.evaluateAll((cards) =>
+			cards.map((card) => card.getAttribute("aria-label")),
+		);
+	return names.findIndex((name) => name?.endsWith(`: ${text}`)) + 1;
+}
+
+async function dragCardOnePlaceLeft(page: Page, position: number) {
+	await questionCard(page, position).scrollIntoViewIfNeeded();
+	const from = await questionCard(page, position).boundingBox();
+	const to = await questionCard(page, position - 1).boundingBox();
+	if (!from || !to) {
+		throw new Error("Question cards are not visible");
+	}
+	// Touch screens drag only after holding the card (the strip scrolls otherwise).
+	await drag(
+		page,
+		from,
+		{ x: to.x + to.width / 3, y: to.y + to.height / 2 },
+		400,
+	);
+}
+
+test("moves a question with the keyboard", async ({ page, isMobile }) => {
+	test.skip(isMobile, "Phones have no handles: the cards are dragged instead.");
 	await quizWithQuestionsABC(page);
 
 	const handle = page.getByRole("button", { name: "Mover pergunta 2" });
@@ -171,11 +251,12 @@ test("moves a question with the keyboard", async ({ page }) => {
 
 test("deletes after confirming, and cancelling keeps the question", async ({
 	page,
+	isMobile,
 }) => {
 	await quizWithQuestionsABC(page);
 
 	// Deleting asks first; cancelling keeps the question (RN-14).
-	await page.getByRole("button", { name: "Excluir pergunta 2" }).click();
+	await questionAction(page, isMobile, 2, "Excluir");
 	const confirmation = page.getByRole("alertdialog", {
 		name: "Excluir pergunta",
 	});
@@ -186,7 +267,7 @@ test("deletes after confirming, and cancelling keeps the question", async ({
 	await expect(confirmation).toBeHidden();
 	await expectOrder(page, ["Pergunta A", "Pergunta B", "Pergunta C"]);
 
-	await page.getByRole("button", { name: "Excluir pergunta 2" }).click();
+	await questionAction(page, isMobile, 2, "Excluir");
 	await confirmation.getByRole("button", { name: "Excluir" }).click();
 	await expectOrder(page, ["Pergunta A", "Pergunta C"]);
 	await expect(questionText(page)).toHaveValue("Pergunta C");
@@ -197,10 +278,19 @@ test("deletes after confirming, and cancelling keeps the question", async ({
 	await expectOrder(page, ["Pergunta A", "Pergunta C"]);
 });
 
-test("the only question cannot be deleted", async ({ page }) => {
+test("the only question cannot be deleted", async ({ page, isMobile }) => {
 	await createQuizInEditor(page);
-	await openQuestionList(page);
+	await waitForEditor(page);
 
+	if (isMobile) {
+		await page
+			.getByRole("button", { name: "Propriedades da pergunta" })
+			.click();
+		await expect(
+			page.getByRole("menuitem", { name: "Excluir" }),
+		).toHaveAttribute("aria-disabled", "true");
+		return;
+	}
 	const remove = page.getByRole("button", { name: "Excluir pergunta 1" });
 	await expect(remove).toHaveAttribute("aria-disabled", "true");
 	await expect(remove).toHaveAccessibleDescription(

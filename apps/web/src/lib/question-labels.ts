@@ -38,6 +38,22 @@ export const SELECTION_LABELS: Record<SelectionMode, string> = {
 	multiple: "Múltipla escolha",
 };
 
+/** What each points option does, under its name in the compact editor's dialog (as in Kahoot). */
+export const POINTS_DESCRIPTIONS: Record<QuestionPoints, string> = {
+	standard: "Dar a quantidade normal de pontos para respostas corretas.",
+	double: "Dar o dobro de pontos para respostas corretas.",
+	noPoints: "Não dar pontos por esta pergunta.",
+};
+
+/** What each answer option does, under its name in the compact editor's dialog. */
+export const SELECTION_DESCRIPTIONS: Record<SelectionMode, string> = {
+	single: "Os jogadores escolhem uma resposta.",
+	multiple: "Os jogadores podem escolher mais de uma resposta.",
+};
+
+/** A time limit in the compact editor's grid, as in Kahoot ("90 s"). */
+export const shortTimeLimitLabel = (seconds: number): string => `${seconds} s`;
+
 /**
  * Why a question is incomplete, in Kahoot's words: the list alert and the
  * "Não é possível jogar este quiz" dialog show the same reasons (spec 006, RN-10a).

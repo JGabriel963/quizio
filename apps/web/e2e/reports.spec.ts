@@ -4,7 +4,6 @@ import {
 	createQuizInEditor,
 	enterNickname,
 	expectSaved,
-	hideDevtools,
 	lobbyPin,
 	newParticipant,
 	signUp,
@@ -62,7 +61,6 @@ test.describe("relatórios (spec 015)", () => {
 		await host.getByRole("button", { name: "Avançar" }).click(NEXT_PHASE);
 
 		// CA-39: from the podium to the report of that game.
-		await hideDevtools(host);
 		await host
 			.getByRole("button", { name: "Ver relatório" })
 			.click({ timeout: 20_000 });

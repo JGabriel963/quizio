@@ -57,10 +57,6 @@ async function publishTwoQuestionQuiz(page: Page, title: string) {
 	await page.getByRole("checkbox", { name: "Resposta 1 correta" }).click();
 	await expectSaved(page);
 
-	const listToggle = page.getByRole("button", { name: "Lista de perguntas" });
-	if (await listToggle.isVisible()) {
-		await listToggle.click();
-	}
 	await pickNewQuestionType(page, "Verdadeiro ou falso");
 	const question = page.getByRole("textbox", { name: "Pergunta" });
 	await expect(question).toHaveValue("");

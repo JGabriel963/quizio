@@ -43,7 +43,7 @@ export function TrueFalseAnswers({
 	const unanswered = showHint && correct === null;
 
 	return (
-		<div className="flex flex-col gap-2">
+		<div className="relative">
 			<ul
 				aria-label="Respostas"
 				aria-describedby={unanswered ? hintId : undefined}

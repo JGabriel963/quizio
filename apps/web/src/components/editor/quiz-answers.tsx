@@ -36,29 +36,32 @@ export function QuizAnswers({
 
 	return (
 		<div className="flex flex-col gap-2">
-			<ul
-				aria-label="Respostas"
-				className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-			>
-				{question.choices.map((choice, index) => (
-					<ChoiceField
-						key={`${question.id}:${choice.id}`}
-						questionId={question.id}
-						choice={choice}
-						index={index}
-						hint={hints.includes(index + 1)}
-						onSaveText={(text) => onSaveChoiceText(choice.id, text)}
-						onCorrectChange={(correct) =>
-							onChange({
-								kind: "choiceCorrect",
-								choiceId: choice.id,
-								correct,
-							})
-						}
-					/>
-				))}
-			</ul>
-			{noCorrect && <EditorHint>{NO_CORRECT_ANSWER_HINT}</EditorHint>}
+			{/* Room for the hint below the answers, kept even without it so nothing moves. */}
+			<div className="relative mb-7">
+				<ul
+					aria-label="Respostas"
+					className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+				>
+					{question.choices.map((choice, index) => (
+						<ChoiceField
+							key={`${question.id}:${choice.id}`}
+							questionId={question.id}
+							choice={choice}
+							index={index}
+							hint={hints.includes(index + 1)}
+							onSaveText={(text) => onSaveChoiceText(choice.id, text)}
+							onCorrectChange={(correct) =>
+								onChange({
+									kind: "choiceCorrect",
+									choiceId: choice.id,
+									correct,
+								})
+							}
+						/>
+					))}
+				</ul>
+				{noCorrect && <EditorHint>{NO_CORRECT_ANSWER_HINT}</EditorHint>}
+			</div>
 			<Button
 				variant="secondary"
 				size="sm"
