@@ -50,7 +50,7 @@ export function ChoiceField({
 	const showHint = hint && !filled;
 
 	return (
-		<li className="flex flex-col gap-1">
+		<li className="relative flex flex-col">
 			<div
 				className={cn(
 					"flex min-h-16 items-center gap-3 rounded-md p-2 shadow-press-light transition-colors sm:min-h-[clamp(4.5rem,11svh,7rem)] xl:gap-4",
@@ -99,9 +99,7 @@ export function ChoiceField({
 				/>
 			</div>
 			{showHint && (
-				<EditorHint id={hintId} className="-mt-2.5">
-					{missingAnswerHint(position)}
-				</EditorHint>
+				<EditorHint id={hintId}>{missingAnswerHint(position)}</EditorHint>
 			)}
 		</li>
 	);

@@ -60,10 +60,6 @@ async function publishQuiz(page: Page, title: string) {
 	await expect(page.getByText("Múltipla escolha ativada")).toBeVisible();
 	await expectSaved(page);
 
-	const listToggle = page.getByRole("button", { name: "Lista de perguntas" });
-	if (await listToggle.isVisible()) {
-		await listToggle.click();
-	}
 	await pickNewQuestionType(page, "Verdadeiro ou falso");
 	const question = page.getByRole("textbox", { name: "Pergunta" });
 	await expect(question).toHaveValue("");

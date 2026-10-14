@@ -4,10 +4,7 @@ import {
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { incompleteQuestions } from "@quizio/core/quiz/domain/question-issues";
-import { Button } from "@quizio/ui/components/button";
-import { cn } from "@quizio/ui/lib/utils";
-import { ListIcon, SlidersHorizontalIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useState } from "react";
 
 import type { QuestionData, QuizEditorData } from "@/lib/api-types";
 import {
@@ -27,6 +24,7 @@ import { QuestionCanvas } from "./question-canvas";
 import { QUESTION_IMAGE_FALLBACK_ALT } from "./question-image-view";
 import { QuestionList } from "./question-list";
 import { type ImageUploadState, NO_UPLOAD } from "./question-media";
+import { QuestionPropertiesMenu } from "./question-properties-menu";
 import { QuestionPropertiesPanel } from "./question-properties-panel";
 import { QuizReadyDialog } from "./quiz-ready-dialog";
 import { UnsavedChangesDialog } from "./unsaved-changes-dialog";
@@ -120,9 +118,6 @@ export function QuizEditor({
 			) as ReadonlySet<string>,
 		};
 	});
-	const [openPanel, setOpenPanel] = useState<"list" | "properties" | null>(
-		null,
-	);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	// The steps of Salvar and of leaving (spec 006): one dialog at a time.
 	const [dialog, setDialog] = useState<
@@ -137,7 +132,6 @@ export function QuizEditor({
 	const [uploads, setUploads] = useState<Record<string, ImageUploadState>>({});
 	// Bumped to reload the header's title field from the saved title.
 	const [titleReset, setTitleReset] = useState(0);
-	const panelIds = { list: useId(), properties: useId() };
 	// A question removed elsewhere (or not in the cache yet) falls back to the first.
 	const selected =
 		questions.find((question) => question.id === selectedId) ?? questions[0];
@@ -161,7 +155,6 @@ export function QuizEditor({
 		});
 	const select = (questionId: string) => {
 		moveSelection(questionId);
-		setOpenPanel(null);
 	};
 	/** Deleting asks first (spec 003, RN-14); this runs once the creator confirms. */
 	const remove = (questionId: string) => {
@@ -196,8 +189,6 @@ export function QuizEditor({
 		);
 		set({ progress: null, error: failure });
 	};
-	const toggle = (panel: "list" | "properties") =>
-		setOpenPanel((open) => (open === panel ? null : panel));
 
 	const latest = () => actions.current() ?? data;
 
@@ -261,6 +252,17 @@ export function QuizEditor({
 	};
 	const closeDialog = () => setDialog(null);
 
+	const propertiesProps = {
+		question: selected,
+		questionCount: questions.length,
+		onChange: (change: QuestionChange) =>
+			actions.changeQuestion(selected.id, change),
+		onChangeType: (type: QuestionType) =>
+			actions.changeQuestionType(selected.id, type),
+		onApplyTimeLimitToAll: actions.applyTimeLimitToAll,
+		onDelete: setDeletingId,
+		onDuplicate: duplicate,
+	};
 	const selectedImageUrl = imageUrlOf(data, selected);
 	const backgroundUrl =
 		selected.image?.placement === "background" ? selectedImageUrl : null;
@@ -278,38 +280,11 @@ export function QuizEditor({
 				onPublish={() => void requestPublish()}
 			/>
 
-			<div className="flex gap-2 border-border border-b bg-card px-3 py-2 lg:hidden">
-				<Button
-					variant="outline"
-					size="sm"
-					aria-expanded={openPanel === "list"}
-					aria-controls={panelIds.list}
-					onClick={() => toggle("list")}
-				>
-					<ListIcon data-icon="inline-start" />
-					Lista de perguntas
-				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					aria-expanded={openPanel === "properties"}
-					aria-controls={panelIds.properties}
-					onClick={() => toggle("properties")}
-					className="ml-auto"
-				>
-					<SlidersHorizontalIcon data-icon="inline-start" />
-					Propriedades
-				</Button>
-			</div>
-
-			<div className="relative flex min-h-0 flex-1">
+			<div className="relative flex min-h-0 flex-1 max-lg:flex-col">
+				{/* On compact screens, a strip under the question (as in Kahoot). */}
 				<aside
-					id={panelIds.list}
 					aria-label="Lista de perguntas"
-					className={cn(
-						"z-20 w-56 shrink-0 overflow-y-auto border-border border-r bg-card max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:shadow-lg",
-						openPanel === "list" ? "block" : "hidden lg:block",
-					)}
+					className="flex w-56 shrink-0 flex-col overflow-hidden border-border border-r bg-card max-lg:order-last max-lg:w-full max-lg:border-t max-lg:border-r-0"
 				>
 					<QuestionList
 						questions={questions}
@@ -324,7 +299,7 @@ export function QuizEditor({
 					/>
 				</aside>
 
-				<div className="relative min-w-0 flex-1 bg-linear-to-b from-brand to-brand-strong">
+				<div className="relative min-h-0 min-w-0 flex-1 bg-linear-to-b from-brand to-brand-strong">
 					{/* As a background the image covers the whole question (spec 007, RN-23). */}
 					{backgroundUrl && (
 						<img
@@ -352,29 +327,22 @@ export function QuizEditor({
 								})
 							}
 							onChange={(change) => actions.changeQuestion(selected.id, change)}
+							titleAside={
+								<QuestionPropertiesMenu
+									className="lg:hidden"
+									{...propertiesProps}
+								/>
+							}
 						/>
 					</main>
 				</div>
 
+				{/* On compact screens the ⋮ beside the question text holds these. */}
 				<aside
-					id={panelIds.properties}
 					aria-label="Propriedades"
-					className={cn(
-						"z-20 w-72 shrink-0 overflow-y-auto border-border border-l bg-card max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:shadow-lg",
-						openPanel === "properties" ? "block" : "hidden lg:block",
-					)}
+					className="hidden w-72 shrink-0 overflow-y-auto border-border border-l bg-card lg:block"
 				>
-					<QuestionPropertiesPanel
-						question={selected}
-						questionCount={questions.length}
-						onChange={(change) => actions.changeQuestion(selected.id, change)}
-						onChangeType={(type) =>
-							actions.changeQuestionType(selected.id, type)
-						}
-						onApplyTimeLimitToAll={actions.applyTimeLimitToAll}
-						onDelete={setDeletingId}
-						onDuplicate={duplicate}
-					/>
+					<QuestionPropertiesPanel {...propertiesProps} />
 				</aside>
 			</div>
 			<DeleteQuestionDialog

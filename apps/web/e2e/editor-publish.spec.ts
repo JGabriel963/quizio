@@ -248,10 +248,6 @@ test("publicar de novo leva as alterações para a versão jogável", async ({
 	await expect(readyDialog(page)).toBeHidden();
 
 	// A new blank question blocks the next Salvar, and the version stays.
-	const listToggle = page.getByRole("button", { name: "Lista de perguntas" });
-	if (await listToggle.isVisible()) {
-		await listToggle.click();
-	}
 	await pickNewQuestionType(page, "Verdadeiro ou falso");
 	await expect(questionText(page)).toHaveValue("");
 	await saveButton(page).click();

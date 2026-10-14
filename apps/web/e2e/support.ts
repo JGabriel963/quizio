@@ -79,14 +79,112 @@ export function propertySelect(page: Page, label: string) {
 	return page.getByRole("combobox", { name: label });
 }
 
+type PropertyLabel =
+	| "Tipo de pergunta"
+	| "Limite de tempo"
+	| "Pontos"
+	| "Opções de resposta";
+
+/** On narrow screens each property opens from the ⋮ beside the question text, in a dialog (as in Kahoot). */
+const PROPERTY_MENU: Record<PropertyLabel, { item: string; dialog: string }> = {
+	"Tipo de pergunta": {
+		item: "Alterar tipo de pergunta",
+		dialog: "Alterar tipo de pergunta",
+	},
+	"Limite de tempo": {
+		item: "Definir limite de tempo",
+		dialog: "Limite de tempo",
+	},
+	Pontos: { item: "Pontos", dialog: "Pontos" },
+	"Opções de resposta": {
+		item: "Opções de resposta",
+		dialog: "Opções de resposta",
+	},
+};
+
+const propertiesMenu = (page: Page) =>
+	page.getByRole("button", { name: "Propriedades da pergunta" });
+
+/** Wide screens show the properties panel; narrow ones only the ⋮. */
+const hasPropertiesPanel = async (page: Page) =>
+	!(await propertiesMenu(page).isVisible());
+
+async function openPropertyDialog(page: Page, label: PropertyLabel) {
+	await propertiesMenu(page).click();
+	await page.getByRole("menuitem", { name: PROPERTY_MENU[label].item }).click();
+	const dialog = page.getByRole("dialog", {
+		name: PROPERTY_MENU[label].dialog,
+	});
+	await expect(dialog).toBeVisible();
+	return dialog;
+}
+
 export async function chooseProperty(
 	page: Page,
-	label: string,
+	label: PropertyLabel,
 	option: string,
 ) {
-	await propertySelect(page, label).click();
-	await page.getByRole("option", { name: option, exact: true }).click();
-	await expect(page.getByRole("option")).toHaveCount(0);
+	if (await hasPropertiesPanel(page)) {
+		await propertySelect(page, label).click();
+		await page.getByRole("option", { name: option, exact: true }).click();
+		await expect(page.getByRole("option")).toHaveCount(0);
+		return;
+	}
+	const dialog = await openPropertyDialog(page, label);
+	await dialog.getByRole("radio", { name: option, exact: true }).click();
+	// A type changes when picked; the others wait for Pronto.
+	if (label !== "Tipo de pergunta") {
+		await dialog.getByRole("button", { name: "Pronto" }).click();
+	}
+	await expect(dialog).toBeHidden();
+}
+
+/** The value a property shows: in the panel's select, or checked in its dialog. */
+export async function expectProperty(
+	page: Page,
+	label: PropertyLabel,
+	value: string,
+) {
+	if (await hasPropertiesPanel(page)) {
+		await expect(propertySelect(page, label)).toHaveText(value);
+		return;
+	}
+	const dialog = await openPropertyDialog(page, label);
+	await expect(
+		dialog.getByRole("radio", { name: value, exact: true }),
+	).toBeChecked();
+	await dialog.getByRole("button", { name: "Cancelar" }).click();
+	await expect(dialog).toBeHidden();
+}
+
+/** A property the question's type does not have (true/false has no answer options). */
+export async function expectNoProperty(page: Page, label: PropertyLabel) {
+	if (await hasPropertiesPanel(page)) {
+		await expect(propertySelect(page, label)).toHaveCount(0);
+		return;
+	}
+	await propertiesMenu(page).click();
+	await expect(
+		page.getByRole("menuitem", { name: PROPERTY_MENU[label].item }),
+	).toHaveCount(0);
+	const menu = page.getByRole("menu");
+	await menu.press("Escape");
+	await expect(menu).toBeHidden();
+}
+
+/** "Aplicar a todas as perguntas" with the selected question's time limit. */
+export async function applyTimeLimitToAll(page: Page) {
+	if (await hasPropertiesPanel(page)) {
+		await page
+			.getByRole("button", { name: "Aplicar a todas as perguntas" })
+			.click();
+		return;
+	}
+	const dialog = await openPropertyDialog(page, "Limite de tempo");
+	await dialog
+		.getByRole("button", { name: "Aplicar a todas as perguntas" })
+		.click();
+	await expect(dialog).toBeHidden();
 }
 
 /** Waits until the editor reports every change as saved. */
@@ -154,17 +252,4 @@ export async function lobbyPin(host: Page): Promise<string> {
 export async function enterNickname(player: Page, nickname: string) {
 	await player.getByRole("textbox", { name: "Apelido" }).fill(nickname);
 	await player.getByRole("button", { name: "Ok, vamos lá!" }).click();
-}
-
-/**
- * Hides the dev server's floating devtools button, which sits over the bottom
- * corner of a phone's screen and takes the clicks meant for what is under it.
- * It hides the one on the screen now: call it again after a reload.
- */
-export async function hideDevtools(page: Page) {
-	await page
-		.getByRole("button", { name: "Open TanStack Router Devtools" })
-		.evaluate((button) => {
-			(button as HTMLElement).style.display = "none";
-		});
 }

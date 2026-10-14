@@ -21,7 +21,8 @@ import { QuestionTypeIcon } from "./question-type-icon";
 const addLabel = (
 	<>
 		<PlusIcon data-icon="inline-start" />
-		Adicionar
+		{/* Only the icon in the compact strip, as in Kahoot. */}
+		<span className="max-lg:sr-only">Adicionar</span>
 	</>
 );
 
@@ -39,14 +40,21 @@ export function QuestionTypePicker({
 }) {
 	if (unavailableReason) {
 		return (
-			<ActionButton unavailableReason={unavailableReason}>
+			<ActionButton
+				className="w-full max-lg:size-11 max-lg:px-0"
+				unavailableReason={unavailableReason}
+			>
 				{addLabel}
 			</ActionButton>
 		);
 	}
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger render={<Button />}>{addLabel}</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={<Button className="w-full max-lg:size-11 max-lg:px-0" />}
+			>
+				{addLabel}
+			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				side="right"
 				align="end"

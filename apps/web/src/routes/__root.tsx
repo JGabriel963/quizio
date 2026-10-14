@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import { useEffect, useState } from "react";
 
 import appCss from "../index.css?url";
 import { RealtimeProvider } from "../lib/realtime";
@@ -58,10 +59,27 @@ function RootDocument() {
 					<Outlet />
 				</RealtimeProvider>
 				<Toaster richColors />
-				<TanStackRouterDevtools position="bottom-left" />
-				<ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+				<Devtools />
 				<Scripts />
 			</body>
 		</html>
+	);
+}
+
+/**
+ * Dev-only panels. Left out of automated browsers (Playwright), where their
+ * floating buttons would cover the editor's bottom strip.
+ */
+function Devtools() {
+	const [show, setShow] = useState(false);
+	useEffect(() => setShow(!navigator.webdriver), []);
+	if (!show) {
+		return null;
+	}
+	return (
+		<>
+			<TanStackRouterDevtools position="bottom-left" />
+			<ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+		</>
 	);
 }

@@ -40,7 +40,7 @@ export function QuestionTextField({
 	const showHint = hint && value.trim() === "";
 
 	return (
-		<div className="flex w-full flex-col">
+		<div className="relative flex w-full min-w-0 flex-1 flex-col">
 			<div className="relative w-full">
 				<Input
 					aria-label="Pergunta"
@@ -67,9 +67,7 @@ export function QuestionTextField({
 				)}
 			</div>
 			{showHint && (
-				<EditorHint id={hintId} className="-mt-1.5">
-					{MISSING_QUESTION_TEXT_HINT}
-				</EditorHint>
+				<EditorHint id={hintId}>{MISSING_QUESTION_TEXT_HINT}</EditorHint>
 			)}
 		</div>
 	);

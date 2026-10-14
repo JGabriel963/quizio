@@ -1,5 +1,7 @@
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 
+import type { ReactNode } from "react";
+
 import type { QuestionData } from "@/lib/api-types";
 
 import { type ImageUploadState, QuestionMedia } from "./question-media";
@@ -17,6 +19,7 @@ export function QuestionCanvas({
 	onSaveChoiceText,
 	onChange,
 	onUploadImage,
+	titleAside,
 }: {
 	question: QuestionData;
 	/** Public URL of the question's image, if it has one. */
@@ -29,19 +32,24 @@ export function QuestionCanvas({
 	/** Changes saved at once: corrects and the extra answers. */
 	onChange: (change: QuestionChange) => void;
 	onUploadImage: (file: File) => void;
+	/** Beside the question text: the properties menu on compact screens. */
+	titleAside?: ReactNode;
 }) {
 	return (
 		// As in Kahoot, the question takes the whole middle of the editor: the
 		// text and the answers span its width, and the media gets the height left.
 		<div className="flex min-h-full w-full flex-col gap-3 sm:gap-4">
-			{/* Keyed by question so switching questions never mixes their texts. */}
-			<QuestionTextField
-				key={question.id}
-				questionId={question.id}
-				initialText={question.text}
-				hint={showHints}
-				onSave={onSaveText}
-			/>
+			<div className="flex items-center gap-2">
+				{/* Keyed by question so switching questions never mixes their texts. */}
+				<QuestionTextField
+					key={question.id}
+					questionId={question.id}
+					initialText={question.text}
+					hint={showHints}
+					onSave={onSaveText}
+				/>
+				{titleAside}
+			</div>
 
 			{/*
 				The media gets the height the text and the answers leave. Its box is the
