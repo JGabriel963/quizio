@@ -28,11 +28,12 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 | 019 | Atribuir e Jogar solo | game, reports | Atribuição com prazo; solo com oponentes virtuais | ⬜ | — |
 | 020 | Modo equipe | game | Times, Team Talk, pontuação por média | ⬜ | — |
 | 021 | Produtividade do criador | quiz, library | Importar planilha, banco de perguntas, favoritos, pastas | ⬜ | — |
-| 022 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, IA, Accuracy/Confidence, jogar novamente, avatares dos jogadores, temas e pré-visualização no editor, imagem nas alternativas do Quiz, revelação de imagem | ⬜ | — |
+| 022 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, IA, Accuracy/Confidence, jogar novamente, temas e pré-visualização no editor, imagem nas alternativas do Quiz, revelação de imagem | ⬜ | — |
 | 023 | Apelidos: gerador e filtro | game | Gerador de apelido (adjetivo + animal, até 3 giros) e filtro de apelidos impróprios | ⬜ | — |
 | 024 | Entrada em duas etapas | game | Depois do PIN, o jogador repete o padrão de 4 blocos da tela do anfitrião, que muda a cada 7 s | ⬜ | — |
 | 025 | Música e efeitos sonoros | game | Música do lobby com volume, sons durante o jogo, liga e desliga no cabeçalho | ⬜ | — |
 | 026 | Exportar relatório | reports | Baixar a planilha XLSX (resumo, pontuações finais, uma aba por pergunta, dados brutos) e imprimir | ⬜ | — |
+| 027 | Personagens dos jogadores | game | Avatar (personagem + acessório) sorteado ao entrar e trocável enquanto o jogador espera; no lobby, no rodapé do celular, no placar, no pódio e na classificação; chave "Personagens dos jogadores" no painel, salva por criador | 📐 | [spec](features/027-personagens-dos-jogadores/spec.md) · [plano](features/027-personagens-dos-jogadores/plan.md) · [tarefas](features/027-personagens-dos-jogadores/tasks.md) |
 
 ## Mudanças de ordem
 
@@ -44,6 +45,7 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 - **2026-10-02 — a 013 mudou de conteúdo, sem mudar de número.** Saíram "encerrar antes indo ao pódio", "trocar de aparelho" e "remover jogador durante o jogo": o usuário observou que o Kahoot não remove jogador depois que o jogo começa e que, ao encerrar, os jogadores voltam à entrada do PIN, e decidiu seguir o Kahoot também na troca de aparelho (apelido novo, do zero). Entraram o botão "Encerrar agora" no painel de configurações e os avisos de conexão perdida das capturas enviadas.
 - **2026-10-06 — a 014 ficou só com a reprodução automática.** Por decisão do usuário, depois de testar a "Rep. automática" no Kahoot. O gerador e o filtro de apelidos, a entrada em duas etapas e o som saíram dela e viraram as linhas 023 a 025, **sem renumerar as outras**: o número é só o nome da pasta, e as três podem ser puxadas para antes dos relatórios quando forem especificadas. As renumerações anteriores deixaram referências antigas em specs já entregues (por exemplo, a spec 002 ainda cita relatórios como 013); outra renumeração pioraria isso.
 - **2026-10-06 — a exportação saiu da 015 e virou a linha 026.** Por decisão do usuário ao especificar os relatórios: a planilha é um trabalho à parte, e as telas já entregam o resultado da partida. Também ficaram de fora da 015, sem linha própria por enquanto: o quiz só com as perguntas difíceis, "Ver pódio" a partir do relatório e a pesquisa de feedback.
+- **2026-10-15 — os avatares saíram de Extras e viraram a linha 027**, entregue antes da 016, sem renumerar as outras (regra de 2026-10-06). Por decisão do usuário, a partir das capturas do Kahoot da escolha de personagem.
 
 ## Pendências técnicas fora de features
 

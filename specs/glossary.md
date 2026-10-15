@@ -103,6 +103,10 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Limite de jogadores | `GAME_MAX_PLAYERS` | Máximo de 200 jogadores por partida, técnico e configurável (spec 008) | ✅ |
 | Jogador | `Player` | Participante anônimo identificado por apelido na partida; pertence ao navegador em que entrou (spec 008) | ✅ |
 | Apelido | `Nickname` | Nome do jogador na partida: 1 a 15 caracteres, único sem diferenciar maiúsculas e acentos, fixo depois de entrar (spec 008) | ✅ |
+| Avatar | `Avatar` | Personagem e acessório opcional do jogador, sorteado ao entrar (ou o último que o navegador escolheu) e trocável enquanto ele espera para jogar; aparece ao lado do apelido (spec 027) | 📝 |
+| Personagem | `character` | Rosto de bicho ou criatura do catálogo fixo do Quizio; parte obrigatória do avatar (spec 027) | 📝 |
+| Acessório | `accessory` | Chapéu, óculos ou enfeite do catálogo, desenhado sobre o personagem; opcional ("Nenhum") (spec 027) | 📝 |
+| Personagens dos jogadores | `GameOptions.gameCharacters` | Opção de jogo, ligada por padrão e salva para o criador: desligada, as telas mostram só o apelido e ninguém troca de avatar; os avatares continuam guardados (spec 027) | 📝 |
 | Anfitrião | `Host` | Criador que conduz a partida; é o dono do quiz (spec 008) | ✅ |
 | Estado da partida | `GameStatus` | `lobby` → `playing` → `finished`, ou `ended` quando é encerrada antes do fim (specs 008 e 009) | ✅ |
 | Iniciar | `startGame` | Passa a partida do lobby para em andamento; exige ao menos um jogador, fecha a entrada e copia as perguntas da versão jogável (spec 009) | ✅ |
