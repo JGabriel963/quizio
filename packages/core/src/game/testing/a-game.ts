@@ -67,6 +67,7 @@ export function aPlayer(overrides: Partial<Player> = {}): Player {
 		nicknameKey: nicknameKeyOf(nickname),
 		secret: "secret-1",
 		firstQuestionIndex: 0,
+		avatar: { character: "koala", accessory: "top-hat" },
 		joinedAt: new Date("2026-06-01T12:01:00.000Z"),
 		removedAt: null,
 		...overrides,

@@ -5,6 +5,7 @@ import { podiumOf, revealedPlaces } from "./podium";
 const standing = (rank: number, nickname: string, total: number) => ({
 	playerId: `p${rank}`,
 	nickname,
+	avatar: null,
 	total,
 	rank,
 });

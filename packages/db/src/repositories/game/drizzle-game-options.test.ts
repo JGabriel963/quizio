@@ -20,6 +20,7 @@ const options = {
 	randomizeQuestions: false,
 	randomizeAnswers: true,
 	autoplay: false,
+	gameCharacters: true,
 };
 
 describe("game options repositories (spec 012)", () => {
@@ -50,6 +51,37 @@ describe("game options repositories (spec 012)", () => {
 		await testDb.db.delete(quizTable);
 		await testDb.db.delete(hostPreferences);
 		await quizzes.save(aPublishedQuiz({ id: "quiz-1" }));
+	});
+
+	describe("characters (spec 028)", () => {
+		it("a game keeps gameCharacters, and saveOptions changes it alone", async () => {
+			await games.create(
+				aGame({ options: { ...options, gameCharacters: false } }),
+			);
+
+			expect((await games.findById("game-1"))?.options.gameCharacters).toBe(
+				false,
+			);
+
+			await games.saveOptions("game-1", { gameCharacters: true }, now);
+
+			expect((await games.findById("game-1"))?.options).toEqual({
+				...options,
+				gameCharacters: true,
+			});
+		});
+
+		it("host preferences keep gameCharacters", async () => {
+			await preferences.save("user-1", { gameCharacters: false });
+
+			expect((await preferences.find("user-1"))?.gameCharacters).toBe(false);
+		});
+
+		it("a host without preferences gets characters on with a first save", async () => {
+			await preferences.save("user-2", { autoplay: true });
+
+			expect((await preferences.find("user-2"))?.gameCharacters).toBe(true);
+		});
 	});
 
 	describe("the options of a game", () => {
@@ -267,6 +299,7 @@ describe("game options repositories (spec 012)", () => {
 				randomizeQuestions: false,
 				randomizeAnswers: true,
 				autoplay: true,
+				gameCharacters: true,
 			});
 		});
 	});
@@ -339,6 +372,7 @@ describe("game options repositories (spec 012)", () => {
 				randomizeQuestions: true,
 				randomizeAnswers: true,
 				autoplay: false,
+				gameCharacters: true,
 			});
 		});
 
@@ -350,6 +384,7 @@ describe("game options repositories (spec 012)", () => {
 				randomizeQuestions: false,
 				randomizeAnswers: true,
 				autoplay: false,
+				gameCharacters: true,
 			});
 
 			await preferences.save("user-1", { showQuestionsOnDevices: true });
@@ -359,6 +394,7 @@ describe("game options repositories (spec 012)", () => {
 				randomizeQuestions: false,
 				randomizeAnswers: true,
 				autoplay: false,
+				gameCharacters: true,
 			});
 		});
 

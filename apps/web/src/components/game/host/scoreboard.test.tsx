@@ -14,9 +14,11 @@ const entry = (
 	rank: number,
 	total: number,
 	previous: { rank: number; total: number } | null,
+	avatar: ScoreboardEntryData["avatar"] = null,
 ): ScoreboardEntryData => ({
 	playerId: nickname.toLowerCase(),
 	nickname,
+	avatar,
 	rank,
 	total,
 	climbed: previous !== null && rank < previous.rank,
@@ -219,5 +221,27 @@ describe("Scoreboard: autoplay (spec 014)", () => {
 
 		expect(screen.queryByRole("timer")).toBeNull();
 		expect(screen.getByRole("button", { name: "Avançar" })).toBeEnabled();
+	});
+});
+
+describe("Scoreboard: avatars (spec 028)", () => {
+	it("each row shows the avatar beside the nickname", () => {
+		stubReducedMotion(true);
+		renderBoard([
+			entry("Ana", 1, 950, null, { character: "fox", accessory: "crown" }),
+			entry("Bia", 2, 900, null),
+		]);
+
+		const [ana, bia] = within(board()).getAllByRole("listitem");
+		expect(
+			[...(ana?.querySelectorAll("img") ?? [])].map((image) =>
+				image.getAttribute("src"),
+			),
+		).toEqual([
+			"/avatars/characters/fox.svg",
+			"/avatars/accessories/crown.svg",
+		]);
+		expect(bia?.querySelectorAll("img")).toHaveLength(0);
+		expect(rows()).toEqual(["Ana 950", "Bia 900"]);
 	});
 });

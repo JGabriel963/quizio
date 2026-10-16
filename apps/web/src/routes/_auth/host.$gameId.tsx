@@ -1,5 +1,6 @@
 import {
 	type AnswerCountPayload,
+	type AvatarChangedPayload,
 	GAME_EVENTS,
 	type GameEndedPayload,
 	gameChannel,
@@ -137,6 +138,13 @@ function HostPage() {
 			recount();
 		},
 	);
+	// A player changed avatar while waiting: the card changes (spec 028, RN-12).
+	useRealtimeEvent<AvatarChangedPayload>(
+		channel,
+		GAME_EVENTS.avatarChanged,
+		({ playerId, avatar }) =>
+			applyLobby({ type: "avatarChanged", playerId, avatar }),
+	);
 	useRealtimeEvent<PlayerRemovedPayload>(
 		channel,
 		GAME_EVENTS.playerRemoved,
@@ -198,9 +206,13 @@ function HostPage() {
 				void applyLobby({ type: "optionsChanged", options }),
 			onSuccess: ({ options }, { options: asked }) => {
 				applyLobby({ type: "optionsChanged", options });
-				// Autoplay's countdowns are the server's: the game is asked about
-				// again for them (spec 014, RN-08, RN-15).
-				if (asked.autoplay !== undefined) {
+				// Autoplay's countdowns are the server's, and so are the avatars
+				// the characters show: the game is asked about again for them
+				// (spec 014, RN-08, RN-15; spec 028, RN-25, RN-26).
+				if (
+					asked.autoplay !== undefined ||
+					asked.gameCharacters !== undefined
+				) {
 					void refresh();
 				}
 			},

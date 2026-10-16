@@ -11,6 +11,7 @@ const allOff: GameOptionsData = {
 	randomizeQuestions: false,
 	randomizeAnswers: false,
 	autoplay: false,
+	gameCharacters: false,
 };
 
 const NAMES = [
@@ -19,6 +20,7 @@ const NAMES = [
 	"Mostrar perguntas em ordem aleatória",
 	"Mostrar respostas em ordem aleatória",
 	"Reprodução automática",
+	"Personagens dos jogadores",
 ];
 
 function renderSettings(
@@ -48,7 +50,7 @@ function renderSettings(
 }
 
 describe("GameSettings (spec 012)", () => {
-	it("shows the five switches with their explanations and the footer", () => {
+	it("shows the six switches with their explanations and the footer", () => {
 		const { panel } = renderSettings();
 
 		expect(
@@ -71,7 +73,7 @@ describe("GameSettings (spec 012)", () => {
 		);
 	});
 
-	it("every switch is off for a first game", () => {
+	it("shows every switch off when every option is off", () => {
 		const { switchOf } = renderSettings();
 
 		for (const name of NAMES) {
@@ -90,7 +92,7 @@ describe("GameSettings (spec 012)", () => {
 
 		expect(
 			NAMES.map((name) => switchOf(name).getAttribute("aria-checked")),
-		).toEqual(["true", "false", "false", "true", "false"]);
+		).toEqual(["true", "false", "false", "true", "false", "false"]);
 	});
 
 	it("asks for the change at once", async () => {
@@ -298,5 +300,44 @@ describe("GameSettings: Reprodução automática (spec 014)", () => {
 		await user.click(switchOf(NAME));
 
 		expect(onOptionsChange).toHaveBeenCalledExactlyOnceWith({ autoplay: true });
+	});
+});
+
+describe("GameSettings: Personagens dos jogadores (spec 028)", () => {
+	const NAME = "Personagens dos jogadores";
+
+	it("shows Personagens dos jogadores after autoplay and before Encerrar jogo", () => {
+		const { panel, switchOf } = renderSettings({
+			options: { ...allOff, gameCharacters: true },
+		});
+		const characters = switchOf(NAME);
+		const autoplay = switchOf("Reprodução automática");
+		const end = within(panel).getByText("Encerrar jogo");
+
+		expect(characters).toHaveAttribute("aria-checked", "true");
+		expect(characters).toHaveAccessibleDescription(
+			"Os jogadores escolhem um personagem e um acessório.",
+		);
+		expect(
+			autoplay.compareDocumentPosition(characters) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(
+			characters.compareDocumentPosition(end) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("turning it off sends gameCharacters false, also during the game", async () => {
+		const { user, switchOf, onOptionsChange } = renderSettings({
+			options: { ...allOff, gameCharacters: true },
+			playing: true,
+		});
+
+		await user.click(switchOf(NAME));
+
+		expect(onOptionsChange).toHaveBeenCalledExactlyOnceWith({
+			gameCharacters: false,
+		});
 	});
 });

@@ -44,6 +44,8 @@ import { TabNav, TabNavItem } from "@quizio/ui/components/tab-nav";
 import { Textarea } from "@quizio/ui/components/textarea";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
+import { Avatar } from "@/components/game/avatar";
+import { AVATAR_CATALOG } from "@/lib/avatar-catalog";
 
 export const Route = createFileRoute("/design-system")({
 	component: DesignSystemPage,
@@ -308,6 +310,43 @@ function DesignSystemPage() {
 						<SheetFooter>Rodapé do painel</SheetFooter>
 					</SheetContent>
 				</Sheet>
+			</Section>
+
+			<Section title="Avatares">
+				<p className="text-muted-foreground text-sm">
+					Personagens e acessórios dos jogadores (spec 028). A matriz mostra
+					cada acessório sobre três rostos, para conferir o encaixe.
+				</p>
+				<div className="flex flex-wrap gap-3">
+					{AVATAR_CATALOG.characters.map((item) => (
+						<figure
+							key={item.id}
+							className="flex w-16 flex-col items-center gap-1"
+						>
+							<Avatar
+								avatar={{ character: item.id, accessory: null }}
+								className="size-14"
+							/>
+							<figcaption className="text-center text-xs">
+								{item.label}
+							</figcaption>
+						</figure>
+					))}
+				</div>
+				<div className="flex flex-col gap-3">
+					{AVATAR_CATALOG.accessories.map((item) => (
+						<div key={item.id} className="flex items-center gap-3">
+							<span className="w-36 text-sm">{item.label}</span>
+							{(["koala", "frog", "robot"] as const).map((character) => (
+								<Avatar
+									key={character}
+									avatar={{ character, accessory: item.id }}
+									className="size-24 rounded-md bg-muted"
+								/>
+							))}
+						</div>
+					))}
+				</div>
 			</Section>
 		</main>
 	);

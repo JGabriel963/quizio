@@ -29,6 +29,8 @@ function JoinPage() {
 			// (spec 013): both are safe to ask again.
 			session: (input) => withTimeout(client.game.join.session.query(input)),
 			answer: (input) => withTimeout(client.game.join.answer.mutate(input)),
+			setAvatar: (input) =>
+				withTimeout(client.game.join.setAvatar.mutate(input)),
 		}),
 		[client],
 	);

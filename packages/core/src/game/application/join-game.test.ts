@@ -24,6 +24,8 @@ import { createRemovePlayer } from "./remove-player";
 import { createSetGameLocked } from "./set-game-locked";
 
 const mine = { ownerId: "user-1", gameId: "game-1" };
+/** What the test shuffler draws: the last of each list. */
+const drawn = { character: "moon", accessory: "fire" };
 
 async function lobby(overrides: Parameters<typeof aGame>[0] = {}) {
 	const deps = createGameDeps();
@@ -171,6 +173,7 @@ describe("joinGame (spec 008)", () => {
 			playerId: "id-1",
 			secret: "id-2",
 			nickname: "ACT",
+			avatar: drawn,
 		});
 		expect(await deps.players.listActive("game-1")).toMatchObject([
 			{ id: "id-1", nickname: "ACT", nicknameKey: "act" },
@@ -179,7 +182,7 @@ describe("joinGame (spec 008)", () => {
 			{
 				channel: gameChannel("game-1"),
 				event: GAME_EVENTS.playerJoined,
-				payload: { player: { id: "id-1", nickname: "ACT" } },
+				payload: { player: { id: "id-1", nickname: "ACT", avatar: drawn } },
 			},
 		]);
 	});
@@ -321,6 +324,8 @@ describe("getPlayerSession (spec 008)", () => {
 		expect(await createGetPlayerSession(deps)(session)).toEqual({
 			gameId: "game-1",
 			nickname: "ACT",
+			avatar: drawn,
+			canChangeAvatar: true,
 			status: "waiting",
 			stage: null,
 			final: null,
@@ -483,7 +488,7 @@ describe("joining a game in progress (spec 012)", () => {
 		expect(deps.realtime.messages.at(-1)).toEqual({
 			channel: gameChannel("game-1"),
 			event: GAME_EVENTS.playerJoined,
-			payload: { player: { id: playerId, nickname: "Caio" } },
+			payload: { player: { id: playerId, nickname: "Caio", avatar: drawn } },
 		});
 	});
 
@@ -496,5 +501,65 @@ describe("joining a game in progress (spec 012)", () => {
 				gameId: "game-1",
 			});
 		}
+	});
+});
+
+describe("joining with an avatar (spec 028)", () => {
+	const fox = { character: "fox", accessory: "crown" };
+
+	it("draws an avatar when none is remembered", async () => {
+		const deps = await lobby();
+
+		const joined = await createJoinGame(deps)({
+			gameId: "game-1",
+			nickname: "Ana",
+		});
+
+		expect(joined.avatar).toEqual(drawn);
+		expect((await deps.players.findById(joined.playerId))?.avatar).toEqual(
+			drawn,
+		);
+	});
+
+	it("keeps a remembered avatar from the catalog", async () => {
+		const deps = await lobby();
+
+		const joined = await createJoinGame(deps)({
+			gameId: "game-1",
+			nickname: "Ana",
+			avatar: fox,
+		});
+
+		expect(joined.avatar).toEqual(fox);
+		expect((await deps.players.findById(joined.playerId))?.avatar).toEqual(fox);
+	});
+
+	it("draws when the remembered avatar left the catalog", async () => {
+		const deps = await lobby();
+
+		const joined = await createJoinGame(deps)({
+			gameId: "game-1",
+			nickname: "Ana",
+			avatar: { character: "dinosaur", accessory: null },
+		});
+
+		expect(joined.avatar).toEqual(drawn);
+	});
+
+	it("a player who joins with characters off still gets an avatar, and the lobby is told none", async () => {
+		const deps = await lobby({
+			options: { ...aGame().options, gameCharacters: false },
+		});
+
+		const joined = await createJoinGame(deps)({
+			gameId: "game-1",
+			nickname: "Ana",
+			avatar: fox,
+		});
+
+		expect((await deps.players.findById(joined.playerId))?.avatar).toEqual(fox);
+		expect(deps.realtime.messages.at(-1)?.payload).toEqual({
+			player: { id: joined.playerId, nickname: "Ana", avatar: null },
+		});
 	});
 });

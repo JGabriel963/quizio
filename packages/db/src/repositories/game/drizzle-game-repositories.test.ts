@@ -1,11 +1,16 @@
+import { CHARACTER_IDS } from "@quizio/core/game/domain/avatar";
 import { endGame } from "@quizio/core/game/domain/game";
 import { removePlayer } from "@quizio/core/game/domain/player";
 import { aGame, aPlayer } from "@quizio/core/game/testing/a-game";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { user } from "../../schema/auth";
-import { game as gameTable } from "../../schema/game";
+import {
+	game as gameTable,
+	gamePlayer as playerTable,
+} from "../../schema/game";
 import { quiz as quizTable } from "../../schema/quiz";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
 import { createDrizzleQuizRepository } from "../quiz/drizzle-quiz-repository";
@@ -310,6 +315,54 @@ describe("game repositories (spec 008)", () => {
 					aPlayer({ id: "p2", gameId: "game-2", nickname: "ACT" }),
 				),
 			).toBe("added");
+		});
+	});
+
+	describe("the player's avatar (spec 028)", () => {
+		beforeEach(async () => {
+			await games.create(aGame());
+		});
+
+		it("a player is stored with the avatar", async () => {
+			const player = aPlayer({ avatar: { character: "fox", accessory: null } });
+
+			await players.add(player);
+
+			expect(await players.findById("player-1")).toEqual(player);
+		});
+
+		it("saveAvatar writes only the avatar columns", async () => {
+			await players.add(aPlayer());
+			await players.add(aPlayer({ id: "player-2", nickname: "Bia" }));
+			await players.save(
+				removePlayer(aPlayer(), at("2026-06-01T12:05:00.000Z")),
+			);
+
+			await players.saveAvatar("player-1", {
+				character: "tiger",
+				accessory: "crown",
+			});
+
+			expect(await players.findById("player-1")).toMatchObject({
+				avatar: { character: "tiger", accessory: "crown" },
+				removedAt: at("2026-06-01T12:05:00.000Z"),
+			});
+			expect((await players.findById("player-2"))?.avatar).toEqual(
+				aPlayer().avatar,
+			);
+		});
+
+		it("an avatar id that left the catalog is read as a known one", async () => {
+			await players.add(aPlayer());
+			await testDb.db
+				.update(playerTable)
+				.set({ character: "dinosaur", accessory: "jetpack" })
+				.where(eq(playerTable.id, "player-1"));
+
+			expect((await players.findById("player-1"))?.avatar).toEqual({
+				character: CHARACTER_IDS[0],
+				accessory: null,
+			});
 		});
 	});
 

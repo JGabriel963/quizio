@@ -73,10 +73,11 @@ const game: HostGameData = {
 		randomizeQuestions: false,
 		randomizeAnswers: false,
 		autoplay: false,
+		gameCharacters: true,
 	},
 	players: [
-		{ id: "p1", nickname: "Ana" },
-		{ id: "p2", nickname: "Bia" },
+		{ id: "p1", nickname: "Ana", avatar: null },
+		{ id: "p2", nickname: "Bia", avatar: null },
 	],
 	questionCount: 10,
 	autoStart: null,
@@ -656,6 +657,7 @@ describe("HostStage: scoreboard (spec 010)", () => {
 			{
 				playerId: "p2",
 				nickname: "John",
+				avatar: null,
 				total: 701,
 				rank: 1,
 				climbed: true,
@@ -664,6 +666,7 @@ describe("HostStage: scoreboard (spec 010)", () => {
 			{
 				playerId: "p1",
 				nickname: "Claude",
+				avatar: null,
 				total: 639,
 				rank: 2,
 				climbed: false,
@@ -672,6 +675,7 @@ describe("HostStage: scoreboard (spec 010)", () => {
 			{
 				playerId: "p3",
 				nickname: "Bia",
+				avatar: null,
 				total: 0,
 				rank: 3,
 				climbed: false,
@@ -752,6 +756,7 @@ describe("HostStage: animations hold nothing (spec 011, RN-25)", () => {
 				{
 					playerId: "p1",
 					nickname: "Ana",
+					avatar: null,
 					total: 875,
 					rank: 1,
 					climbed: false,
@@ -818,7 +823,7 @@ describe("HostStage: settings and late joining (spec 012)", () => {
 
 		const panel = await openSettings(user);
 
-		expect(within(panel).getAllByRole("switch")).toHaveLength(5);
+		expect(within(panel).getAllByRole("switch")).toHaveLength(6);
 		expect(
 			within(panel).getAllByText("Só antes de iniciar a partida."),
 		).toHaveLength(2);

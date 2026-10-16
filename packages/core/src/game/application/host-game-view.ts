@@ -12,6 +12,7 @@ import {
 	autoStartRemainingMs,
 	autoStartToken,
 } from "../domain/autoplay";
+import type { Avatar } from "../domain/avatar";
 import type { Game, GameEndReason, GameStatus } from "../domain/game";
 import type { GameOptions } from "../domain/game-options";
 import {
@@ -21,9 +22,10 @@ import {
 	remainingMsOf,
 } from "../domain/game-progress";
 import type { GameQuestion } from "../domain/game-question";
-import type { Player } from "../domain/player";
+import { avatarShown, type Player, shownPlayers } from "../domain/player";
 import { podiumRevealRemainingMs } from "../domain/podium";
 import {
+	type RankedPlayer,
 	rankPlayers,
 	type ScoreboardEntry,
 	type Standing,
@@ -37,6 +39,8 @@ import type { PlayerRepository } from "./ports/player-repository";
 export interface LobbyPlayerView {
 	id: string;
 	nickname: string;
+	/** Null with the characters off (spec 028, RN-25). */
+	avatar: Avatar | null;
 }
 
 export interface HostChoiceView {
@@ -148,8 +152,12 @@ export interface HostGameViewDeps {
 	clock: Clock;
 }
 
-export function toLobbyPlayerView(player: Player): LobbyPlayerView {
-	return { id: player.id, nickname: player.nickname };
+export function toLobbyPlayerView(game: Game, player: Player): LobbyPlayerView {
+	return {
+		id: player.id,
+		nickname: player.nickname,
+		avatar: avatarShown(game, player),
+	};
 }
 
 function toQuestionView(
@@ -180,7 +188,7 @@ function toQuestionView(
 async function standingsAfter(
 	deps: HostGameViewDeps,
 	gameId: string,
-	players: readonly Player[],
+	players: readonly RankedPlayer[],
 	questionIndex: number,
 ): Promise<Standing[]> {
 	return rankPlayers(
@@ -196,7 +204,7 @@ async function standingsAfter(
 async function loadScoreboard(
 	deps: HostGameViewDeps,
 	gameId: string,
-	players: readonly Player[],
+	players: readonly RankedPlayer[],
 	questionIndex: number,
 ): Promise<{ entries: ScoreboardEntry[]; leavers: ScoreboardEntry[] }> {
 	const current = await standingsAfter(deps, gameId, players, questionIndex);
@@ -214,7 +222,7 @@ async function loadScoreboard(
 async function loadFinalView(
 	deps: HostGameViewDeps,
 	game: Game,
-	players: readonly Player[],
+	players: readonly RankedPlayer[],
 ): Promise<HostFinalView | null> {
 	if (game.status !== "finished") {
 		return null;
@@ -233,7 +241,7 @@ async function loadFinalView(
 async function loadStageView(
 	deps: HostGameViewDeps,
 	game: Game,
-	players: readonly Player[],
+	players: readonly RankedPlayer[],
 	known: GameQuestion | null | undefined,
 ): Promise<HostStageView | null> {
 	if (!isPlaying(game)) {
@@ -310,6 +318,7 @@ export async function loadHostGameView(
 	question?: GameQuestion | null,
 ): Promise<HostGameView> {
 	const players = await deps.players.listActive(game.id);
+	const ranked = shownPlayers(game, players);
 	return {
 		gameId: game.id,
 		quizId: game.quizId,
@@ -319,10 +328,10 @@ export async function loadHostGameView(
 		endReason: game.endReason,
 		locked: game.locked,
 		options: { ...game.options },
-		players: players.map(toLobbyPlayerView),
+		players: players.map((player) => toLobbyPlayerView(game, player)),
 		questionCount: game.questionCount,
 		autoStart: await loadAutoStart(deps, game, players),
-		stage: await loadStageView(deps, game, players, question),
-		final: await loadFinalView(deps, game, players),
+		stage: await loadStageView(deps, game, ranked, question),
+		final: await loadFinalView(deps, game, ranked),
 	};
 }

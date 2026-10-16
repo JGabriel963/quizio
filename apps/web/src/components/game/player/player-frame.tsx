@@ -6,12 +6,15 @@ import type { PlayerQuestionData } from "@/lib/api-types";
 import { CountUp } from "@/lib/count-up";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 
+import { Avatar } from "../avatar";
 import { GameScreen } from "../game-screen";
 import { JoinNotice } from "./join-forms";
+import { usePlayerAvatar } from "./player-avatar-context";
 
 /**
- * The frame of the player's game screens: the question on top, the nickname
- * and the total of points at the bottom (spec 010, RN-16). The total counts
+ * The frame of the player's game screens: the question on top, the avatar,
+ * the nickname and the total of points at the bottom (spec 010, RN-16; spec
+ * 027, RN-17). The total counts
  * up when it changes (spec 011, RN-35).
  */
 export function PlayerFrame({
@@ -33,6 +36,8 @@ export function PlayerFrame({
 	background?: ReactNode;
 	children: ReactNode;
 }) {
+	// The player's avatar beside the nickname, with the characters on (spec 028, RN-17).
+	const { avatar } = usePlayerAvatar();
 	return (
 		<GameScreen className="relative isolate flex h-svh flex-col overflow-hidden">
 			{background}
@@ -54,6 +59,7 @@ export function PlayerFrame({
 			)}
 			{children}
 			<footer className="flex h-12 shrink-0 items-center gap-3 bg-black/40 px-4">
+				{avatar && <Avatar avatar={avatar} className="size-9" />}
 				<span data-slot="player-nickname" className="truncate font-bold">
 					{nickname}
 				</span>

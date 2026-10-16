@@ -2,12 +2,21 @@ import { describe, expect, it } from "vitest";
 
 import type { Question } from "../../quiz/domain/question";
 import { aQuestion, aTrueFalseQuestion } from "../../quiz/testing/a-question";
-import { markRemoved, somePlayableQuestions } from "../testing/game-deps";
+import { aGame, aPlayer } from "../testing/a-game";
+import {
+	createGameDeps,
+	markRemoved,
+	somePlayableQuestions,
+} from "../testing/game-deps";
 import { createStartedGame } from "../testing/started-game";
 import { createEndGame } from "./end-game";
 import { createGetHostGame } from "./get-host-game";
+import { createJoinGame } from "./join-game";
+import { createSetGameOptions } from "./set-game-options";
 
 const mine = { ownerId: "user-1", gameId: "game-1" };
+/** Every test player's avatar (`aPlayer`). */
+const hat = { character: "koala", accessory: "top-hat" };
 
 const choice = (text: string | null, correct = false) => ({ text, correct });
 const quizWith = (
@@ -62,7 +71,8 @@ describe("getHostGame during a game (spec 009)", () => {
 			{ id: "choice-3", shapeIndex: 2, text: "Salvador", correct: null },
 			{ id: "choice-4", shapeIndex: 3, text: "Recife", correct: null },
 		]);
-		expect(JSON.stringify(open)).not.toContain("true");
+		// The options are the host's own switches, not a hint of the answer.
+		expect(JSON.stringify({ ...open, options: null })).not.toContain("true");
 	});
 
 	it("shows the distribution and the right answer in the results", async () => {
@@ -212,7 +222,15 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 		nickname: string,
 		total: number,
 		rank: number,
-	) => ({ playerId, nickname, total, rank, climbed: false, previous: null });
+	) => ({
+		playerId,
+		nickname,
+		avatar: hat,
+		total,
+		rank,
+		climbed: false,
+		previous: null,
+	});
 	/** The default two questions and one more, so the second has a scoreboard. */
 	const threeQuestions = () => [
 		...somePlayableQuestions(),
@@ -302,6 +320,7 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 			{
 				playerId: "p1",
 				nickname: "Ana",
+				avatar: hat,
 				total: 1000,
 				rank: 1,
 				climbed: false,
@@ -310,6 +329,7 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 			{
 				playerId: "p2",
 				nickname: "Bia",
+				avatar: hat,
 				total: 900,
 				rank: 2,
 				climbed: false,
@@ -336,6 +356,7 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 			{
 				playerId: "p2",
 				nickname: "Bia",
+				avatar: hat,
 				total: 1000,
 				rank: 1,
 				climbed: true,
@@ -344,6 +365,7 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 			{
 				playerId: "p1",
 				nickname: "Ana",
+				avatar: hat,
 				total: 750,
 				rank: 2,
 				climbed: false,
@@ -372,6 +394,7 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 			{
 				playerId: "p2",
 				nickname: "Bia",
+				avatar: hat,
 				total: 1000,
 				rank: 1,
 				climbed: false,
@@ -380,6 +403,7 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 			{
 				playerId: "p1",
 				nickname: "Ana",
+				avatar: hat,
 				total: 0,
 				rank: 2,
 				climbed: false,
@@ -479,6 +503,7 @@ describe("getHostGame: the scoreboard (spec 010)", () => {
 			{
 				playerId: "p5",
 				nickname: "Eva",
+				avatar: hat,
 				total: 550,
 				rank: 6,
 				climbed: false,
@@ -508,13 +533,13 @@ describe("getHostGame: the podium (spec 011)", () => {
 
 		expect(view).toMatchObject({ status: "finished", stage: null });
 		expect(view.final?.standings).toEqual([
-			{ playerId: "p3", nickname: "Caio", total: 975, rank: 1 },
-			{ playerId: "p1", nickname: "Ana", total: 950, rank: 2 },
-			{ playerId: "p6", nickname: "Fábio", total: 925, rank: 3 },
-			{ playerId: "p2", nickname: "Bia", total: 900, rank: 4 },
-			{ playerId: "p5", nickname: "Eva", total: 875, rank: 5 },
-			{ playerId: "p4", nickname: "Duda", total: 850, rank: 6 },
-			{ playerId: "p7", nickname: "Gil", total: 0, rank: 7 },
+			{ playerId: "p3", nickname: "Caio", avatar: hat, total: 975, rank: 1 },
+			{ playerId: "p1", nickname: "Ana", avatar: hat, total: 950, rank: 2 },
+			{ playerId: "p6", nickname: "Fábio", avatar: hat, total: 925, rank: 3 },
+			{ playerId: "p2", nickname: "Bia", avatar: hat, total: 900, rank: 4 },
+			{ playerId: "p5", nickname: "Eva", avatar: hat, total: 875, rank: 5 },
+			{ playerId: "p4", nickname: "Duda", avatar: hat, total: 850, rank: 6 },
+			{ playerId: "p7", nickname: "Gil", avatar: hat, total: 0, rank: 7 },
 		]);
 	});
 
@@ -625,6 +650,7 @@ describe("getHostGame: options and who joined in the middle (spec 012)", () => {
 			randomizeQuestions: false,
 			randomizeAnswers: true,
 			autoplay: false,
+			gameCharacters: true,
 		});
 	});
 
@@ -639,6 +665,94 @@ describe("getHostGame: options and who joined in the middle (spec 012)", () => {
 			"Ana",
 			"Bia",
 			"Caio",
+		]);
+	});
+});
+
+describe("getHostGame: avatars (spec 028)", () => {
+	const off = { gameCharacters: false };
+	const fox = { character: "fox", accessory: null } as const;
+
+	it("lobby players carry their avatar", async () => {
+		const deps = createGameDeps();
+		await deps.games.save(aGame({ createdAt: deps.clock.now() }));
+		await deps.players.add(aPlayer({ avatar: fox }));
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.players).toEqual([
+			{ id: "player-1", nickname: "ACT", avatar: fox },
+		]);
+	});
+
+	it("scoreboard and final standings carry avatars", async () => {
+		const { deps, reach, answer, finish } = await createStartedGame({
+			questions: [capital(), capital({ id: "question-2" })],
+		});
+		await reach("answering");
+		await answer(1, "choice-1");
+		await reach("scoreboard");
+
+		const { stage } = await createGetHostGame(deps)(mine);
+		expect(stage?.scoreboard?.map((row) => row.avatar)).toEqual([
+			aPlayer().avatar,
+			aPlayer().avatar,
+		]);
+
+		await finish();
+		const { final } = await createGetHostGame(deps)(mine);
+		expect(final?.standings.map((row) => row.avatar)).toEqual([
+			aPlayer().avatar,
+			aPlayer().avatar,
+		]);
+	});
+
+	it("with characters off no view carries an avatar", async () => {
+		const { deps, reach, answer, finish } = await createStartedGame({
+			options: off,
+			questions: [capital(), capital({ id: "question-2" })],
+		});
+		await reach("answering");
+		await answer(1, "choice-1");
+		await reach("scoreboard");
+
+		const during = await createGetHostGame(deps)(mine);
+		expect(during.players.map((row) => row.avatar)).toEqual([null, null]);
+		expect(during.stage?.scoreboard?.map((row) => row.avatar)).toEqual([
+			null,
+			null,
+		]);
+
+		await finish();
+		const { final } = await createGetHostGame(deps)(mine);
+		expect(final?.standings.map((row) => row.avatar)).toEqual([null, null]);
+	});
+
+	it("turning characters back on shows the avatar of who joined while off", async () => {
+		const deps = createGameDeps();
+		await deps.games.save(
+			aGame({
+				createdAt: deps.clock.now(),
+				options: { ...aGame().options, ...off },
+			}),
+		);
+		const { playerId } = await createJoinGame(deps)({
+			gameId: "game-1",
+			nickname: "Ana",
+		});
+		await createSetGameOptions(deps)({
+			...mine,
+			options: { gameCharacters: true },
+		});
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.players).toEqual([
+			{
+				id: playerId,
+				nickname: "Ana",
+				avatar: { character: "moon", accessory: "fire" },
+			},
 		]);
 	});
 });

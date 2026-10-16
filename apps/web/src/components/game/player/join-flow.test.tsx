@@ -1,3 +1,4 @@
+import { type Avatar, knownAvatar } from "@quizio/core/game/domain/avatar";
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
 import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import type { PublicStage } from "@quizio/core/game/domain/public-stage";
@@ -13,6 +14,7 @@ import type {
 } from "@/lib/api-types";
 import {
 	createPlayerSessionStore,
+	type StoredAvatar,
 	type StoredPlayerSession,
 } from "@/lib/player-session";
 import { RealtimeProvider } from "@/lib/realtime";
@@ -25,6 +27,8 @@ import {
 } from "./join-flow";
 
 const PIN = "265914";
+/** The avatar the fake server draws for who brings none. */
+const DRAWN: Avatar = { character: "moon", accessory: "fire" };
 const GAME = "game-1";
 
 /** What a request ends in when the server is out of reach. */
@@ -63,9 +67,20 @@ class FakeJoinApi implements JoinApi {
 	readonly totals = new Map<string, number>();
 	readonly players = new Map<
 		string,
-		{ nickname: string; removed: boolean; firstQuestionIndex: number }
+		{
+			nickname: string;
+			removed: boolean;
+			firstQuestionIndex: number;
+			avatar: Avatar;
+		}
 	>();
 	readonly finds: string[] = [];
+	/** "Personagens dos jogadores" (spec 028). */
+	charactersOn = true;
+	/** What a change of avatar ends in, when it fails. */
+	avatarRefusal: Error | null = null;
+	/** The avatars each `enter` was sent. */
+	readonly entered: (StoredAvatar | null | undefined)[] = [];
 
 	async find(pin: string) {
 		this.finds.push(pin);
@@ -81,7 +96,15 @@ class FakeJoinApi implements JoinApi {
 		return { gameId: GAME, pin };
 	}
 
-	async enter({ nickname }: { gameId: string; nickname: string }) {
+	async enter({
+		nickname,
+		avatar,
+	}: {
+		gameId: string;
+		nickname: string;
+		avatar?: StoredAvatar | null;
+	}) {
+		this.entered.push(avatar);
 		if (this.ended) {
 			throw refusal("GAME.PIN_NOT_RECOGNIZED");
 		}
@@ -106,8 +129,25 @@ class FakeJoinApi implements JoinApi {
 			nickname: trimmed,
 			removed: false,
 			firstQuestionIndex: (stage?.questionIndex ?? 0) + (opened ? 1 : 0),
+			avatar: knownAvatar(avatar ?? null) ?? DRAWN,
 		});
-		return { playerId, secret: `secret-${playerId}`, nickname: trimmed };
+		return {
+			playerId,
+			secret: `secret-${playerId}`,
+			nickname: trimmed,
+			avatar: knownAvatar(avatar ?? null) ?? DRAWN,
+		};
+	}
+
+	async setAvatar(input: StoredPlayerSession & { avatar: Avatar }) {
+		if (this.avatarRefusal) {
+			throw this.avatarRefusal;
+		}
+		const player = this.players.get(input.playerId);
+		if (player) {
+			player.avatar = input.avatar;
+		}
+		return { avatar: input.avatar };
 	}
 
 	async session(input: StoredPlayerSession): Promise<PlayerSessionData> {
@@ -136,6 +176,9 @@ class FakeJoinApi implements JoinApi {
 		return {
 			gameId: GAME,
 			nickname: player.nickname,
+			avatar: this.charactersOn ? player.avatar : null,
+			canChangeAvatar:
+				this.charactersOn && !over && (stage === null || sittingOut),
 			status: over ?? (stage ? "playing" : "waiting"),
 			stage:
 				over || !stage
@@ -427,6 +470,7 @@ describe("JoinFlow: the nickname (spec 008)", () => {
 			nickname: "José",
 			removed: false,
 			firstQuestionIndex: 0,
+			avatar: DRAWN,
 		});
 		const { user } = renderFlow({ api, pin: PIN });
 
@@ -719,6 +763,7 @@ describe("JoinFlow: playing (spec 009)", () => {
 			nickname: "Ana",
 			removed: false,
 			firstQuestionIndex: 0,
+			avatar: DRAWN,
 		});
 		const { user } = renderFlow({ api });
 
@@ -1576,5 +1621,147 @@ describe("JoinFlow: connection (spec 013)", () => {
 		]);
 		expect(answerButtons()).toHaveLength(0);
 		expect(screen.queryByText("Sua resposta não foi enviada.")).toBeNull();
+	});
+});
+
+describe("JoinFlow: the avatar (spec 028)", () => {
+	/** The avatar drawn in the waiting screen's card. */
+	const cardImages = () =>
+		[...screen.getByTestId("avatar-card").querySelectorAll("img")].map(
+			(image) => image.getAttribute("src"),
+		);
+
+	it("the waiting screen shows the avatar card with the pencil", async () => {
+		const flow = renderFlow();
+
+		await joinAs(flow, "Ana");
+
+		expect(cardImages()).toEqual([
+			"/avatars/characters/moon.svg",
+			"/avatars/accessories/fire.svg",
+		]);
+		expect(
+			screen.getByRole("button", { name: "Editar avatar" }),
+		).toBeInTheDocument();
+	});
+
+	it("enter sends the remembered avatar", async () => {
+		const store = memoryStore();
+		store.rememberAvatar({ character: "fox", accessory: null });
+		const flow = renderFlow({ store });
+
+		await joinAs(flow, "Ana");
+
+		expect(flow.api.entered).toEqual([{ character: "fox", accessory: null }]);
+		expect(cardImages()).toEqual(["/avatars/characters/fox.svg"]);
+	});
+
+	it("the pencil opens the editor, and a successful change is shown and remembered", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "Ana");
+
+		await flow.user.click(
+			screen.getByRole("button", { name: "Editar avatar" }),
+		);
+		await flow.user.click(await screen.findByRole("button", { name: "Tigre" }));
+		await flow.user.click(screen.getByRole("button", { name: "Pronto" }));
+
+		await waitFor(() =>
+			expect(cardImages()[0]).toBe("/avatars/characters/tiger.svg"),
+		);
+		expect(flow.api.players.get("p1")?.avatar).toEqual({
+			character: "tiger",
+			accessory: "fire",
+		});
+		expect(flow.store.avatar()).toEqual({
+			character: "tiger",
+			accessory: "fire",
+		});
+	});
+
+	it("the editor closes when the session says the avatar is fixed", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "Ana");
+		await flow.user.click(
+			screen.getByRole("button", { name: "Editar avatar" }),
+		);
+		expect(
+			await screen.findByRole("button", { name: "Pronto" }),
+		).toBeInTheDocument();
+
+		flow.api.stage = {
+			questionIndex: 0,
+			questionCount: 2,
+			phase: "gameIntro",
+			durationMs: 3_000,
+			question: null,
+		};
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.stageChanged, {
+				status: "playing",
+				stage: flow.api.stage,
+			}),
+		);
+
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Pronto" })).toBeNull(),
+		);
+		expect(screen.queryByRole("button", { name: "Editar avatar" })).toBeNull();
+	});
+
+	it("characters-changed refetches the session and closes the editor", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "Ana");
+		await flow.user.click(
+			screen.getByRole("button", { name: "Editar avatar" }),
+		);
+		expect(
+			await screen.findByRole("button", { name: "Pronto" }),
+		).toBeInTheDocument();
+
+		flow.api.charactersOn = false;
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.charactersChanged, {
+				on: false,
+			}),
+		);
+
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Pronto" })).toBeNull(),
+		);
+		// Without avatar the waiting screen is the one of spec 008.
+		expect(screen.queryByTestId("avatar-card")).toBeNull();
+		expect(screen.queryByRole("button", { name: "Editar avatar" })).toBeNull();
+		expect(
+			screen.getByText("Pronto! Está vendo seu apelido na tela?"),
+		).toBeInTheDocument();
+	});
+
+	it("a player sitting out can open the editor", async () => {
+		const api = new FakeJoinApi();
+		api.stage = {
+			questionIndex: 0,
+			questionCount: 2,
+			phase: "answering",
+			durationMs: 20_000,
+			question: null,
+		};
+		const flow = renderFlow({ api });
+		await typePin(flow.user, PIN);
+		await flow.user.type(
+			await screen.findByRole("textbox", { name: "Apelido" }),
+			"Caio",
+		);
+		await flow.user.click(
+			screen.getByRole("button", { name: "Ok, vamos lá!" }),
+		);
+
+		await flow.user.click(
+			await screen.findByRole("button", { name: "Editar avatar" }),
+		);
+
+		expect(
+			await screen.findByRole("button", { name: "Pronto" }),
+		).toBeInTheDocument();
 	});
 });

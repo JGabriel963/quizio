@@ -186,6 +186,7 @@ describe("hostGame (spec 008)", () => {
 			randomizeQuestions: false,
 			randomizeAnswers: true,
 			autoplay: false,
+			gameCharacters: true,
 		};
 		await deps.preferences.save("user-1", saved);
 		await deps.preferences.save("user-2", {

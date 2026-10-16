@@ -8,6 +8,7 @@ import type {
 	PlayerStageData,
 } from "@/lib/api-types";
 
+import { PlayerAvatarContext } from "./player-avatar-context";
 import { PlayerStage } from "./player-stage";
 
 function quiz(
@@ -709,5 +710,58 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 		expect(buttons()).toHaveLength(0);
 		expect(screen.queryByRole("timer")).toBeNull();
 		view.unmount();
+	});
+});
+
+describe("PlayerStage: the avatar (spec 028)", () => {
+	const avatarIn = (element: Element | null) =>
+		[...(element?.querySelectorAll("img") ?? [])].map((image) =>
+			image.getAttribute("src"),
+		);
+
+	it("the footer shows the avatar beside the nickname", () => {
+		const { container } = render(
+			<PlayerAvatarContext
+				value={{
+					avatar: { character: "fox", accessory: "crown" },
+					onEdit: null,
+				}}
+			>
+				<PlayerStage
+					nickname="ACT"
+					finished={false}
+					final={null}
+					stage={stageAt()}
+					receivedAt={Date.now()}
+					late={false}
+					notice={null}
+					onAnswer={vi.fn()}
+					onLeave={vi.fn()}
+				/>
+			</PlayerAvatarContext>,
+		);
+
+		expect(avatarIn(container.querySelector("footer"))).toEqual([
+			"/avatars/characters/fox.svg",
+			"/avatars/accessories/crown.svg",
+		]);
+	});
+
+	it("the footer has no avatar with the characters off", () => {
+		const { container } = render(
+			<PlayerStage
+				nickname="ACT"
+				finished={false}
+				final={null}
+				stage={stageAt()}
+				receivedAt={Date.now()}
+				late={false}
+				notice={null}
+				onAnswer={vi.fn()}
+				onLeave={vi.fn()}
+			/>,
+		);
+
+		expect(avatarIn(container.querySelector("footer"))).toEqual([]);
 	});
 });

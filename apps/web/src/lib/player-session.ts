@@ -20,10 +20,34 @@ export interface PlayerSessionStore {
 	remember(game: LastGame): void;
 	/** Stops offering the way back; the session itself stays. */
 	forget(): void;
+	/**
+	 * The avatar this browser's player chose last, offered to the next game
+	 * (spec 028, RN-08). The server checks it against the catalog.
+	 */
+	avatar(): StoredAvatar | null;
+	rememberAvatar(avatar: StoredAvatar): void;
+}
+
+/** Two ids, as the server gave them. */
+export interface StoredAvatar {
+	character: string;
+	accessory: string | null;
 }
 
 const keyOf = (pin: string) => `quizio:player:${pin}`;
 const LAST_KEY = "quizio:player:last";
+const AVATAR_KEY = "quizio:avatar";
+
+function isStoredAvatar(value: unknown): value is StoredAvatar {
+	if (typeof value !== "object" || value === null) {
+		return false;
+	}
+	const { character, accessory } = value as Record<string, unknown>;
+	return (
+		typeof character === "string" &&
+		(accessory === null || typeof accessory === "string")
+	);
+}
 
 function isLastGame(value: unknown): value is LastGame {
 	if (typeof value !== "object" || value === null) {
@@ -74,6 +98,24 @@ export function createPlayerSessionStore(
 	return {
 		last,
 		forget,
+		avatar() {
+			try {
+				const raw = storage?.getItem(AVATAR_KEY);
+				const parsed: unknown = raw ? JSON.parse(raw) : null;
+				return isStoredAvatar(parsed)
+					? { character: parsed.character, accessory: parsed.accessory }
+					: null;
+			} catch {
+				return null;
+			}
+		},
+		rememberAvatar(avatar) {
+			try {
+				storage?.setItem(AVATAR_KEY, JSON.stringify(avatar));
+			} catch {
+				// Storage full or blocked: the next game just draws one.
+			}
+		},
 		remember(game) {
 			try {
 				storage?.setItem(LAST_KEY, JSON.stringify(game));

@@ -13,6 +13,7 @@ import { useCountdown } from "@/lib/use-countdown";
 
 import { AnswerButtons } from "./answer-buttons";
 import { FinalScreen } from "./final-screen";
+import { AvatarCard } from "./player-avatar";
 import { Centered, PlayerFrame, Spinner } from "./player-frame";
 import {
 	DeviceBackground,
@@ -134,6 +135,8 @@ function QuestionIntro({
 function JoinedInTheMiddle() {
 	return (
 		<Centered>
+			{/* Who waits for their first question may still change the avatar (spec 028, RN-13). */}
+			<AvatarCard />
 			<h1 className="font-black text-4xl motion-safe:animate-pop-in sm:text-5xl">
 				Você entrou!
 			</h1>
