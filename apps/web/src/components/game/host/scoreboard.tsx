@@ -9,6 +9,7 @@ import { CountUp } from "@/lib/count-up";
 import { GAME_MOTION, usePrefersReducedMotion } from "@/lib/game-motion";
 import { scoreboardSteps } from "@/lib/scoreboard-animation";
 
+import { Avatar } from "../avatar";
 import { AutoCountdown } from "./auto-countdown";
 
 /** How long the scoreboard shows as it was before the points start going up. */
@@ -113,7 +114,16 @@ export function Scoreboard({
 										: "bg-brand-strong text-white",
 								)}
 							>
-								<span className="min-w-0 flex-1 truncate">{row.nickname}</span>
+								<span className="flex min-w-0 flex-1 items-center gap-3">
+									{/* Spec 027, RN-18. */}
+									{row.avatar && (
+										<Avatar
+											avatar={row.avatar}
+											className="size-11 sm:size-14"
+										/>
+									)}
+									<span className="truncate">{row.nickname}</span>
+								</span>
 								<CountUp
 									data-slot="scoreboard-total"
 									from={row.fromTotal}

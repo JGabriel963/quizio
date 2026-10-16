@@ -1,10 +1,17 @@
+import type { Avatar } from "@quizio/core/game/domain/avatar";
 import type { GameEndReason } from "@quizio/core/game/domain/game";
 
-import type { GameOptionsData, HostGameData } from "./api-types";
+import type {
+	GameOptionsData,
+	HostGameData,
+	LobbyPlayerData,
+} from "./api-types";
 
 /** What the game's channel tells the host's lobby (spec 008; ADR 0009). */
 export type LobbyEvent =
-	| { type: "playerJoined"; player: { id: string; nickname: string } }
+	| { type: "playerJoined"; player: LobbyPlayerData }
+	/** A player changed avatar while waiting (spec 027, RN-12). */
+	| { type: "avatarChanged"; playerId: string; avatar: Avatar }
 	| { type: "playerRemoved"; playerId: string }
 	| { type: "lockChanged"; locked: boolean }
 	/** The host's own change in the settings, shown before the server answers (spec 012). */
@@ -24,6 +31,18 @@ export function applyLobbyEvent(
 			return view.players.some((player) => player.id === event.player.id)
 				? view
 				: { ...view, players: [...view.players, event.player] };
+		case "avatarChanged":
+			// With the characters off the lobby shows none (spec 027, RN-25).
+			return view.options.gameCharacters
+				? {
+						...view,
+						players: view.players.map((player) =>
+							player.id === event.playerId
+								? { ...player, avatar: event.avatar }
+								: player,
+						),
+					}
+				: view;
 		case "playerRemoved":
 			return {
 				...view,

@@ -33,7 +33,7 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 | 024 | Entrada em duas etapas | game | Depois do PIN, o jogador repete o padrão de 4 blocos da tela do anfitrião, que muda a cada 7 s | ⬜ | — |
 | 025 | Música e efeitos sonoros | game | Música do lobby com volume, sons durante o jogo, liga e desliga no cabeçalho | ⬜ | — |
 | 026 | Exportar relatório | reports | Baixar a planilha XLSX (resumo, pontuações finais, uma aba por pergunta, dados brutos) e imprimir | ⬜ | — |
-| 027 | Personagens dos jogadores | game | Avatar (personagem + acessório) sorteado ao entrar e trocável enquanto o jogador espera; no lobby, no rodapé do celular, no placar, no pódio e na classificação; chave "Personagens dos jogadores" no painel, salva por criador | 📐 | [spec](features/027-personagens-dos-jogadores/spec.md) · [plano](features/027-personagens-dos-jogadores/plan.md) · [tarefas](features/027-personagens-dos-jogadores/tasks.md) |
+| 027 | Personagens dos jogadores | game | Avatar (personagem + acessório) sorteado ao entrar e trocável enquanto o jogador espera; no lobby, no rodapé do celular, no placar, no pódio e na classificação; chave "Personagens dos jogadores" no painel, salva por criador | ✅ | [spec](features/027-personagens-dos-jogadores/spec.md) · [plano](features/027-personagens-dos-jogadores/plan.md) · [tarefas](features/027-personagens-dos-jogadores/tasks.md) |
 
 ## Mudanças de ordem
 

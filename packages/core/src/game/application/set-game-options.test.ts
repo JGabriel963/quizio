@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { GameEndedError, GameNotFoundError } from "../domain/game";
+import { GAME_EVENTS, gameChannel } from "../domain/game-events";
 import {
 	DEFAULT_GAME_OPTIONS,
 	GameOptionsFixedError,
@@ -39,6 +40,7 @@ describe("setGameOptions (spec 012)", () => {
 			randomizeQuestions: false,
 			randomizeAnswers: true,
 			autoplay: false,
+			gameCharacters: true,
 		};
 		expect(view.options).toEqual(options);
 		expect((await deps.games.findById("game-1"))?.options).toEqual(options);
@@ -200,6 +202,7 @@ describe("setGameOptions (spec 012)", () => {
 				randomizeQuestions: false,
 				randomizeAnswers: true,
 				autoplay: false,
+				gameCharacters: true,
 			};
 			expect((await deps.games.findById("game-1"))?.options).toEqual(both);
 			expect(await deps.preferences.find("user-1")).toEqual(both);
@@ -257,6 +260,7 @@ describe("setGameOptions (spec 012)", () => {
 				randomizeQuestions: false,
 				randomizeAnswers: true,
 				autoplay: false,
+				gameCharacters: true,
 			});
 		});
 	});
@@ -352,5 +356,52 @@ describe("setGameOptions: autoplay (spec 014)", () => {
 
 		expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
 		expect((await deps.games.findById("game-1"))?.options.autoplay).toBe(true);
+	});
+});
+
+describe("setGameOptions: characters (spec 027)", () => {
+	it("saves gameCharacters for the host's next games", async () => {
+		const deps = await lobby();
+
+		const view = await createSetGameOptions(deps)({
+			...mine,
+			options: { gameCharacters: false },
+		});
+
+		expect(view.options.gameCharacters).toBe(false);
+		expect((await deps.preferences.find("user-1"))?.gameCharacters).toBe(false);
+		const { gameId } = await createHostGame(deps)({
+			ownerId: "user-1",
+			quizId: "quiz-2",
+		});
+		expect((await deps.games.findById(gameId))?.options.gameCharacters).toBe(
+			false,
+		);
+	});
+
+	it("publishes characters-changed when the switch changes", async () => {
+		const deps = await lobby();
+
+		await createSetGameOptions(deps)({
+			...mine,
+			options: { gameCharacters: false },
+		});
+
+		expect(deps.realtime.messages.at(-1)).toEqual({
+			channel: gameChannel("game-1"),
+			event: GAME_EVENTS.charactersChanged,
+			payload: { on: false },
+		});
+	});
+
+	it("other switches publish nothing", async () => {
+		const deps = await lobby();
+
+		await createSetGameOptions(deps)({
+			...mine,
+			options: { showQuestionsOnDevices: true },
+		});
+
+		expect(deps.realtime.messages).toEqual([]);
 	});
 });

@@ -10,11 +10,16 @@ import { Podium, type PodiumActions } from "./podium";
 const NAMES = ["Caio", "Ana", "Fábio", "Bia", "Eva", "Duda", "Gil"];
 const TOTALS = [975, 950, 925, 900, 875, 850, 0];
 
-function finalOf(players: number, revealRemainingMs: number): HostFinalData {
+function finalOf(
+	players: number,
+	revealRemainingMs: number,
+	avatars = false,
+): HostFinalData {
 	return {
 		standings: NAMES.slice(0, players).map((nickname, index) => ({
 			playerId: `p${index + 1}`,
 			nickname,
+			avatar: avatars ? { character: "koala", accessory: null } : null,
 			total: TOTALS[index] ?? 0,
 			rank: index + 1,
 		})),
@@ -35,8 +40,13 @@ const game: HostGameData = {
 		randomizeQuestions: false,
 		randomizeAnswers: false,
 		autoplay: false,
+		gameCharacters: true,
 	},
-	players: NAMES.map((nickname, index) => ({ id: `p${index + 1}`, nickname })),
+	players: NAMES.map((nickname, index) => ({
+		id: `p${index + 1}`,
+		nickname,
+		avatar: null,
+	})),
 	questionCount: 3,
 	autoStart: null,
 	stage: null,
@@ -291,5 +301,40 @@ describe("Podium: after the reveal (spec 011)", () => {
 		expect(actions.exit).toHaveBeenCalledTimes(2);
 		expect(screen.queryByText("Encerrar o jogo?")).toBeNull();
 		expect(screen.queryByRole("dialog")).toBeNull();
+	});
+});
+
+describe("Podium: avatars (spec 027)", () => {
+	const koala = "/avatars/characters/koala.svg";
+	const imagesIn = (element: Element | null) =>
+		[...(element?.querySelectorAll("img") ?? [])].map((image) =>
+			image.getAttribute("src"),
+		);
+
+	it("each step shows the avatar above the nickname", () => {
+		renderPodium(finalOf(3, 0, true));
+
+		for (const step of document.querySelectorAll('[data-slot="podium-step"]')) {
+			expect(imagesIn(step)).toEqual([koala]);
+		}
+	});
+
+	it("the full standings show avatars", async () => {
+		renderPodium(finalOf(4, 0, true));
+		const user = userEvent.setup();
+
+		await user.click(screen.getByRole("button", { name: "Classificação" }));
+
+		const standings = document.querySelectorAll('[data-slot="standing"]');
+		expect(standings).toHaveLength(4);
+		for (const standing of standings) {
+			expect(imagesIn(standing)).toEqual([koala]);
+		}
+	});
+
+	it("no avatars when the view has none", () => {
+		renderPodium(finalOf(3, 0));
+
+		expect(document.querySelectorAll("img")).toHaveLength(0);
 	});
 });

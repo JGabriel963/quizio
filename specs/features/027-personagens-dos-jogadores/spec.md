@@ -1,7 +1,7 @@
 ---
 id: "027"
 title: Personagens dos jogadores
-status: planned # draft | approved | planned | in-progress | done
+status: done # draft | approved | planned | in-progress | done
 contexts: [game]
 created: 2026-10-15
 ---
@@ -256,9 +256,10 @@ Todo jogador tem um avatar, sorteado ao entrar e personalizável enquanto espera
 
 ## Perguntas em aberto
 
-- [ ] Qual conjunto de ilustrações usar — decidido no plano, entre os conjuntos com licença livre que tenham rostos de bichos e acessórios combináveis; se nenhum tiver acessórios que sirvam em todos os rostos, a spec volta ao usuário.
-- [ ] O cartão da tela de espera mostra o corpo inteiro? — só se o conjunto escolhido tiver corpo; senão, o rosto (divergência acima).
+- [x] Qual conjunto de ilustrações usar — Fluent Emoji, estilo Flat, licença MIT ([ADR 0012](../../../docs/adr/0012-arte-dos-avatares.md)): 30 personagens e 26 acessórios, todos conferidos sobre três rostos no `/design-system`.
+- [x] O cartão da tela de espera mostra o corpo inteiro? — Não: o conjunto só tem rostos, e vale a divergência "Avatar de rosto, sem corpo".
 
 ## Changelog
 
 - 2026-10-15 — spec criada, com as capturas do Kahoot enviadas pelo usuário (tela de espera com o avatar e o lápis, editor nas abas Personagem e Acessório, cartão do lobby na tela do anfitrião mudando junto com o editor). Decisões do usuário: arte de um conjunto com licença livre; avatar no lobby, no rodapé do celular, no placar, no pódio e na classificação; chave "Personagens dos jogadores" no painel, ligada por padrão e salva para o criador. Decisões tomadas sem consulta prévia: avatar sorteado ao entrar (RN-07), lembrado pelo navegador (RN-08), acessório "Nenhum" (RN-04), avatares repetidos permitidos (RN-05), troca só enquanto o jogador espera para jogar (RN-13), chave desligada sem apagar avatares (RN-26). Número 027 em vez de 016: a linha 016 do roadmap é "Mais tipos", e o número é só o nome da pasta (roadmap, 2026-10-06).
+- 2026-10-15 — implementada. Sem mudança de regra. A tela de espera com personagens ganhou o rodapé (avatar e apelido), como nas capturas do Kahoot e como a RN-17 já pedia ("da espera à tela final"). Detalhes da entrega em [tasks.md](tasks.md).

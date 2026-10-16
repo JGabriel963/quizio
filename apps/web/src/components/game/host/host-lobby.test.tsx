@@ -23,6 +23,7 @@ const empty: HostGameData = {
 		randomizeQuestions: false,
 		randomizeAnswers: false,
 		autoplay: false,
+		gameCharacters: true,
 	},
 	players: [],
 	questionCount: 0,
@@ -30,8 +31,16 @@ const empty: HostGameData = {
 	stage: null,
 	final: null,
 };
-const act = { id: "p1", nickname: "ACT" };
-const bia = { id: "p2", nickname: "Bia" };
+const act = {
+	id: "p1",
+	nickname: "ACT",
+	avatar: { character: "koala", accessory: "top-hat" },
+} as const;
+const bia = {
+	id: "p2",
+	nickname: "Bia",
+	avatar: { character: "fox", accessory: null },
+} as const;
 
 function renderLobby(lobby: HostGameData = empty) {
 	const actions: HostLobbyActions = {
@@ -313,7 +322,7 @@ describe("HostLobby (spec 008)", () => {
 			const panel = await openSettings(user);
 
 			const switches = within(panel).getAllByRole("switch");
-			expect(switches).toHaveLength(5);
+			expect(switches).toHaveLength(6);
 			for (const control of switches) {
 				expect(control).not.toHaveAttribute("aria-disabled", "true");
 			}
@@ -546,5 +555,42 @@ describe("HostLobby: autoplay (spec 014)", () => {
 		await tick(50);
 
 		expect(start).toHaveBeenCalledExactlyOnceWith(true);
+	});
+});
+
+describe("HostLobby: avatars (spec 027)", () => {
+	const imagesOf = (card: HTMLElement) =>
+		[...card.querySelectorAll("img")].map((image) => image.getAttribute("src"));
+	const cards = () =>
+		within(screen.getByRole("list", { name: "Participantes" })).getAllByRole(
+			"button",
+		);
+
+	it("each card shows the player's avatar beside the nickname", () => {
+		renderLobby({ ...empty, players: [act, bia] });
+
+		const [first, second] = cards();
+		expect(first && imagesOf(first)).toEqual([
+			"/avatars/characters/koala.svg",
+			"/avatars/accessories/top-hat.svg",
+		]);
+		expect(second && imagesOf(second)).toEqual(["/avatars/characters/fox.svg"]);
+		// The nickname is what the card says.
+		expect(first).toHaveAccessibleName("ACT, remover participante");
+	});
+
+	it("cards show only the nickname without avatars", () => {
+		renderLobby({
+			...empty,
+			options: { ...empty.options, gameCharacters: false },
+			players: [
+				{ ...act, avatar: null },
+				{ ...bia, avatar: null },
+			],
+		});
+
+		for (const card of cards()) {
+			expect(imagesOf(card)).toEqual([]);
+		}
 	});
 });

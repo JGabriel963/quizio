@@ -1,4 +1,5 @@
 import type { Answer } from "./answer";
+import type { Avatar } from "./avatar";
 
 /** How many players the scoreboard shows (spec 010, RN-18). */
 export const SCOREBOARD_SIZE = 5;
@@ -7,6 +8,8 @@ export const SCOREBOARD_SIZE = 5;
 export interface Standing {
 	playerId: string;
 	nickname: string;
+	/** Null with the characters off (spec 027, RN-25). */
+	avatar: Avatar | null;
 	total: number;
 	/** 1-based; no two players share one (RN-19). */
 	rank: number;
@@ -36,8 +39,16 @@ export interface PlayerStanding {
  * of arrival, which is what settles a tie (RN-19); who has no points yet has
  * zero (RN-08). Totals of who is not in `players` are left out.
  */
+/** A player as the standings tell it. */
+export interface RankedPlayer {
+	id: string;
+	nickname: string;
+	/** As the screens may show it: `shownPlayers` (spec 027). */
+	avatar: Avatar | null;
+}
+
 export function rankPlayers(
-	players: readonly { id: string; nickname: string }[],
+	players: readonly RankedPlayer[],
 	totals: readonly { playerId: string; total: number }[],
 ): Standing[] {
 	const totalOf = new Map(
@@ -47,6 +58,7 @@ export function rankPlayers(
 		.map((player, arrival) => ({
 			playerId: player.id,
 			nickname: player.nickname,
+			avatar: player.avatar,
 			total: totalOf.get(player.id) ?? 0,
 			arrival,
 		}))

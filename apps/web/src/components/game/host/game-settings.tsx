@@ -16,6 +16,7 @@ import {
 	PowerIcon,
 	ShuffleIcon,
 	SmartphoneIcon,
+	SmileIcon,
 } from "lucide-react";
 import { useId, useState } from "react";
 
@@ -107,6 +108,13 @@ export function GameSettings({
 							explanation="O jogo começa e avança pelas perguntas sozinho."
 							checked={options.autoplay}
 							onChange={(autoplay) => onOptionsChange({ autoplay })}
+						/>
+						<Setting
+							icon={SmileIcon}
+							name="Personagens dos jogadores"
+							explanation="Os jogadores escolhem um personagem e um acessório."
+							checked={options.gameCharacters}
+							onChange={(gameCharacters) => onOptionsChange({ gameCharacters })}
 						/>
 					</ul>
 					<div className="flex items-center gap-4 border-t px-5 py-4">

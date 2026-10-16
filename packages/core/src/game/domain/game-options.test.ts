@@ -11,12 +11,13 @@ import {
 const now = new Date("2026-06-01T12:00:00.000Z");
 
 describe("game options (spec 012)", () => {
-	it("every option starts off", () => {
+	it("every option starts off, but the characters", () => {
 		expect(DEFAULT_GAME_OPTIONS).toEqual({
 			showQuestionsOnDevices: false,
 			randomizeQuestions: false,
 			randomizeAnswers: false,
 			autoplay: false,
+			gameCharacters: true,
 		});
 	});
 
@@ -37,6 +38,7 @@ describe("game options (spec 012)", () => {
 			randomizeQuestions: true,
 			randomizeAnswers: true,
 			autoplay: false,
+			gameCharacters: true,
 		});
 		// The game it was given is left as it was.
 		expect(game.options).toEqual(DEFAULT_GAME_OPTIONS);
@@ -87,6 +89,7 @@ describe("game options (spec 012)", () => {
 			randomizeQuestions: false,
 			randomizeAnswers: true,
 			autoplay: false,
+			gameCharacters: true,
 		});
 	});
 
@@ -163,5 +166,22 @@ describe("game options: autoplay (spec 014)", () => {
 		expect(() =>
 			changeGameOptions(endGame(aGame(), "host", now), { autoplay: true }, now),
 		).toThrow(GameEndedError);
+	});
+});
+
+describe("game options: characters (spec 027)", () => {
+	it("characters are on for a host who never touched the settings", () => {
+		expect(DEFAULT_GAME_OPTIONS.gameCharacters).toBe(true);
+	});
+
+	it("characters can be turned off in the lobby and during the game", () => {
+		expect(
+			changeGameOptions(aGame(), { gameCharacters: false }, now).options
+				.gameCharacters,
+		).toBe(false);
+		expect(
+			changeGameOptions(aPlayingGame(), { gameCharacters: false }, now).options
+				.gameCharacters,
+		).toBe(false);
 	});
 });

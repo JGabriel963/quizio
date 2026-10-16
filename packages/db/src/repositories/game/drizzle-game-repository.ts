@@ -20,6 +20,7 @@ function toGame(row: GameRow): Game {
 		showQuestionsOnDevices,
 		randomizeQuestions,
 		randomizeAnswers,
+		gameCharacters,
 		...game
 	} = row;
 	return {
@@ -29,6 +30,7 @@ function toGame(row: GameRow): Game {
 			randomizeQuestions,
 			randomizeAnswers,
 			autoplay: game.autoplaySince !== null,
+			gameCharacters,
 		},
 		progress:
 			questionIndex !== null && phase !== null && phaseStartedAt !== null
@@ -45,6 +47,7 @@ function toRow(game: Game): GameRow {
 		showQuestionsOnDevices: options.showQuestionsOnDevices,
 		randomizeQuestions: options.randomizeQuestions,
 		randomizeAnswers: options.randomizeAnswers,
+		gameCharacters: options.gameCharacters,
 		questionIndex: progress?.questionIndex ?? null,
 		phase: progress?.phase ?? null,
 		phaseStartedAt: progress?.phaseStartedAt ?? null,

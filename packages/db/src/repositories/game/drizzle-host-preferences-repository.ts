@@ -21,6 +21,7 @@ export function createDrizzleHostPreferencesRepository(
 					randomizeQuestions: hostPreferences.randomizeQuestions,
 					randomizeAnswers: hostPreferences.randomizeAnswers,
 					autoplay: hostPreferences.autoplay,
+					gameCharacters: hostPreferences.gameCharacters,
 				})
 				.from(hostPreferences)
 				.where(eq(hostPreferences.ownerId, ownerId))

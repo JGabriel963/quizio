@@ -8,7 +8,7 @@ import type { HostFinalData, HostGameData } from "@/lib/api-types";
 import { CountUp } from "@/lib/count-up";
 import { type PodiumPlace, podiumOf, revealedPlaces } from "@/lib/podium";
 import { useCountdown } from "@/lib/use-countdown";
-
+import { Avatar } from "../avatar";
 import { Confetti } from "../confetti";
 import { GameScreen } from "../game-screen";
 import { Medal } from "../medal";
@@ -121,6 +121,16 @@ export function Podium({
 												}
 												className="flex w-full flex-col items-center gap-1"
 											>
+												{/* The avatar rises with the nickname (spec 027, RN-19). */}
+												{standing.avatar && (
+													<Avatar
+														avatar={standing.avatar}
+														className={cn(
+															"size-16 sm:size-24",
+															place === 1 && "sm:size-28",
+														)}
+													/>
+												)}
 												<p
 													data-slot="podium-player"
 													className={cn(

@@ -1,3 +1,4 @@
+import type { Avatar } from "@quizio/core/game/domain/avatar";
 import {
 	GAME_EVENTS,
 	gameChannel,
@@ -25,12 +26,14 @@ import { nextSessionCheckInMs, stageOrder } from "@/lib/game-stage";
 import type {
 	LastGame,
 	PlayerSessionStore,
+	StoredAvatar,
 	StoredPlayerSession,
 } from "@/lib/player-session";
 import { useRealtimeEvent } from "@/lib/realtime";
 import { useConnectionWatch } from "@/lib/use-connection-watch";
 import { earliestDeadline } from "@/lib/use-countdown";
 
+import { AvatarEditor } from "./avatar-editor";
 import { ConnectionBar, type ConnectionTrouble } from "./connection-bar";
 import {
 	JoinLoading,
@@ -39,6 +42,8 @@ import {
 	RejoinForm,
 	WaitingScreen,
 } from "./join-forms";
+import { AvatarWaitingScreen } from "./player-avatar";
+import { PlayerAvatarContext } from "./player-avatar-context";
 import { PlayerStage } from "./player-stage";
 
 /** What the player's flow asks of the API; the route wires it to tRPC (specs 008, 009). */
@@ -47,8 +52,19 @@ export interface JoinApi {
 	enter(input: {
 		gameId: string;
 		nickname: string;
-	}): Promise<{ playerId: string; secret: string; nickname: string }>;
+		/** The avatar this browser chose last (spec 027, RN-08). */
+		avatar?: StoredAvatar | null;
+	}): Promise<{
+		playerId: string;
+		secret: string;
+		nickname: string;
+		avatar: Avatar;
+	}>;
 	session(input: StoredPlayerSession): Promise<PlayerSessionData>;
+	/** A tap in the avatar editor (spec 027, RN-12). */
+	setAvatar(
+		input: StoredPlayerSession & { avatar: Avatar },
+	): Promise<{ avatar: Avatar }>;
 	answer(
 		input: StoredPlayerSession & { questionIndex: number; choiceIds: string[] },
 	): Promise<unknown>;
@@ -83,6 +99,10 @@ type Step =
 			session: StoredPlayerSession;
 			nickname: string;
 			play: PlayView | null;
+			/** Null with the characters off (spec 027, RN-25). */
+			avatar: Avatar | null;
+			/** While the player waits to play (spec 027, RN-13). */
+			canChangeAvatar: boolean;
 			/**
 			 * How long the host's screen had been silent when the server last
 			 * told; null when unknown or when nobody waits for the host anymore
@@ -235,6 +255,8 @@ export function JoinFlow({
 						session: stored,
 						nickname: view.nickname,
 						play: toPlay(view),
+						avatar: view.avatar,
+						canChangeAvatar: view.canChangeAvatar,
 						hostIdleMs: view.hostIdleMs,
 					};
 				}
@@ -375,6 +397,15 @@ export function JoinFlow({
 		setStep({ kind: "rejoin", pin: step.game.pin, nickname: step.nickname });
 	}
 
+	/** What the session says of the avatar (spec 027). */
+	function avatarSeen(avatar: Avatar | null, canChangeAvatar: boolean) {
+		setStep((current) =>
+			current.kind === "waiting"
+				? { ...current, avatar, canChangeAvatar }
+				: current,
+		);
+	}
+
 	/** What the server, or an event, told about the host's screen. */
 	function hostSeen(idleMs: number | null) {
 		setStep((current) =>
@@ -434,6 +465,7 @@ export function JoinFlow({
 				const next = toPlay(view);
 				updatePlay((current) => mergePlay(current, next));
 				hostSeen(view.hostIdleMs);
+				avatarSeen(view.avatar, view.canChangeAvatar);
 			}
 		} catch (error) {
 			// The game is gone with its quiz.
@@ -454,6 +486,12 @@ export function JoinFlow({
 	});
 	const { report } = watch;
 	const checkSession = useEffectEvent(() => askSession().catch(report));
+
+	// The host turned the characters on or off: the session says what is left
+	// to show, and an open editor closes (spec 027, RN-25).
+	useRealtimeEvent(channel, GAME_EVENTS.charactersChanged, () => {
+		void checkSession();
+	});
 
 	// The event has the buttons to show; what is this player's alone (did they
 	// answer, were they right) comes from the session.
@@ -568,7 +606,11 @@ export function JoinFlow({
 	async function submitNickname(game: FoundGame, nickname: string) {
 		setBusy(true);
 		try {
-			const joined = await api.enter({ gameId: game.gameId, nickname });
+			const joined = await api.enter({
+				gameId: game.gameId,
+				nickname,
+				avatar: store.avatar(),
+			});
 			const session = {
 				gameId: game.gameId,
 				playerId: joined.playerId,
@@ -586,6 +628,8 @@ export function JoinFlow({
 				session,
 				nickname: joined.nickname,
 				play: view ? toPlay(view) : null,
+				avatar: view ? view.avatar : joined.avatar,
+				canChangeAvatar: view?.canChangeAvatar ?? true,
 				hostIdleMs: view?.hostIdleMs ?? null,
 			});
 		} catch (error) {
@@ -598,6 +642,26 @@ export function JoinFlow({
 		} finally {
 			setBusy(false);
 		}
+	}
+
+	/** Whether the avatar editor was opened; it shows only while the avatar may change. */
+	const [editingAvatar, setEditingAvatar] = useState(false);
+
+	/**
+	 * A tap in the editor (spec 027, RN-12, RN-15). It rejects when the change
+	 * was not saved, and the editor goes back.
+	 */
+	async function changeAvatar(avatar: Avatar) {
+		if (!waiting) {
+			return;
+		}
+		const saved = await api.setAvatar({ ...waiting.session, avatar });
+		store.rememberAvatar(saved.avatar);
+		setStep((current) =>
+			current.kind === "waiting"
+				? { ...current, avatar: saved.avatar }
+				: current,
+		);
 	}
 
 	/** Marks the question as answered, or not, on this device. */
@@ -692,16 +756,39 @@ export function JoinFlow({
 			const connection = (
 				<ConnectionBar trouble={trouble} notice={notice} onLeave={stepOut} />
 			);
+			// The avatar changes while the player waits: in the lobby, or until
+			// the first question of who joined in the middle (spec 027, RN-13).
+			const waitingToPlay =
+				!play || (!play.finished && (play.stage?.sittingOut ?? false));
+			const editable =
+				step.avatar !== null && step.canChangeAvatar && waitingToPlay;
+			const avatarState = {
+				avatar: step.avatar,
+				onEdit: editable ? () => setEditingAvatar(true) : null,
+			};
+			const editor = step.avatar && (
+				<AvatarEditor
+					open={editable && editingAvatar}
+					avatar={step.avatar}
+					onChange={changeAvatar}
+					onClose={() => setEditingAvatar(false)}
+				/>
+			);
 			if (!play) {
 				return (
-					<>
-						<WaitingScreen nickname={step.nickname} />
+					<PlayerAvatarContext value={avatarState}>
+						{step.avatar ? (
+							<AvatarWaitingScreen nickname={step.nickname} />
+						) : (
+							<WaitingScreen nickname={step.nickname} />
+						)}
+						{editor}
 						{connection}
-					</>
+					</PlayerAvatarContext>
 				);
 			}
 			return (
-				<>
+				<PlayerAvatarContext value={avatarState}>
 					<PlayerStage
 						nickname={step.nickname}
 						finished={play.finished}
@@ -714,8 +801,9 @@ export function JoinFlow({
 						onAnswer={submitAnswer}
 						onLeave={() => leave(null)}
 					/>
+					{editor}
 					{connection}
-				</>
+				</PlayerAvatarContext>
 			);
 		}
 	}

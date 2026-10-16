@@ -12,7 +12,7 @@ import {
 
 /** Players in order of arrival. */
 const players = ["Ana", "Bia", "Caio", "Duda", "Eva", "Fábio", "Gil"].map(
-	(nickname, index) => ({ id: `p${index + 1}`, nickname }),
+	(nickname, index) => ({ id: `p${index + 1}`, nickname, avatar: null }),
 );
 const totals = (...values: number[]) =>
 	values.map((total, index) => ({ playerId: `p${index + 1}`, total }));
@@ -22,9 +22,9 @@ describe("rankPlayers (spec 010)", () => {
 		const standings = rankPlayers(players.slice(0, 3), totals(700, 1750, 875));
 
 		expect(standings).toEqual([
-			{ playerId: "p2", nickname: "Bia", total: 1750, rank: 1 },
-			{ playerId: "p3", nickname: "Caio", total: 875, rank: 2 },
-			{ playerId: "p1", nickname: "Ana", total: 700, rank: 3 },
+			{ playerId: "p2", nickname: "Bia", avatar: null, total: 1750, rank: 1 },
+			{ playerId: "p3", nickname: "Caio", avatar: null, total: 875, rank: 2 },
+			{ playerId: "p1", nickname: "Ana", avatar: null, total: 700, rank: 3 },
 		]);
 	});
 
@@ -45,8 +45,8 @@ describe("rankPlayers (spec 010)", () => {
 		]);
 
 		expect(standings).toEqual([
-			{ playerId: "p2", nickname: "Bia", total: 639, rank: 1 },
-			{ playerId: "p1", nickname: "Ana", total: 0, rank: 2 },
+			{ playerId: "p2", nickname: "Bia", avatar: null, total: 639, rank: 1 },
+			{ playerId: "p1", nickname: "Ana", avatar: null, total: 0, rank: 2 },
 		]);
 	});
 });
@@ -91,6 +91,7 @@ describe("scoreboardOf (spec 010)", () => {
 			{
 				playerId: "p2",
 				nickname: "Bia",
+				avatar: null,
 				total: 701,
 				rank: 1,
 				climbed: true,
@@ -99,6 +100,7 @@ describe("scoreboardOf (spec 010)", () => {
 			{
 				playerId: "p1",
 				nickname: "Ana",
+				avatar: null,
 				total: 639,
 				rank: 2,
 				climbed: false,
@@ -140,6 +142,7 @@ describe("scoreboardOf (spec 010)", () => {
 		expect(scoreboardOf(current, previous)[3]).toEqual({
 			playerId: "p7",
 			nickname: "Gil",
+			avatar: null,
 			total: 450,
 			rank: 4,
 			climbed: true,
@@ -163,6 +166,7 @@ describe("scoreboardLeavers (spec 011, RN-31)", () => {
 			{
 				playerId: "p5",
 				nickname: "Eva",
+				avatar: null,
 				total: 300,
 				rank: 6,
 				climbed: false,
@@ -251,5 +255,35 @@ describe("standingOf (spec 010, RN-15)", () => {
 
 	it("is null for who is not in the game", () => {
 		expect(standingOf(standings, "p9")).toBeNull();
+	});
+});
+
+describe("avatars in the standings (spec 027)", () => {
+	const koala = { character: "koala", accessory: "crown" } as const;
+
+	it("standings carry each player's avatar", () => {
+		const standings = rankPlayers(
+			[
+				{ id: "p1", nickname: "Ana", avatar: koala },
+				{ id: "p2", nickname: "Bia", avatar: null },
+			],
+			totals(100, 200),
+		);
+
+		expect(standings.map(({ nickname, avatar }) => [nickname, avatar])).toEqual(
+			[
+				["Bia", null],
+				["Ana", koala],
+			],
+		);
+	});
+
+	it("the scoreboard carries the avatar", () => {
+		const current = rankPlayers(
+			[{ id: "p1", nickname: "Ana", avatar: koala }],
+			totals(100),
+		);
+
+		expect(scoreboardOf(current, null)[0]?.avatar).toEqual(koala);
 	});
 });

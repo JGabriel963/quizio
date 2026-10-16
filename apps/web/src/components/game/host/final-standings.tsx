@@ -4,6 +4,8 @@ import { ChevronLeftIcon } from "lucide-react";
 
 import type { FinalStandingData } from "@/lib/api-types";
 
+import { Avatar } from "../avatar";
+
 /**
  * Everybody who played, from the first to the last (spec 011, RN-14). It is
  * what the host has until the reports exist.
@@ -45,8 +47,11 @@ export function FinalStandings({
 							<span data-slot="standing-rank" className="w-12 shrink-0">
 								{standing.rank}º
 							</span>
-							<span className="min-w-0 flex-1 truncate">
-								{standing.nickname}
+							<span className="flex min-w-0 flex-1 items-center gap-3">
+								{standing.avatar && (
+									<Avatar avatar={standing.avatar} className="size-10" />
+								)}
+								<span className="truncate">{standing.nickname}</span>
 							</span>
 							<span className="sr-only">Pontos: </span>
 							<span data-slot="standing-total">{standing.total}</span>

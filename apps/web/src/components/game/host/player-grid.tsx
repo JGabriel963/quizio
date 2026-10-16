@@ -3,13 +3,17 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@quizio/ui/components/tooltip";
+import { cn } from "@quizio/ui/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
 import type { LobbyPlayerData } from "@/lib/api-types";
 
+import { Avatar } from "../avatar";
+
 /**
- * Who is in, in order of arrival. Each card is a button: hovering, focusing or
- * touching it offers to remove the player (spec 008, RN-17, RN-18, RN-27).
+ * Who is in, in order of arrival, each with the avatar when the characters are
+ * on (spec 027). Each card is a button: hovering, focusing or touching it
+ * offers to remove the player (spec 008, RN-17, RN-18, RN-27).
  */
 export function PlayerGrid({
 	players,
@@ -40,10 +44,23 @@ export function PlayerGrid({
 										<button
 											type="button"
 											onClick={() => onRemove(player)}
-											className="rounded-md bg-brand-strong px-5 py-3 font-bold text-xl shadow-press outline-none hover:line-through focus-visible:line-through focus-visible:ring-3 focus-visible:ring-white/60 sm:text-2xl"
+											className={cn(
+												"flex items-center overflow-hidden rounded-md bg-brand-strong font-bold text-xl shadow-press outline-none hover:line-through focus-visible:line-through focus-visible:ring-3 focus-visible:ring-white/60 sm:text-2xl",
+												player.avatar ? "pr-5" : "px-5 py-3",
+											)}
 										/>
 									}
 								>
+									{/* The avatar beside the nickname (spec 027, RN-16, RN-21). */}
+									{player.avatar && (
+										<span className="mr-4 flex self-stretch bg-black/20 p-1.5">
+											<Avatar
+												avatar={player.avatar}
+												animateOnChange
+												className="size-12 sm:size-14"
+											/>
+										</span>
+									)}
 									{player.nickname}
 									<span className="sr-only">, remover participante</span>
 								</TooltipTrigger>

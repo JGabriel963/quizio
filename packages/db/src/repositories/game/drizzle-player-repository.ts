@@ -1,4 +1,5 @@
 import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
+import { CHARACTER_IDS, knownAvatar } from "@quizio/core/game/domain/avatar";
 import type { Player } from "@quizio/core/game/domain/player";
 import {
 	and,
@@ -14,8 +15,25 @@ import {
 import { gamePlayer as playerTable } from "../../schema/game";
 import type { Database } from "../../types";
 
+/**
+ * An id that left the catalog reads as a known one: an old row never takes a
+ * screen down (spec 027, plan "Leitura tolerante").
+ */
 function toPlayer(row: typeof playerTable.$inferSelect): Player {
-	return row;
+	const { character, accessory, ...player } = row;
+	return {
+		...player,
+		avatar: knownAvatar({ character, accessory }) ??
+			knownAvatar({ character, accessory: null }) ?? {
+				character: CHARACTER_IDS[0],
+				accessory: null,
+			},
+	};
+}
+
+function toRow(player: Player): typeof playerTable.$inferInsert {
+	const { avatar, ...row } = player;
+	return { ...row, character: avatar.character, accessory: avatar.accessory };
 }
 
 const activeIn = (gameId: string) =>
@@ -76,7 +94,7 @@ export function createDrizzlePlayerRepository(db: Database): PlayerRepository {
 			const insert = async (into: Database) => {
 				const inserted = await into
 					.insert(playerTable)
-					.values(player)
+					.values(toRow(player))
 					.onConflictDoNothing()
 					.returning({ id: playerTable.id });
 				return inserted.length > 0 ? "added" : "nicknameTaken";
@@ -100,11 +118,19 @@ export function createDrizzlePlayerRepository(db: Database): PlayerRepository {
 		},
 
 		async save(player) {
-			const { id, ...fields } = player;
+			const { id, ...fields } = toRow(player);
 			await db
 				.insert(playerTable)
-				.values(player)
+				.values(toRow(player))
 				.onConflictDoUpdate({ target: playerTable.id, set: fields });
+		},
+
+		async saveAvatar(playerId, avatar) {
+			// Only these two columns: the removal is written by `save`.
+			await db
+				.update(playerTable)
+				.set({ character: avatar.character, accessory: avatar.accessory })
+				.where(eq(playerTable.id, playerId));
 		},
 	};
 }

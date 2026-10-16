@@ -147,6 +147,7 @@ describe("game (spec 008)", () => {
 			randomizeQuestions: false,
 			randomizeAnswers: true,
 			autoplay: false,
+			gameCharacters: false,
 		};
 		const game = newGame({
 			id: "game-1",
@@ -201,6 +202,7 @@ describe("player (spec 008)", () => {
 			nickname: "José",
 			secret: "s3cret",
 			firstQuestionIndex: 0,
+			avatar: { character: "koala", accessory: null },
 			now,
 		});
 

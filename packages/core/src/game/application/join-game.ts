@@ -1,6 +1,13 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
+import type { Shuffler } from "../../shared/application/ports/shuffler";
+import {
+	type Avatar,
+	type AvatarInput,
+	drawAvatar,
+	knownAvatar,
+} from "../domain/avatar";
 import {
 	assertJoinable,
 	GAME_MAX_PLAYERS,
@@ -18,7 +25,14 @@ import type { PlayerRepository } from "./ports/player-repository";
 export type JoinGame = (input: {
 	gameId: string;
 	nickname: string;
-}) => Promise<{ playerId: string; secret: string; nickname: string }>;
+	/** The one this browser chose last (spec 027, RN-08); drawn without it. */
+	avatar?: AvatarInput | null;
+}) => Promise<{
+	playerId: string;
+	secret: string;
+	nickname: string;
+	avatar: Avatar;
+}>;
 
 /**
  * The nickname step (spec 008, RN-40 to RN-45). The game is checked again:
@@ -32,8 +46,9 @@ export function createJoinGame(deps: {
 	ids: IdGenerator;
 	clock: Clock;
 	realtime: RealtimePublisher;
+	shuffler: Shuffler;
 }): JoinGame {
-	return async ({ gameId, nickname: rawNickname }) => {
+	return async ({ gameId, nickname: rawNickname, avatar: remembered }) => {
 		const game = await loadGame(deps, gameId);
 		assertJoinable(game);
 		const nickname = parseNickname(rawNickname);
@@ -43,6 +58,8 @@ export function createJoinGame(deps: {
 			nickname,
 			secret: deps.ids.generate(),
 			firstQuestionIndex: firstQuestionFor(game),
+			// One that left the catalog is no error: a new one is drawn (RN-07, RN-08).
+			avatar: knownAvatar(remembered ?? null) ?? drawAvatar(deps.shuffler),
 			now: deps.clock.now(),
 		});
 		// The place and the nickname are taken with the insert itself.
@@ -57,8 +74,13 @@ export function createJoinGame(deps: {
 			deps.realtime,
 			game.id,
 			GAME_EVENTS.playerJoined,
-			{ player: toLobbyPlayerView(player) },
+			{ player: toLobbyPlayerView(game, player) },
 		);
-		return { playerId: player.id, secret: player.secret, nickname };
+		return {
+			playerId: player.id,
+			secret: player.secret,
+			nickname,
+			avatar: player.avatar,
+		};
 	};
 }

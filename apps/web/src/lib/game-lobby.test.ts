@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { HostGameData } from "./api-types";
 import { applyLobbyEvent } from "./game-lobby";
 
+const koala = { character: "koala", accessory: null } as const;
+const fox = { character: "fox", accessory: "crown" } as const;
+
 const lobby: HostGameData = {
 	gameId: "game-1",
 	quizId: "quiz-1",
@@ -16,8 +19,9 @@ const lobby: HostGameData = {
 		randomizeQuestions: false,
 		randomizeAnswers: false,
 		autoplay: false,
+		gameCharacters: true,
 	},
-	players: [{ id: "p1", nickname: "Ana" }],
+	players: [{ id: "p1", nickname: "Ana", avatar: koala }],
 	questionCount: 0,
 	autoStart: null,
 	stage: null,
@@ -28,17 +32,17 @@ describe("applyLobbyEvent (spec 008)", () => {
 	it("adds a player at the end, once", () => {
 		const joined = applyLobbyEvent(lobby, {
 			type: "playerJoined",
-			player: { id: "p2", nickname: "Bia" },
+			player: { id: "p2", nickname: "Bia", avatar: fox },
 		});
 
 		expect(joined.players).toEqual([
-			{ id: "p1", nickname: "Ana" },
-			{ id: "p2", nickname: "Bia" },
+			{ id: "p1", nickname: "Ana", avatar: koala },
+			{ id: "p2", nickname: "Bia", avatar: fox },
 		]);
 		expect(
 			applyLobbyEvent(joined, {
 				type: "playerJoined",
-				player: { id: "p2", nickname: "Bia" },
+				player: { id: "p2", nickname: "Bia", avatar: fox },
 			}),
 		).toBe(joined);
 	});
@@ -81,6 +85,7 @@ describe("applyLobbyEvent: options (spec 012)", () => {
 			randomizeQuestions: false,
 			randomizeAnswers: false,
 			autoplay: false,
+			gameCharacters: true,
 		});
 		expect(changed.locked).toBe(false);
 		expect(lobby.options.showQuestionsOnDevices).toBe(false);
@@ -149,5 +154,44 @@ describe("applyLobbyEvent: autoplay (spec 014)", () => {
 		expect(applyLobbyEvent(results, change).stage?.autoAdvance).toEqual(
 			results.stage?.autoAdvance,
 		);
+	});
+});
+
+describe("applyLobbyEvent: avatars (spec 027)", () => {
+	it("avatarChanged replaces the avatar of that player", () => {
+		const changed = applyLobbyEvent(lobby, {
+			type: "avatarChanged",
+			playerId: "p1",
+			avatar: fox,
+		});
+
+		expect(changed.players).toEqual([
+			{ id: "p1", nickname: "Ana", avatar: fox },
+		]);
+	});
+
+	it("avatarChanged leaves the avatars hidden with the characters off", () => {
+		const off: HostGameData = {
+			...lobby,
+			options: { ...lobby.options, gameCharacters: false },
+			players: [{ id: "p1", nickname: "Ana", avatar: null }],
+		};
+
+		expect(
+			applyLobbyEvent(off, {
+				type: "avatarChanged",
+				playerId: "p1",
+				avatar: fox,
+			}),
+		).toBe(off);
+	});
+
+	it("playerJoined keeps the avatar", () => {
+		expect(
+			applyLobbyEvent(lobby, {
+				type: "playerJoined",
+				player: { id: "p2", nickname: "Bia", avatar: fox },
+			}).players.at(-1),
+		).toEqual({ id: "p2", nickname: "Bia", avatar: fox });
 	});
 });

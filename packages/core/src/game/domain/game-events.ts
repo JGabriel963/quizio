@@ -1,3 +1,4 @@
+import type { Avatar } from "./avatar";
 import type { GameEndReason, GameStatus } from "./game";
 import type { PublicStage } from "./public-stage";
 
@@ -17,10 +18,28 @@ export const GAME_EVENTS = {
 	stageChanged: "stage-changed",
 	answerCount: "answer-count",
 	hostBack: "host-back",
+	avatarChanged: "avatar-changed",
+	charactersChanged: "characters-changed",
 } as const;
 
 export interface PlayerJoinedPayload {
-	player: { id: string; nickname: string };
+	/** The avatar is null with the characters off (spec 027). */
+	player: { id: string; nickname: string; avatar: Avatar | null };
+}
+
+/** A player changed avatar while waiting (spec 027, RN-12). */
+export interface AvatarChangedPayload {
+	playerId: string;
+	avatar: Avatar;
+}
+
+/**
+ * The host turned "Personagens dos jogadores" (spec 027, RN-25). The only
+ * option the devices are told about: in the lobby there is no next stage to
+ * bring it, and a device must close its editor.
+ */
+export interface CharactersChangedPayload {
+	on: boolean;
 }
 
 export interface PlayerRemovedPayload {

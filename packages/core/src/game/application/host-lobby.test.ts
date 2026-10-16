@@ -47,10 +47,11 @@ describe("getHostGame (spec 008)", () => {
 				randomizeQuestions: false,
 				randomizeAnswers: false,
 				autoplay: false,
+				gameCharacters: true,
 			},
 			players: [
-				{ id: "p1", nickname: "Ana" },
-				{ id: "p2", nickname: "Bia" },
+				{ id: "p1", nickname: "Ana", avatar: aPlayer().avatar },
+				{ id: "p2", nickname: "Bia", avatar: aPlayer().avatar },
 			],
 			questionCount: 0,
 			autoStart: null,

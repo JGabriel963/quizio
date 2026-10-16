@@ -111,3 +111,32 @@ describe("the last game of this browser (spec 008, RN-44a)", () => {
 		expect(() => none.forget()).not.toThrow();
 	});
 });
+
+describe("the remembered avatar (spec 027, RN-08)", () => {
+	it("remembers the last avatar", () => {
+		const store = createPlayerSessionStore(memoryStorage());
+
+		expect(store.avatar()).toBeNull();
+		store.rememberAvatar({ character: "fox", accessory: null });
+
+		expect(store.avatar()).toEqual({ character: "fox", accessory: null });
+	});
+
+	it("ignores what it did not write", () => {
+		const storage = memoryStorage();
+		const store = createPlayerSessionStore(storage);
+
+		storage.items.set("quizio:avatar", JSON.stringify({ character: 3 }));
+		expect(store.avatar()).toBeNull();
+		storage.items.set("quizio:avatar", "{not json");
+		expect(store.avatar()).toBeNull();
+	});
+
+	it("has no avatar when storage is unavailable", () => {
+		const store = createPlayerSessionStore(null);
+
+		store.rememberAvatar({ character: "fox", accessory: "crown" });
+
+		expect(store.avatar()).toBeNull();
+	});
+});

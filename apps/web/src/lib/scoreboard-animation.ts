@@ -6,6 +6,8 @@ import type { ScoreboardEntryData } from "./api-types";
 export interface ScoreboardRow {
 	playerId: string;
 	nickname: string;
+	/** Null with the characters off (spec 027, RN-18). */
+	avatar: ScoreboardEntryData["avatar"];
 	/** What the row's total counts up from. */
 	fromTotal: number;
 	total: number;
@@ -38,6 +40,7 @@ export function scoreboardSteps(
 	const after = entries.map((entry) => ({
 		playerId: entry.playerId,
 		nickname: entry.nickname,
+		avatar: entry.avatar,
 		fromTotal: entry.previous?.total ?? 0,
 		total: entry.total,
 		climbed: entry.climbed,
@@ -57,6 +60,7 @@ export function scoreboardSteps(
 	const before = shownBefore.map(({ entry }) => ({
 		playerId: entry.playerId,
 		nickname: entry.nickname,
+		avatar: entry.avatar,
 		fromTotal: entry.previous?.total ?? 0,
 		total: entry.total,
 		climbed: false,

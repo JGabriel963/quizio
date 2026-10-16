@@ -3,6 +3,10 @@ import {
 	createAdvanceGame,
 } from "@quizio/core/game/application/advance-game";
 import {
+	type ChangeAvatar,
+	createChangeAvatar,
+} from "@quizio/core/game/application/change-avatar";
+import {
 	createEndGame,
 	type EndGame,
 } from "@quizio/core/game/application/end-game";
@@ -247,6 +251,7 @@ export interface Container extends Adapters {
 		endGame: EndGame;
 		findGameByPin: FindGameByPin;
 		joinGame: JoinGame;
+		changeAvatar: ChangeAvatar;
 		getPlayerSession: GetPlayerSession;
 		submitAnswer: SubmitAnswer;
 		deleteReportsPermanently: DeleteReportsPermanently;
@@ -313,6 +318,7 @@ export function createContainer(adapters: Adapters): Container {
 			endGame: createEndGame(adapters),
 			findGameByPin: createFindGameByPin(adapters),
 			joinGame: createJoinGame(adapters),
+			changeAvatar: createChangeAvatar(adapters),
 			getPlayerSession: createGetPlayerSession(adapters),
 			submitAnswer: createSubmitAnswer(adapters),
 			deleteReportsPermanently: createDeleteReportsPermanently(adapters),

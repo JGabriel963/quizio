@@ -51,6 +51,8 @@ export const game = pgTable(
 			.default(false),
 		randomizeQuestions: boolean("randomize_questions").notNull().default(false),
 		randomizeAnswers: boolean("randomize_answers").notNull().default(false),
+		/** "Personagens dos jogadores" (spec 027). */
+		gameCharacters: boolean("game_characters").notNull().default(true),
 		/**
 		 * Since when autoplay is on; null while it is off (spec 014). One column
 		 * for the switch and for the instant its countdowns count from.
@@ -109,6 +111,13 @@ export const gamePlayer = pgTable(
 		secret: text("secret").notNull(),
 		/** 0 for who joined in the lobby; later for who joined in the middle (spec 012). */
 		firstQuestionIndex: integer("first_question_index").notNull().default(0),
+		/**
+		 * The avatar's ids (spec 027). The default only serves the rows from
+		 * before and the previous code during a deploy.
+		 */
+		character: text("character").notNull().default("koala"),
+		/** Null is "Nenhum". */
+		accessory: text("accessory"),
 		joinedAt: timestamp("joined_at", { withTimezone: true }).notNull(),
 		removedAt: timestamp("removed_at", { withTimezone: true }),
 	},
@@ -133,6 +142,7 @@ export const hostPreferences = pgTable("host_preferences", {
 	randomizeQuestions: boolean("randomize_questions").notNull().default(false),
 	randomizeAnswers: boolean("randomize_answers").notNull().default(false),
 	autoplay: boolean("autoplay").notNull().default(false),
+	gameCharacters: boolean("game_characters").notNull().default(true),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 

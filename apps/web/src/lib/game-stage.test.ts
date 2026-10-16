@@ -26,8 +26,9 @@ const answering: HostGameData = {
 		randomizeQuestions: false,
 		randomizeAnswers: false,
 		autoplay: false,
+		gameCharacters: true,
 	},
-	players: [{ id: "p1", nickname: "Ana" }],
+	players: [{ id: "p1", nickname: "Ana", avatar: null }],
 	questionCount: 3,
 	autoStart: null,
 	stage: {

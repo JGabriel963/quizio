@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { aGame, aPlayer, aPlayingGame } from "../testing/a-game";
-import { canAnswer, firstQuestionFor, newPlayer } from "./player";
+import { endGame } from "./game";
+import {
+	AvatarFixedError,
+	avatarShown,
+	canAnswer,
+	canChangeAvatar,
+	changePlayerAvatar,
+	firstQuestionFor,
+	newPlayer,
+	removePlayer,
+} from "./player";
 
 describe("joining a game in progress (spec 012)", () => {
 	it("who joins in the lobby starts at the first question", () => {
@@ -13,6 +23,7 @@ describe("joining a game in progress (spec 012)", () => {
 				nickname: "Caio",
 				secret: "s",
 				firstQuestionIndex: firstQuestionFor(aGame()),
+				avatar: { character: "koala", accessory: null },
 				now: new Date("2026-06-01T12:00:00.000Z"),
 			}).firstQuestionIndex,
 		).toBe(0);
@@ -49,5 +60,89 @@ describe("joining a game in progress (spec 012)", () => {
 		expect(canAnswer(player, 2)).toBe(true);
 		expect(canAnswer(player, 3)).toBe(true);
 		expect(canAnswer(aPlayer(), 0)).toBe(true);
+	});
+});
+
+describe("the player's avatar (spec 027)", () => {
+	const tiger = { character: "tiger", accessory: "crown" } as const;
+	const now = new Date("2026-06-01T12:02:00.000Z");
+
+	it("a new player keeps the avatar given", () => {
+		const player = newPlayer({
+			id: "player-1",
+			gameId: "game-1",
+			nickname: "Caio",
+			secret: "s",
+			firstQuestionIndex: 0,
+			avatar: tiger,
+			now,
+		});
+
+		expect(player.avatar).toEqual(tiger);
+	});
+
+	it("changes the avatar in the lobby", () => {
+		const changed = changePlayerAvatar(aGame(), aPlayer(), tiger);
+
+		expect(changed.avatar).toEqual(tiger);
+		expect(canChangeAvatar(aGame(), aPlayer())).toBe(true);
+	});
+
+	it("refuses a change once the game intro started", () => {
+		for (const game of [
+			aPlayingGame("gameIntro"),
+			aPlayingGame("answering", { questionIndex: 1 }),
+		]) {
+			expect(canChangeAvatar(game, aPlayer())).toBe(false);
+			expect(() => changePlayerAvatar(game, aPlayer(), tiger)).toThrow(
+				AvatarFixedError,
+			);
+		}
+	});
+
+	it("a player who joined during the answers changes until the next question opens", () => {
+		const late = aPlayer({ firstQuestionIndex: 2 });
+
+		for (const phase of ["answering", "results", "scoreboard"] as const) {
+			expect(
+				canChangeAvatar(aPlayingGame(phase, { questionIndex: 1 }), late),
+			).toBe(true);
+		}
+		expect(
+			canChangeAvatar(
+				aPlayingGame("questionIntro", { questionIndex: 2 }),
+				late,
+			),
+		).toBe(false);
+	});
+
+	it("refuses a change with characters off", () => {
+		const game = aGame({
+			options: { ...aGame().options, gameCharacters: false },
+		});
+
+		expect(canChangeAvatar(game, aPlayer())).toBe(false);
+		expect(() => changePlayerAvatar(game, aPlayer(), tiger)).toThrow(
+			AvatarFixedError,
+		);
+	});
+
+	it("refuses a change from a removed player or in a game that is over", () => {
+		expect(canChangeAvatar(aGame(), removePlayer(aPlayer(), now))).toBe(false);
+		expect(canChangeAvatar(endGame(aGame(), "host", now), aPlayer())).toBe(
+			false,
+		);
+	});
+
+	it("avatarShown is null with characters off", () => {
+		const player = aPlayer({ avatar: tiger });
+
+		expect(avatarShown(aGame(), player)).toEqual(tiger);
+		expect(
+			avatarShown(
+				aGame({ options: { ...aGame().options, gameCharacters: false } }),
+				player,
+			),
+		).toBeNull();
 	});
 });

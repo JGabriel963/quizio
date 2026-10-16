@@ -14,6 +14,8 @@ import { describe, expect, it } from "vitest";
 import { createTestApi } from "../testing/test-context";
 
 const trashedAt = new Date("2026-05-01T00:00:00.000Z");
+/** The avatar the test shuffler draws: the last of each list (spec 027). */
+const drawn = { character: "moon", accessory: "fire" };
 
 async function published() {
 	const api = createTestApi();
@@ -55,6 +57,7 @@ describe("game router: the host (spec 008)", () => {
 				randomizeQuestions: false,
 				randomizeAnswers: false,
 				autoplay: false,
+				gameCharacters: true,
 			},
 			players: [],
 			questionCount: 0,
@@ -189,13 +192,15 @@ describe("game router: the player (spec 008)", () => {
 		).toEqual({
 			gameId,
 			nickname: "ACT",
+			avatar: drawn,
+			canChangeAvatar: true,
 			status: "waiting",
 			stage: null,
 			final: null,
 			hostIdleMs: 0,
 		});
 		expect((await host.game.view({ gameId })).players).toEqual([
-			{ id: player.playerId, nickname: "ACT" },
+			{ id: player.playerId, nickname: "ACT", avatar: drawn },
 		]);
 	});
 
@@ -578,6 +583,8 @@ describe("game router: the end of the game (spec 011)", () => {
 		expect(await visitor.game.join.session(bia)).toEqual({
 			gameId,
 			nickname: "Bia",
+			avatar: drawn,
+			canChangeAvatar: false,
 			status: "finished",
 			stage: null,
 			final: { title: "Capitais", rank: 2, total: 0, revealRemainingMs: 0 },
@@ -629,6 +636,7 @@ describe("game router: the options (spec 012)", () => {
 		randomizeQuestions: false,
 		randomizeAnswers: false,
 		autoplay: false,
+		gameCharacters: true,
 	};
 
 	it("changes the options and keeps them for the next game", async () => {
@@ -645,6 +653,7 @@ describe("game router: the options (spec 012)", () => {
 			randomizeQuestions: false,
 			randomizeAnswers: true,
 			autoplay: false,
+			gameCharacters: true,
 		};
 		expect(view).toMatchObject({ gameId, locked: true, options });
 		expect((await host.game.view({ gameId })).options).toEqual(options);
@@ -928,6 +937,7 @@ describe("game router: autoplay (spec 014)", () => {
 			randomizeQuestions: false,
 			randomizeAnswers: false,
 			autoplay: true,
+			gameCharacters: true,
 		});
 	});
 
@@ -980,5 +990,111 @@ describe("game router: autoplay (spec 014)", () => {
 				options: { autoplay: "yes" },
 			}),
 		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+	});
+});
+
+describe("game router: avatars (spec 027)", () => {
+	const failureOf = (promise: Promise<unknown>) =>
+		promise.then(
+			() => {
+				throw new Error("expected a failure");
+			},
+			(error: unknown) => error,
+		);
+	const fox = { character: "fox", accessory: "crown" };
+
+	it("join.enter accepts a remembered avatar", async () => {
+		const { api, gameId } = await hosted();
+
+		const player = await api
+			.callerFor(null)
+			.game.join.enter({ gameId, nickname: "Ana", avatar: fox });
+
+		expect(player.avatar).toEqual(fox);
+	});
+
+	it("join.setAvatar changes the avatar of the player", async () => {
+		const { api, host, gameId } = await hosted();
+		const visitor = api.callerFor(null);
+		const { playerId, secret } = await visitor.game.join.enter({
+			gameId,
+			nickname: "Ana",
+		});
+
+		expect(
+			await visitor.game.join.setAvatar({
+				gameId,
+				playerId,
+				secret,
+				avatar: fox,
+			}),
+		).toEqual({ avatar: fox });
+		expect((await host.game.view({ gameId })).players).toEqual([
+			{ id: playerId, nickname: "Ana", avatar: fox },
+		]);
+	});
+
+	it("join.setAvatar maps an unknown avatar to BAD_REQUEST with GAME.UNKNOWN_AVATAR", async () => {
+		const { api, gameId } = await hosted();
+		const visitor = api.callerFor(null);
+		const { playerId, secret } = await visitor.game.join.enter({
+			gameId,
+			nickname: "Ana",
+		});
+
+		expect(
+			await failureOf(
+				visitor.game.join.setAvatar({
+					gameId,
+					playerId,
+					secret,
+					avatar: { character: "dinosaur", accessory: null },
+				}),
+			),
+		).toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.UNKNOWN_AVATAR" },
+		});
+	});
+
+	it("join.setAvatar after the start answers GAME.AVATAR_FIXED", async () => {
+		const { api, host, gameId } = await hosted();
+		const visitor = api.callerFor(null);
+		const { playerId, secret } = await visitor.game.join.enter({
+			gameId,
+			nickname: "Ana",
+		});
+		await host.game.start({ gameId });
+
+		expect(
+			await failureOf(
+				visitor.game.join.setAvatar({ gameId, playerId, secret, avatar: fox }),
+			),
+		).toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.AVATAR_FIXED" },
+		});
+	});
+
+	it("setOptions turns gameCharacters off", async () => {
+		const { api, host, gameId } = await hosted();
+		const visitor = api.callerFor(null);
+		const player = await visitor.game.join.enter({ gameId, nickname: "Ana" });
+
+		await host.game.setOptions({ gameId, options: { gameCharacters: false } });
+
+		expect((await host.game.view({ gameId })).players[0]?.avatar).toBeNull();
+		expect(
+			await visitor.game.join.session({
+				gameId,
+				playerId: player.playerId,
+				secret: player.secret,
+			}),
+		).toMatchObject({ avatar: null, canChangeAvatar: false });
+		expect(api.realtime.messages.at(-1)).toMatchObject({
+			channel: gameChannel(gameId),
+			event: GAME_EVENTS.charactersChanged,
+			payload: { on: false },
+		});
 	});
 });

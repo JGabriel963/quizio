@@ -11,6 +11,7 @@ const entry = (
 ): ScoreboardEntryData => ({
 	playerId: nickname.toLowerCase(),
 	nickname,
+	avatar: null,
 	rank,
 	total,
 	climbed: previous !== null && rank < previous.rank,

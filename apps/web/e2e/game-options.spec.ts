@@ -99,12 +99,20 @@ test.describe("opções de jogo (spec 012)", () => {
 			ana.getByText("Pronto! Está vendo seu apelido na tela?"),
 		).toBeVisible();
 
-		// CA-01, CA-05: the panel opens in the lobby with everything off.
+		// CA-01, CA-05: the panel opens in the lobby with everything off but
+		// the characters, which start on (spec 027, RN-23).
 		await host.getByRole("button", { name: "Configurações" }).click();
 		const switches = settings(host).getByRole("switch");
-		await expect(switches).toHaveCount(5);
+		await expect(switches).toHaveCount(6);
 		for (const control of await switches.all()) {
-			await expect(control).toHaveAttribute("aria-checked", "false");
+			const name = await control.getAttribute("aria-labelledby");
+			const label = name
+				? await host.locator(`[id="${name}"]`).textContent()
+				: "";
+			await expect(control).toHaveAttribute(
+				"aria-checked",
+				label === "Personagens dos jogadores" ? "true" : "false",
+			);
 		}
 		await expect(settings(host)).toContainText(
 			"Suas configurações serão salvas para a próxima vez.",

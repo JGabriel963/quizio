@@ -1,3 +1,4 @@
+import type { Avatar } from "../../domain/avatar";
 import type { Player } from "../../domain/player";
 
 export interface PlayerRepository {
@@ -28,4 +29,9 @@ export interface PlayerRepository {
 		maxActive?: number,
 	): Promise<"added" | "nicknameTaken" | "full">;
 	save(player: Player): Promise<void>;
+	/**
+	 * Writes only the avatar: nothing else the row may have changed meanwhile
+	 * is rewritten (spec 027).
+	 */
+	saveAvatar(playerId: string, avatar: Avatar): Promise<void>;
 }

@@ -36,6 +36,8 @@ describe("getPlayerSession during a game (spec 009)", () => {
 		expect(await createGetPlayerSession(deps)(player(1))).toEqual({
 			gameId: "game-1",
 			nickname: "Ana",
+			avatar: aPlayer().avatar,
+			canChangeAvatar: false,
 			status: "playing",
 			stage: {
 				questionIndex: 0,
@@ -360,6 +362,8 @@ describe("getPlayerSession: the final screen (spec 011)", () => {
 		expect(await getPlayerSession(player(3))).toEqual({
 			gameId: "game-1",
 			nickname: "Caio",
+			avatar: aPlayer().avatar,
+			canChangeAvatar: false,
 			status: "finished",
 			stage: null,
 			final: {
@@ -429,6 +433,9 @@ describe("getPlayerSession: who joined in the middle (spec 012)", () => {
 		expect(await createGetPlayerSession(deps)(caio)).toEqual({
 			gameId: "game-1",
 			nickname: "Caio",
+			// Drawn on joining; sitting out, Caio may still change it (spec 027).
+			avatar: { character: "moon", accessory: "fire" },
+			canChangeAvatar: true,
 			status: "playing",
 			stage: {
 				questionIndex: 0,
@@ -728,6 +735,56 @@ describe("getPlayerSession: the host's silence (spec 013)", () => {
 		expect(await createGetPlayerSession(deps)(player(1))).toMatchObject({
 			status: "removed",
 			hostIdleMs: null,
+		});
+	});
+});
+
+describe("getPlayerSession: the avatar (spec 027)", () => {
+	it("the session carries the avatar and whether it can change", async () => {
+		const deps = createGameDeps();
+		await deps.games.save(aGame({ createdAt: deps.clock.now() }));
+		await deps.players.add(aPlayer({ id: "p1", secret: "s1" }));
+
+		expect(await createGetPlayerSession(deps)(player(1))).toMatchObject({
+			avatar: aPlayer().avatar,
+			canChangeAvatar: true,
+		});
+	});
+
+	it("the avatar is fixed once the game started", async () => {
+		const { deps } = await createStartedGame();
+
+		expect(await createGetPlayerSession(deps)(player(1))).toMatchObject({
+			avatar: aPlayer().avatar,
+			canChangeAvatar: false,
+		});
+	});
+
+	it("a late player can change while sitting out", async () => {
+		const { deps, reach } = await createStartedGame();
+		await reach("answering");
+		await deps.players.add(
+			aPlayer({
+				id: "p9",
+				nickname: "Caio",
+				secret: "s9",
+				firstQuestionIndex: 1,
+			}),
+		);
+
+		expect(await createGetPlayerSession(deps)(player(9))).toMatchObject({
+			canChangeAvatar: true,
+		});
+	});
+
+	it("with characters off the session has no avatar and cannot change", async () => {
+		const { deps } = await createStartedGame({
+			options: { gameCharacters: false },
+		});
+
+		expect(await createGetPlayerSession(deps)(player(1))).toMatchObject({
+			avatar: null,
+			canChangeAvatar: false,
 		});
 	});
 });

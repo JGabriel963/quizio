@@ -1,4 +1,5 @@
 import type { PlayerRepository } from "../application/ports/player-repository";
+import type { Avatar } from "../domain/avatar";
 import { canAnswer, isActivePlayer, type Player } from "../domain/player";
 
 export class InMemoryPlayerRepository implements PlayerRepository {
@@ -53,6 +54,13 @@ export class InMemoryPlayerRepository implements PlayerRepository {
 
 	async save(player: Player): Promise<void> {
 		this.#players.set(player.id, player);
+	}
+
+	async saveAvatar(playerId: string, avatar: Avatar): Promise<void> {
+		const stored = this.#players.get(playerId);
+		if (stored) {
+			this.#players.set(playerId, { ...stored, avatar });
+		}
 	}
 
 	/** Test helper: every player of the game, removed ones included. */

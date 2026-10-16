@@ -1,6 +1,7 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { Answer, Correctness } from "../domain/answer";
+import type { Avatar } from "../domain/avatar";
 import { type Game, GameNotFoundError } from "../domain/game";
 import {
 	isPlaying,
@@ -11,10 +12,13 @@ import {
 import type { GameQuestion } from "../domain/game-question";
 import { hostIdleMs } from "../domain/host-presence";
 import {
+	avatarShown,
 	canAnswer,
+	canChangeAvatar,
 	hasPlayerSecret,
 	isActivePlayer,
 	type Player,
+	shownPlayers,
 } from "../domain/player";
 import { podiumRevealRemainingMs } from "../domain/podium";
 import { type PublicStage, publicStageOf } from "../domain/public-stage";
@@ -90,6 +94,10 @@ export interface PlayerFinalView {
 export interface PlayerSessionView {
 	gameId: string;
 	nickname: string;
+	/** Null with the characters off (spec 027, RN-25). */
+	avatar: Avatar | null;
+	/** The pencil of the waiting screens (spec 027, RN-10, RN-13). */
+	canChangeAvatar: boolean;
 	status: PlayerSessionStatus;
 	/** Null unless the game is being played. */
 	stage: PlayerStageView | null;
@@ -141,7 +149,7 @@ export function createGetPlayerSession(deps: {
 			(entry) => entry.questionIndex === questionIndex,
 		);
 		const standings = rankPlayers(
-			await deps.players.listActive(game.id),
+			shownPlayers(game, await deps.players.listActive(game.id)),
 			await deps.answers.totalsThrough(game.id, questionIndex),
 		);
 		const standing = standingOf(standings, player.id);
@@ -206,7 +214,7 @@ export function createGetPlayerSession(deps: {
 		}
 		const standing = standingOf(
 			rankPlayers(
-				await deps.players.listActive(game.id),
+				shownPlayers(game, await deps.players.listActive(game.id)),
 				await deps.answers.totalsThrough(game.id, game.questionCount - 1),
 			),
 			player.id,
@@ -235,6 +243,8 @@ export function createGetPlayerSession(deps: {
 		return {
 			gameId: game.id,
 			nickname: player.nickname,
+			avatar: avatarShown(game, player),
+			canChangeAvatar: canChangeAvatar(game, player),
 			status: statusOf(game, player),
 			stage: await stageOf(game, player),
 			final: await finalOf(game, player),
