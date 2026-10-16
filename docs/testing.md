@@ -39,6 +39,8 @@ pnpm vitest run packages/core/src/game   # um diretório, pela raiz
 
 Primeira execução do E2E: `pnpm -F web exec playwright install chromium`.
 
+O Playwright sobe o dev server com `E2E=1`, que desliga o overlay de erro do Vite: os testes rodam em paralelo contra o mesmo servidor, e uma requisição cortada quando um teste fecha a página (por exemplo, um autosave em andamento) faz o Vite mostrar o overlay em todas as abas abertas, bloqueando cliques de testes sem relação. Por isso, pare qualquer `pnpm dev` na porta 3001 antes do E2E: o Playwright reaproveitaria esse servidor, que tem o overlay ligado.
+
 ## Convenções
 
 - **Fakes em vez de mocks.** Portas têm implementações em memória (`InMemoryObjectStorage`, `InMemoryRealtimePublisher`, `InMemoryRealtimeSubscriber`, `FixedClock`, `SequentialIdGenerator`). `vi.fn()` só na fronteira com SDKs de terceiros dentro dos próprios adapters.

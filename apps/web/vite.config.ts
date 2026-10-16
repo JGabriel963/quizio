@@ -7,6 +7,10 @@ import { defineConfig } from "vite";
 export default defineConfig(({ command }) => ({
 	server: {
 		port: 3001,
+		// Playwright runs many pages against one dev server: a request aborted by a
+		// closing page is a server error, and the overlay it broadcasts to every
+		// open tab would block clicks in unrelated tests. Normal `pnpm dev` keeps it.
+		hmr: { overlay: !process.env.E2E },
 	},
 	resolve: {
 		tsconfigPaths: true,

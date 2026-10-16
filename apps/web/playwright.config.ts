@@ -24,5 +24,7 @@ export default defineConfig({
 		url: baseURL,
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,
+		// Turns off Vite's error overlay (see vite.config.ts).
+		env: { E2E: "1" },
 	},
 });
