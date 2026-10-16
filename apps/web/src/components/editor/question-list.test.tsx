@@ -32,6 +32,7 @@ function renderList(
 	questions: QuestionData[],
 	selectedId = questions[0]?.id,
 	quietIds: string[] = [],
+	{ onCreate }: { onCreate?: () => void } = {},
 ) {
 	const handlers = {
 		onSelect: vi.fn(),
@@ -45,6 +46,7 @@ function renderList(
 			questions={questions}
 			selectedId={selectedId ?? ""}
 			quietIds={new Set(quietIds)}
+			onCreate={onCreate}
 			{...handlers}
 		/>,
 	);
@@ -236,4 +238,57 @@ describe("QuestionList", () => {
 		}
 		// 200 sortable items are slow to render and query in jsdom.
 	}, 15_000);
+
+	describe("the creation assistant (spec 027)", () => {
+		it("shows Crie below Adicionar when enabled", async () => {
+			const onCreate = vi.fn();
+			const { user } = renderList([question("a", "A?")], "a", [], {
+				onCreate,
+			});
+
+			const add = screen.getByRole("button", { name: "Adicionar" });
+			const create = screen.getByRole("button", { name: "Crie" });
+			expect(
+				add.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING,
+			).toBeTruthy();
+
+			await user.click(create);
+
+			expect(onCreate).toHaveBeenCalledOnce();
+		});
+
+		it("hides Crie when disabled", () => {
+			renderList([question("a", "A?")]);
+
+			expect(
+				screen.queryByRole("button", { name: "Crie" }),
+			).not.toBeInTheDocument();
+		});
+
+		it("keeps the AI mark's hidden text inside the list's scroll area", () => {
+			renderList([question("a", "A?", { aiGenerated: true })]);
+
+			// The hidden text is absolute: without a positioned item it is placed
+			// against the editor, outside the scrolling list, and stretches the page.
+			const hidden = within(items()[0] as HTMLElement).getByText(
+				"feita com IA",
+			);
+			expect(hidden).toHaveClass("sr-only");
+			expect(items()[0]).toHaveClass("relative");
+		});
+
+		it("marks AI questions with the sparkle", () => {
+			renderList([
+				question("a", "A?"),
+				question("b", "B?", { aiGenerated: true }),
+			]);
+
+			expect(
+				within(items()[1] as HTMLElement).getByText("feita com IA"),
+			).toBeInTheDocument();
+			expect(
+				within(items()[0] as HTMLElement).queryByText("feita com IA"),
+			).not.toBeInTheDocument();
+		});
+	});
 });

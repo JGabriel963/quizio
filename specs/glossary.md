@@ -80,6 +80,16 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Recorte | `ImageCrop` | Enquadramento da imagem ao centro: forma `landscape` (3:2), `portrait` (2:3), `square` ou `circle`, com zoom e posição; não altera o arquivo (spec 007) | ✅ |
 | Texto alternativo | `altText` | Descrição opcional da imagem para leitores de tela, até 1000 caracteres (spec 007) | ✅ |
 | Imagens em uso | `imageKeysOf`, `releaseUnusedImages` | Os arquivos de imagem de um quiz: um só é apagado quando nenhuma pergunta viva e nenhuma versão guardada o usa (spec 007) | ✅ |
+| Assistente de criação | `QuizAssistant` | Janela do editor que cria perguntas com IA a partir de um assunto ou de um PDF, para o criador revisar e adicionar; só existe com um provedor de IA configurado (spec 027) | ✅ |
+| Fonte da criação | `GenerationSource` | `topic` (assunto, texto colado ou instruções) ou `pdf` (páginas escolhidas de um PDF) (spec 027) | ✅ |
+| Opções da criação | `GenerationOptions` | Formato, idioma, nível de habilidade e duração; lembradas por criador (spec 027) | ✅ |
+| Formato da criação | `GenerationFormat` | `quiz`, `trueFalse`, `mixed` ou, só com PDF, `extract` (spec 027) | ✅ |
+| Extrair perguntas | `extract` | Transcrever as perguntas objetivas que um PDF já contém, em vez de criar novas (spec 027) | ✅ |
+| Nível de habilidade | `SkillLevel` | `beginner`, `intermediate` (padrão) ou `advanced` (spec 027) | ✅ |
+| Duração da criação | `questionCount` | Quantidade aproximada de perguntas pedidas: cerca de 5, 10, 20 (padrão) ou 30 (spec 027) | ✅ |
+| Pergunta criada | `GeneratedQuestion` | Pergunta Quiz ou Verdadeiro ou falso devolvida pela IA, válida pelas regras do editor; fica no assistente até ser adicionada (spec 027) | ✅ |
+| Feita com IA | `aiGenerated` | Marca de uma pergunta adicionada pelo assistente, mostrada com um ícone de brilho na lista; fica ao editar e ao duplicar, não vai para a partida (spec 027) | ✅ |
+| Cota de criações | `GenerationQuota` | Criações com IA permitidas por criador a cada 24 horas (janela móvel), 20 por padrão, configurável; falhas não contam (spec 027) | ✅ |
 
 ## Game (partida ao vivo)
 

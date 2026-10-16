@@ -41,7 +41,7 @@ export function QuestionTypePicker({
 	if (unavailableReason) {
 		return (
 			<ActionButton
-				className="w-full max-lg:size-11 max-lg:px-0"
+				className="w-full max-lg:size-11 max-lg:px-0 max-lg:has-data-[icon=inline-start]:pl-0"
 				unavailableReason={unavailableReason}
 			>
 				{addLabel}
@@ -51,7 +51,9 @@ export function QuestionTypePicker({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
-				render={<Button className="w-full max-lg:size-11 max-lg:px-0" />}
+				render={
+					<Button className="w-full max-lg:size-11 max-lg:px-0 max-lg:has-data-[icon=inline-start]:pl-0" />
+				}
 			>
 				{addLabel}
 			</DropdownMenuTrigger>

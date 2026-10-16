@@ -68,9 +68,22 @@ import {
 } from "@quizio/core/library/application/list-library";
 import type { LibraryQuizQuery } from "@quizio/core/library/application/ports/library-quiz-query";
 import {
+	createDiscardSource,
+	type DiscardSource,
+} from "@quizio/core/media/application/discard-source";
+import type { SourceUploadRepository } from "@quizio/core/media/application/ports/source-upload-repository";
+import {
 	createRequestMediaUpload,
 	type RequestMediaUpload,
 } from "@quizio/core/media/application/request-media-upload";
+import {
+	createRequestSourceUpload,
+	type RequestSourceUpload,
+} from "@quizio/core/media/application/request-source-upload";
+import {
+	type AddGeneratedQuestions,
+	createAddGeneratedQuestions,
+} from "@quizio/core/quiz/application/add-generated-questions";
 import {
 	type AddQuestion,
 	createAddQuestion,
@@ -104,6 +117,15 @@ import {
 	type DuplicateQuiz,
 } from "@quizio/core/quiz/application/duplicate-quiz";
 import {
+	createGenerateQuestions,
+	type GenerateQuestions,
+} from "@quizio/core/quiz/application/generate-questions";
+import {
+	type AssistantSettings,
+	createGetAssistantStatus,
+	type GetAssistantStatus,
+} from "@quizio/core/quiz/application/get-assistant-status";
+import {
 	createGetQuizDetails,
 	type GetQuizDetails,
 } from "@quizio/core/quiz/application/get-quiz-details";
@@ -119,6 +141,10 @@ import {
 	createMoveQuizToTrash,
 	type MoveQuizToTrash,
 } from "@quizio/core/quiz/application/move-quiz-to-trash";
+import type { AssistantPreferencesRepository } from "@quizio/core/quiz/application/ports/assistant-preferences-repository";
+import type { GenerationQuota } from "@quizio/core/quiz/application/ports/generation-quota";
+import type { PdfPages } from "@quizio/core/quiz/application/ports/pdf-pages";
+import type { QuestionGenerator } from "@quizio/core/quiz/application/ports/question-generator";
 import type { QuestionRepository } from "@quizio/core/quiz/application/ports/question-repository";
 import type { QuizRepository } from "@quizio/core/quiz/application/ports/quiz-repository";
 import type { QuizVersionRepository } from "@quizio/core/quiz/application/ports/quiz-version-repository";
@@ -212,11 +238,23 @@ export interface Adapters {
 	shuffler: Shuffler;
 	attempts: AttemptLimiter;
 	authSettings: AuthSettings;
+	/** Null when the instance has no AI provider: the assistant is off (spec 027, RN-01). */
+	questionGenerator: QuestionGenerator | null;
+	pdfPages: PdfPages;
+	generationQuota: GenerationQuota;
+	assistantPreferences: AssistantPreferencesRepository;
+	sourceUploads: SourceUploadRepository;
+	assistantSettings: AssistantSettings;
 }
 
 export interface Container extends Adapters {
 	useCases: {
 		requestMediaUpload: RequestMediaUpload;
+		requestSourceUpload: RequestSourceUpload;
+		discardSource: DiscardSource;
+		getAssistantStatus: GetAssistantStatus;
+		generateQuestions: GenerateQuestions;
+		addGeneratedQuestions: AddGeneratedQuestions;
 		createQuiz: CreateQuiz;
 		getQuizDetails: GetQuizDetails;
 		updateQuizDetails: UpdateQuizDetails;
@@ -280,6 +318,11 @@ export function createContainer(adapters: Adapters): Container {
 		...adapters,
 		useCases: {
 			requestMediaUpload: createRequestMediaUpload(adapters),
+			requestSourceUpload: createRequestSourceUpload(adapters),
+			discardSource: createDiscardSource(adapters),
+			getAssistantStatus: createGetAssistantStatus(adapters),
+			generateQuestions: createGenerateQuestions(adapters),
+			addGeneratedQuestions: createAddGeneratedQuestions(adapters),
 			createQuiz: createCreateQuiz(adapters),
 			getQuizDetails: createGetQuizDetails(adapters),
 			updateQuizDetails: createUpdateQuizDetails(adapters),

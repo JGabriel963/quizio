@@ -58,10 +58,18 @@ export function quizList(page: Page) {
 	return page.getByRole("list", { name: "Quizzes" });
 }
 
-/** Criar opens the editor of a new draft (spec 003, RN-04). */
+/**
+ * Criar opens the editor of a new draft (spec 003, RN-04). The E2E server has
+ * the creation assistant on (AI_PROVIDER=fake), so "Criar um novo quiz" comes
+ * first, maybe a moment after the editor: "Tela em branco" leaves the editor
+ * as it was (spec 027, RN-03).
+ */
 export async function createQuizInEditor(page: Page) {
 	await page.getByRole("button", { name: "Criar", exact: true }).click();
 	await expect(page).toHaveURL(/\/creator\//);
+	const newQuiz = page.getByRole("dialog", { name: "Criar um novo quiz" });
+	await newQuiz.getByRole("button", { name: /Tela em branco/ }).click();
+	await expect(newQuiz).toBeHidden();
 	await expect(page.getByRole("textbox", { name: "Pergunta" })).toBeVisible();
 }
 

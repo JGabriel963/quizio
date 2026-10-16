@@ -4,7 +4,7 @@
 
 ## Visão geral
 
-O Quizio é um **monólito modular** organizado em **arquitetura hexagonal (ports & adapters)**, com **DDD tático** no núcleo e desenvolvimento **test-first (TDD)**. Tudo roda dentro de um único app TanStack Start (hoje na Vercel), mas o código de negócio não sabe disso: provedores de infraestrutura (banco, storage, real-time, e futuramente e-mail e IA) ficam atrás de **portas** e podem ser trocados alterando apenas um **adapter** e a **composition root**.
+O Quizio é um **monólito modular** organizado em **arquitetura hexagonal (ports & adapters)**, com **DDD tático** no núcleo e desenvolvimento **test-first (TDD)**. Tudo roda dentro de um único app TanStack Start (hoje na Vercel), mas o código de negócio não sabe disso: provedores de infraestrutura (banco, storage, real-time, IA e futuramente e-mail) ficam atrás de **portas** e podem ser trocados alterando apenas um **adapter** e a **composition root**.
 
 ```mermaid
 flowchart LR
@@ -21,12 +21,14 @@ flowchart LR
     DB["packages/db<br/>Drizzle / Postgres"]
     ST["packages/storage<br/>S3 → Cloudflare R2"]
     RT["packages/realtime<br/>Pusher protocol"]
+    AI["packages/ai<br/>AI SDK + pdf-lib"]
   end
   WEB --> TRPC --> APP
   DB -. implementa porta .-> APP
   ST -. implementa porta .-> APP
   RT -. implementa porta .-> APP
-  ROOT["packages/api/src/composition-root.ts"] --> DB & ST & RT
+  AI -. implementa porta .-> APP
+  ROOT["packages/api/src/composition-root.ts"] --> DB & ST & RT & AI
 ```
 
 ## Pacotes e regra de dependência
@@ -37,6 +39,7 @@ flowchart LR
 | `packages/db` | Adapter de saída: schema Drizzle, repositórios, harness PGlite | `core`, `env` |
 | `packages/storage` | Adapter de saída: `ObjectStorage` via S3 (R2) | `core` |
 | `packages/realtime` | Adapter de saída (`RealtimePublisher`) e porta/adapter do cliente (`RealtimeSubscriber`) | `core` |
+| `packages/ai` | Adapters de saída do assistente de criação: `QuestionGenerator` sobre o AI SDK e `PdfPages` sobre o pdf-lib ([ADR 0012](adr/0012-geracao-de-perguntas-por-ia.md)) | `core` |
 | `packages/auth` | Subdomínio genérico (Better Auth), montado por `createAuth(...)` | `core` (regras de cadastro), `db`, `env` |
 | `packages/api` | Adapter de entrada (tRPC) + **composition root** | todos os anteriores |
 | `packages/ui` | Design system (sem regra de negócio) | — |

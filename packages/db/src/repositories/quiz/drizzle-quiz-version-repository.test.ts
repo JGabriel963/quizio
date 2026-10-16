@@ -141,6 +141,17 @@ describe("DrizzleQuizVersionRepository", () => {
 		expect((await versions.find("quiz-1", 1))?.questions).toEqual([]);
 	});
 
+	it("a version keeps the AI mark", async () => {
+		const versions = createDrizzleQuizVersionRepository(testDb.db);
+		await versions.save(
+			versionOf("quiz-1", 1, [{ ...quizQuestion, aiGenerated: true }]),
+		);
+
+		expect((await versions.find("quiz-1", 1))?.questions[0]?.aiGenerated).toBe(
+			true,
+		);
+	});
+
 	it("deletes every version of a quiz", async () => {
 		const versions = createDrizzleQuizVersionRepository(testDb.db);
 		await versions.save(versionOf("quiz-1", 1));

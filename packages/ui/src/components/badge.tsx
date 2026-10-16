@@ -28,6 +28,8 @@ const badgeVariants = cva(
 				draft: "border-border text-muted-foreground",
 				published: "bg-success/10 text-success",
 				unsaved: "bg-brand/10 text-brand",
+				// Made with the creation assistant (spec 027), like Kahoot's "Kahoot! AI".
+				ai: "border-brand/30 bg-card text-brand",
 			},
 		},
 		defaultVariants: {

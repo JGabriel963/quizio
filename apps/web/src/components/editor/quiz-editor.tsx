@@ -6,13 +6,22 @@ import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { incompleteQuestions } from "@quizio/core/quiz/domain/question-issues";
 import { useState } from "react";
 
-import type { QuestionData, QuizEditorData } from "@/lib/api-types";
+import type {
+	AssistantStatusData,
+	GeneratedQuestionData,
+	QuestionData,
+	QuizEditorData,
+} from "@/lib/api-types";
+import type { AssistantActions } from "@/lib/assistant-mutations";
+import type { AssistantSource } from "@/lib/assistant-state";
 import {
 	imageUrlOf,
 	publishStateOf,
 	selectionAfterRemoval,
 } from "@/lib/editor-cache";
 
+import { NewQuizDialog } from "./assistant/new-quiz-dialog";
+import { QuizAssistant } from "./assistant/quiz-assistant";
 import { DeleteQuestionDialog } from "./delete-question-dialog";
 import { EditorHeader, type ExitDestination } from "./editor-header";
 import {
@@ -76,8 +85,22 @@ export interface EditorActions {
 		type: QuestionType,
 	) => Promise<PlacedQuestionData | null>;
 	duplicateQuestion: (questionId: string) => Promise<PlacedQuestionData | null>;
+	/**
+	 * Adds the creation assistant's questions (spec 027, RN-26) and resolves the
+	 * id of the first one, or null when the server refused them.
+	 */
+	addGeneratedQuestions: (
+		questions: GeneratedQuestionData[],
+	) => Promise<string | null>;
 	moveQuestion: (questionId: string, toIndex: number) => void;
 	deleteQuestion: (questionId: string) => void;
+}
+
+/** The creation assistant, when the instance has one (spec 027, RN-01). */
+export interface EditorAssistant extends AssistantActions {
+	status: AssistantStatusData;
+	/** The quiz was just created: "Criar um novo quiz" opens over it (RN-03). */
+	offerNewQuiz: boolean;
 }
 
 /**
@@ -93,9 +116,11 @@ export function QuizEditor({
 	onExit,
 	onHostLive = () => {},
 	onError = () => {},
+	assistant,
 }: {
 	data: QuizEditorData;
 	actions: EditorActions;
+	assistant?: EditorAssistant;
 	/** Bumped when the title changes outside the header (Configurações). */
 	titleRevision?: number;
 	onOpenSettings: () => void;
@@ -126,6 +151,12 @@ export function QuizEditor({
 		| null
 	>(null);
 	const [publishing, setPublishing] = useState(false);
+	// The assistant is open on this source (spec 027), or closed.
+	const [assistantSource, setAssistantSource] =
+		useState<AssistantSource | null>(null);
+	// Derived, not read once: the assistant's status may arrive after the editor.
+	const [newQuizDismissed, setNewQuizDismissed] = useState(false);
+	const newQuizOpen = (assistant?.offerNewQuiz ?? false) && !newQuizDismissed;
 	const [discarding, setDiscarding] = useState(false);
 	// By question: an upload belongs to the question it started in, whatever is
 	// selected when it ends (spec 007, RN-12).
@@ -177,6 +208,14 @@ export function QuizEditor({
 		if (placed) {
 			moveSelection(placed.question.id);
 		}
+	};
+	/** The assistant's questions go in, and the first of them is selected (RN-26). */
+	const addGenerated = async (generated: GeneratedQuestionData[]) => {
+		const firstId = await actions.addGeneratedQuestions(generated);
+		if (firstId) {
+			moveSelection(firstId);
+		}
+		return firstId !== null;
 	};
 	const uploadImage = async (questionId: string, file: File) => {
 		const set = (state: ImageUploadState) =>
@@ -296,6 +335,7 @@ export function QuizEditor({
 						onDuplicate={duplicate}
 						onDelete={setDeletingId}
 						onMove={actions.moveQuestion}
+						onCreate={assistant && (() => setAssistantSource("topic"))}
 					/>
 				</aside>
 
@@ -379,6 +419,36 @@ export function QuizEditor({
 				onDone={() => onExit("library")}
 				onHostLive={onHostLive}
 			/>
+			{assistant && (
+				<NewQuizDialog
+					open={newQuizOpen}
+					onChoose={(source) => {
+						setNewQuizDismissed(true);
+						setAssistantSource(source);
+					}}
+					onClose={() => setNewQuizDismissed(true)}
+				/>
+			)}
+			{assistant && assistantSource && (
+				<QuizAssistant
+					open
+					initialSource={assistantSource}
+					status={assistant.status}
+					// The lone blank question of a new quiz is replaced (RN-26).
+					questionCount={
+						questions.length === 1 && isBlankQuestion(selected)
+							? 0
+							: questions.length
+					}
+					actions={{
+						generate: assistant.generate,
+						uploadSource: assistant.uploadSource,
+						discardSource: assistant.discardSource,
+						add: addGenerated,
+					}}
+					onClose={() => setAssistantSource(null)}
+				/>
+			)}
 			<UnsavedChangesDialog
 				open={dialog?.kind === "unsaved"}
 				busy={discarding}

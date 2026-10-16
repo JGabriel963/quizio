@@ -15,7 +15,14 @@ import type { Database } from "../../types";
 
 type QuestionRow = Pick<
 	typeof questionTable.$inferSelect,
-	"id" | "type" | "text" | "timeLimitSeconds" | "points" | "content" | "image"
+	| "id"
+	| "type"
+	| "text"
+	| "timeLimitSeconds"
+	| "points"
+	| "content"
+	| "image"
+	| "aiGenerated"
 >;
 
 /** Tolerant on read: a value the core no longer accepts falls back to the default. */
@@ -30,6 +37,7 @@ function toQuestion(row: QuestionRow): Question {
 			: DEFAULT_TIME_LIMIT_SECONDS,
 		points: QUESTION_POINTS.includes(row.points) ? row.points : "standard",
 		image: parseStoredImage(row.image),
+		aiGenerated: row.aiGenerated,
 		...parseStoredContent(row.type, row.content),
 	};
 }
@@ -43,6 +51,7 @@ function toColumns(question: Question) {
 		points: question.points,
 		content: storedContent(question),
 		image: question.image,
+		aiGenerated: question.aiGenerated,
 	};
 }
 
@@ -62,6 +71,7 @@ export function createDrizzleQuestionRepository(
 					points: questionTable.points,
 					content: questionTable.content,
 					image: questionTable.image,
+					aiGenerated: questionTable.aiGenerated,
 				})
 				.from(questionTable)
 				.where(ofQuiz(quizId))
@@ -112,6 +122,9 @@ export function createDrizzleQuestionRepository(
 							points: sql.raw(`excluded.${questionTable.points.name}`),
 							content: sql.raw(`excluded.${questionTable.content.name}`),
 							image: sql.raw(`excluded.${questionTable.image.name}`),
+							aiGenerated: sql.raw(
+								`excluded.${questionTable.aiGenerated.name}`,
+							),
 						},
 						// Ids come back from clients on undo: an id owned by another
 						// quiz must never be taken over.

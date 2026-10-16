@@ -89,6 +89,10 @@ export function useEditorActions(quizId: string): EditorActions {
 		...trpc.quiz.questions.duplicate.mutationOptions(),
 		...SEND_EVEN_OFFLINE,
 	});
+	const addGenerated = useMutation({
+		...trpc.quiz.assistant.add.mutationOptions(),
+		...SEND_EVEN_OFFLINE,
+	});
 	const move = useMutation({
 		...trpc.quiz.questions.move.mutationOptions(),
 		...SEND_EVEN_OFFLINE,
@@ -360,6 +364,35 @@ export function useEditorActions(quizId: string): EditorActions {
 					withQuestionInserted(data, placed.question, placed.index),
 				);
 				return placed;
+			}),
+
+		addGeneratedQuestions: (questions) =>
+			structural(async () => {
+				const added = await addGenerated.mutateAsync({
+					quizId,
+					// Only what a created question is: the server checks it again.
+					questions: questions.map((question) =>
+						question.type === "quiz"
+							? {
+									type: "quiz" as const,
+									text: question.text ?? "",
+									choices: question.choices
+										.filter((choice) => choice.text !== null)
+										.map((choice) => ({
+											text: choice.text ?? "",
+											correct: choice.correct,
+										})),
+								}
+							: {
+									type: "trueFalse" as const,
+									text: question.text ?? "",
+									correct: question.correct ?? false,
+								},
+					),
+				});
+				// The lone blank question may have been replaced: read the list again.
+				await queryClient.refetchQueries({ queryKey: editorKey });
+				return added.questions[0]?.id ?? null;
 			}),
 
 		moveQuestion: (questionId, toIndex) => {

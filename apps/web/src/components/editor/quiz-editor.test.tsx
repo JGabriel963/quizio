@@ -1,3 +1,4 @@
+import { DEFAULT_GENERATION_OPTIONS } from "@quizio/core/quiz/domain/generation";
 import { blankQuestion } from "@quizio/core/quiz/domain/question";
 import { newQuestionImage } from "@quizio/core/quiz/domain/question-image";
 import { act, fireEvent, screen, within } from "@testing-library/react";
@@ -14,7 +15,11 @@ import {
 } from "@/lib/save-tracker";
 import { renderWithRouter } from "@/testing/render-with-router";
 
-import { type EditorActions, QuizEditor } from "./quiz-editor";
+import {
+	type EditorActions,
+	type EditorAssistant,
+	QuizEditor,
+} from "./quiz-editor";
 
 const IMAGE_KEY = "media/user-1/ponte.png";
 const IMAGE_URL = "https://media.test/media/user-1/ponte.png";
@@ -84,8 +89,19 @@ async function renderEditor(
 	data: QuizEditorData,
 	{
 		afterAdd,
+		afterGeneratedAdd,
 		tracker,
-	}: { afterAdd?: QuizEditorData; tracker?: SaveTracker } = {},
+		assistant,
+		assistantLater = false,
+	}: {
+		afterAdd?: QuizEditorData;
+		/** The list once the assistant's questions are added. */
+		afterGeneratedAdd?: QuizEditorData;
+		tracker?: SaveTracker;
+		assistant?: EditorAssistant;
+		/** The assistant's status arrives after the editor (a slower query). */
+		assistantLater?: boolean;
+	} = {},
 ) {
 	let latest = data;
 	let setData: (data: QuizEditorData) => void = () => {};
@@ -150,11 +166,21 @@ async function renderEditor(
 			return { question: question("new", null), index: 1 };
 		}),
 		duplicateQuestion: vi.fn(async () => null),
+		// Like the real action: the list is read again, and the first new id comes back.
+		addGeneratedQuestions: vi.fn(async (generated) => {
+			if (afterGeneratedAdd) {
+				setData(afterGeneratedAdd);
+			}
+			return generated[0] ? `added-${generated[0].id}` : null;
+		}),
 		moveQuestion: vi.fn(),
 		deleteQuestion: vi.fn(),
 	};
+	let revealAssistant = () => {};
 	function Harness() {
 		const [current, setCurrent] = useState(data);
+		const [assistantShown, setAssistantShown] = useState(!assistantLater);
+		revealAssistant = () => act(() => setAssistantShown(true));
 		latest = current;
 		setData = (next) => {
 			latest = next;
@@ -164,6 +190,7 @@ async function renderEditor(
 			<QuizEditor
 				data={current}
 				actions={actions}
+				assistant={assistantShown ? assistant : undefined}
 				onOpenSettings={vi.fn()}
 				onExit={onExit}
 				onError={onError}
@@ -175,12 +202,14 @@ async function renderEditor(
 			<Harness />
 		</SaveTrackerProvider>,
 	);
-	await screen.findByRole("banner");
+	// Hidden too: a dialog that opens with the editor hides the header.
+	await screen.findByRole("banner", { hidden: true });
 	return {
 		actions,
 		onExit,
 		onError,
 		user: userEvent.setup(),
+		revealAssistant: () => revealAssistant(),
 		/** Ends the oldest pending upload, as a failure when a message is given. */
 		endUpload: async (failure: string | null = null) => {
 			uploadFailure = failure;
@@ -992,5 +1021,133 @@ describe("QuizEditor question image (spec 007)", () => {
 		});
 
 		expect(badge("Alterações não salvas")).toBeInTheDocument();
+	});
+
+	describe("the creation assistant (spec 027)", () => {
+		const assistant = (
+			overrides: Partial<EditorAssistant> = {},
+		): EditorAssistant => ({
+			status: {
+				enabled: true,
+				limit: 20,
+				remaining: 20,
+				nextAvailableAt: null,
+				options: DEFAULT_GENERATION_OPTIONS,
+			},
+			generate: vi.fn(async () => ({
+				questions: [
+					{
+						...blankQuestion("g1", "trueFalse"),
+						text: "Plutão é um planeta anão",
+						aiGenerated: true,
+						correct: true,
+					},
+				],
+				discarded: 0,
+				remaining: 19,
+			})),
+			uploadSource: vi.fn(async () => "sources/user-1/doc.pdf"),
+			discardSource: vi.fn(),
+			offerNewQuiz: false,
+			...overrides,
+		});
+
+		it("hides Crie without the assistant", async () => {
+			await renderEditor(editorData(question("a", "A?")));
+
+			expect(screen.queryByRole("button", { name: "Crie" })).toBeNull();
+		});
+
+		it("Crie opens the assistant", async () => {
+			const { user } = await renderEditor(editorData(question("a", "A?")), {
+				assistant: assistant(),
+			});
+
+			await user.click(screen.getByRole("button", { name: "Crie" }));
+
+			expect(
+				await screen.findByRole("dialog", { name: "Crie com o Assistente" }),
+			).toBeInTheDocument();
+		});
+
+		it("opens the new quiz dialog only after creating", async () => {
+			const { user } = await renderEditor(editorData(question("a", null)), {
+				assistant: assistant({ offerNewQuiz: true }),
+			});
+
+			await user.click(
+				await screen.findByRole("button", { name: /Assunto > quiz/ }),
+			);
+
+			expect(
+				await screen.findByRole("dialog", { name: "Crie com o Assistente" }),
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole("textbox", { name: "Assunto" }),
+			).toBeInTheDocument();
+		});
+
+		it("offers the new quiz dialog when the assistant's status arrives later", async () => {
+			const { revealAssistant } = await renderEditor(
+				editorData(question("a", null)),
+				{ assistant: assistant({ offerNewQuiz: true }), assistantLater: true },
+			);
+
+			revealAssistant();
+
+			expect(
+				await screen.findByRole("dialog", { name: "Criar um novo quiz" }),
+			).toBeInTheDocument();
+		});
+
+		it("does not offer the new quiz dialog when the quiz was opened", async () => {
+			await renderEditor(editorData(question("a", null)), {
+				assistant: assistant(),
+			});
+
+			expect(
+				screen.queryByRole("dialog", { name: "Criar um novo quiz" }),
+			).toBeNull();
+		});
+
+		it("adding selects the first added question", async () => {
+			const added = {
+				...question("added-g1", "Plutão é um planeta anão"),
+				aiGenerated: true,
+			};
+			const { actions, user } = await renderEditor(
+				editorData(question("a", "A?")),
+				{
+					assistant: assistant(),
+					afterGeneratedAdd: editorData(question("a", "A?"), added),
+				},
+			);
+			await user.click(screen.getByRole("button", { name: "Crie" }));
+			await user.type(
+				await screen.findByRole("textbox", { name: "Assunto" }),
+				"Planetas",
+			);
+			await user.click(
+				within(
+					screen.getByRole("dialog", { name: "Crie com o Assistente" }),
+				).getByRole("button", { name: "Crie" }),
+			);
+
+			await user.click(
+				await screen.findByRole("button", { name: "Adicionar tudo" }),
+			);
+
+			expect(actions.addGeneratedQuestions).toHaveBeenCalledWith([
+				expect.objectContaining({ id: "g1" }),
+			]);
+			expect(
+				await screen.findByRole("button", {
+					name: "Pergunta 2: Plutão é um planeta anão",
+				}),
+			).toHaveAttribute("aria-current", "true");
+			expect(
+				screen.queryByRole("dialog", { name: "Crie com o Assistente" }),
+			).toBeNull();
+		});
 	});
 });

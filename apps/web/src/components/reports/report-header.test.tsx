@@ -134,7 +134,8 @@ describe("ReportHeader (spec 015)", () => {
 		expect(onRename).not.toHaveBeenCalled();
 		// Still the field: nothing was thrown away.
 		expect(field()).toHaveValue("a".repeat(96));
-	});
+		// Typing 96 characters is slow when the whole suite runs at once.
+	}, 15_000);
 
 	it("a failed rename keeps the old name and warns", async () => {
 		const { user } = renderHeader(

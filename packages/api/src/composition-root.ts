@@ -1,4 +1,9 @@
+import { createLanguageModel } from "@quizio/ai/ai-model";
+import { createAiSdkQuestionGenerator } from "@quizio/ai/ai-sdk-question-generator";
+import { createPdfLibPdfPages } from "@quizio/ai/pdf-lib-pdf-pages";
 import { authSettings } from "@quizio/auth";
+import type { QuestionGenerator } from "@quizio/core/quiz/application/ports/question-generator";
+import { InMemoryQuestionGenerator } from "@quizio/core/quiz/testing/in-memory-question-generator";
 import { db } from "@quizio/db";
 import { createDrizzleAnswerRepository } from "@quizio/db/repositories/game/drizzle-answer-repository";
 import { createDrizzleGameQuestionRepository } from "@quizio/db/repositories/game/drizzle-game-question-repository";
@@ -7,6 +12,9 @@ import { createDrizzleHostPreferencesRepository } from "@quizio/db/repositories/
 import { createDrizzlePlayableQuizQuery } from "@quizio/db/repositories/game/drizzle-playable-quiz-query";
 import { createDrizzlePlayerRepository } from "@quizio/db/repositories/game/drizzle-player-repository";
 import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
+import { createDrizzleSourceUploadRepository } from "@quizio/db/repositories/media/drizzle-source-upload-repository";
+import { createDrizzleAssistantPreferencesRepository } from "@quizio/db/repositories/quiz/drizzle-assistant-preferences-repository";
+import { createDrizzleGenerationQuota } from "@quizio/db/repositories/quiz/drizzle-generation-quota";
 import { createDrizzleQuestionRepository } from "@quizio/db/repositories/quiz/drizzle-question-repository";
 import { createDrizzleQuizRepository } from "@quizio/db/repositories/quiz/drizzle-quiz-repository";
 import { createDrizzleQuizVersionRepository } from "@quizio/db/repositories/quiz/drizzle-quiz-version-repository";
@@ -20,6 +28,32 @@ import { createS3ObjectStorage } from "@quizio/storage/s3-object-storage";
 import { type Adapters, type Container, createContainer } from "./container";
 import { createRandomGamePinGenerator } from "./random-game-pin-generator";
 import { createRandomShuffler } from "./random-shuffler";
+
+/** A creation taking longer than this fails and gives the use back (spec 027, RN-33). */
+const GENERATION_TIMEOUT_MS = 120_000;
+
+/** The creation assistant's model, or null to turn the assistant off (spec 027, RN-01). */
+function questionGeneratorFromEnv(): QuestionGenerator | null {
+	const { AI_PROVIDER: provider, AI_API_KEY: apiKey, AI_MODEL: model } = env;
+	if (!provider) {
+		return null;
+	}
+	if (provider === "fake") {
+		if (env.NODE_ENV === "production") {
+			throw new Error("AI_PROVIDER=fake is only for tests");
+		}
+		return new InMemoryQuestionGenerator();
+	}
+	if (!apiKey || !model) {
+		throw new Error(
+			`Set AI_API_KEY and AI_MODEL to use AI_PROVIDER=${provider}`,
+		);
+	}
+	return createAiSdkQuestionGenerator({
+		model: createLanguageModel({ provider, apiKey, model }),
+		timeoutMs: GENERATION_TIMEOUT_MS,
+	});
+}
 
 /**
  * The only place that knows which concrete provider backs each port.
@@ -64,6 +98,12 @@ export function createAdaptersFromEnv(): Adapters {
 		shuffler: createRandomShuffler(),
 		attempts: createDrizzleAttemptLimiter(db),
 		authSettings,
+		questionGenerator: questionGeneratorFromEnv(),
+		pdfPages: createPdfLibPdfPages(),
+		generationQuota: createDrizzleGenerationQuota(db),
+		assistantPreferences: createDrizzleAssistantPreferencesRepository(db),
+		sourceUploads: createDrizzleSourceUploadRepository(db),
+		assistantSettings: { generationsPerDay: env.AI_GENERATIONS_PER_DAY },
 	};
 }
 

@@ -24,5 +24,8 @@ export default defineConfig({
 		url: baseURL,
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,
+		// The creation assistant answers fixed questions, never a real provider
+		// (spec 027). A server already running keeps its own .env.
+		env: { AI_PROVIDER: "fake" },
 	},
 });

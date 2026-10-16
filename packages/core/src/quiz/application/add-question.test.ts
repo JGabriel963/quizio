@@ -74,6 +74,7 @@ describe("addQuestion", () => {
 			timeLimitSeconds: 20,
 			points: "standard",
 			image: null,
+			aiGenerated: false,
 			correct: null,
 		});
 	});

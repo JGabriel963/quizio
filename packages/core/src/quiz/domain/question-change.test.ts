@@ -109,6 +109,15 @@ describe("applyQuestionChange changing the type", () => {
 		points: "double",
 	});
 
+	it("a type change keeps the AI mark", () => {
+		const { question } = applyQuestionChange(
+			{ ...written, aiGenerated: true },
+			{ kind: "type", type: "trueFalse", remembered: null },
+		);
+
+		expect(question.aiGenerated).toBe(true);
+	});
+
 	it("keeps text, time and points and blanks the answers", () => {
 		const { question } = applyQuestionChange(written, {
 			kind: "type",
@@ -123,6 +132,7 @@ describe("applyQuestionChange changing the type", () => {
 			timeLimitSeconds: 30,
 			points: "double",
 			image: null,
+			aiGenerated: false,
 			correct: null,
 		});
 	});

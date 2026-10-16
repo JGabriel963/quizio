@@ -17,6 +17,12 @@ export type HomeQuizView = HomeOverviewView["quizzes"][number];
 export type QuizEditorData = RouterOutputs["quiz"]["editor"];
 export type QuestionData = QuizEditorData["questions"][number];
 
+/** The creation assistant (spec 027): its status and what a creation returns. */
+export type AssistantStatusData = RouterOutputs["quiz"]["assistant"]["status"];
+export type GenerationResultData =
+	RouterOutputs["quiz"]["assistant"]["generate"];
+export type GeneratedQuestionData = GenerationResultData["questions"][number];
+
 /** The host's screen: the lobby and the game in progress (specs 008, 009). */
 export type HostGameData = RouterOutputs["game"]["view"];
 export type LobbyPlayerData = HostGameData["players"][number];

@@ -115,7 +115,32 @@ describe("sameQuestionLists", () => {
 	});
 });
 
+describe("sameQuestionLists and the AI mark", () => {
+	it("same lists ignore the AI mark", () => {
+		const question = aQuestion();
+
+		expect(
+			sameQuestionLists([question], [{ ...question, aiGenerated: true }]),
+		).toBe(true);
+	});
+});
+
 describe("parseVersionQuestions", () => {
+	it("keeps the AI mark", () => {
+		const stored = JSON.parse(
+			JSON.stringify([{ ...aQuestion(), aiGenerated: true }]),
+		);
+
+		expect(parseVersionQuestions(stored)[0]?.aiGenerated).toBe(true);
+	});
+
+	it("an old version without the mark reads as not AI generated", () => {
+		const { aiGenerated: _mark, ...old } = aQuestion();
+		const stored = JSON.parse(JSON.stringify([old]));
+
+		expect(parseVersionQuestions(stored)[0]?.aiGenerated).toBe(false);
+	});
+
 	it("reads back what a version stores", () => {
 		const stored = JSON.parse(JSON.stringify(published));
 

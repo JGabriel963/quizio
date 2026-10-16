@@ -25,6 +25,7 @@ export function aTrueFalseQuestion(
 		timeLimitSeconds: 20,
 		points: "standard",
 		image: null,
+		aiGenerated: false,
 		correct: null,
 		...overrides,
 	};

@@ -38,6 +38,15 @@ export const env = createEnv({
 		PUSHER_HOST: z.string().min(1).optional(),
 		PUSHER_PORT: z.coerce.number().int().positive().optional(),
 		PUSHER_USE_TLS: z.stringbool().default(true),
+
+		// Creation assistant (spec 027, ADR 0012). Without a provider it is off.
+		// AI_API_KEY and AI_MODEL go with it (checked in the composition root).
+		// `fake` answers fixed questions, for the E2E tests; never in production.
+		AI_PROVIDER: z.enum(["anthropic", "openai", "google", "fake"]).optional(),
+		AI_API_KEY: z.string().min(1).optional(),
+		AI_MODEL: z.string().min(1).optional(),
+		// Generations per creator in any 24 hours (RN-31).
+		AI_GENERATIONS_PER_DAY: z.coerce.number().int().min(0).default(20),
 	},
 	runtimeEnv: process.env,
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
