@@ -53,7 +53,7 @@ describe("game options repositories (spec 012)", () => {
 		await quizzes.save(aPublishedQuiz({ id: "quiz-1" }));
 	});
 
-	describe("characters (spec 027)", () => {
+	describe("characters (spec 028)", () => {
 		it("a game keeps gameCharacters, and saveOptions changes it alone", async () => {
 			await games.create(
 				aGame({ options: { ...options, gameCharacters: false } }),

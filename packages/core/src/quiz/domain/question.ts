@@ -48,6 +48,11 @@ interface QuestionBase {
 	points: QuestionPoints;
 	/** Optional, whatever the type (spec 007, RN-01). */
 	image: QuestionImage | null;
+	/**
+	 * Added by the creation assistant (spec 027, RN-29). Kept through edits and
+	 * copies; never part of what is played.
+	 */
+	aiGenerated: boolean;
 }
 
 export interface QuizQuestion extends QuestionBase {
@@ -139,6 +144,7 @@ export function blankQuestion(
 		timeLimitSeconds: DEFAULT_TIME_LIMIT_SECONDS,
 		points: "standard",
 		image: null,
+		aiGenerated: false,
 		...blankContent(type),
 	};
 }

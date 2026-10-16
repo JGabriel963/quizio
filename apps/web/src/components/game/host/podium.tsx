@@ -121,7 +121,7 @@ export function Podium({
 												}
 												className="flex w-full flex-col items-center gap-1"
 											>
-												{/* The avatar rises with the nickname (spec 027, RN-19). */}
+												{/* The avatar rises with the nickname (spec 028, RN-19). */}
 												{standing.avatar && (
 													<Avatar
 														avatar={standing.avatar}

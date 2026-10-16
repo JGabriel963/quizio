@@ -1,11 +1,11 @@
 ---
-spec: "027"
+spec: "028"
 status: done # todo | in-progress | done
 ---
 
-# Tarefas — 027 Personagens dos jogadores
+# Tarefas — 028 Personagens dos jogadores
 
-> Spec: [spec.md](spec.md) · Plano: [plan.md](plan.md) · ADR: [0012](../../../docs/adr/0012-arte-dos-avatares.md)
+> Spec: [spec.md](spec.md) · Plano: [plan.md](plan.md) · ADR: [0013](../../../docs/adr/0013-arte-dos-avatares.md)
 >
 > Ordem de dentro para fora. Cada tarefa: **(1)** escrever o teste e vê-lo falhar pelo motivo certo, **(2)** implementar o mínimo, **(3)** refatorar com os testes verdes. Marque `[x]` só com o teste passando.
 
@@ -94,7 +94,7 @@ status: done # todo | in-progress | done
 
 - [x] **T12** `web` — a arte do conjunto
   - Teste: `lib/avatar-catalog.test.ts` › "has the same ids as the core, in the same order", "every item has a label and an image path"
-  - Implementar: `apps/web/public/avatars/` (`characters/*.svg`, `accessories/*.svg`, `neutral-head.svg`, `LICENSE`, `SOURCES.md`) copiados do Fluent Emoji Flat (ADR 0012); `lib/avatar-catalog.ts` com rótulos em português e `slot` de cada acessório
+  - Implementar: `apps/web/public/avatars/` (`characters/*.svg`, `accessories/*.svg`, `neutral-head.svg`, `LICENSE`, `SOURCES.md`) copiados do Fluent Emoji Flat (ADR 0013); `lib/avatar-catalog.ts` com rótulos em português e `slot` de cada acessório
   - Cobre: RN-02, RN-03, RN-20
 
 - [x] **T13** `web` — o componente `Avatar`
@@ -144,11 +144,11 @@ status: done # todo | in-progress | done
   - Cobre: CA-01, CA-05, CA-19
 
 - [x] **T22** Conferência num navegador de verdade
-  - Lobby, espera, editor nas duas abas, troca refletida no anfitrião, jogador que entrou no meio, placar, pódio e classificação, chave desligada e religada; em tela de celular e larga, comparando com as capturas do Kahoot (spec 027). Ajustes de layout sem nova spec.
+  - Lobby, espera, editor nas duas abas, troca refletida no anfitrião, jogador que entrou no meio, placar, pódio e classificação, chave desligada e religada; em tela de celular e larga, comparando com as capturas do Kahoot (spec 028). Ajustes de layout sem nova spec.
 
 - [x] **T23** Fechamento
   - `pnpm check` (Biome só nos arquivos alterados, `--line-ending=crlf`), `pnpm test`, `pnpm check-types`, `pnpm -F web exec tsc --noEmit`; `pnpm test:e2e` das specs de jogo (008 a 014) e de `avatars`
-  - Atualizar `spec.md` (status `done`, changelog; fechar as perguntas em aberto: conjunto Fluent Emoji Flat, só rosto), `glossary.md` (status ✅ e nomes do código), `roadmap.md` (✅, links do plano e das tarefas), `CLAUDE.md` (parágrafo da spec 027 na seção do jogo) e as notas "Sem avatar" das specs 008 a 011 (changelog apontando para a 027)
+  - Atualizar `spec.md` (status `done`, changelog; fechar as perguntas em aberto: conjunto Fluent Emoji Flat, só rosto), `glossary.md` (status ✅ e nomes do código), `roadmap.md` (✅, links do plano e das tarefas), `CLAUDE.md` (parágrafo da spec 028 na seção do jogo) e as notas "Sem avatar" das specs 008 a 011 (changelog apontando para a 027)
 
 ## Cobertura dos critérios de aceite
 

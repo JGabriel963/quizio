@@ -112,7 +112,7 @@ describe("the last game of this browser (spec 008, RN-44a)", () => {
 	});
 });
 
-describe("the remembered avatar (spec 027, RN-08)", () => {
+describe("the remembered avatar (spec 028, RN-08)", () => {
 	it("remembers the last avatar", () => {
 		const store = createPlayerSessionStore(memoryStorage());
 

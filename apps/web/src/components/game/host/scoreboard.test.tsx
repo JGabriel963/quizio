@@ -224,7 +224,7 @@ describe("Scoreboard: autoplay (spec 014)", () => {
 	});
 });
 
-describe("Scoreboard: avatars (spec 027)", () => {
+describe("Scoreboard: avatars (spec 028)", () => {
 	it("each row shows the avatar beside the nickname", () => {
 		stubReducedMotion(true);
 		renderBoard([

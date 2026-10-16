@@ -6,7 +6,7 @@ import { quizErrorMessage } from "@/lib/quiz-error-messages";
 import { useQuizMutations } from "@/lib/quiz-mutations";
 
 export interface CreateQuizContextValue {
-	/** Creates a blank draft and opens its editor (spec 003, RN-04). */
+	/** Creates a blank draft and opens its editor (spec 003, RN-04; spec 027, RN-03). */
 	createQuiz: () => void;
 	/** True while a quiz is being created, so a double click creates one draft. */
 	creating: boolean;
@@ -39,6 +39,8 @@ export function CreateQuizProvider({ children }: { children: ReactNode }) {
 							navigate({
 								to: "/creator/$quizId",
 								params: { quizId: quiz.id },
+								// The editor offers the creation assistant once (spec 027, RN-03).
+								search: { created: true },
 							}),
 						onError: (error) => toast.error(quizErrorMessage(error)),
 					},

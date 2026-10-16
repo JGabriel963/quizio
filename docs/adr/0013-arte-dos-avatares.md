@@ -1,7 +1,7 @@
-# ADR 0012 — Arte dos avatares: Fluent Emoji Flat no repositório
+# ADR 0013 — Arte dos avatares: Fluent Emoji Flat no repositório
 
 - **Status:** aceito (2026-10-15)
-- **Contexto da decisão:** [spec 027](../../specs/features/027-personagens-dos-jogadores/spec.md) (RN-02, RN-03) · [plano](../../specs/features/027-personagens-dos-jogadores/plan.md)
+- **Contexto da decisão:** [spec 028](../../specs/features/028-personagens-dos-jogadores/spec.md) (RN-02, RN-03) · [plano](../../specs/features/028-personagens-dos-jogadores/plan.md)
 
 ## Contexto
 

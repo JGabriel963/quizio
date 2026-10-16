@@ -10,7 +10,7 @@ import type {
 /** What the game's channel tells the host's lobby (spec 008; ADR 0009). */
 export type LobbyEvent =
 	| { type: "playerJoined"; player: LobbyPlayerData }
-	/** A player changed avatar while waiting (spec 027, RN-12). */
+	/** A player changed avatar while waiting (spec 028, RN-12). */
 	| { type: "avatarChanged"; playerId: string; avatar: Avatar }
 	| { type: "playerRemoved"; playerId: string }
 	| { type: "lockChanged"; locked: boolean }
@@ -32,7 +32,7 @@ export function applyLobbyEvent(
 				? view
 				: { ...view, players: [...view.players, event.player] };
 		case "avatarChanged":
-			// With the characters off the lobby shows none (spec 027, RN-25).
+			// With the characters off the lobby shows none (spec 028, RN-25).
 			return view.options.gameCharacters
 				? {
 						...view,

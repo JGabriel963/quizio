@@ -100,7 +100,7 @@ test.describe("opções de jogo (spec 012)", () => {
 		).toBeVisible();
 
 		// CA-01, CA-05: the panel opens in the lobby with everything off but
-		// the characters, which start on (spec 027, RN-23).
+		// the characters, which start on (spec 028, RN-23).
 		await host.getByRole("button", { name: "Configurações" }).click();
 		const switches = settings(host).getByRole("switch");
 		await expect(switches).toHaveCount(6);

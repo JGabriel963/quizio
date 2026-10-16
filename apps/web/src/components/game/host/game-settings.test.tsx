@@ -303,7 +303,7 @@ describe("GameSettings: Reprodução automática (spec 014)", () => {
 	});
 });
 
-describe("GameSettings: Personagens dos jogadores (spec 027)", () => {
+describe("GameSettings: Personagens dos jogadores (spec 028)", () => {
 	const NAME = "Personagens dos jogadores";
 
 	it("shows Personagens dos jogadores after autoplay and before Encerrar jogo", () => {

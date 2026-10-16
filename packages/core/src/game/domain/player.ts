@@ -20,7 +20,7 @@ export interface Player {
 	 * later for who joined a game in progress (spec 012, RN-13).
 	 */
 	firstQuestionIndex: number;
-	/** Drawn on joining, changed while waiting (spec 027, RN-07, RN-13). */
+	/** Drawn on joining, changed while waiting (spec 028, RN-07, RN-13). */
 	avatar: Avatar;
 	joinedAt: Date;
 	removedAt: Date | null;
@@ -87,7 +87,7 @@ export class AvatarFixedError extends DomainError {
 }
 
 /**
- * While the player waits to play (spec 027, RN-13): in the lobby, or, for who
+ * While the player waits to play (spec 028, RN-13): in the lobby, or, for who
  * joined a game in progress, until their first question opens. Never with
  * the characters off (RN-25).
  */

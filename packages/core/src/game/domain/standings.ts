@@ -8,7 +8,7 @@ export const SCOREBOARD_SIZE = 5;
 export interface Standing {
 	playerId: string;
 	nickname: string;
-	/** Null with the characters off (spec 027, RN-25). */
+	/** Null with the characters off (spec 028, RN-25). */
 	avatar: Avatar | null;
 	total: number;
 	/** 1-based; no two players share one (RN-19). */
@@ -43,7 +43,7 @@ export interface PlayerStanding {
 export interface RankedPlayer {
 	id: string;
 	nickname: string;
-	/** As the screens may show it: `shownPlayers` (spec 027). */
+	/** As the screens may show it: `shownPlayers` (spec 028). */
 	avatar: Avatar | null;
 }
 

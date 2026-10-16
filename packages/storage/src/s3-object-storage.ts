@@ -1,7 +1,9 @@
 import {
 	CopyObjectCommand,
 	DeleteObjectCommand,
+	GetObjectCommand,
 	HeadObjectCommand,
+	NoSuchKey,
 	NotFound,
 	PutObjectCommand,
 	S3Client,
@@ -93,6 +95,24 @@ export function createS3ObjectStorage(
 						error.$metadata.httpStatusCode === 404)
 				) {
 					return false;
+				}
+				throw error;
+			}
+		},
+
+		async read(key) {
+			try {
+				const object = await client.send(
+					new GetObjectCommand({ Bucket: config.bucket, Key: key }),
+				);
+				return object.Body ? await object.Body.transformToByteArray() : null;
+			} catch (error) {
+				if (
+					error instanceof NoSuchKey ||
+					(error instanceof S3ServiceException &&
+						error.$metadata.httpStatusCode === 404)
+				) {
+					return null;
 				}
 				throw error;
 			}

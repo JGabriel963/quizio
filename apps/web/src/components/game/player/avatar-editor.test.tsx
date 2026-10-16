@@ -24,7 +24,7 @@ const preview = () =>
 		(image) => image.getAttribute("src"),
 	);
 
-describe("AvatarEditor (spec 027)", () => {
+describe("AvatarEditor (spec 028)", () => {
 	it("opens on the character tab with the current one pressed", () => {
 		renderEditor();
 

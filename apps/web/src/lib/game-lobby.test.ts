@@ -157,7 +157,7 @@ describe("applyLobbyEvent: autoplay (spec 014)", () => {
 	});
 });
 
-describe("applyLobbyEvent: avatars (spec 027)", () => {
+describe("applyLobbyEvent: avatars (spec 028)", () => {
 	it("avatarChanged replaces the avatar of that player", () => {
 		const changed = applyLobbyEvent(lobby, {
 			type: "avatarChanged",

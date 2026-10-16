@@ -195,6 +195,19 @@ function DesignSystemPage() {
 							</DialogFooter>
 						</DialogContent>
 					</Dialog>
+					<Dialog>
+						<DialogTrigger render={<Button variant="outline" />}>
+							Abrir diálogo de tela cheia
+						</DialogTrigger>
+						<DialogContent size="screen" className="p-6">
+							<DialogHeader>
+								<DialogTitle>Crie com o Assistente</DialogTitle>
+								<DialogDescription>
+									Ocupa a tela toda no celular e quase toda no computador.
+								</DialogDescription>
+							</DialogHeader>
+						</DialogContent>
+					</Dialog>
 					<AlertDialog>
 						<AlertDialogTrigger render={<Button variant="destructive" />}>
 							Excluir definitivamente
@@ -301,7 +314,7 @@ function DesignSystemPage() {
 
 			<Section title="Avatares">
 				<p className="text-muted-foreground text-sm">
-					Personagens e acessórios dos jogadores (spec 027). A matriz mostra
+					Personagens e acessórios dos jogadores (spec 028). A matriz mostra
 					cada acessório sobre três rostos, para conferir o encaixe.
 				</p>
 				<div className="flex flex-wrap gap-3">

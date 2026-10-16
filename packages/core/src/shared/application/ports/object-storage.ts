@@ -11,6 +11,8 @@ export interface ObjectStorage {
 	/** Public URL of an object, for rendering. Does not check existence. */
 	getPublicUrl(key: string): string;
 	exists(key: string): Promise<boolean>;
+	/** The object's bytes, or null when it is missing (spec 027: the assistant reads a PDF). */
+	read(key: string): Promise<Uint8Array | null>;
 	/** Idempotent: deleting a missing object succeeds. */
 	delete(key: string): Promise<void>;
 	/** Server-side copy, so two owners of the same image can delete independently. */

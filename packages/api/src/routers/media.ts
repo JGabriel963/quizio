@@ -13,4 +13,24 @@ export const mediaRouter = router({
 				...input,
 			}),
 		),
+
+	/** A PDF for the creation assistant (spec 027): same flow, its own policy and prefix. */
+	requestSourceUpload: protectedProcedure
+		.input(z.object({ contentType: z.string(), sizeBytes: z.number() }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.requestSourceUpload({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** The assistant closed: its PDF goes (spec 027, RN-18). */
+	discardSource: protectedProcedure
+		.input(z.object({ key: z.string().min(1) }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.discardSource({
+				ownerId: ctx.session.user.id,
+				key: input.key,
+			}),
+		),
 });

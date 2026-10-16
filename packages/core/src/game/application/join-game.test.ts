@@ -504,7 +504,7 @@ describe("joining a game in progress (spec 012)", () => {
 	});
 });
 
-describe("joining with an avatar (spec 027)", () => {
+describe("joining with an avatar (spec 028)", () => {
 	const fox = { character: "fox", accessory: "crown" };
 
 	it("draws an avatar when none is remembered", async () => {

@@ -558,7 +558,7 @@ describe("HostLobby: autoplay (spec 014)", () => {
 	});
 });
 
-describe("HostLobby: avatars (spec 027)", () => {
+describe("HostLobby: avatars (spec 028)", () => {
 	const imagesOf = (card: HTMLElement) =>
 		[...card.querySelectorAll("img")].map((image) => image.getAttribute("src"));
 	const cards = () =>

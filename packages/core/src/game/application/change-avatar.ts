@@ -16,7 +16,7 @@ export type ChangeAvatar = (input: {
 }) => Promise<{ avatar: Avatar }>;
 
 /**
- * A tap in the avatar editor (spec 027, RN-12 to RN-14): the avatar changes
+ * A tap in the avatar editor (spec 028, RN-12 to RN-14): the avatar changes
  * at once and the host's lobby is told. Whether the player still waits is
  * read before the write; a change that crosses the start of the question by
  * a moment is accepted, because the avatar weighs on nothing of the game.

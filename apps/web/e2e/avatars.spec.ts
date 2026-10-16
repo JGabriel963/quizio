@@ -39,7 +39,7 @@ async function publishQuiz(page: Page, title: string) {
 	await expect(readyDialog(page)).toBeVisible();
 }
 
-test.describe("personagens dos jogadores (spec 027)", () => {
+test.describe("personagens dos jogadores (spec 028)", () => {
 	test("o jogador troca o personagem, o anfitrião vê e desliga os personagens", async ({
 		page: host,
 		browser,

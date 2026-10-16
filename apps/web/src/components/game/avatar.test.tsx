@@ -8,7 +8,7 @@ const imagesOf = (container: HTMLElement) =>
 		image.getAttribute("src"),
 	);
 
-describe("Avatar (spec 027)", () => {
+describe("Avatar (spec 028)", () => {
 	it("draws the character and the accessory", () => {
 		const { container } = render(
 			<Avatar avatar={{ character: "koala", accessory: "top-hat" }} />,

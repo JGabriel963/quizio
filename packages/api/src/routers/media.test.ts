@@ -45,3 +45,55 @@ describe("media.requestUpload", () => {
 		});
 	});
 });
+
+describe("media source documents (spec 027)", () => {
+	it("requests a PDF upload under the caller's sources", async () => {
+		const { callerFor, sourceUploads } = createTestApi();
+
+		const upload = await callerFor("user-1").media.requestSourceUpload({
+			contentType: "application/pdf",
+			sizeBytes: 2048,
+		});
+
+		expect(upload).toMatchObject({
+			key: "sources/user-1/id-1.pdf",
+			method: "PUT",
+		});
+		expect(sourceUploads.keys()).toEqual(["sources/user-1/id-1.pdf"]);
+	});
+
+	it("refuses an image as source", async () => {
+		const caller = createTestApi().callerFor("user-1");
+
+		await expect(
+			caller.media.requestSourceUpload({
+				contentType: "image/png",
+				sizeBytes: 2048,
+			}),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "MEDIA.UNSUPPORTED_SOURCE_TYPE" },
+		});
+	});
+
+	it("discards the caller's source", async () => {
+		const { callerFor, storage, sourceUploads } = createTestApi();
+		const caller = callerFor("user-1");
+		const { key } = await caller.media.requestSourceUpload({
+			contentType: "application/pdf",
+			sizeBytes: 2048,
+		});
+		storage.simulateUpload(key);
+
+		await caller.media.discardSource({ key });
+
+		expect(storage.keys()).toEqual([]);
+		expect(sourceUploads.keys()).toEqual([]);
+	});
+
+	it("requires authentication", async () => {
+		await expect(
+			createTestApi().callerFor(null).media.discardSource({ key: "x" }),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+});

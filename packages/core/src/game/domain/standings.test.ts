@@ -258,7 +258,7 @@ describe("standingOf (spec 010, RN-15)", () => {
 	});
 });
 
-describe("avatars in the standings (spec 027)", () => {
+describe("avatars in the standings (spec 028)", () => {
 	const koala = { character: "koala", accessory: "crown" } as const;
 
 	it("standings carry each player's avatar", () => {

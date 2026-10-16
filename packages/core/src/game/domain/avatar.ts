@@ -2,8 +2,8 @@ import type { Shuffler } from "../../shared/application/ports/shuffler";
 import { DomainError } from "../../shared/domain/domain-error";
 
 /**
- * The characters a player may be (spec 027, RN-02), in the order of the
- * editor's grid. An id never changes drawing: new art is a new id (ADR 0012).
+ * The characters a player may be (spec 028, RN-02), in the order of the
+ * editor's grid. An id never changes drawing: new art is a new id (ADR 0013).
  * The drawings and the Portuguese names live in the web's catalog.
  */
 export const CHARACTER_IDS = [

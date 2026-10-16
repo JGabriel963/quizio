@@ -12,7 +12,7 @@ import { Avatar } from "../avatar";
 
 /**
  * Who is in, in order of arrival, each with the avatar when the characters are
- * on (spec 027). Each card is a button: hovering, focusing or touching it
+ * on (spec 028). Each card is a button: hovering, focusing or touching it
  * offers to remove the player (spec 008, RN-17, RN-18, RN-27).
  */
 export function PlayerGrid({
@@ -51,7 +51,7 @@ export function PlayerGrid({
 										/>
 									}
 								>
-									{/* The avatar beside the nickname (spec 027, RN-16, RN-21). */}
+									{/* The avatar beside the nickname (spec 028, RN-16, RN-21). */}
 									{player.avatar && (
 										<span className="mr-4 flex self-stretch bg-black/20 p-1.5">
 											<Avatar

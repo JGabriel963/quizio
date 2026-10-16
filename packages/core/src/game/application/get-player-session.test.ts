@@ -433,7 +433,7 @@ describe("getPlayerSession: who joined in the middle (spec 012)", () => {
 		expect(await createGetPlayerSession(deps)(caio)).toEqual({
 			gameId: "game-1",
 			nickname: "Caio",
-			// Drawn on joining; sitting out, Caio may still change it (spec 027).
+			// Drawn on joining; sitting out, Caio may still change it (spec 028).
 			avatar: { character: "moon", accessory: "fire" },
 			canChangeAvatar: true,
 			status: "playing",
@@ -739,7 +739,7 @@ describe("getPlayerSession: the host's silence (spec 013)", () => {
 	});
 });
 
-describe("getPlayerSession: the avatar (spec 027)", () => {
+describe("getPlayerSession: the avatar (spec 028)", () => {
 	it("the session carries the avatar and whether it can change", async () => {
 		const deps = createGameDeps();
 		await deps.games.save(aGame({ createdAt: deps.clock.now() }));

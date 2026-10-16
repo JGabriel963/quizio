@@ -10,7 +10,7 @@ import {
 	UnknownAvatarError,
 } from "./avatar";
 
-describe("avatar (spec 027)", () => {
+describe("avatar (spec 028)", () => {
 	it("accepts a character and an accessory from the catalog", () => {
 		expect(parseAvatar({ character: "koala", accessory: "top-hat" })).toEqual({
 			character: "koala",

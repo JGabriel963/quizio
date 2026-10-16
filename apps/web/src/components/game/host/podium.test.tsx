@@ -304,7 +304,7 @@ describe("Podium: after the reveal (spec 011)", () => {
 	});
 });
 
-describe("Podium: avatars (spec 027)", () => {
+describe("Podium: avatars (spec 028)", () => {
 	const koala = "/avatars/characters/koala.svg";
 	const imagesIn = (element: Element | null) =>
 		[...(element?.querySelectorAll("img") ?? [])].map((image) =>

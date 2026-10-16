@@ -50,6 +50,33 @@ describe("DrizzleQuestionRepository", () => {
 		expect(remaining.map(({ id }) => id)).toEqual(["b"]);
 	});
 
+	it("stores and reads the AI mark", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const generated = { ...a, aiGenerated: true };
+		await questions.saveList("quiz-1", [generated, b]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([generated, b]);
+
+		await questions.saveQuestion("quiz-1", { ...generated, text: "A2" });
+
+		expect((await questions.listByQuiz("quiz-1"))[0]).toMatchObject({
+			text: "A2",
+			aiGenerated: true,
+		});
+	});
+
+	it("an existing row reads as not AI generated", async () => {
+		await testDb.db
+			.insert(questionTable)
+			.values({ id: "old", type: "quiz", quizId: "quiz-1", position: 0 });
+
+		const [question] = await createDrizzleQuestionRepository(
+			testDb.db,
+		).listByQuiz("quiz-1");
+
+		expect(question?.aiGenerated).toBe(false);
+	});
+
 	it("lists a quiz's questions in saved order", async () => {
 		const questions = createDrizzleQuestionRepository(testDb.db);
 

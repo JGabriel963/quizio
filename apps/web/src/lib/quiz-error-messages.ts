@@ -1,4 +1,8 @@
 import {
+	GENERATION_MAX_PAGES,
+	GENERATION_TOPIC_MAX_LENGTH,
+} from "@quizio/core/quiz/domain/generation";
+import {
 	CHOICE_TEXT_MAX_LENGTH,
 	QUESTION_TEXT_MAX_LENGTH,
 } from "@quizio/core/quiz/domain/question";
@@ -51,6 +55,25 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"MEDIA.UNSUPPORTED_TYPE":
 		"Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
 	"MEDIA.INVALID_SIZE": "Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
+	// The creation assistant (spec 027).
+	"QUIZ.GENERATION_FAILED":
+		"Não foi possível criar as perguntas agora. Tente de novo.",
+	"QUIZ.GENERATION_UNAVAILABLE":
+		"A criação com IA não está disponível nesta instância.",
+	"QUIZ.GENERATION_QUOTA_EXCEEDED":
+		"Você usou todas as criações das últimas 24 horas.",
+	"QUIZ.GENERATION_TOPIC_EMPTY": "Escreva sobre o que será o quiz.",
+	"QUIZ.GENERATION_TOPIC_TOO_LONG": `O texto pode ter até ${GENERATION_TOPIC_MAX_LENGTH} caracteres.`,
+	"QUIZ.INVALID_GENERATION_OPTIONS": "Escolha as opções da lista.",
+	"QUIZ.INVALID_SOURCE_PAGES": `Escolha de 1 a ${GENERATION_MAX_PAGES} páginas do arquivo.`,
+	"QUIZ.SOURCE_ENCRYPTED": "Esse PDF está protegido por senha.",
+	"QUIZ.SOURCE_INVALID": "Não foi possível abrir esse PDF.",
+	"QUIZ.SOURCE_NOT_FOUND": "Envie o PDF de novo.",
+	"QUIZ.INVALID_GENERATED_QUESTION":
+		"Uma das perguntas não pôde ser adicionada. Crie de novo.",
+	"QUIZ.NO_GENERATED_QUESTIONS": "Marque ao menos uma pergunta.",
+	"MEDIA.UNSUPPORTED_SOURCE_TYPE": "Envie um arquivo PDF.",
+	"MEDIA.INVALID_SOURCE_SIZE": "O arquivo passa de 20 MB.",
 };
 
 /** The API's `data.domainCode`, or the code of a rule the client applied itself. */

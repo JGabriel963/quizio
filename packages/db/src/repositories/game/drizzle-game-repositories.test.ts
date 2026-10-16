@@ -318,7 +318,7 @@ describe("game repositories (spec 008)", () => {
 		});
 	});
 
-	describe("the player's avatar (spec 027)", () => {
+	describe("the player's avatar (spec 028)", () => {
 		beforeEach(async () => {
 			await games.create(aGame());
 		});

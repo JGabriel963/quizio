@@ -63,7 +63,7 @@ describe("joining a game in progress (spec 012)", () => {
 	});
 });
 
-describe("the player's avatar (spec 027)", () => {
+describe("the player's avatar (spec 028)", () => {
 	const tiger = { character: "tiger", accessory: "crown" } as const;
 	const now = new Date("2026-06-01T12:02:00.000Z");
 

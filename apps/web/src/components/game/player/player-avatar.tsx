@@ -31,7 +31,7 @@ export function AvatarCard() {
 }
 
 /**
- * The waiting screen with the characters on (spec 008, RN-43; spec 027,
+ * The waiting screen with the characters on (spec 008, RN-43; spec 028,
  * RN-10): the avatar card above the nickname, and the footer.
  */
 export function AvatarWaitingScreen({ nickname }: { nickname: string }) {

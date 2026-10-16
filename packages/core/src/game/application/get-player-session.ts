@@ -94,9 +94,9 @@ export interface PlayerFinalView {
 export interface PlayerSessionView {
 	gameId: string;
 	nickname: string;
-	/** Null with the characters off (spec 027, RN-25). */
+	/** Null with the characters off (spec 028, RN-25). */
 	avatar: Avatar | null;
-	/** The pencil of the waiting screens (spec 027, RN-10, RN-13). */
+	/** The pencil of the waiting screens (spec 028, RN-10, RN-13). */
 	canChangeAvatar: boolean;
 	status: PlayerSessionStatus;
 	/** Null unless the game is being played. */

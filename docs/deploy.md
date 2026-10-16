@@ -17,6 +17,7 @@ Para testar a saída da Vercel na sua máquina: `NITRO_PRESET=vercel pnpm -F web
 - **Cloudflare R2**: um bucket com acesso público de leitura (domínio próprio ou `r2.dev`) e um token de API com leitura e escrita. O navegador envia as imagens direto para o bucket, então ele precisa de uma regra de CORS liberando `PUT` e `GET` para a origem do app (`BETTER_AUTH_URL`), com o cabeçalho `content-type`. Detalhes no [ADR 0003](adr/0003-storage-r2.md).
 - **Pusher Channels**: um app, de preferência no cluster `sa1` (São Paulo). O plano gratuito limita conexões simultâneas; cada jogador e cada anfitrião usa uma.
 - **Google OAuth** (opcional): cliente do tipo "Web application" com a redirect URI `{BETTER_AUTH_URL}/api/auth/callback/google`.
+- **Provedor de IA** (opcional, assistente de criação da spec 027): uma chave da Anthropic, da OpenAI ou do Google, de um modelo que leia PDF. Sem ele, o assistente some da interface. Cada criação é cobrada pelo provedor; a cota por criador (`AI_GENERATIONS_PER_DAY`) limita o gasto ([ADR 0012](adr/0012-geracao-de-perguntas-por-ia.md)).
 
 ### 2. Projeto
 
@@ -47,12 +48,19 @@ As funções rodam em **São Paulo** (`"regions": ["gru1"]` em `apps/web/vercel.
 | `PUSHER_USE_TLS` | `true` |
 | `VITE_PUSHER_KEY` / `VITE_PUSHER_CLUSTER` | os mesmos `key` e `cluster` |
 | `VITE_PUSHER_USE_TLS` | `true` |
+| `AI_PROVIDER` | `anthropic`, `openai` ou `google`; sem ela, o assistente de criação fica desligado. Nunca `fake` (só para os testes) |
+| `AI_API_KEY` / `AI_MODEL` | a chave e o id do modelo do provedor (ex.: `claude-sonnet-5-5`); obrigatórias com `AI_PROVIDER` |
+| `AI_GENERATIONS_PER_DAY` | criações por criador a cada 24 horas; padrão `20` |
 
 Não defina `PUSHER_HOST`, `PUSHER_PORT`, `VITE_PUSHER_HOST` nem `VITE_PUSHER_PORT` com o Pusher na nuvem. As `VITE_*` entram no pacote do navegador **no build**: mudou uma delas, faça um novo deploy.
 
 `BETTER_AUTH_URL` é a única origem aceita, então os endereços de preview (`*-git-*.vercel.app`) não fazem login nem upload. Use o domínio de produção.
 
 `CLIENT_IP_HEADER` fica no padrão (`x-forwarded-for`): a Vercel sobrescreve esse cabeçalho, o cliente não consegue forjá-lo.
+
+**Tempo das funções.** Uma criação com o assistente pode levar um ou dois minutos. O `vite.config.ts` pede `maxDuration: 300` às funções da Vercel (`nitro({ vercel: { functions } })`), o que exige o Fluid compute (padrão nos projetos novos); a criação desiste sozinha em 120 s e devolve a criação à cota.
+
+**PDFs do assistente.** O navegador envia o PDF para o mesmo bucket, no prefixo `sources/`, e o app o apaga quando o assistente fecha ou, se ninguém fechar, no próximo envio depois de 24 horas. Como reforço, crie no R2 uma regra de ciclo de vida que apague os objetos de `sources/` com mais de 1 dia. O CORS das imagens já vale para eles.
 
 ### 4. Banco
 
@@ -69,7 +77,7 @@ Para aplicar à mão, se precisar: `DATABASE_URL="<produção>" pnpm -F @quizio/
 
 ### 5. Conferência
 
-Depois do deploy: criar conta, criar um quiz com imagem de capa (testa o R2 e o CORS), publicar, organizar uma partida e entrar pelo celular com o PIN (testa o Pusher).
+Depois do deploy: criar conta, criar um quiz com imagem de capa (testa o R2 e o CORS), publicar, organizar uma partida e entrar pelo celular com o PIN (testa o Pusher). Com o provedor de IA configurado: Criar → "Assunto > quiz", criar perguntas e adicioná-las (testa a chave e o tempo da função); e um PDF de poucas páginas (testa o envio ao bucket e a leitura no servidor).
 
 ## VPS (futuro)
 

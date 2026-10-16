@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
 import { createTestApi } from "../testing/test-context";
 
 const trashedAt = new Date("2026-05-01T00:00:00.000Z");
-/** The avatar the test shuffler draws: the last of each list (spec 027). */
+/** The avatar the test shuffler draws: the last of each list (spec 028). */
 const drawn = { character: "moon", accessory: "fire" };
 
 async function published() {
@@ -993,7 +993,7 @@ describe("game router: autoplay (spec 014)", () => {
 	});
 });
 
-describe("game router: avatars (spec 027)", () => {
+describe("game router: avatars (spec 028)", () => {
 	const failureOf = (promise: Promise<unknown>) =>
 		promise.then(
 			() => {

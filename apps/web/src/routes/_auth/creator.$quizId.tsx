@@ -1,13 +1,18 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useBlocker } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { EditorUnavailable } from "@/components/editor/editor-unavailable";
 import { QuizEditor } from "@/components/editor/quiz-editor";
 import { OpeningGame } from "@/components/game/opening-game";
 import { QuizFormDialog } from "@/components/quiz/quiz-form-dialog";
 import type { QuizEditorData } from "@/lib/api-types";
+import {
+	useAssistantActions,
+	useAssistantStatus,
+} from "@/lib/assistant-mutations";
 import { useHostGame } from "@/lib/game-mutations";
 import { useEditorActions } from "@/lib/question-mutations";
 import { SaveTrackerProvider, useSaveTracker } from "@/lib/save-tracker";
@@ -15,6 +20,11 @@ import { useTRPC } from "@/utils/trpc";
 
 /** The quiz editor, full screen outside the creator shell (spec 003). */
 export const Route = createFileRoute("/_auth/creator/$quizId")({
+	// `created`: the quiz was just made by Criar, so "Criar um novo quiz" opens
+	// over it once (spec 027, RN-03).
+	validateSearch: z.object({
+		created: z.boolean().optional().catch(undefined),
+	}),
 	component: CreatorPage,
 });
 
@@ -37,6 +47,16 @@ function Creator({ quizId }: { quizId: string }) {
 	const hosting = useHostGame(quizId);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [titleRevision, setTitleRevision] = useState(0);
+	const { created } = Route.useSearch();
+	// Read once: the address loses the flag at once, so a reload does not offer it again.
+	const [offerNewQuiz] = useState(created === true);
+	const assistantStatus = useAssistantStatus();
+	const assistantActions = useAssistantActions(quizId);
+	useEffect(() => {
+		if (created) {
+			void navigate({ search: {}, replace: true });
+		}
+	}, [created, navigate]);
 	const editor = useQuery({
 		...trpc.quiz.editor.queryOptions({ quizId }),
 		retry: (failureCount, error) =>
@@ -89,6 +109,15 @@ function Creator({ quizId }: { quizId: string }) {
 				}
 				onHostLive={hosting.start}
 				onError={(message) => toast.error(message)}
+				assistant={
+					assistantStatus.data?.enabled
+						? {
+								status: assistantStatus.data,
+								offerNewQuiz,
+								...assistantActions,
+							}
+						: undefined
+				}
 			/>
 			<OpeningGame
 				state={hosting.state}

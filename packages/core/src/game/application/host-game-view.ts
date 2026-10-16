@@ -39,7 +39,7 @@ import type { PlayerRepository } from "./ports/player-repository";
 export interface LobbyPlayerView {
 	id: string;
 	nickname: string;
-	/** Null with the characters off (spec 027, RN-25). */
+	/** Null with the characters off (spec 028, RN-25). */
 	avatar: Avatar | null;
 }
 

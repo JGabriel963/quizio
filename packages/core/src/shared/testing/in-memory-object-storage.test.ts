@@ -21,4 +21,22 @@ describe("InMemoryObjectStorage", () => {
 			storage.copy("media/user-1/missing.png", "media/user-1/copy.png"),
 		).rejects.toThrow();
 	});
+
+	it("reads back what was put", async () => {
+		const storage = new InMemoryObjectStorage();
+		storage.put("sources/user-1/a.pdf", new Uint8Array([1, 2, 3]));
+
+		expect(await storage.read("sources/user-1/a.pdf")).toEqual(
+			new Uint8Array([1, 2, 3]),
+		);
+	});
+
+	it("reads null for a missing key", async () => {
+		const storage = new InMemoryObjectStorage();
+		storage.put("sources/user-1/a.pdf", new Uint8Array([1]));
+		await storage.delete("sources/user-1/a.pdf");
+
+		expect(await storage.read("sources/user-1/a.pdf")).toBeNull();
+		expect(await storage.read("sources/user-1/b.pdf")).toBeNull();
+	});
 });

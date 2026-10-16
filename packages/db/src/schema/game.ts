@@ -51,7 +51,7 @@ export const game = pgTable(
 			.default(false),
 		randomizeQuestions: boolean("randomize_questions").notNull().default(false),
 		randomizeAnswers: boolean("randomize_answers").notNull().default(false),
-		/** "Personagens dos jogadores" (spec 027). */
+		/** "Personagens dos jogadores" (spec 028). */
 		gameCharacters: boolean("game_characters").notNull().default(true),
 		/**
 		 * Since when autoplay is on; null while it is off (spec 014). One column
@@ -112,7 +112,7 @@ export const gamePlayer = pgTable(
 		/** 0 for who joined in the lobby; later for who joined in the middle (spec 012). */
 		firstQuestionIndex: integer("first_question_index").notNull().default(0),
 		/**
-		 * The avatar's ids (spec 027). The default only serves the rows from
+		 * The avatar's ids (spec 028). The default only serves the rows from
 		 * before and the previous code during a deploy.
 		 */
 		character: text("character").notNull().default("koala"),

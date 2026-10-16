@@ -115,7 +115,7 @@ export function Scoreboard({
 								)}
 							>
 								<span className="flex min-w-0 flex-1 items-center gap-3">
-									{/* Spec 027, RN-18. */}
+									{/* Spec 028, RN-18. */}
 									{row.avatar && (
 										<Avatar
 											avatar={row.avatar}

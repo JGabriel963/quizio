@@ -359,7 +359,7 @@ describe("setGameOptions: autoplay (spec 014)", () => {
 	});
 });
 
-describe("setGameOptions: characters (spec 027)", () => {
+describe("setGameOptions: characters (spec 028)", () => {
 	it("saves gameCharacters for the host's next games", async () => {
 		const deps = await lobby();
 

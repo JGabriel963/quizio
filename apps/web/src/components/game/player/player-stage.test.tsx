@@ -713,7 +713,7 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 	});
 });
 
-describe("PlayerStage: the avatar (spec 027)", () => {
+describe("PlayerStage: the avatar (spec 028)", () => {
 	const avatarIn = (element: Element | null) =>
 		[...(element?.querySelectorAll("img") ?? [])].map((image) =>
 			image.getAttribute("src"),

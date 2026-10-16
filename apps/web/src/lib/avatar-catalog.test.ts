@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { AVATAR_CATALOG, accessoryOf, characterOf } from "./avatar-catalog";
 
-describe("avatar catalog (spec 027)", () => {
+describe("avatar catalog (spec 028)", () => {
 	it("has the same ids as the core, in the same order", () => {
 		expect(AVATAR_CATALOG.characters.map((item) => item.id)).toEqual([
 			...CHARACTER_IDS,

@@ -6,7 +6,7 @@ import type { ScoreboardEntryData } from "./api-types";
 export interface ScoreboardRow {
 	playerId: string;
 	nickname: string;
-	/** Null with the characters off (spec 027, RN-18). */
+	/** Null with the characters off (spec 028, RN-18). */
 	avatar: ScoreboardEntryData["avatar"];
 	/** What the row's total counts up from. */
 	fromTotal: number;

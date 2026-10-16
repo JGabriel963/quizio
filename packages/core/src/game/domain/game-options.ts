@@ -18,12 +18,12 @@ export interface GameOptions {
 	autoplay: boolean;
 	/**
 	 * Players have an avatar on the screens and may change it while they wait
-	 * (spec 027, RN-22 to RN-26). Off, every avatar is kept but none is shown.
+	 * (spec 028, RN-22 to RN-26). Off, every avatar is kept but none is shown.
 	 */
 	gameCharacters: boolean;
 }
 
-/** A host who never touched the settings (RN-07; spec 027, RN-23). */
+/** A host who never touched the settings (RN-07; spec 028, RN-23). */
 export const DEFAULT_GAME_OPTIONS: GameOptions = {
 	showQuestionsOnDevices: false,
 	randomizeQuestions: false,

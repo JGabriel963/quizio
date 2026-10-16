@@ -36,7 +36,7 @@ export function PlayerFrame({
 	background?: ReactNode;
 	children: ReactNode;
 }) {
-	// The player's avatar beside the nickname, with the characters on (spec 027, RN-17).
+	// The player's avatar beside the nickname, with the characters on (spec 028, RN-17).
 	const { avatar } = usePlayerAvatar();
 	return (
 		<GameScreen className="relative isolate flex h-svh flex-col overflow-hidden">

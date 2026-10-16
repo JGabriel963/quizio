@@ -31,7 +31,7 @@ export interface PlayerRepository {
 	save(player: Player): Promise<void>;
 	/**
 	 * Writes only the avatar: nothing else the row may have changed meanwhile
-	 * is rewritten (spec 027).
+	 * is rewritten (spec 028).
 	 */
 	saveAvatar(playerId: string, avatar: Avatar): Promise<void>;
 }

@@ -17,7 +17,7 @@ import type { Database } from "../../types";
 
 /**
  * An id that left the catalog reads as a known one: an old row never takes a
- * screen down (spec 027, plan "Leitura tolerante").
+ * screen down (spec 028, plan "Leitura tolerante").
  */
 function toPlayer(row: typeof playerTable.$inferSelect): Player {
 	const { character, accessory, ...player } = row;

@@ -1,6 +1,6 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
-import type { Question } from "./question";
+import { isBlankQuestion, type Question } from "./question";
 
 /**
  * Rules of a quiz's ordered question list (spec 003). The list order is the
@@ -24,6 +24,10 @@ export class LastQuestionError extends DomainError {
 
 export class InvalidQuestionPositionError extends DomainError {
 	readonly code = "QUIZ.INVALID_QUESTION_POSITION";
+}
+
+export class NoGeneratedQuestionsError extends DomainError {
+	readonly code = "QUIZ.NO_GENERATED_QUESTIONS";
 }
 
 export type QuestionList = readonly Question[];
@@ -86,4 +90,25 @@ export function removeQuestion(
 		throw new LastQuestionError("A quiz must keep at least one question");
 	}
 	return list.filter((_, position) => position !== index);
+}
+
+/**
+ * The creation assistant's questions go to the end, in order; the lone blank
+ * question a new quiz starts with is replaced instead (spec 027, RN-26, RN-27).
+ */
+export function appendGeneratedQuestions(
+	list: QuestionList,
+	generated: QuestionList,
+): { list: QuestionList; firstIndex: number } {
+	if (generated.length === 0) {
+		throw new NoGeneratedQuestionsError("Choose at least one question to add");
+	}
+	const kept =
+		list.length === 1 && isBlankQuestion(list[0] as Question) ? [] : list;
+	if (kept.length + generated.length > QUIZ_MAX_QUESTIONS) {
+		throw new QuestionLimitReachedError(
+			`A quiz has at most ${QUIZ_MAX_QUESTIONS} questions`,
+		);
+	}
+	return { list: [...kept, ...generated], firstIndex: kept.length };
 }

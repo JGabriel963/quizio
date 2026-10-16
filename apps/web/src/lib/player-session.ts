@@ -22,7 +22,7 @@ export interface PlayerSessionStore {
 	forget(): void;
 	/**
 	 * The avatar this browser's player chose last, offered to the next game
-	 * (spec 027, RN-08). The server checks it against the catalog.
+	 * (spec 028, RN-08). The server checks it against the catalog.
 	 */
 	avatar(): StoredAvatar | null;
 	rememberAvatar(avatar: StoredAvatar): void;

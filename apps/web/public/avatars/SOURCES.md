@@ -1,6 +1,6 @@
 # Origem dos desenhos
 
-Todos os arquivos vêm do [Fluent Emoji](https://github.com/microsoft/fluentui-emoji), estilo **Flat**, licença MIT ([LICENSE](LICENSE)). ADR 0012. Alguns acessórios foram editados para encaixar no rosto; a tabela diz o que mudou.
+Todos os arquivos vêm do [Fluent Emoji](https://github.com/microsoft/fluentui-emoji), estilo **Flat**, licença MIT ([LICENSE](LICENSE)). ADR 0013. Alguns acessórios foram editados para encaixar no rosto; a tabela diz o que mudou.
 
 | Pasta | ID | Emoji de origem |
 | --- | --- | --- |

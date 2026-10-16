@@ -25,7 +25,7 @@ import type { PlayerRepository } from "./ports/player-repository";
 export type JoinGame = (input: {
 	gameId: string;
 	nickname: string;
-	/** The one this browser chose last (spec 027, RN-08); drawn without it. */
+	/** The one this browser chose last (spec 028, RN-08); drawn without it. */
 	avatar?: AvatarInput | null;
 }) => Promise<{
 	playerId: string;

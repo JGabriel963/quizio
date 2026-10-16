@@ -1,0 +1,32 @@
+{
+	"name": "@quizio/ai",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {
+		"test": "vitest run",
+		"test:int": "vitest run --config vitest.int.config.ts",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@ai-sdk/anthropic": "^4.0.81",
+		"@ai-sdk/google": "^4.0.98",
+		"@ai-sdk/openai": "^4.0.95",
+		"@quizio/core": "workspace:*",
+		"ai": "^7.0.142",
+		"pdf-lib": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@quizio/config": "workspace:*",
+		"@types/node": "catalog:",
+		"dotenv": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

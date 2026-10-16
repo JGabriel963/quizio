@@ -26,7 +26,7 @@ async function joined(nickname = "Ana") {
 	};
 }
 
-describe("changeAvatar (spec 027)", () => {
+describe("changeAvatar (spec 028)", () => {
 	it("saves the avatar and publishes avatar-changed", async () => {
 		const { deps, session } = await joined();
 

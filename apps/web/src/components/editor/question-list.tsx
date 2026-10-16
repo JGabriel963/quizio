@@ -19,7 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { QuestionType } from "@quizio/core/quiz/domain/question";
 import { questionIssues } from "@quizio/core/quiz/domain/question-issues";
-
+import { Button } from "@quizio/ui/components/button";
 import {
 	Tooltip,
 	TooltipContent,
@@ -30,6 +30,7 @@ import {
 	CopyIcon,
 	GripVerticalIcon,
 	ImageIcon,
+	SparklesIcon,
 	Trash2Icon,
 } from "lucide-react";
 import {
@@ -62,6 +63,8 @@ export interface QuestionListProps {
 	onDuplicate: (questionId: string) => void;
 	onDelete: (questionId: string) => void;
 	onMove: (questionId: string, toIndex: number) => void;
+	/** Opens the creation assistant; without it there is no "Crie" (spec 027, RN-01, RN-02). */
+	onCreate?: () => void;
 }
 
 /**
@@ -80,6 +83,7 @@ export function QuestionList({
 	onDuplicate,
 	onDelete,
 	onMove,
+	onCreate,
 }: QuestionListProps) {
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -167,8 +171,19 @@ export function QuestionList({
 				</DndContext>
 			</div>
 
-			<div className="shrink-0 p-3 max-lg:pl-1">
+			<div className="flex shrink-0 flex-col gap-2 p-3 max-lg:flex-row max-lg:pl-1">
 				<QuestionTypePicker unavailableReason={growReason} onPick={onAdd} />
+				{onCreate && (
+					<Button
+						variant="ai"
+						className="w-full max-lg:size-11 max-lg:px-0 max-lg:has-data-[icon=inline-start]:pl-0"
+						onClick={onCreate}
+					>
+						<SparklesIcon data-icon="inline-start" className="text-brand" />
+						{/* Only the icon in the compact strip, like Adicionar. */}
+						<span className="max-lg:sr-only">Crie</span>
+					</Button>
+				)}
 			</div>
 		</div>
 	);
@@ -219,14 +234,24 @@ function QuestionListItem({
 			data-question-id={question.id}
 			style={{ transform: CSS.Transform.toString(transform), transition }}
 			className={cn(
-				"flex flex-col gap-1 rounded-md p-1 max-lg:shrink-0 max-lg:flex-row max-lg:items-start",
+				"relative flex flex-col gap-1 rounded-md p-1 max-lg:shrink-0 max-lg:flex-row max-lg:items-start",
 				selected && "bg-accent",
-				isDragging && "relative z-10 opacity-80",
+				isDragging && "z-10 opacity-80",
 			)}
 		>
 			<p className="font-bold text-xs">
 				{position}
 				<span className="max-lg:hidden">{` ${typeLabel}`}</span>
+				{/* Added by the creation assistant (spec 027, RN-29). */}
+				{question.aiGenerated && (
+					<>
+						<SparklesIcon
+							aria-hidden="true"
+							className="ml-1 inline size-3 align-[-2px] text-brand max-lg:hidden"
+						/>
+						<span className="sr-only">feita com IA</span>
+					</>
+				)}
 			</p>
 			<div className="flex items-stretch gap-1">
 				<div className="flex flex-col items-center justify-center gap-1 max-lg:hidden">

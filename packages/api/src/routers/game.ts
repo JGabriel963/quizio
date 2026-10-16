@@ -11,7 +11,7 @@ const playerReference = gameReference.extend({
 	secret: z.string().min(1),
 });
 const questionIndex = z.number().int().min(0);
-/** Two ids; which ones exist is the catalog's, in the core (spec 027, RN-06). */
+/** Two ids; which ones exist is the catalog's, in the core (spec 028, RN-06). */
 const avatar = z.object({
 	character: z.string().min(1).max(40),
 	accessory: z.string().min(1).max(40).nullable(),
@@ -36,13 +36,13 @@ const joinRouter = router({
 		.input(
 			gameReference.extend({
 				nickname: z.string().max(100),
-				/** The one this browser chose last (spec 027, RN-08). */
+				/** The one this browser chose last (spec 028, RN-08). */
 				avatar: avatar.nullable().optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => ctx.container.useCases.joinGame(input)),
 
-	/** A tap in the avatar editor (spec 027, RN-12). */
+	/** A tap in the avatar editor (spec 028, RN-12). */
 	setAvatar: publicProcedure
 		.input(playerReference.extend({ avatar }))
 		.mutation(({ ctx, input }) => ctx.container.useCases.changeAvatar(input)),

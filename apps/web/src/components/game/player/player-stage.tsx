@@ -135,7 +135,7 @@ function QuestionIntro({
 function JoinedInTheMiddle() {
 	return (
 		<Centered>
-			{/* Who waits for their first question may still change the avatar (spec 027, RN-13). */}
+			{/* Who waits for their first question may still change the avatar (spec 028, RN-13). */}
 			<AvatarCard />
 			<h1 className="font-black text-4xl motion-safe:animate-pop-in sm:text-5xl">
 				Você entrou!

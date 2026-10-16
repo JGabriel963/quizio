@@ -30,7 +30,7 @@ export type SetGameOptions = (input: {
  * at once and is kept for the host's next games. The devices are not told:
  * what changes for them comes with the next stage (RN-21). The characters are
  * the exception: they change in the lobby too, where no stage comes, and a
- * device must close its avatar editor (spec 027, RN-25).
+ * device must close its avatar editor (spec 028, RN-25).
  */
 export function createSetGameOptions(
 	deps: HostGameViewDeps & {

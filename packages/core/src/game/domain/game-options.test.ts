@@ -169,7 +169,7 @@ describe("game options: autoplay (spec 014)", () => {
 	});
 });
 
-describe("game options: characters (spec 027)", () => {
+describe("game options: characters (spec 028)", () => {
 	it("characters are on for a host who never touched the settings", () => {
 		expect(DEFAULT_GAME_OPTIONS.gameCharacters).toBe(true);
 	});

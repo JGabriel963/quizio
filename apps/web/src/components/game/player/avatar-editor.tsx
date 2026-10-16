@@ -16,7 +16,7 @@ import { Avatar, accessoryStyle } from "../avatar";
 type Tab = "character" | "accessory";
 
 /**
- * The avatar editor of the waiting screens (spec 027, RN-11 to RN-14): the
+ * The avatar editor of the waiting screens (spec 028, RN-11 to RN-14): the
  * avatar on top, the "Personagem" and "Acessório" tabs and a grid. A tap
  * changes the avatar at once, before the server answers; if the server
  * refuses or cannot be reached, the editor goes back to the avatar it had

@@ -23,18 +23,18 @@ export const GAME_EVENTS = {
 } as const;
 
 export interface PlayerJoinedPayload {
-	/** The avatar is null with the characters off (spec 027). */
+	/** The avatar is null with the characters off (spec 028). */
 	player: { id: string; nickname: string; avatar: Avatar | null };
 }
 
-/** A player changed avatar while waiting (spec 027, RN-12). */
+/** A player changed avatar while waiting (spec 028, RN-12). */
 export interface AvatarChangedPayload {
 	playerId: string;
 	avatar: Avatar;
 }
 
 /**
- * The host turned "Personagens dos jogadores" (spec 027, RN-25). The only
+ * The host turned "Personagens dos jogadores" (spec 028, RN-25). The only
  * option the devices are told about: in the lobby there is no next stage to
  * bring it, and a device must close its editor.
  */

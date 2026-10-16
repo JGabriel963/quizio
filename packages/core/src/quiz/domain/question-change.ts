@@ -268,6 +268,7 @@ function changeType(
 			points: question.points,
 			// The image belongs to the question, not to its type (spec 007, RN-34).
 			image: copyImage(question.image),
+			aiGenerated: question.aiGenerated,
 			...content,
 		},
 		notice: answersSetAside ? { kind: "quizAnswersKept" } : null,

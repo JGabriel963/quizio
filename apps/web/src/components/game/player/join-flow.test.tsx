@@ -75,7 +75,7 @@ class FakeJoinApi implements JoinApi {
 		}
 	>();
 	readonly finds: string[] = [];
-	/** "Personagens dos jogadores" (spec 027). */
+	/** "Personagens dos jogadores" (spec 028). */
 	charactersOn = true;
 	/** What a change of avatar ends in, when it fails. */
 	avatarRefusal: Error | null = null;
@@ -1624,7 +1624,7 @@ describe("JoinFlow: connection (spec 013)", () => {
 	});
 });
 
-describe("JoinFlow: the avatar (spec 027)", () => {
+describe("JoinFlow: the avatar (spec 028)", () => {
 	/** The avatar drawn in the waiting screen's card. */
 	const cardImages = () =>
 		[...screen.getByTestId("avatar-card").querySelectorAll("img")].map(

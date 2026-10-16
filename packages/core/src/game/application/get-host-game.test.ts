@@ -669,7 +669,7 @@ describe("getHostGame: options and who joined in the middle (spec 012)", () => {
 	});
 });
 
-describe("getHostGame: avatars (spec 027)", () => {
+describe("getHostGame: avatars (spec 028)", () => {
 	const off = { gameCharacters: false };
 	const fox = { character: "fox", accessory: null } as const;
 

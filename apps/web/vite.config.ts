@@ -19,5 +19,12 @@ export default defineConfig(({ command }) => ({
 	},
 	// Nitro picks the output from where it builds: Vercel functions on Vercel,
 	// a Node server (`.output/server/index.mjs`) anywhere else.
-	plugins: [tailwindcss(), tanstackStart(), nitro(), viteReact()],
+	plugins: [
+		tailwindcss(),
+		tanstackStart(),
+		// A creation with the AI assistant can take a minute or two (spec 027,
+		// ADR 0012); only the Vercel output reads this.
+		nitro({ vercel: { functions: { maxDuration: 300 } } }),
+		viteReact(),
+	],
 }));

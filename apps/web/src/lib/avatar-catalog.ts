@@ -1,7 +1,7 @@
 import type { AccessoryId, CharacterId } from "@quizio/core/game/domain/avatar";
 
 /**
- * Where an accessory is drawn over the face (spec 027, plan "UI"): on top of
+ * Where an accessory is drawn over the face (spec 028, plan "UI"): on top of
  * the head, over the eyes, over the ears, under the chin or beside the head.
  */
 export type AccessorySlot = "top" | "eyes" | "ears" | "neck" | "side";
@@ -53,7 +53,7 @@ const accessory = (
 
 /**
  * The drawings and the names of the core's ids, in the order of the editor's
- * grid. The art is Fluent Emoji Flat, MIT (ADR 0012, `public/avatars`).
+ * grid. The art is Fluent Emoji Flat, MIT (ADR 0013, `public/avatars`).
  */
 export const AVATAR_CATALOG = {
 	characters: [

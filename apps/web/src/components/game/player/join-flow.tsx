@@ -52,7 +52,7 @@ export interface JoinApi {
 	enter(input: {
 		gameId: string;
 		nickname: string;
-		/** The avatar this browser chose last (spec 027, RN-08). */
+		/** The avatar this browser chose last (spec 028, RN-08). */
 		avatar?: StoredAvatar | null;
 	}): Promise<{
 		playerId: string;
@@ -61,7 +61,7 @@ export interface JoinApi {
 		avatar: Avatar;
 	}>;
 	session(input: StoredPlayerSession): Promise<PlayerSessionData>;
-	/** A tap in the avatar editor (spec 027, RN-12). */
+	/** A tap in the avatar editor (spec 028, RN-12). */
 	setAvatar(
 		input: StoredPlayerSession & { avatar: Avatar },
 	): Promise<{ avatar: Avatar }>;
@@ -99,9 +99,9 @@ type Step =
 			session: StoredPlayerSession;
 			nickname: string;
 			play: PlayView | null;
-			/** Null with the characters off (spec 027, RN-25). */
+			/** Null with the characters off (spec 028, RN-25). */
 			avatar: Avatar | null;
-			/** While the player waits to play (spec 027, RN-13). */
+			/** While the player waits to play (spec 028, RN-13). */
 			canChangeAvatar: boolean;
 			/**
 			 * How long the host's screen had been silent when the server last
@@ -397,7 +397,7 @@ export function JoinFlow({
 		setStep({ kind: "rejoin", pin: step.game.pin, nickname: step.nickname });
 	}
 
-	/** What the session says of the avatar (spec 027). */
+	/** What the session says of the avatar (spec 028). */
 	function avatarSeen(avatar: Avatar | null, canChangeAvatar: boolean) {
 		setStep((current) =>
 			current.kind === "waiting"
@@ -488,7 +488,7 @@ export function JoinFlow({
 	const checkSession = useEffectEvent(() => askSession().catch(report));
 
 	// The host turned the characters on or off: the session says what is left
-	// to show, and an open editor closes (spec 027, RN-25).
+	// to show, and an open editor closes (spec 028, RN-25).
 	useRealtimeEvent(channel, GAME_EVENTS.charactersChanged, () => {
 		void checkSession();
 	});
@@ -648,7 +648,7 @@ export function JoinFlow({
 	const [editingAvatar, setEditingAvatar] = useState(false);
 
 	/**
-	 * A tap in the editor (spec 027, RN-12, RN-15). It rejects when the change
+	 * A tap in the editor (spec 028, RN-12, RN-15). It rejects when the change
 	 * was not saved, and the editor goes back.
 	 */
 	async function changeAvatar(avatar: Avatar) {
@@ -757,7 +757,7 @@ export function JoinFlow({
 				<ConnectionBar trouble={trouble} notice={notice} onLeave={stepOut} />
 			);
 			// The avatar changes while the player waits: in the lobby, or until
-			// the first question of who joined in the middle (spec 027, RN-13).
+			// the first question of who joined in the middle (spec 028, RN-13).
 			const waitingToPlay =
 				!play || (!play.finished && (play.stage?.sittingOut ?? false));
 			const editable =

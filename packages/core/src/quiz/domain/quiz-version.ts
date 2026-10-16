@@ -102,8 +102,16 @@ export function parseVersionQuestions(raw: unknown): Question[] {
 		if (typeof entry !== "object" || entry === null) {
 			return [];
 		}
-		const { id, type, text, timeLimitSeconds, points, image, ...content } =
-			entry as Record<string, unknown>;
+		const {
+			id,
+			type,
+			text,
+			timeLimitSeconds,
+			points,
+			image,
+			aiGenerated,
+			...content
+		} = entry as Record<string, unknown>;
 		if (
 			typeof id !== "string" ||
 			!isOneOf<QuestionType>(QUESTION_TYPES, type)
@@ -124,6 +132,7 @@ export function parseVersionQuestions(raw: unknown): Question[] {
 					? points
 					: "standard",
 				image: parseStoredImage(image),
+				aiGenerated: aiGenerated === true,
 				...parseStoredContent(type, content),
 			},
 		];

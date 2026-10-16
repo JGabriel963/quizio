@@ -1,15 +1,15 @@
 ---
-spec: "027"
+spec: "028"
 status: approved # draft | approved
 ---
 
-# Plano técnico — 027 Personagens dos jogadores
+# Plano técnico — 028 Personagens dos jogadores
 
-> Spec: [spec.md](spec.md) · Arquitetura: [docs/architecture.md](../../../docs/architecture.md) · Testes: [docs/testing.md](../../../docs/testing.md) · ADR: [0012](../../../docs/adr/0012-arte-dos-avatares.md)
+> Spec: [spec.md](spec.md) · Arquitetura: [docs/architecture.md](../../../docs/architecture.md) · Testes: [docs/testing.md](../../../docs/testing.md) · ADR: [0013](../../../docs/adr/0013-arte-dos-avatares.md)
 
 ## Abordagem
 
-O avatar é **dois identificadores** guardados na linha do jogador (`game_player.character`, `game_player.accessory`), validados no core contra um catálogo de IDs (`game/domain/avatar.ts`). O core não sabe de desenhos nem de nomes em português: a arte (Fluent Emoji Flat, MIT, ADR 0012) e os rótulos ficam em `apps/web`, num catálogo com os mesmos IDs, conferido por um teste. O sorteio usa a porta `Shuffler` que já existe. A troca é um caso de uso público (`changeAvatar`), permitido só enquanto o jogador espera para jogar (RN-13), que grava **só as duas colunas** (`players.saveAvatar`, como `games.saveOptions`), para não desfazer nada que a linha tenha mudado ao mesmo tempo. "Personagens dos jogadores" é mais uma `GameOptions` (`gameCharacters`) e mais uma coluna em `game` e em `host_preferences`. Quando ela está desligada, **o servidor não manda avatar nenhum** (`avatar: null` em todas as visões), então as telas só precisam desenhar o que chega. Dois eventos novos dizem às telas que algo mudou: `avatar-changed` (o cartão do lobby troca sem refazer a consulta) e `characters-changed` (os celulares perguntam a sessão de novo, porque hoje uma opção mudada não chega a eles antes da próxima fase).
+O avatar é **dois identificadores** guardados na linha do jogador (`game_player.character`, `game_player.accessory`), validados no core contra um catálogo de IDs (`game/domain/avatar.ts`). O core não sabe de desenhos nem de nomes em português: a arte (Fluent Emoji Flat, MIT, ADR 0013) e os rótulos ficam em `apps/web`, num catálogo com os mesmos IDs, conferido por um teste. O sorteio usa a porta `Shuffler` que já existe. A troca é um caso de uso público (`changeAvatar`), permitido só enquanto o jogador espera para jogar (RN-13), que grava **só as duas colunas** (`players.saveAvatar`, como `games.saveOptions`), para não desfazer nada que a linha tenha mudado ao mesmo tempo. "Personagens dos jogadores" é mais uma `GameOptions` (`gameCharacters`) e mais uma coluna em `game` e em `host_preferences`. Quando ela está desligada, **o servidor não manda avatar nenhum** (`avatar: null` em todas as visões), então as telas só precisam desenhar o que chega. Dois eventos novos dizem às telas que algo mudou: `avatar-changed` (o cartão do lobby troca sem refazer a consulta) e `characters-changed` (os celulares perguntam a sessão de novo, porque hoje uma opção mudada não chega a eles antes da próxima fase).
 
 ## Linguagem ubíqua
 
@@ -137,7 +137,7 @@ Fakes: `InMemoryPlayerRepository.saveAvatar`, `InMemoryHostPreferencesRepository
 
 O avatar é público como o apelido: já aparece na tela projetada. `avatar-changed` com a chave desligada não é publicado (a troca é recusada antes).
 
-### Arte — `apps/web/public/avatars` (ADR 0012)
+### Arte — `apps/web/public/avatars` (ADR 0013)
 
 - `characters/{id}.svg` e `accessories/{id}.svg`, copiados de [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) (estilo **Flat**, MIT), com `LICENSE` e um `SOURCES.md` (ID → nome do emoji de origem). Servidos como arquivos estáticos; nada passa pelo `ObjectStorage` (não são do usuário).
 - `neutral-head.svg`: cabeça cinza desenhada por nós, para mostrar os acessórios na grade (RN-11, CA-07).
@@ -215,7 +215,7 @@ Ligações novas em `container.ts`: `changeAvatar` com `games`, `players`, `real
 
 ## Riscos e decisões
 
-- **Arte de terceiros (ADR 0012)**: Fluent Emoji Flat (MIT), copiada para o repositório com a licença. Alternativas descartadas: os desenhos do Kahoot (protegidos), DiceBear (estilos sem bichos ou com licença CC BY por estilo), Twemoji (CC BY 4.0, exige atribuição visível), emojis do sistema (aparência muda por aparelho).
+- **Arte de terceiros (ADR 0013)**: Fluent Emoji Flat (MIT), copiada para o repositório com a licença. Alternativas descartadas: os desenhos do Kahoot (protegidos), DiceBear (estilos sem bichos ou com licença CC BY por estilo), Twemoji (CC BY 4.0, exige atribuição visível), emojis do sistema (aparência muda por aparelho).
 - **Encaixe dos acessórios**: os rostos do conjunto têm tamanhos e alturas de olhos parecidos, mas não iguais; óculos são o caso mais frágil. Mitigação: `slot` por acessório, ajuste opcional por personagem no catálogo e a matriz no `/design-system` para revisar antes de fechar a lista. Se algum par ficar ruim, sai do catálogo (o mínimo de 24 + 24 tem folga no conjunto).
 - **Sem corpo inteiro**: o conjunto só tem rostos; vale a divergência "Avatar de rosto, sem corpo" da spec e fecha a pergunta em aberto sobre o corpo.
 - **Troca que cruza o início da pergunta** (ver Aplicação): aceita sem update condicional, decisão consciente.
