@@ -31,6 +31,8 @@ const buttonVariants = cva(
 				ghost:
 					"hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
 				link: "text-primary underline-offset-4 hover:underline",
+				// The creation assistant's entry, outlined in the brand purple (spec 027).
+				ai: "border-2 border-brand bg-card text-foreground hover:bg-brand/5 aria-expanded:bg-brand/5",
 			},
 			size: {
 				default:

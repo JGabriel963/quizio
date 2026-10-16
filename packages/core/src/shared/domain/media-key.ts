@@ -14,7 +14,24 @@ export function mediaKeyFor(
  * cannot attach someone else's upload or escape the prefix with nested paths.
  */
 export function isMediaKeyOwnedBy(key: string, ownerId: string): boolean {
-	const prefix = `${MEDIA_ROOT}/${ownerId}/`;
+	return isFileDirectlyUnder(key, `${MEDIA_ROOT}/${ownerId}/`);
+}
+
+/**
+ * A PDF sent to the creation assistant (spec 027): temporary, so it lives
+ * apart from the media, which images use and keep.
+ */
+const SOURCES_ROOT = "sources";
+
+export function sourceKeyFor(ownerId: string, id: string): string {
+	return `${SOURCES_ROOT}/${ownerId}/${id}.pdf`;
+}
+
+export function isSourceKeyOwnedBy(key: string, ownerId: string): boolean {
+	return isFileDirectlyUnder(key, `${SOURCES_ROOT}/${ownerId}/`);
+}
+
+function isFileDirectlyUnder(key: string, prefix: string): boolean {
 	if (!key.startsWith(prefix)) {
 		return false;
 	}

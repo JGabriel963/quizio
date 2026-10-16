@@ -111,4 +111,30 @@ describe("S3ObjectStorage against a real S3 server", () => {
 		expect(response.ok).toBe(false);
 		expect(await storage.exists(key)).toBe(false);
 	});
+
+	it("reads back an uploaded object", async () => {
+		const key = `sources/int-test/${crypto.randomUUID()}.pdf`;
+		const body = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 55]);
+		const upload = await storage.createPresignedUpload({
+			key,
+			contentType: "application/pdf",
+			contentLength: body.byteLength,
+			expiresInSeconds: 60,
+		});
+		await fetch(upload.url, {
+			method: upload.method,
+			headers: upload.headers,
+			body,
+		});
+
+		expect(await storage.read(key)).toEqual(body);
+
+		await storage.delete(key);
+	});
+
+	it("reads null for a missing key", async () => {
+		expect(
+			await storage.read(`sources/int-test/${crypto.randomUUID()}.pdf`),
+		).toBeNull();
+	});
 });

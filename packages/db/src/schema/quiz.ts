@@ -86,6 +86,8 @@ export const question = pgTable(
 		content: jsonb("content").$type<unknown>().notNull().default({}),
 		/** The optional image (spec 007); read through `parseStoredImage`. */
 		image: jsonb("image").$type<unknown>(),
+		/** Added by the creation assistant (spec 027, RN-29). */
+		aiGenerated: boolean("ai_generated").notNull().default(false),
 	},
 	(table) => [
 		index("question_quiz_position_idx").on(table.quizId, table.position),
@@ -111,3 +113,37 @@ export const quizVersion = pgTable(
 	},
 	(table) => [primaryKey({ columns: [table.quizId, table.number] })],
 );
+
+/**
+ * One row per generation with the creation assistant (spec 027, RN-31): the
+ * quota counts the owner's rows of the last 24 hours. A failed generation's
+ * row is deleted (RN-33).
+ */
+export const generationUsage = pgTable(
+	"generation_usage",
+	{
+		id: text("id").primaryKey(),
+		ownerId: text("owner_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [
+		index("generation_usage_owner_created_idx").on(
+			table.ownerId,
+			table.createdAt,
+		),
+	],
+);
+
+/**
+ * The options a creator last generated with (spec 027, RN-07); read through
+ * `parseStoredGenerationOptions`.
+ */
+export const assistantPreferences = pgTable("assistant_preferences", {
+	ownerId: text("owner_id")
+		.primaryKey()
+		.references(() => user.id, { onDelete: "cascade" }),
+	options: jsonb("options").$type<unknown>().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});

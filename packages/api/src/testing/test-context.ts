@@ -7,8 +7,13 @@ import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-pl
 import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
+import { InMemorySourceUploadRepository } from "@quizio/core/media/testing/in-memory-source-upload-repository";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
 import { quizSearchText } from "@quizio/core/quiz/domain/quiz-details";
+import { FakePdfPages } from "@quizio/core/quiz/testing/fake-pdf-pages";
+import { InMemoryAssistantPreferencesRepository } from "@quizio/core/quiz/testing/in-memory-assistant-preferences-repository";
+import { InMemoryGenerationQuota } from "@quizio/core/quiz/testing/in-memory-generation-quota";
+import { InMemoryQuestionGenerator } from "@quizio/core/quiz/testing/in-memory-question-generator";
 import { InMemoryQuestionRepository } from "@quizio/core/quiz/testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "@quizio/core/quiz/testing/in-memory-quiz-repository";
 import { InMemoryQuizVersionRepository } from "@quizio/core/quiz/testing/in-memory-quiz-version-repository";
@@ -46,6 +51,9 @@ export interface TestApi {
 	reports: InMemoryReportStore;
 	realtime: InMemoryRealtimePublisher;
 	clock: FixedClock;
+	/** The assistant's model, answering with three valid questions by default. */
+	generator: InMemoryQuestionGenerator;
+	sourceUploads: InMemorySourceUploadRepository;
 }
 
 function toLibraryRecord(
@@ -78,6 +86,8 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const reports = new InMemoryReportStore();
 	const realtime = new InMemoryRealtimePublisher();
 	const clock = new FixedClock("2026-06-01T12:00:00.000Z");
+	const generator = new InMemoryQuestionGenerator();
+	const sourceUploads = new InMemorySourceUploadRepository();
 	const adapters: Adapters = {
 		storage,
 		realtime,
@@ -112,6 +122,12 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		shuffler: new FixedShuffler(),
 		attempts: new InMemoryAttemptLimiter(),
 		authSettings: { signUpEnabled: true, googleEnabled: false },
+		questionGenerator: generator,
+		pdfPages: new FakePdfPages(),
+		generationQuota: new InMemoryGenerationQuota(),
+		assistantPreferences: new InMemoryAssistantPreferencesRepository(),
+		sourceUploads,
+		assistantSettings: { generationsPerDay: 20 },
 		...overrides,
 	};
 	const container = createContainer(adapters);
@@ -136,5 +152,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		reports,
 		realtime,
 		clock,
+		generator,
+		sourceUploads,
 	};
 }

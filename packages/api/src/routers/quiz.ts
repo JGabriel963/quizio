@@ -2,6 +2,7 @@ import { QUIZ_VISIBILITIES } from "@quizio/core/quiz/domain/quiz-details";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
+import { quizAssistantRouter } from "./quiz-assistant";
 import { quizQuestionsRouter } from "./quiz-questions";
 
 // Shapes only: limits and cover ownership are enforced by the quiz use cases.
@@ -15,6 +16,7 @@ const coverChange = z.discriminatedUnion("type", [
 
 export const quizRouter = router({
 	questions: quizQuestionsRouter,
+	assistant: quizAssistantRouter,
 
 	get: protectedProcedure.input(quizReference).query(({ ctx, input }) =>
 		ctx.container.useCases.getQuizDetails({

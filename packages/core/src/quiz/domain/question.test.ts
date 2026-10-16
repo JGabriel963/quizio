@@ -47,6 +47,7 @@ describe("blankQuestion", () => {
 			timeLimitSeconds: 20,
 			points: "standard",
 			image: null,
+			aiGenerated: false,
 			selection: "single",
 			choices: emptyChoices(4),
 		});
@@ -71,6 +72,7 @@ describe("true/false question", () => {
 			timeLimitSeconds: 20,
 			points: "standard",
 			image: null,
+			aiGenerated: false,
 			correct: null,
 		});
 	});
@@ -262,6 +264,31 @@ describe("parseQuizContent", () => {
 				choices: [{ id: "choice-1", text: 42, correct: "yes" }],
 			}),
 		).toEqual({ selection: "single", choices: emptyChoices(4) });
+	});
+});
+
+describe("AI mark", () => {
+	it("a blank question is not AI generated", () => {
+		expect(blankQuestion("question-1").aiGenerated).toBe(false);
+		expect(blankQuestion("question-1", "trueFalse").aiGenerated).toBe(false);
+	});
+
+	it("copies keep the AI mark", () => {
+		const source: Question = {
+			...blankQuestion("question-1"),
+			aiGenerated: true,
+		};
+
+		expect(copyQuestion(source, "question-2").aiGenerated).toBe(true);
+	});
+
+	it("stored content does not carry the AI mark", () => {
+		const source: Question = {
+			...blankQuestion("question-1"),
+			aiGenerated: true,
+		};
+
+		expect(storedContent(source)).not.toHaveProperty("aiGenerated");
 	});
 });
 

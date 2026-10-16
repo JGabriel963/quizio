@@ -4,10 +4,12 @@ import { NotFoundError } from "../../shared/domain/not-found-error";
 import { aQuestion } from "../testing/a-question";
 import { blankQuestion, type Question } from "./question";
 import {
+	appendGeneratedQuestions,
 	InvalidQuestionPositionError,
 	insertQuestionAfter,
 	LastQuestionError,
 	moveQuestion,
+	NoGeneratedQuestionsError,
 	QUIZ_MAX_QUESTIONS,
 	QuestionLimitReachedError,
 	QuestionNotFoundError,
@@ -92,6 +94,58 @@ describe("removeQuestion", () => {
 	it("refuses to remove a question that is not in the list", () => {
 		expect(() => removeQuestion([a, b], "missing")).toThrow(
 			QuestionNotFoundError,
+		);
+	});
+});
+
+describe("appendGeneratedQuestions", () => {
+	const x = aQuestion({ id: "x", text: "X", aiGenerated: true });
+	const y = aQuestion({ id: "y", text: "Y", aiGenerated: true });
+
+	it("appends generated questions at the end", () => {
+		const { list, firstIndex } = appendGeneratedQuestions([a, b], [x, y]);
+
+		expect(ids(list)).toEqual(["a", "b", "x", "y"]);
+		expect(firstIndex).toBe(2);
+	});
+
+	it("replaces a single blank question", () => {
+		const { list, firstIndex } = appendGeneratedQuestions(
+			[blankQuestion("blank")],
+			[x, y],
+		);
+
+		expect(ids(list)).toEqual(["x", "y"]);
+		expect(firstIndex).toBe(0);
+	});
+
+	it("keeps a single question that has text", () => {
+		expect(ids(appendGeneratedQuestions([a], [x]).list)).toEqual(["a", "x"]);
+	});
+
+	it("keeps a blank question that is not alone", () => {
+		expect(
+			ids(appendGeneratedQuestions([a, blankQuestion("blank")], [x]).list),
+		).toEqual(["a", "blank", "x"]);
+	});
+
+	it("refuses past 200 questions", () => {
+		const generated = listOf(5).map((question) => ({
+			...question,
+			id: `new-${question.id}`,
+		}));
+
+		expect(
+			appendGeneratedQuestions(listOf(QUIZ_MAX_QUESTIONS - 5), generated).list,
+		).toHaveLength(QUIZ_MAX_QUESTIONS);
+		expect(() =>
+			appendGeneratedQuestions(listOf(QUIZ_MAX_QUESTIONS - 4), generated),
+		).toThrow(QuestionLimitReachedError);
+	});
+
+	it("refuses an empty list of generated questions", () => {
+		expect(() => appendGeneratedQuestions([a], [])).toThrow(
+			NoGeneratedQuestionsError,
 		);
 	});
 });

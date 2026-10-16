@@ -58,7 +58,8 @@ describe("RenameReportDialog (spec 015)", () => {
 		expect(field()).toHaveAttribute("aria-invalid", "true");
 		expect(onRename).not.toHaveBeenCalled();
 		expect(onClose).not.toHaveBeenCalled();
-	});
+		// Typing 96 characters is slow when the whole suite runs at once.
+	}, 15_000);
 
 	it("an unchanged name closes without sending", async () => {
 		const { user, submit, onRename, onClose } = renderDialog();
