@@ -9,6 +9,10 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,
+	// Every worker drives browsers against the one dev server, which serves each
+	// module on its own: past two workers pages take longer to load than the
+	// tests wait, and the suite gets no faster.
+	workers: 2,
 	reporter: process.env.CI ? "github" : "list",
 	use: {
 		baseURL,
