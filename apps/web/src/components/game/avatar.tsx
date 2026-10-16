@@ -3,6 +3,8 @@ import { cn } from "@quizio/ui/lib/utils";
 import type { CSSProperties } from "react";
 
 import {
+	type AccessoryBox,
+	type AccessoryItem,
 	type AccessorySlot,
 	accessoryOf,
 	characterOf,
@@ -16,14 +18,26 @@ const FACE: CSSProperties = {
 	height: "76%",
 };
 
-/** Where each kind of accessory sits, in fractions of the square. */
-export const ACCESSORY_PLACEMENT: Record<AccessorySlot, CSSProperties> = {
-	top: { left: "22%", top: "-13%", width: "56%", height: "56%" },
-	eyes: { left: "22%", top: "30%", width: "56%", height: "56%" },
-	ears: { left: "0%", top: "6%", width: "100%", height: "100%" },
-	neck: { left: "32%", top: "68%", width: "36%", height: "36%" },
-	side: { left: "62%", top: "0%", width: "38%", height: "38%" },
+/** Where each kind of accessory sits, unless the accessory brings its own box. */
+const SLOT_BOX: Record<AccessorySlot, AccessoryBox> = {
+	top: { left: 22, top: -13, width: 56 },
+	eyes: { left: 22, top: 30, width: 56 },
+	// The headphone's drawing is wider than tall, so its cups reach the ears.
+	ears: { left: 2, top: 12, width: 96, height: 66 },
+	neck: { left: 30, top: 62, width: 40 },
+	side: { left: 62, top: 0, width: 38 },
 };
+
+/** The accessory's place over the face (and over the editor's neutral head). */
+export function accessoryStyle(item: AccessoryItem): CSSProperties {
+	const box = item.box ?? SLOT_BOX[item.slot];
+	return {
+		left: `${box.left}%`,
+		top: `${box.top}%`,
+		width: `${box.width}%`,
+		height: `${box.height ?? box.width}%`,
+	};
+}
 
 /**
  * A player's avatar: the character, with the accessory drawn over it (spec
@@ -72,7 +86,7 @@ export function Avatar({
 						alt=""
 						draggable={false}
 						className="absolute"
-						style={ACCESSORY_PLACEMENT[accessory.slot]}
+						style={accessoryStyle(accessory)}
 					/>
 				)}
 			</span>

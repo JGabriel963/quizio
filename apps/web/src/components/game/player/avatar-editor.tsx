@@ -11,7 +11,7 @@ import { type ReactNode, useId, useState } from "react";
 
 import { AVATAR_CATALOG, NEUTRAL_HEAD_SRC } from "@/lib/avatar-catalog";
 
-import { ACCESSORY_PLACEMENT, Avatar } from "../avatar";
+import { Avatar, accessoryStyle } from "../avatar";
 
 type Tab = "character" | "accessory";
 
@@ -147,7 +147,7 @@ export function AvatarEditor({
 													alt=""
 													loading="lazy"
 													className="absolute"
-													style={ACCESSORY_PLACEMENT[item.slot]}
+													style={accessoryStyle(item)}
 												/>
 											</span>
 										</GridItem>

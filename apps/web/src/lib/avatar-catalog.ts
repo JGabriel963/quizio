@@ -6,6 +6,18 @@ import type { AccessoryId, CharacterId } from "@quizio/core/game/domain/avatar";
  */
 export type AccessorySlot = "top" | "eyes" | "ears" | "neck" | "side";
 
+/**
+ * Where a drawing sits in the avatar's square, in percent of its side. Without
+ * `height` it is a square. Each slot has one (`components/game/avatar.tsx`);
+ * an accessory whose drawing does not fill its box the usual way brings its own.
+ */
+export interface AccessoryBox {
+	left: number;
+	top: number;
+	width: number;
+	height?: number;
+}
+
 export interface CharacterItem {
 	id: CharacterId;
 	label: string;
@@ -17,6 +29,7 @@ export interface AccessoryItem {
 	label: string;
 	src: string;
 	slot: AccessorySlot;
+	box?: AccessoryBox;
 }
 
 const character = (id: CharacterId, label: string): CharacterItem => ({
@@ -29,11 +42,13 @@ const accessory = (
 	id: AccessoryId,
 	label: string,
 	slot: AccessorySlot,
+	box?: AccessoryBox,
 ): AccessoryItem => ({
 	id,
 	label,
 	slot,
 	src: `/avatars/accessories/${id}.svg`,
+	...(box && { box }),
 });
 
 /**
@@ -76,16 +91,33 @@ export const AVATAR_CATALOG = {
 	accessories: [
 		accessory("top-hat", "Cartola", "top"),
 		accessory("crown", "Coroa", "top"),
-		accessory("graduation-cap", "Capelo", "top"),
-		accessory("billed-cap", "Boné", "top"),
-		accessory("military-helmet", "Capacete", "top"),
+		accessory("graduation-cap", "Capelo", "top", {
+			left: 20,
+			top: -7,
+			width: 60,
+		}),
+		accessory("billed-cap", "Boné", "top", { left: 18, top: -8, width: 62 }),
+		accessory("military-helmet", "Capacete", "top", {
+			left: 18,
+			top: -6,
+			width: 64,
+		}),
 		accessory("sunglasses", "Óculos escuros", "eyes"),
 		accessory("glasses", "Óculos", "eyes"),
-		accessory("goggles", "Óculos de natação", "eyes"),
+		accessory("goggles", "Óculos de natação", "eyes", {
+			left: 20,
+			top: 16,
+			width: 60,
+		}),
 		accessory("headphone", "Fone de ouvido", "ears"),
 		accessory("ribbon", "Laço", "side"),
 		accessory("necktie", "Gravata", "neck"),
-		accessory("scarf", "Cachecol", "neck"),
+		accessory("scarf", "Cachecol", "neck", {
+			left: 16,
+			top: 68,
+			width: 68,
+			height: 34,
+		}),
 		accessory("jack-o-lantern", "Abóbora", "side"),
 		accessory("hibiscus", "Hibisco", "side"),
 		accessory("cherry-blossom", "Flor de cerejeira", "side"),
