@@ -12,6 +12,8 @@ import type { InMemoryPlayerRepository } from "./in-memory-player-repository";
 export class InMemoryAssignmentLandingQuery implements AssignmentLandingQuery {
 	readonly reportNames = new Map<string, string>();
 	readonly creatorNames = new Map<string, string>();
+	/** The cover of each quiz, by its id. */
+	readonly covers = new Map<string, string>();
 
 	constructor(
 		private readonly games: InMemoryGameRepository,
@@ -30,6 +32,8 @@ export class InMemoryAssignmentLandingQuery implements AssignmentLandingQuery {
 			expiresAt: game.expiresAt,
 			endedAt: game.endedAt,
 			participantCount: await this.players.countActive(game.id),
+			coverImageKey: this.covers.get(game.quizId) ?? null,
+			questionCount: game.questionCount,
 		};
 	}
 }

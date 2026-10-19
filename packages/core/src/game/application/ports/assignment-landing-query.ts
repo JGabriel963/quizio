@@ -8,6 +8,10 @@ export interface AssignmentLandingRecord {
 	endedAt: Date | null;
 	/** Players who were not removed. */
 	participantCount: number;
+	/** The quiz's cover while the quiz exists (spec 030, RN-01). */
+	coverImageKey: string | null;
+	/** How many questions the assignment has. */
+	questionCount: number;
 }
 
 /**

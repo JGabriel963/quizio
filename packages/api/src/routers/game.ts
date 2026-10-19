@@ -1,4 +1,5 @@
 import { GAME_PHASES } from "@quizio/core/game/domain/game-progress";
+import { PARTICIPANT_PHASES } from "@quizio/core/game/domain/participant-progress";
 import { MAX_CHOICE_COUNT } from "@quizio/core/quiz/domain/question";
 import { z } from "zod";
 
@@ -76,11 +77,61 @@ const assignmentRouter = router({
 		}),
 	),
 
-	/** No account: whoever has the link or the PIN (spec 029, RN-44). */
-	landing: publicProcedure
+	/** No account: whoever has the link or the PIN (spec 029, RN-44; spec 030, RN-01). */
+	cover: publicProcedure
 		.input(gameReference)
 		.query(({ ctx, input }) =>
-			ctx.container.useCases.getAssignmentLanding(input),
+			ctx.container.useCases.getAssignmentCover(input),
+		),
+
+	/** The participant's own steps (spec 030): proven by the pair received on joining. */
+	join: publicProcedure
+		.input(
+			gameReference.extend({
+				nickname: z.string().max(100),
+				avatar: avatar.nullable().optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) => ctx.container.useCases.joinAssignment(input)),
+
+	play: publicProcedure
+		.input(playerReference)
+		.query(({ ctx, input }) => ctx.container.useCases.getAssignmentPlay(input)),
+
+	start: publicProcedure
+		.input(playerReference)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.startAssignmentPlay(input),
+		),
+
+	answer: publicProcedure
+		.input(
+			playerReference.extend({
+				questionIndex,
+				choiceIds: z.array(z.string().min(1)).min(1).max(MAX_CHOICE_COUNT),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.answerAssignmentQuestion(input),
+		),
+
+	advance: publicProcedure
+		.input(
+			playerReference.extend({
+				from: z.object({
+					questionIndex,
+					phase: z.enum(PARTICIPANT_PHASES),
+				}),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.advanceAssignmentPlay(input),
+		),
+
+	setAvatar: publicProcedure
+		.input(playerReference.extend({ avatar }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.changeAssignmentAvatar(input),
 		),
 });
 

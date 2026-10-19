@@ -1,5 +1,6 @@
 import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
 import { CHARACTER_IDS, knownAvatar } from "@quizio/core/game/domain/avatar";
+import type { ParticipantProgress } from "@quizio/core/game/domain/participant-progress";
 import type { Player } from "@quizio/core/game/domain/player";
 import {
 	and,
@@ -20,9 +21,26 @@ import type { Database } from "../../types";
  * screen down (spec 028, plan "Leitura tolerante").
  */
 function toPlayer(row: typeof playerTable.$inferSelect): Player {
-	const { character, accessory, ...player } = row;
+	const {
+		character,
+		accessory,
+		participantPhase,
+		progressQuestionIndex,
+		progressStartedAt,
+		...player
+	} = row;
 	return {
 		...player,
+		progress:
+			participantPhase !== null &&
+			progressQuestionIndex !== null &&
+			progressStartedAt !== null
+				? {
+						questionIndex: progressQuestionIndex,
+						phase: participantPhase,
+						startedAt: progressStartedAt,
+					}
+				: null,
 		avatar: knownAvatar({ character, accessory }) ??
 			knownAvatar({ character, accessory: null }) ?? {
 				character: CHARACTER_IDS[0],
@@ -32,8 +50,21 @@ function toPlayer(row: typeof playerTable.$inferSelect): Player {
 }
 
 function toRow(player: Player): typeof playerTable.$inferInsert {
-	const { avatar, ...row } = player;
-	return { ...row, character: avatar.character, accessory: avatar.accessory };
+	const { avatar, progress, ...row } = player;
+	return {
+		...row,
+		character: avatar.character,
+		accessory: avatar.accessory,
+		...progressColumns(progress),
+	};
+}
+
+function progressColumns(progress: ParticipantProgress | null) {
+	return {
+		participantPhase: progress?.phase ?? null,
+		progressQuestionIndex: progress?.questionIndex ?? null,
+		progressStartedAt: progress?.startedAt ?? null,
+	};
 }
 
 const activeIn = (gameId: string) =>
@@ -41,6 +72,23 @@ const activeIn = (gameId: string) =>
 
 export function createDrizzlePlayerRepository(db: Database): PlayerRepository {
 	return {
+		async saveProgressIfAt(playerId, from, next) {
+			// One statement: of two requests leaving the same screen, one wins (RN-12).
+			const updated = await db
+				.update(playerTable)
+				.set(progressColumns(next))
+				.where(
+					and(
+						eq(playerTable.id, playerId),
+						eq(playerTable.participantPhase, from.phase),
+						eq(playerTable.progressQuestionIndex, from.questionIndex),
+						eq(playerTable.progressStartedAt, from.startedAt),
+					),
+				)
+				.returning({ id: playerTable.id });
+			return updated.length > 0;
+		},
+
 		async findById(id) {
 			const [row] = await db
 				.select()

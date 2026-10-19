@@ -1,4 +1,5 @@
 import type { Clock } from "../../shared/application/ports/clock";
+import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { GameNotFoundError } from "../domain/game";
 import type { AssignmentLandingQuery } from "./ports/assignment-landing-query";
 
@@ -7,24 +8,28 @@ import type { AssignmentLandingQuery } from "./ports/assignment-landing-query";
  * RN-46 to RN-48). The time is what is left, never an instant to compare
  * with the device's clock; nothing of the questions is told.
  */
-export type AssignmentLandingView =
+export type AssignmentCoverView =
 	| {
 			status: "open";
 			name: string;
 			creatorName: string;
 			remainingMs: number;
 			participantCount: number;
+			/** The quiz's cover, or null for the default one (spec 030, RN-01). */
+			coverUrl: string | null;
+			questionCount: number;
 	  }
 	| { status: "ended"; name: string };
 
-export type GetAssignmentLanding = (input: {
+export type GetAssignmentCover = (input: {
 	gameId: string;
-}) => Promise<AssignmentLandingView>;
+}) => Promise<AssignmentCoverView>;
 
-export function createGetAssignmentLanding(deps: {
+export function createGetAssignmentCover(deps: {
 	assignmentLanding: AssignmentLandingQuery;
+	storage: Pick<ObjectStorage, "getPublicUrl">;
 	clock: Clock;
-}): GetAssignmentLanding {
+}): GetAssignmentCover {
 	return async ({ gameId }) => {
 		const record = await deps.assignmentLanding.find(gameId);
 		if (!record) {
@@ -41,6 +46,10 @@ export function createGetAssignmentLanding(deps: {
 			creatorName: record.creatorName,
 			remainingMs,
 			participantCount: record.participantCount,
+			coverUrl: record.coverImageKey
+				? deps.storage.getPublicUrl(record.coverImageKey)
+				: null,
+			questionCount: record.questionCount,
 		};
 	};
 }

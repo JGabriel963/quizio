@@ -290,7 +290,7 @@ describe("ReportSummary (spec 015)", () => {
 describe("ReportSummary of an assignment (spec 029, RN-32 to RN-35)", () => {
 	const empty = {
 		accuracyPercent: null,
-		durationMs: 0,
+		durationMs: null,
 		hardestQuestion: null,
 		difficultCount: 0,
 		needsHelp: [],
@@ -352,5 +352,20 @@ describe("ReportSummary of an assignment (spec 029, RN-32 to RN-35)", () => {
 			screen.queryByRole("region", { name: "Convidar participantes" }),
 		).toBeNull();
 		expect(screen.queryByRole("button", { name: "Alterar prazo" })).toBeNull();
+	});
+
+	it("an ended assignment has no Tempo", async () => {
+		renderSummary({
+			header: {
+				mode: "assignment",
+				participantCount: 1,
+				assignment: { open: false, deadline, remainingMs: null, pin: null },
+			},
+			summary: empty,
+		});
+
+		const totals = await screen.findByRole("region", { name: "Totais" });
+		expect(within(totals).getByText("Participantes")).toBeInTheDocument();
+		expect(within(totals).queryByText("Tempo")).toBeNull();
 	});
 });

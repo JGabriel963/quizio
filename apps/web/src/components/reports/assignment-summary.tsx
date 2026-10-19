@@ -1,6 +1,5 @@
 import { formatGamePin } from "@quizio/core/game/domain/game-pin";
-import { Badge } from "@quizio/ui/components/badge";
-import { Button } from "@quizio/ui/components/button";
+import { Button, buttonVariants } from "@quizio/ui/components/button";
 import { PlayIcon } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -179,11 +178,16 @@ export function AssignmentSummary({
 					aria-label="Jogue este quiz"
 					className="flex flex-wrap items-center justify-center gap-3 rounded-lg bg-success/10 p-5"
 				>
-					<Button variant="success" disabled>
+					{/* The creator plays as anybody else (spec 030, RN-29). */}
+					<a
+						href={link}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={buttonVariants({ variant: "success" })}
+					>
 						<PlayIcon data-icon="inline-start" />
 						Jogue este quiz
-					</Button>
-					<Badge variant="soon">Em breve</Badge>
+					</a>
 				</section>
 			</div>
 		</>

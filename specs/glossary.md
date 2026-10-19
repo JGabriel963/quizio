@@ -149,7 +149,11 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | PIN da atribuição | `AssignmentPin` | Código de 8 dígitos, que pode começar com zero, único entre as atribuições abertas; vale até a atribuição acabar (spec 029) | ✅ |
 | Encerrar agora (atribuição) | `endAssignment` | Acaba a atribuição na hora, de forma irreversível: o link e o PIN deixam de levar ao jogo (spec 029) | ✅ |
 | Opções da atribuição | `AssignmentOptions` | Personagens (`gameCharacters`), Timer da pergunta (`questionTimer`) e Ordem aleatória de respostas (`randomizeAnswers`), guardadas na atribuição e lembradas para o criador à parte das da partida ao vivo; Gerador de apelido "Em breve" (spec 029) | ✅ |
-| Timer da pergunta | `AssignmentOptions.questionTimer` | Ligado, as perguntas da atribuição têm tempo e a resposta mais rápida vale mais; desligado, não há contagem nem redução por tempo (spec 029; efeito na 029-2/2) | ✅ (guardado; efeito 📝) |
+| Timer da pergunta | `AssignmentOptions.questionTimer` | Ligado, as perguntas da atribuição têm tempo e a resposta mais rápida vale mais; desligado, não há contagem nem redução por tempo (spec 029; efeito na spec 030) | ✅ |
+| Jogar a atribuição | `AssignmentPlay` | O participante joga sozinho, no próprio ritmo, todas as perguntas da atividade, avançando com as setas; sem anfitrião e sem jogadores virtuais (spec 030) | ✅ |
+| Andamento do participante | `ParticipantProgress` | Em que pergunta e em que tela cada participante de uma atribuição está, e desde quando a pergunta foi mostrada a ele; guardado no servidor (spec 030) | ✅ |
+| Capa da atividade | `AssignmentCover` | A primeira tela do link: capa do quiz, número de perguntas, nome e "Iniciar" (spec 030) | ✅ |
+| Pontuações (atribuição) | `assignmentScoreboard` | Classificação dos participantes da atribuição pelo total atual de cada um: os cinco primeiros e a linha de quem vê (spec 030) | ✅ |
 | Tela da atividade | `AssignmentLanding` | O que o participante vê ao abrir o link ou digitar o PIN: de quem é, até quando fica aberta, quantos participantes; ou "Esta atividade foi encerrada" (spec 029) | ✅ |
 
 ## Library, Reports, Media

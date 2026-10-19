@@ -3,6 +3,7 @@ import { and, count, eq, isNull } from "drizzle-orm";
 
 import { user } from "../../schema/auth";
 import { gamePlayer, game as gameTable } from "../../schema/game";
+import { quiz as quizTable } from "../../schema/quiz";
 import { report as reportTable } from "../../schema/reports";
 import type { Database } from "../../types";
 
@@ -23,10 +24,14 @@ export function createDrizzleAssignmentLandingQuery(
 					creatorName: user.name,
 					expiresAt: gameTable.expiresAt,
 					endedAt: gameTable.endedAt,
+					questionCount: gameTable.questionCount,
+					// Null once the quiz was deleted for good (spec 015).
+					coverImageKey: quizTable.coverImageKey,
 				})
 				.from(gameTable)
 				.innerJoin(user, eq(user.id, gameTable.ownerId))
 				.leftJoin(reportTable, eq(reportTable.gameId, gameTable.id))
+				.leftJoin(quizTable, eq(quizTable.id, gameTable.quizId))
 				.where(and(eq(gameTable.id, gameId), eq(gameTable.mode, "assignment")))
 				.limit(1);
 			if (!row) {
@@ -45,6 +50,8 @@ export function createDrizzleAssignmentLandingQuery(
 				expiresAt: row.expiresAt,
 				endedAt: row.endedAt,
 				participantCount: players?.total ?? 0,
+				coverImageKey: row.coverImageKey,
+				questionCount: row.questionCount,
 			};
 		},
 	};

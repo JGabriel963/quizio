@@ -1,4 +1,5 @@
 import type { Avatar } from "../../domain/avatar";
+import type { ParticipantProgress } from "../../domain/participant-progress";
 import type { Player } from "../../domain/player";
 
 export interface PlayerRepository {
@@ -34,4 +35,14 @@ export interface PlayerRepository {
 	 * is rewritten (spec 028).
 	 */
 	saveAvatar(playerId: string, avatar: Avatar): Promise<void>;
+	/**
+	 * Stores the progress of an assignment's participant and nothing else,
+	 * only if the stored one is still `from`; false when another request
+	 * moved it first (spec 030, RN-12). As `games.saveIfAt`.
+	 */
+	saveProgressIfAt(
+		playerId: string,
+		from: ParticipantProgress,
+		next: ParticipantProgress,
+	): Promise<boolean>;
 }

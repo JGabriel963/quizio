@@ -62,3 +62,22 @@ export type AnswerResultData =
 	ParticipantDetailData["answers"][number]["result"];
 /** How the group answered one question. */
 export type QuestionDetailData = RouterOutputs["report"]["question"];
+
+/** The first screens of an assignment's link (spec 030, RN-01). */
+export type AssignmentCoverData = RouterOutputs["game"]["assignment"]["cover"];
+export type OpenAssignmentCoverData = Extract<
+	AssignmentCoverData,
+	{ status: "open" }
+>;
+/** Everything a participant's device draws (spec 030). */
+export type AssignmentPlayData = RouterOutputs["game"]["assignment"]["play"];
+export type AssignmentPlayScreenData = AssignmentPlayData["screen"];
+export type PlayQuestionData = Extract<
+	AssignmentPlayScreenData,
+	{ phase: "answering" }
+>["question"];
+export type QuestionResultData = AssignmentPlayData["history"][number];
+export type AssignmentScoreboardData = Extract<
+	AssignmentPlayScreenData,
+	{ phase: "scoreboard" }
+>["scoreboard"];

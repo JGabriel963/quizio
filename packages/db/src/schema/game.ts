@@ -5,6 +5,7 @@ import {
 	GAME_STATUSES,
 } from "@quizio/core/game/domain/game";
 import { GAME_PHASES } from "@quizio/core/game/domain/game-progress";
+import { PARTICIPANT_PHASES } from "@quizio/core/game/domain/participant-progress";
 import { sql } from "drizzle-orm";
 import {
 	boolean,
@@ -26,6 +27,7 @@ export const gameStatus = pgEnum("game_status", GAME_STATUSES);
 export const gameEndReason = pgEnum("game_end_reason", GAME_END_REASONS);
 export const gamePhase = pgEnum("game_phase", GAME_PHASES);
 export const answerCorrectness = pgEnum("answer_correctness", CORRECTNESS);
+export const participantPhase = pgEnum("participant_phase", PARTICIPANT_PHASES);
 
 /**
  * A live game (spec 008; ADR 0009). The whole state is here: no request
@@ -139,6 +141,15 @@ export const gamePlayer = pgTable(
 		accessory: text("accessory"),
 		joinedAt: timestamp("joined_at", { withTimezone: true }).notNull(),
 		removedAt: timestamp("removed_at", { withTimezone: true }),
+		/**
+		 * Where a participant of an assignment is (spec 030; ADR 0014): the
+		 * three are set together, and are null in a live game.
+		 */
+		participantPhase: participantPhase("participant_phase"),
+		progressQuestionIndex: integer("progress_question_index"),
+		progressStartedAt: timestamp("progress_started_at", { withTimezone: true }),
+		/** The answers of each question in the participant's order (RN-07). */
+		choiceOrder: jsonb("choice_order").$type<string[][]>(),
 	},
 	(table) => [
 		uniqueIndex("game_player_nickname_idx").on(table.gameId, table.nicknameKey),

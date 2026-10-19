@@ -33,6 +33,7 @@ import { useAssignmentMutations } from "@/lib/assignment-mutations";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { isReportInTrash, isReportNotFound } from "@/lib/report-error-messages";
 import { useReportMutations } from "@/lib/report-mutations";
+import { reportRefreshInterval } from "@/lib/report-refresh";
 import { useOrigin } from "@/lib/use-origin";
 import { useTRPC } from "@/utils/trpc";
 
@@ -74,6 +75,8 @@ function ReportPage() {
 	});
 	const report = useQuery({
 		...trpc.report.get.queryOptions({ gameId }),
+		// Participants play an open assignment meanwhile (spec 030, RN-28).
+		refetchInterval: (query) => reportRefreshInterval(query.state.data),
 		retry: (failureCount, error) => !isRefusal(error) && failureCount < 2,
 		meta: { suppressErrorToast: true },
 	});

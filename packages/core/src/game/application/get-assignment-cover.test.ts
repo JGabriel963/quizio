@@ -6,7 +6,7 @@ import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps } from "../testing/game-deps";
 import { createCreateAssignment } from "./create-assignment";
 import { createEndAssignment } from "./end-assignment";
-import { createGetAssignmentLanding } from "./get-assignment-landing";
+import { createGetAssignmentCover } from "./get-assignment-cover";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -19,21 +19,24 @@ async function withAssignment() {
 		options: DEFAULT_ASSIGNMENT_OPTIONS,
 	});
 	deps.assignmentLanding.creatorNames.set("user-1", "Ana");
+	deps.assignmentLanding.covers.set("quiz-1", "media/user-1/cover.png");
 	return { deps, gameId };
 }
 
-describe("getAssignmentLanding (spec 029, RN-46 to RN-48)", () => {
+describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () => {
 	it("an open assignment gives its name, its creator, the time left and the participants", async () => {
 		const { deps, gameId } = await withAssignment();
 		await deps.players.save(aPlayer({ gameId }));
 		deps.clock.advanceBy(DAY_MS);
 
-		expect(await createGetAssignmentLanding(deps)({ gameId })).toEqual({
+		expect(await createGetAssignmentCover(deps)({ gameId })).toEqual({
 			status: "open",
 			name: "Bom de Bíblia (Junho)",
 			creatorName: "Ana",
 			remainingMs: DAY_MS,
 			participantCount: 1,
+			coverUrl: "https://media.test/media/user-1/cover.png",
+			questionCount: 2,
 		});
 	});
 
@@ -41,7 +44,7 @@ describe("getAssignmentLanding (spec 029, RN-46 to RN-48)", () => {
 		const { deps, gameId } = await withAssignment();
 		deps.clock.advanceBy(3 * DAY_MS);
 
-		expect(await createGetAssignmentLanding(deps)({ gameId })).toEqual({
+		expect(await createGetAssignmentCover(deps)({ gameId })).toEqual({
 			status: "ended",
 			name: "Bom de Bíblia (Junho)",
 		});
@@ -52,7 +55,7 @@ describe("getAssignmentLanding (spec 029, RN-46 to RN-48)", () => {
 		const { deps, gameId } = await withAssignment();
 		await createEndAssignment(deps)({ ownerId: "user-1", gameId });
 
-		expect(await createGetAssignmentLanding(deps)({ gameId })).toEqual({
+		expect(await createGetAssignmentCover(deps)({ gameId })).toEqual({
 			status: "ended",
 			name: "Bom de Bíblia (Junho)",
 		});
@@ -62,7 +65,7 @@ describe("getAssignmentLanding (spec 029, RN-46 to RN-48)", () => {
 		const { deps, gameId } = await withAssignment();
 		deps.assignmentLanding.reportNames.set(gameId, "Capitais — Turma A");
 
-		expect((await createGetAssignmentLanding(deps)({ gameId })).name).toBe(
+		expect((await createGetAssignmentCover(deps)({ gameId })).name).toBe(
 			"Capitais — Turma A",
 		);
 	});
@@ -70,12 +73,14 @@ describe("getAssignmentLanding (spec 029, RN-46 to RN-48)", () => {
 	it("gives nothing about the questions", async () => {
 		const { deps, gameId } = await withAssignment();
 
-		const view = await createGetAssignmentLanding(deps)({ gameId });
+		const view = await createGetAssignmentCover(deps)({ gameId });
 
 		expect(Object.keys(view).sort()).toEqual([
+			"coverUrl",
 			"creatorName",
 			"name",
 			"participantCount",
+			"questionCount",
 			"remainingMs",
 			"status",
 		]);
@@ -84,7 +89,7 @@ describe("getAssignmentLanding (spec 029, RN-46 to RN-48)", () => {
 	it("an unknown id or a live game is missing", async () => {
 		const deps = createGameDeps();
 		await deps.games.save(aGame());
-		const landing = createGetAssignmentLanding(deps);
+		const landing = createGetAssignmentCover(deps);
 
 		await expect(landing({ gameId: "nope" })).rejects.toThrow(
 			GameNotFoundError,

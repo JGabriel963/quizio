@@ -55,7 +55,8 @@ export interface HardestQuestionView extends QuestionRowView {
 export interface ReportSummaryView {
 	/** Null when no question reached its results. */
 	accuracyPercent: number | null;
-	durationMs: number;
+	/** Null for an assignment: each participant plays at their own pace (spec 030, RN-27). */
+	durationMs: number | null;
 	hardestQuestion: HardestQuestionView | null;
 	difficultCount: number;
 	/** Lowest accuracy first (RN-38). */
@@ -119,7 +120,7 @@ export function createGetReport(
 						participants.reduce((sum, p) => sum + p.accuracy.correct, 0),
 					),
 				),
-				durationMs: durationMs(header),
+				durationMs: header.mode === "assignment" ? null : durationMs(header),
 				hardestQuestion:
 					hardest && hardestQuestion
 						? {

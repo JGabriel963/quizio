@@ -3,16 +3,18 @@ import {
 	newAssignment,
 } from "@quizio/core/game/domain/assignment";
 import { aGame, aPlayer } from "@quizio/core/game/testing/a-game";
+import { aPublishedQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-
 import { user } from "../../schema/auth";
 import {
 	assignmentPreferences,
 	game as gameTable,
 	hostPreferences,
 } from "../../schema/game";
+import { quiz as quizTable } from "../../schema/quiz";
 import { report as reportTable } from "../../schema/reports";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
+import { createDrizzleQuizRepository } from "../quiz/drizzle-quiz-repository";
 import { createDrizzleAssignmentLandingQuery } from "./drizzle-assignment-landing-query";
 import { createDrizzleAssignmentPreferencesRepository } from "./drizzle-assignment-preferences-repository";
 import { createDrizzleGameRepository } from "./drizzle-game-repository";
@@ -48,6 +50,7 @@ describe("assignment reads (spec 029)", () => {
 
 	beforeEach(async () => {
 		await testDb.db.delete(gameTable);
+		await testDb.db.delete(quizTable);
 		await testDb.db.delete(assignmentPreferences);
 		await testDb.db.delete(hostPreferences);
 	});
@@ -102,7 +105,31 @@ describe("assignment reads (spec 029)", () => {
 				expiresAt: assignment.expiresAt,
 				endedAt: null,
 				participantCount: 0,
+				coverImageKey: null,
+				questionCount: 2,
 			});
+		});
+
+		it("gives the quiz's cover and the question count (spec 030)", async () => {
+			await createDrizzleQuizRepository(testDb.db).save(
+				aPublishedQuiz({
+					id: "quiz-1",
+					ownerId: "user-1",
+					coverImageKey: "media/user-1/cover.png",
+				}),
+			);
+			await games.create(assignment);
+
+			expect(await landing.find("a-1")).toMatchObject({
+				coverImageKey: "media/user-1/cover.png",
+				questionCount: 2,
+			});
+		});
+
+		it("the cover is null once the quiz was deleted (spec 030)", async () => {
+			await games.create(assignment);
+
+			expect((await landing.find("a-1"))?.coverImageKey).toBeNull();
 		});
 
 		it("gives the report's name once renamed", async () => {

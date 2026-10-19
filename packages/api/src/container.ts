@@ -1,7 +1,19 @@
 import {
+	type AdvanceAssignmentPlay,
+	createAdvanceAssignmentPlay,
+} from "@quizio/core/game/application/advance-assignment-play";
+import {
 	type AdvanceGame,
 	createAdvanceGame,
 } from "@quizio/core/game/application/advance-game";
+import {
+	type AnswerAssignmentQuestion,
+	createAnswerAssignmentQuestion,
+} from "@quizio/core/game/application/answer-assignment-question";
+import {
+	type ChangeAssignmentAvatar,
+	createChangeAssignmentAvatar,
+} from "@quizio/core/game/application/change-assignment-avatar";
 import {
 	type ChangeAssignmentDeadline,
 	createChangeAssignmentDeadline,
@@ -28,9 +40,13 @@ import {
 	type FindGameByPin,
 } from "@quizio/core/game/application/find-game-by-pin";
 import {
-	createGetAssignmentLanding,
-	type GetAssignmentLanding,
-} from "@quizio/core/game/application/get-assignment-landing";
+	createGetAssignmentCover,
+	type GetAssignmentCover,
+} from "@quizio/core/game/application/get-assignment-cover";
+import {
+	createGetAssignmentPlay,
+	type GetAssignmentPlay,
+} from "@quizio/core/game/application/get-assignment-play";
 import {
 	createGetAssignmentSetup,
 	type GetAssignmentSetup,
@@ -47,6 +63,10 @@ import {
 	createHostGame,
 	type HostGame,
 } from "@quizio/core/game/application/host-game";
+import {
+	createJoinAssignment,
+	type JoinAssignment,
+} from "@quizio/core/game/application/join-assignment";
 import {
 	createJoinGame,
 	type JoinGame,
@@ -81,6 +101,10 @@ import {
 	createSignalHost,
 	type SignalHost,
 } from "@quizio/core/game/application/signal-host";
+import {
+	createStartAssignmentPlay,
+	type StartAssignmentPlay,
+} from "@quizio/core/game/application/start-assignment-play";
 import {
 	createStartGame,
 	type StartGame,
@@ -334,8 +358,14 @@ export interface Container extends Adapters {
 		createAssignment: CreateAssignment;
 		changeAssignmentDeadline: ChangeAssignmentDeadline;
 		endAssignment: EndAssignment;
-		getAssignmentLanding: GetAssignmentLanding;
+		getAssignmentCover: GetAssignmentCover;
 		listOpenAssignments: ListOpenAssignments;
+		joinAssignment: JoinAssignment;
+		getAssignmentPlay: GetAssignmentPlay;
+		startAssignmentPlay: StartAssignmentPlay;
+		answerAssignmentQuestion: AnswerAssignmentQuestion;
+		advanceAssignmentPlay: AdvanceAssignmentPlay;
+		changeAssignmentAvatar: ChangeAssignmentAvatar;
 		deleteReportsPermanently: DeleteReportsPermanently;
 		getReport: GetReport;
 		getReportParticipant: GetReportParticipant;
@@ -417,8 +447,14 @@ export function createContainer(adapters: Adapters): Container {
 			createAssignment: createCreateAssignment(assignmentDeps),
 			changeAssignmentDeadline: createChangeAssignmentDeadline(assignmentDeps),
 			endAssignment: createEndAssignment(adapters),
-			getAssignmentLanding: createGetAssignmentLanding(adapters),
+			getAssignmentCover: createGetAssignmentCover(adapters),
 			listOpenAssignments: createListOpenAssignments(adapters),
+			joinAssignment: createJoinAssignment(adapters),
+			getAssignmentPlay: createGetAssignmentPlay(adapters),
+			startAssignmentPlay: createStartAssignmentPlay(adapters),
+			answerAssignmentQuestion: createAnswerAssignmentQuestion(adapters),
+			advanceAssignmentPlay: createAdvanceAssignmentPlay(adapters),
+			changeAssignmentAvatar: createChangeAssignmentAvatar(adapters),
 			deleteReportsPermanently: createDeleteReportsPermanently(adapters),
 			getReport: createGetReport(adapters),
 			getReportParticipant: createGetReportParticipant(adapters),

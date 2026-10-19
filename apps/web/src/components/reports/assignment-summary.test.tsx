@@ -120,13 +120,16 @@ describe("AssignmentSummary (spec 029, RN-32, RN-33)", () => {
 		expect(actions.onEnd).toHaveBeenCalledOnce();
 	});
 
-	it("Jogue este quiz is marked Em breve", async () => {
+	it("Jogue este quiz is a link to the activity in a new tab", async () => {
 		renderSummary();
 
 		const play = await screen.findByRole("region", { name: "Jogue este quiz" });
-		expect(within(play).getByText("Em breve")).toBeInTheDocument();
-		expect(
-			within(play).getByRole("button", { name: /Jogue este quiz/ }),
-		).toBeDisabled();
+		const link = within(play).getByRole("link", { name: /Jogue este quiz/ });
+		expect(link).toHaveAttribute(
+			"href",
+			"https://quizio.app/assignment/game-1",
+		);
+		expect(link).toHaveAttribute("target", "_blank");
+		expect(within(play).queryByText("Em breve")).toBeNull();
 	});
 });

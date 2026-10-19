@@ -73,13 +73,14 @@ test.describe("atribuir (spec 029)", () => {
 		// Someone without an account opens the link (CA-39)…
 		const visitor = await newParticipant(browser);
 		await visitor.goto(`/assignment/${gameId}`);
+		await visitor.getByRole("button", { name: "Iniciar" }).click();
 		await expect(
 			visitor.getByText("Atividade por Ana", { exact: false }),
 		).toBeVisible();
 		await expect(visitor.getByText("Aberto por 3 dias")).toBeVisible();
 		await expect(
 			visitor.getByRole("button", { name: "Ok, vamos lá!" }),
-		).toBeDisabled();
+		).toBeEnabled();
 
 		// …and someone types the PIN (CA-40).
 		await visitor.goto("/join");
@@ -104,7 +105,7 @@ test.describe("atribuir (spec 029)", () => {
 			.getByRole("alertdialog", { name: "Encerrar este quiz atribuído?" })
 			.getByRole("button", { name: "Encerrar agora" })
 			.click();
-		await expect(creator.getByText("Encerrada")).toBeVisible();
+		await expect(creator.getByText("Encerrada", { exact: true })).toBeVisible();
 
 		await visitor.goto(`/assignment/${gameId}`);
 		await expect(

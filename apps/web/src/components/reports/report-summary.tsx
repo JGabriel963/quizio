@@ -113,9 +113,12 @@ export function ReportSummary({
 							<Total icon={<CircleHelpIcon />} label="Perguntas">
 								{playedQuestionsLabel(header.playedCount, header.questionCount)}
 							</Total>
-							<Total icon={<ClockIcon />} label="Tempo">
-								{durationLabel(summary.durationMs)}
-							</Total>
+							{/* An assignment has no duration: each one plays at their pace (spec 030, RN-27). */}
+							{summary.durationMs !== null && (
+								<Total icon={<ClockIcon />} label="Tempo">
+									{durationLabel(summary.durationMs)}
+								</Total>
+							)}
 						</dl>
 					</section>
 				</>

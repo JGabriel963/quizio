@@ -471,8 +471,8 @@ O criador atribui um quiz publicado com um prazo e as opções que quiser, receb
 
 ## Perguntas em aberto
 
-- [ ] **"Jogue este quiz"** — na 029-2/2, o criador joga como um participante que entra no relatório, ou numa prévia que não conta? O Kahoot é (não confirmado).
-- [ ] **Pasta da 029-2/2** — o roadmap a chama de "029-2"; pode virar uma pasta própria (`030-…`) ou outra seção desta spec, quando for especificada.
+- [x] **"Jogue este quiz"** — o criador joga como um participante que conta (decisão do usuário, 2026-10-19; spec 030, RN-29).
+- [x] **Pasta da 029-2/2** — virou a spec [030](../030-jogar-a-atribuicao/spec.md) (2026-10-19).
 
 ## Changelog
 

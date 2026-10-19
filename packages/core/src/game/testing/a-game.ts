@@ -72,6 +72,8 @@ export function aPlayer(overrides: Partial<Player> = {}): Player {
 		avatar: { character: "koala", accessory: "top-hat" },
 		joinedAt: new Date("2026-06-01T12:01:00.000Z"),
 		removedAt: null,
+		progress: null,
+		choiceOrder: null,
 		...overrides,
 	};
 }

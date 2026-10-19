@@ -617,4 +617,49 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 			]);
 		});
 	});
+	describe("played assignments (spec 030)", () => {
+		const played = () =>
+			newAssignment({
+				id: "game-1",
+				ownerId: "user-1",
+				quizId: "quiz-1",
+				quizVersion: 1,
+				title: "Capitais",
+				pin: "00000009",
+				deadline: at("2026-06-04T12:00:00.000Z"),
+				options: DEFAULT_ASSIGNMENT_OPTIONS,
+				questionCount: 3,
+				now: created,
+			});
+
+		it("an assignment's participants and answers are read, with every question played", async () => {
+			await seedPlayed(played());
+			await answer("p1", 0, true);
+			await answer("p1", 1, false);
+
+			const game = await query.findGame("game-1", now);
+
+			expect(game?.participants.map(({ nickname }) => nickname)).toEqual([
+				"Ana",
+				"Bia",
+			]);
+			expect(game?.questions).toHaveLength(3);
+			expect(game?.answers).toHaveLength(2);
+		});
+
+		it("an assignment ended in the middle keeps the answers given", async () => {
+			const assignment = played();
+			await seedPlayed(assignment);
+			await answer("p1", 0, true);
+			await games.save(
+				endGame(assignment, "host", at("2026-06-01T13:00:00.000Z")),
+			);
+
+			const game = await query.findGame("game-1", now);
+
+			expect(game?.header.status).toBe("ended");
+			expect(game?.questions).toHaveLength(3);
+			expect(game?.answers).toHaveLength(1);
+		});
+	});
 });
