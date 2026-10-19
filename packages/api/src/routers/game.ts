@@ -59,6 +59,16 @@ const assignmentRouter = router({
 			}),
 		),
 
+	/** "Atividades em andamento", before creating another (spec 029, RN-05a). */
+	openOfQuiz: protectedProcedure
+		.input(z.object({ quizId: z.string().min(1) }))
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.listOpenAssignments({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
 	end: protectedProcedure.input(gameReference).mutation(({ ctx, input }) =>
 		ctx.container.useCases.endAssignment({
 			ownerId: ctx.session.user.id,

@@ -5,6 +5,7 @@ import {
 	type AssignmentOptionsData,
 	type AssignmentSetupData,
 } from "./assign-dialog";
+import { OpenAssignmentsDialog } from "./open-assignments-dialog";
 import {
 	ShareAssignmentDialog,
 	type ShareableAssignment,
@@ -22,6 +23,7 @@ export function AssignFlow({
 	setup,
 	now,
 	origin,
+	openAssignments,
 	onCreate,
 	onDone,
 }: {
@@ -32,6 +34,11 @@ export function AssignFlow({
 	setup: AssignmentSetupData | undefined;
 	now: Date;
 	origin: string;
+	/**
+	 * The quiz's open assignments, shown first when there is any (RN-05a);
+	 * undefined while they load.
+	 */
+	openAssignments: ShareableAssignment[] | undefined;
 	onCreate: (input: {
 		deadline: Date;
 		options: AssignmentOptionsData;
@@ -39,6 +46,25 @@ export function AssignFlow({
 	onDone: (assignment: { gameId: string }) => void;
 }) {
 	const [created, setCreated] = useState<ShareableAssignment | null>(null);
+	/** "Criar novo" was chosen over the open ones. */
+	const [creatingNew, setCreatingNew] = useState(false);
+
+	if (!created && !creatingNew) {
+		if (openAssignments === undefined) {
+			return null;
+		}
+		if (openAssignments.length > 0) {
+			return (
+				<OpenAssignmentsDialog
+					open={open}
+					onOpenChange={onOpenChange}
+					assignments={openAssignments}
+					onSelect={setCreated}
+					onCreateNew={() => setCreatingNew(true)}
+				/>
+			);
+		}
+	}
 
 	if (created) {
 		return (

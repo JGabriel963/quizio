@@ -1135,6 +1135,26 @@ describe("game router: assignments (spec 029)", () => {
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 	});
 
+	it("assignment.openOfQuiz lists the quiz's open assignments to share again (RN-05a)", async () => {
+		const { api, ana, gameId, pin } = await assigned();
+
+		expect(await ana.game.assignment.openOfQuiz({ quizId: "quiz-1" })).toEqual([
+			{
+				gameId,
+				name: "Capitais",
+				pin,
+				deadline: new Date(inDays(3)),
+				remainingMs: 3 * DAY_MS,
+				participantCount: 0,
+			},
+		]);
+		expect(
+			await api
+				.callerFor("user-2")
+				.game.assignment.openOfQuiz({ quizId: "quiz-1" }),
+		).toEqual([]);
+	});
+
 	it("assignment.create returns the gameId and an eight-digit PIN", async () => {
 		const { gameId, pin } = await assigned();
 

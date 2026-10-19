@@ -60,6 +60,7 @@ O criador atribui um quiz publicado com um prazo e as opções que quiser, receb
 
 | ID | Regra | Fonte |
 | --- | --- | --- |
+| RN-05a | Se o quiz já tem **atribuições abertas**, "Atribuir" abre antes o diálogo **"Atividade em andamento"** (ou **"N atividades em andamento"**), com o texto "É possível selecionar a atividade abaixo para convidar mais participantes ou criar uma nova atividade.", uma linha por atribuição aberta (nome, "Termina: {tempo até o prazo}" e o número de participantes, a que termina antes primeiro), **"Cancelar"** e **"Criar novo"**. Selecionar uma linha abre o compartilhamento **daquela** atribuição (RN-21), com o link e o PIN dela; "Criar novo" segue para "Configurar atividade" (RN-06) e cria **outra** atribuição, com link e PIN próprios. Sem atribuições abertas, "Atribuir" vai direto a "Configurar atividade". | referência visual do Kahoot (capturas de 2026-10-19) |
 | RN-06 | "Atribuir" abre o diálogo **"Configurar atividade"**, com o texto "Crie uma atividade e a compartilhe com os participantes na próxima etapa.", o **prazo**, **"Mais opções"** (fechado ao abrir), **"Cancelar"** e **"Criar uma tarefa"**. Cancelar, o X ou fora do diálogo fecham sem criar nada. | referência visual do Kahoot |
 | RN-07 | O **prazo é obrigatório** e tem **precisão de hora** (data e hora cheia, no fuso do aparelho do criador). O padrão é **daqui a 3 dias, às 12:00**. | kahoot-reference §8.1 · referência visual do Kahoot · decisão do usuário (2026-10-19) |
 | RN-08 | O prazo tem de ser **depois de agora** e **no máximo 28 dias** depois de agora. O limite de 28 dias é uma configuração da instância, documentada aqui (constituição, artigo VI): é o do Kahoot, e mantém o PIN da atribuição temporário. O servidor confere os dois limites no **seu** relógio ao criar e ao alterar o prazo, e recusa o que estiver fora deles. | kahoot-reference §8.1 · decisão do usuário (2026-10-19) |
@@ -280,6 +281,20 @@ O criador atribui um quiz publicado com um prazo e as opções que quiser, receb
 - **Quando** o criador atribui "Capitais" de novo, com outro prazo
 - **Então** as duas ficam abertas, cada uma com o seu PIN e o seu prazo
 
+#### CA-21a — Atividades em andamento
+
+- **Dado** o quiz "Capitais" com duas atribuições abertas, uma terminando em 2 dias com 1 participante e outra em 3 dias com nenhum
+- **Quando** o criador aciona "Atribuir"
+- **Então** vê "2 atividades em andamento", as duas linhas ("Termina: em 2 dias", 1; "Termina: em 3 dias", 0), "Cancelar" e "Criar novo"
+- **E** selecionar a primeira abre o compartilhamento com o PIN dela
+- **E** "Criar novo" abre "Configurar atividade", e "Criar uma tarefa" cria uma terceira atribuição, com outro PIN
+
+#### CA-21b — Sem atividade aberta, direto à configuração
+
+- **Dado** um quiz cujas atribuições acabaram todas
+- **Quando** o criador aciona "Atribuir"
+- **Então** vê "Configurar atividade" direto
+
 #### CA-22 — Ao vivo e atribuição não se encerram
 
 - **Dado** uma partida ao vivo aberta de "Capitais"
@@ -464,3 +479,4 @@ O criador atribui um quiz publicado com um prazo e as opções que quiser, receb
 - 2026-10-19 — spec criada, com as capturas do Kahoot enviadas pelo usuário (biblioteca com "Atribuir", "Configurar atividade", "Mais opções", calendário, "Compartilhe com os participantes", "Adicionar participantes", tela do participante, relatório da atribuição, "Alterar o prazo", "Encerrar este kahoot atribuído?"). Decisões do usuário: a atribuição é entregue em duas etapas, e esta prepara tudo até a porta do jogo; o link e o PIN já levam a uma tela de espera, e "Jogue este quiz" fica "Em breve"; prazo obrigatório de até 28 dias; "Gerador de apelido" como "Em breve"; "Atribuir" na página do quiz, na linha da biblioteca e no "O quiz está pronto".
 - 2026-10-19 — spec aprovada pelo usuário.
 - 2026-10-19 — spec entregue (status `done`). Escolhas feitas na implementação, dentro das regras: o link da atividade é `/assignment/{id}` e o PIN de 8 dígitos leva a ele pela entrada por PIN; um PIN de atribuição encerrada mostra "Esta atividade foi encerrada" (a mais recente que teve o PIN); "Editar" troca o corpo do diálogo pelo calendário (sem um segundo diálogo por cima), e "Alterar o prazo" usa o mesmo calendário com "Salvar"; a atividade não encontrada mostra a mensagem com "Entrar com um PIN", em vez de abrir a entrada por PIN com um aviso; o cartão de convite do relatório põe o QR, o PIN e a URL abaixo do texto, e só ao lado dele em telas muito largas. "O quiz está pronto" fecha antes de abrir "Configurar atividade".
+- 2026-10-19 — pedido do usuário, com capturas do Kahoot: com atribuições abertas, "Atribuir" mostra antes "atividades em andamento", para compartilhar uma delas ou "Criar novo" (RN-05a, CA-21a, CA-21b). Corrigido o banco local, onde o `db:push` deixou o índice "uma partida aberta por quiz" sem o filtro do modo e a segunda atribuição do mesmo quiz falhava; a migration `0003` já recria o índice certo.

@@ -160,6 +160,14 @@ status: done # todo | in-progress | done
   - Implementar: `routes/assignment.$gameId.tsx` (pública, só no cliente, em `GameScreen`), `components/assignment/assignment-landing.tsx`, `routes/join.tsx`, `components/game/player/join-flow.tsx`
   - Cobre: CA-39, CA-40, CA-41, CA-42 · RN-19, RN-20, RN-44 a RN-48
 
+## Depois da entrega (2026-10-19)
+
+- [x] **T28** Atividades em andamento (RN-05a), pedido do usuário com capturas do Kahoot
+  - Teste: `game/application/list-open-assignments.test.ts` › "lists the quiz's open assignments, the one ending first on top", "leaves out the ended ones, the ones past their deadline and the live game", "gives nothing for another creator's quiz"; `routers/game.test.ts` › "assignment.openOfQuiz lists the quiz's open assignments to share again (RN-05a)"; `components/assignment/open-assignments-dialog.test.tsx`; `assign-flow.test.tsx` › "shows them first, and selecting one shares it", "Criar novo creates another one, with its own PIN", "waits for the list before showing anything"
+  - Implementar: `list-open-assignments.ts`, `game.assignment.openOfQuiz`, `OpenAssignmentsDialog`, `AssignFlow` com `openAssignments`, `useAssignQuiz`
+  - Cobre: CA-21a, CA-21b · RN-05a
+  - Causa do erro "Não foi possível criar a atividade" na segunda atribuição do mesmo quiz: o banco local, atualizado com `db:push`, manteve o índice `game_unended_quiz_idx` sem o filtro `mode = 'live'` (o `db:push` não troca o `WHERE` de um índice parcial que já existe). Corrigido no banco local com o SQL da migration `0003`, que já recria o índice certo; o código não mudou.
+
 ## Fase 6 — E2E e fechamento
 
 - [x] **T26** E2E — atribuir de ponta a ponta
@@ -196,6 +204,8 @@ status: done # todo | in-progress | done
 | CA-19 | T21 |
 | CA-20 | T21 |
 | CA-21 | T05, T06, T11 |
+| CA-21a | T28 |
+| CA-21b | T28 |
 | CA-22 | T05, T06, T09, T11 |
 | CA-23 | T06 |
 | CA-24 | T10, T14, T23, T26 |

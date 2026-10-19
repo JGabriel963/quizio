@@ -51,6 +51,10 @@ import {
 	createJoinGame,
 	type JoinGame,
 } from "@quizio/core/game/application/join-game";
+import {
+	createListOpenAssignments,
+	type ListOpenAssignments,
+} from "@quizio/core/game/application/list-open-assignments";
 import type { AnswerRepository } from "@quizio/core/game/application/ports/answer-repository";
 import type { AssignmentLandingQuery } from "@quizio/core/game/application/ports/assignment-landing-query";
 import type { AssignmentPinGenerator } from "@quizio/core/game/application/ports/assignment-pin-generator";
@@ -331,6 +335,7 @@ export interface Container extends Adapters {
 		changeAssignmentDeadline: ChangeAssignmentDeadline;
 		endAssignment: EndAssignment;
 		getAssignmentLanding: GetAssignmentLanding;
+		listOpenAssignments: ListOpenAssignments;
 		deleteReportsPermanently: DeleteReportsPermanently;
 		getReport: GetReport;
 		getReportParticipant: GetReportParticipant;
@@ -413,6 +418,7 @@ export function createContainer(adapters: Adapters): Container {
 			changeAssignmentDeadline: createChangeAssignmentDeadline(assignmentDeps),
 			endAssignment: createEndAssignment(adapters),
 			getAssignmentLanding: createGetAssignmentLanding(adapters),
+			listOpenAssignments: createListOpenAssignments(adapters),
 			deleteReportsPermanently: createDeleteReportsPermanently(adapters),
 			getReport: createGetReport(adapters),
 			getReportParticipant: createGetReportParticipant(adapters),
