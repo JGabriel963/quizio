@@ -80,13 +80,15 @@ test("publica um quiz completo e volta à biblioteca, fora dos rascunhos", async
 	const dialog = readyDialog(page);
 	await expect(dialog).toBeVisible();
 	const options = dialog.getByRole("list", { name: "Próximos passos" });
-	await expect(options.getByRole("listitem")).toHaveCount(4);
-	// "Organizar ao vivo" works since the live game (spec 008, RN-03).
+	await expect(options.getByRole("listitem")).toHaveCount(5);
+	// "Organizar ao vivo" works since the live game (spec 008, RN-03) and
+	// "Atribuir" since the assignments (spec 029).
 	await expect(options.getByText("Em breve")).toHaveCount(3);
 	await expect(
 		options.getByRole("button", { name: /Organizar ao vivo/ }),
 	).toBeVisible();
-	await expect(dialog.getByRole("button")).toHaveCount(3);
+	await expect(options.getByRole("button", { name: /Atribuir/ })).toBeVisible();
+	await expect(dialog.getByRole("button")).toHaveCount(4);
 
 	await dialog.getByRole("button", { name: "Pronto" }).click();
 

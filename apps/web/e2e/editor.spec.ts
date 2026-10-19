@@ -55,6 +55,8 @@ async function drag(
 	from: { x: number; y: number; width: number; height: number },
 	to: { x: number; y: number },
 	holdMs = 0,
+	/** How long to stay at the end, so a scrolling list catches up. */
+	settleMs = 0,
 ) {
 	await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
 	await page.mouse.down();
@@ -62,6 +64,9 @@ async function drag(
 		await page.waitForTimeout(holdMs);
 	}
 	await page.mouse.move(to.x, to.y, { steps: 20 });
+	if (settleMs > 0) {
+		await page.waitForTimeout(settleMs);
+	}
 	await page.mouse.up();
 }
 
@@ -189,15 +194,25 @@ test("adds after the selected, duplicates, moves C before A, and the order survi
 	]);
 });
 
+/**
+ * With five questions the list scrolls, and the last one may sit below what
+ * shows, under Adicionar and Crie. It is brought into view first, as a person
+ * would scroll to it, then held at the top edge of the list until the list
+ * scrolls up to the first question.
+ */
 async function dragLastToTop(page: Page) {
 	const handle = page.getByRole("button", { name: "Mover pergunta 5" });
-	const target = page.getByRole("button", { name: "Mover pergunta 1" });
+	await handle.scrollIntoViewIfNeeded();
 	const from = await handle.boundingBox();
-	const to = await target.boundingBox();
-	if (!from || !to) {
-		throw new Error("Drag handles are not visible");
+	// The list's own box, the part that shows: the first question is at its top.
+	const list = await page
+		.getByRole("list", { name: "Perguntas" })
+		.locator("xpath=..")
+		.boundingBox();
+	if (!from || !list) {
+		throw new Error("Drag handle or list is not visible");
 	}
-	await drag(page, from, { x: to.x + to.width / 2, y: to.y - 20 });
+	await drag(page, from, { x: from.x + from.width / 2, y: list.y + 4 }, 0, 300);
 }
 
 /** Where the question with this text is in the list, from 1. */
