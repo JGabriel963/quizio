@@ -7,7 +7,7 @@ import {
 } from "../domain/game";
 import { GAME_EVENTS, type PlayerRemovedPayload } from "../domain/game-events";
 import { removePlayer } from "../domain/player";
-import { loadGame, publishToGame } from "./game-lifecycle";
+import { loadLiveGame, publishToGame } from "./game-lifecycle";
 import type { GameRepository } from "./ports/game-repository";
 import type { PlayerRepository } from "./ports/player-repository";
 
@@ -29,7 +29,7 @@ export function createRemovePlayer(deps: {
 	realtime: RealtimePublisher;
 }): RemovePlayer {
 	return async ({ ownerId, gameId, playerId }) => {
-		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
+		const game = requireOwnedGame(await loadLiveGame(deps, gameId), ownerId);
 		assertInLobby(game);
 		const player = await deps.players.findById(playerId);
 		if (!player || player.gameId !== game.id) {

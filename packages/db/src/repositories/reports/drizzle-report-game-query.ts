@@ -37,8 +37,10 @@ import type { Database } from "../../types";
 /** What a header is made of: the game, what the report changed, and its quiz. */
 const headerColumns = {
 	gameId: gameTable.id,
+	mode: gameTable.mode,
 	ownerId: gameTable.ownerId,
 	title: gameTable.title,
+	pin: gameTable.pin,
 	quizId: gameTable.quizId,
 	status: gameTable.status,
 	questionCount: gameTable.questionCount,
@@ -59,8 +61,10 @@ const headerColumns = {
 
 interface HeaderRow {
 	gameId: string;
+	mode: (typeof gameTable.$inferSelect)["mode"];
 	ownerId: string;
 	title: string;
+	pin: string;
 	quizId: string;
 	status: (typeof gameTable.$inferSelect)["status"];
 	questionCount: number;
@@ -78,10 +82,16 @@ interface HeaderRow {
 	quizCoverImageKey: string | null;
 }
 
-function toHeader(row: HeaderRow): ReportHeader {
+function toHeader(row: HeaderRow, now: Date): ReportHeader {
 	const finished = row.status === "finished";
+	// An assignment before its deadline (spec 029, RN-29).
+	const open =
+		row.mode === "assignment" &&
+		row.endedAt === null &&
+		row.expiresAt.getTime() > now.getTime();
 	return {
 		gameId: row.gameId,
+		mode: row.mode,
 		ownerId: row.ownerId,
 		name: row.reportName ?? row.title,
 		quizId: row.quizId,
@@ -94,7 +104,7 @@ function toHeader(row: HeaderRow): ReportHeader {
 						coverImageKey: row.quizCoverImageKey,
 					},
 		questionCount: row.questionCount,
-		outcome: finished ? "finished" : "ended",
+		status: open ? "open" : finished ? "finished" : "ended",
 		// A game that was ended keeps where it was (spec 009).
 		stoppedAt:
 			!finished && row.questionIndex !== null && row.phase !== null
@@ -103,20 +113,32 @@ function toHeader(row: HeaderRow): ReportHeader {
 		// Games from before the start was stored count from their creation.
 		startedAt: row.startedAt ?? row.createdAt,
 		// Past its deadline and never opened again: it ended there (spec 008, RN-11).
-		endedAt: row.endedAt ?? row.expiresAt,
+		endedAt: open ? null : (row.endedAt ?? row.expiresAt),
+		deadline: row.expiresAt,
+		pin: open ? row.pin : null,
 		trashedAt: row.trashedAt,
 	};
 }
 
-/** A report is a game that started and is over (spec 015, RN-01, RN-02). */
+/**
+ * A report is a live game that started and is over (spec 015, RN-01, RN-02),
+ * or an assignment, from its creation (spec 029, RN-27).
+ */
 const isReport = (now: Date) =>
-	and(
-		// A game has questions from the moment it starts.
-		gt(gameTable.questionCount, 0),
-		or(isNotNull(gameTable.endedAt), lte(gameTable.expiresAt, now)),
+	or(
+		eq(gameTable.mode, "assignment"),
+		and(
+			// A game has questions from the moment it starts.
+			gt(gameTable.questionCount, 0),
+			or(isNotNull(gameTable.endedAt), lte(gameTable.expiresAt, now)),
+		),
 	);
 
 const endedAt = sql`coalesce(${gameTable.endedAt}, ${gameTable.expiresAt})`;
+
+/** An assignment still open at `now`. */
+const isOpen = (now: Date) =>
+	sql`(${gameTable.mode} = 'assignment' and ${gameTable.endedAt} is null and ${gameTable.expiresAt} > ${now.toISOString()}::timestamptz)`;
 
 export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 	const headers = () =>
@@ -133,7 +155,7 @@ export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 		const [row] = await headers()
 			.where(and(eq(gameTable.id, gameId), isReport(now)))
 			.limit(1);
-		return row ? toHeader(row) : null;
+		return row ? toHeader(row, now) : null;
 	}
 
 	return {
@@ -150,8 +172,15 @@ export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 							: isNull(reportTable.trashedAt),
 					),
 				)
-				.orderBy(desc(endedAt), asc(gameTable.id));
-			return rows.map(toHeader);
+				// Open assignments first, the one ending first on top (spec 029,
+				// RN-30); then by their end, newest first.
+				.orderBy(
+					sql`case when ${isOpen(now)} then 0 else 1 end`,
+					sql`case when ${isOpen(now)} then ${gameTable.expiresAt} end asc`,
+					desc(endedAt),
+					asc(gameTable.id),
+				);
+			return rows.map((row) => toHeader(row, now));
 		},
 
 		async tallies(reportHeaders) {

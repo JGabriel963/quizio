@@ -12,6 +12,8 @@ import {
 	GamePinNotRecognizedError,
 	isGameOpen,
 	newGame,
+	requireAssignment,
+	requireLiveGame,
 	requireOwnedGame,
 	setGameLocked,
 } from "./game";
@@ -217,5 +219,54 @@ describe("player (spec 008)", () => {
 
 		expect(isActivePlayer(removed)).toBe(false);
 		expect(removePlayer(removed, later(2000))).toBe(removed);
+	});
+});
+
+describe("game modes (spec 029)", () => {
+	it("a new game is live, with the question timer on", () => {
+		const game = newGame({
+			id: "game-1",
+			ownerId: "user-1",
+			quizId: "quiz-1",
+			quizVersion: 1,
+			title: "Capitais",
+			pin: "265914",
+			options: DEFAULT_GAME_OPTIONS,
+			now,
+		});
+
+		expect(game.mode).toBe("live");
+		expect(game.questionTimer).toBe(true);
+	});
+
+	it("requireLiveGame treats an assignment as missing", () => {
+		const assignment = aGame({ mode: "assignment" });
+
+		expect(() => requireLiveGame(assignment)).toThrow(GameNotFoundError);
+		expect(requireLiveGame(aGame())).toEqual(aGame());
+	});
+
+	it("requireAssignment treats a live game as missing", () => {
+		const assignment = aGame({ mode: "assignment" });
+
+		expect(() => requireAssignment(aGame())).toThrow(GameNotFoundError);
+		expect(requireAssignment(assignment)).toBe(assignment);
+	});
+
+	it("an assignment past its deadline expires at the deadline", () => {
+		const deadline = later(3 * 24 * 60 * 60 * 1000);
+		const assignment = aGame({
+			mode: "assignment",
+			status: "playing",
+			expiresAt: deadline,
+		});
+
+		const settled = expireIfDue(assignment, later(4 * 24 * 60 * 60 * 1000));
+
+		expect(settled).toMatchObject({
+			status: "ended",
+			endReason: "expired",
+			endedAt: deadline,
+		});
 	});
 });

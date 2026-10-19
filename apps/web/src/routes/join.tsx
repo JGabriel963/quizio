@@ -44,6 +44,9 @@ function JoinPage() {
 				pin={pin ?? null}
 				api={api}
 				store={store}
+				onAssignment={(gameId) =>
+					navigate({ to: "/assignment/$gameId", params: { gameId } })
+				}
 				onPinChange={(next) => {
 					if (next === (pin ?? null)) {
 						return;

@@ -4,7 +4,7 @@ import { type Avatar, type AvatarInput, parseAvatar } from "../domain/avatar";
 import { GameNotFoundError } from "../domain/game";
 import { type AvatarChangedPayload, GAME_EVENTS } from "../domain/game-events";
 import { changePlayerAvatar, hasPlayerSecret } from "../domain/player";
-import { loadGame, publishToGame } from "./game-lifecycle";
+import { loadLiveGame, publishToGame } from "./game-lifecycle";
 import type { GameRepository } from "./ports/game-repository";
 import type { PlayerRepository } from "./ports/player-repository";
 
@@ -28,7 +28,7 @@ export function createChangeAvatar(deps: {
 	realtime: RealtimePublisher;
 }): ChangeAvatar {
 	return async ({ gameId, playerId, secret, avatar: input }) => {
-		const game = await loadGame(deps, gameId);
+		const game = await loadLiveGame(deps, gameId);
 		const player = await deps.players.findById(playerId);
 		if (
 			!game ||

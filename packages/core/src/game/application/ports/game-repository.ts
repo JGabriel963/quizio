@@ -1,4 +1,4 @@
-import type { Game } from "../../domain/game";
+import type { Game, GameMode } from "../../domain/game";
 import type { GameOptions } from "../../domain/game-options";
 import type { StageRef } from "../../domain/game-progress";
 
@@ -9,10 +9,20 @@ export interface GameRepository {
 	 * deadline: nothing ends a game until someone loads it (ADR 0009).
 	 */
 	findUnendedByPin(pin: string): Promise<Game | null>;
-	listUnendedByQuiz(quizId: string): Promise<Game[]>;
+	/** Of every mode, unless `modes` says which (spec 029, RN-05, RN-42). */
+	listUnendedByQuiz(
+		quizId: string,
+		modes?: readonly GameMode[],
+	): Promise<Game[]>;
 	/**
-	 * Inserts; "taken" when another game that was not ended holds the PIN or
-	 * is of the same quiz (spec 008, RN-07, RN-09).
+	 * The newest assignment that had the PIN, ended or not: a PIN is freed when
+	 * its assignment is over, and the activity still says so (spec 029, CA-42).
+	 */
+	findLatestAssignmentByPin(pin: string): Promise<Game | null>;
+	/**
+	 * Inserts; "taken" when another game that was not ended holds the PIN, or
+	 * when the new game is live and the quiz has a live game that was not
+	 * ended (spec 008, RN-07, RN-09; spec 029, RN-05).
 	 */
 	create(game: Game): Promise<"created" | "taken">;
 	/** Rewrites the whole game: only for what ends it or settles its deadline. */
@@ -23,6 +33,11 @@ export interface GameRepository {
 	 * meanwhile, and two settings changed at the same time are both kept.
 	 */
 	saveLocked(gameId: string, locked: boolean): Promise<void>;
+	/**
+	 * Stores an assignment's deadline and nothing else, only if it was not
+	 * ended; false when it was (spec 029, RN-38).
+	 */
+	saveDeadline(gameId: string, deadline: Date): Promise<boolean>;
 	/**
 	 * Stores only the options given, leaving the others as they are stored.
 	 * `at` is the instant autoplay counts from when the change turns it on

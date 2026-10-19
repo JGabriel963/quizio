@@ -6,6 +6,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 
+import { useAssignQuiz } from "@/components/assignment/use-assign-quiz";
+import { OpeningGame } from "@/components/game/opening-game";
 import { useCreateQuiz } from "@/components/layout/create-quiz-context";
 import { LibraryEmptyState } from "@/components/library/library-empty-state";
 import { LibrarySearch } from "@/components/library/library-search";
@@ -21,6 +23,7 @@ import {
 	type QuizFormDialogState,
 } from "@/components/quiz/quiz-form-dialog";
 import type { LibraryItemView } from "@/lib/api-types";
+import { useHostGame } from "@/lib/game-mutations";
 import { quizErrorMessage } from "@/lib/quiz-error-messages";
 import { useQuizMutations } from "@/lib/quiz-mutations";
 import { useTRPC } from "@/utils/trpc";
@@ -48,8 +51,13 @@ function LibraryPage() {
 	const [formDialog, setFormDialog] = useState<QuizFormDialogState>(null);
 	const [pendingDeletion, setPendingDeletion] =
 		useState<LibraryItemView | null>(null);
+	const hosting = useHostGame(null);
+	const assigning = useAssignQuiz();
 
 	const actions: QuizItemActions = {
+		onAssign: (item) =>
+			assigning.assign({ id: item.id, title: item.title ?? "" }),
+		onHost: (item) => hosting.start(item.id),
 		onEdit: async (item) => {
 			try {
 				const quiz = await queryClient.fetchQuery(
@@ -115,6 +123,12 @@ function LibraryPage() {
 			</section>
 
 			<QuizFormDialog state={formDialog} onClose={() => setFormDialog(null)} />
+			{assigning.dialog}
+			<OpeningGame
+				state={hosting.state}
+				onRetry={() => hosting.start()}
+				onCancel={hosting.cancel}
+			/>
 			<DeletePermanentlyDialog
 				open={pendingDeletion !== null}
 				quizTitle={displayQuizTitle(pendingDeletion?.title ?? null)}

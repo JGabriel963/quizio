@@ -1,3 +1,4 @@
+import type { GameMode } from "../../game/domain/game";
 import type { Clock } from "../../shared/application/ports/clock";
 import { normalizeSearchText } from "../../shared/domain/search-text";
 import { accuracyPercent } from "../domain/accuracy";
@@ -8,11 +9,22 @@ import {
 } from "../domain/report";
 import { overallAccuracy } from "../domain/report-stats";
 import type { ReportGameQuery } from "./ports/report-game-query";
-import { coverUrlOf, type ImageUrlResolver, quizLinksOf } from "./report-view";
+import {
+	assignmentPartOf,
+	coverUrlOf,
+	type ImageUrlResolver,
+	quizLinksOf,
+} from "./report-view";
 
 /** One line of the reports' list (spec 015, RN-24). */
 export interface ReportListItem {
 	gameId: string;
+	/** A live game or an assignment (spec 029, RN-29). */
+	mode: GameMode;
+	/** An assignment before its deadline. */
+	open: boolean;
+	/** Until an open assignment's deadline; null otherwise. */
+	remainingMs: number | null;
 	name: string;
 	coverUrl: string | null;
 	/** How many questions the game had. */
@@ -21,7 +33,7 @@ export interface ReportListItem {
 	/** Null when no question reached its results (RN-25). */
 	accuracyPercent: number | null;
 	endedEarly: boolean;
-	endedAt: Date;
+	endedAt: Date | null;
 	trashedAt: Date | null;
 	/** Null when the quiz cannot be opened (RN-05). */
 	quizId: string | null;
@@ -50,10 +62,11 @@ export function createListReports(deps: {
 	clock: Clock;
 }): ListReports {
 	return async ({ ownerId, section, search, limit }) => {
+		const now = deps.clock.now();
 		const headers = await deps.reportGames.listHeaders({
 			ownerId,
 			section,
-			now: deps.clock.now(),
+			now,
 		});
 		// A report's name is almost always its game's title, so the search runs
 		// here, over the headers, in place of a stored search column (RN-27).
@@ -77,8 +90,12 @@ export function createListReports(deps: {
 			items: page.map((header) => {
 				const tally = tallies.get(header.gameId);
 				const firstQuestions = tally?.participantFirstQuestions ?? [];
+				const assignment = assignmentPartOf(header, now);
 				return {
 					gameId: header.gameId,
+					mode: header.mode,
+					open: assignment?.open ?? false,
+					remainingMs: assignment?.remainingMs ?? null,
 					name: header.name,
 					coverUrl: coverUrlOf(header, deps.storage),
 					questionCount: header.questionCount,

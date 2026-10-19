@@ -68,6 +68,11 @@ Lista de opções sobre `@base-ui/react/select`, usada no lugar do `<select>` do
 - Chave liga/desliga que vale na hora, sem botão de salvar (spec 012): verde (`success`) quando ligada.
 - `size`: `default` e `sm`. Sem rótulo próprio: dê o nome com `aria-labelledby` ou envolva num `Label`.
 
+### `Calendar`
+
+- Um mês para escolher um dia (spec 029, prazo da atribuição): semana começando na segunda, nomes em português, setas de mês anterior e próximo.
+- Controlado: quem usa guarda o mês mostrado (`month`/`onMonthChange`), o dia escolhido (`selected`/`onSelect`), os dias fora dos limites (`isDisabled`) e se as setas andam (`canGoBack`/`canGoForward`). Feito sobre uma tabela, sem dependência nova.
+
 ### `Sheet`
 
 - Painel preso à lateral, por cima da página (spec 012): `SheetContent` com `side="right"` (padrão) ou `"left"`, `SheetHeader`, `SheetBody` (a parte que rola) e `SheetFooter`.

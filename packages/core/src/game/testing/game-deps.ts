@@ -7,8 +7,11 @@ import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-sto
 import { InMemoryRealtimePublisher } from "../../shared/testing/in-memory-realtime-publisher";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import type { PlayableQuiz } from "../application/ports/playable-quiz-query";
+import { ASSIGNMENT_DEFAULT_MAX_DEADLINE_DAYS } from "../domain/assignment";
 import { removePlayer } from "../domain/player";
 import { InMemoryAnswerRepository } from "./in-memory-answer-repository";
+import { InMemoryAssignmentLandingQuery } from "./in-memory-assignment-landing-query";
+import { InMemoryAssignmentPreferencesRepository } from "./in-memory-assignment-preferences-repository";
 import { InMemoryGameQuestionRepository } from "./in-memory-game-question-repository";
 import { InMemoryGameRepository } from "./in-memory-game-repository";
 import { InMemoryHostPreferencesRepository } from "./in-memory-host-preferences-repository";
@@ -17,6 +20,7 @@ import {
 	InMemoryPlayableQuizQuery,
 } from "./in-memory-playable-quiz-query";
 import { InMemoryPlayerRepository } from "./in-memory-player-repository";
+import { SequentialAssignmentPinGenerator } from "./sequential-assignment-pin-generator";
 import { SequentialGamePinGenerator } from "./sequential-game-pin-generator";
 
 /**
@@ -50,6 +54,7 @@ export function createGameDeps(
 		pins?: string[];
 		/** The questions of version 1 of every quiz. */
 		questions?: Question[];
+		assignmentPins?: string[];
 	} = {},
 ) {
 	const quizzes = options.quizzes ?? [aPlayableQuiz()];
@@ -57,6 +62,8 @@ export function createGameDeps(
 	const versionQuestions = new Map<number, Question[]>([
 		[1, options.questions ?? somePlayableQuestions()],
 	]);
+	const games = new InMemoryGameRepository();
+	const players = new InMemoryPlayerRepository();
 	return {
 		quizzes,
 		versionQuestions,
@@ -64,14 +71,20 @@ export function createGameDeps(
 			() => quizzes,
 			(_quizId, version) => versionQuestions.get(version) ?? [],
 		),
-		games: new InMemoryGameRepository(),
-		players: new InMemoryPlayerRepository(),
+		games,
+		players,
 		gameQuestions: new InMemoryGameQuestionRepository(),
 		answers: new InMemoryAnswerRepository(),
 		preferences: new InMemoryHostPreferencesRepository(),
 		/** Hands every list back backwards (spec 012). */
 		shuffler: new FixedShuffler(),
 		pins: new SequentialGamePinGenerator(...(options.pins ?? ["265914"])),
+		assignmentPins: new SequentialAssignmentPinGenerator(
+			...(options.assignmentPins ?? ["04352236"]),
+		),
+		assignmentPreferences: new InMemoryAssignmentPreferencesRepository(),
+		assignmentLanding: new InMemoryAssignmentLandingQuery(games, players),
+		maxDeadlineDays: ASSIGNMENT_DEFAULT_MAX_DEADLINE_DAYS,
 		attempts: new InMemoryAttemptLimiter(),
 		storage: new InMemoryObjectStorage("https://media.test"),
 		ids: new SequentialIdGenerator("id"),

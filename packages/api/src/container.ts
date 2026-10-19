@@ -3,9 +3,21 @@ import {
 	createAdvanceGame,
 } from "@quizio/core/game/application/advance-game";
 import {
+	type ChangeAssignmentDeadline,
+	createChangeAssignmentDeadline,
+} from "@quizio/core/game/application/change-assignment-deadline";
+import {
 	type ChangeAvatar,
 	createChangeAvatar,
 } from "@quizio/core/game/application/change-avatar";
+import {
+	type CreateAssignment,
+	createCreateAssignment,
+} from "@quizio/core/game/application/create-assignment";
+import {
+	createEndAssignment,
+	type EndAssignment,
+} from "@quizio/core/game/application/end-assignment";
 import {
 	createEndGame,
 	type EndGame,
@@ -15,6 +27,14 @@ import {
 	createFindGameByPin,
 	type FindGameByPin,
 } from "@quizio/core/game/application/find-game-by-pin";
+import {
+	createGetAssignmentLanding,
+	type GetAssignmentLanding,
+} from "@quizio/core/game/application/get-assignment-landing";
+import {
+	createGetAssignmentSetup,
+	type GetAssignmentSetup,
+} from "@quizio/core/game/application/get-assignment-setup";
 import {
 	createGetHostGame,
 	type GetHostGame,
@@ -32,6 +52,9 @@ import {
 	type JoinGame,
 } from "@quizio/core/game/application/join-game";
 import type { AnswerRepository } from "@quizio/core/game/application/ports/answer-repository";
+import type { AssignmentLandingQuery } from "@quizio/core/game/application/ports/assignment-landing-query";
+import type { AssignmentPinGenerator } from "@quizio/core/game/application/ports/assignment-pin-generator";
+import type { AssignmentPreferencesRepository } from "@quizio/core/game/application/ports/assignment-preferences-repository";
 import type { GamePinGenerator } from "@quizio/core/game/application/ports/game-pin-generator";
 import type { GameQuestionRepository } from "@quizio/core/game/application/ports/game-question-repository";
 import type { GameRepository } from "@quizio/core/game/application/ports/game-repository";
@@ -213,6 +236,12 @@ import type { ObjectStorage } from "@quizio/core/shared/application/ports/object
 import type { RealtimePublisher } from "@quizio/core/shared/application/ports/realtime-publisher";
 import type { Shuffler } from "@quizio/core/shared/application/ports/shuffler";
 
+/** Instance settings of the assignments (spec 029, RN-08). */
+export interface AssignmentSettings {
+	/** How far ahead a deadline may be. */
+	maxDeadlineDays: number;
+}
+
 /** Public sign-in options the login screen needs to know about. */
 export interface AuthSettings {
 	signUpEnabled: boolean;
@@ -239,6 +268,11 @@ export interface Adapters {
 	reportGames: ReportGameQuery;
 	reports: ReportRepository;
 	pins: GamePinGenerator;
+	/** Eight-digit PINs of the assignments (spec 029). */
+	assignmentPins: AssignmentPinGenerator;
+	assignmentPreferences: AssignmentPreferencesRepository;
+	assignmentLanding: AssignmentLandingQuery;
+	assignmentSettings: AssignmentSettings;
 	shuffler: Shuffler;
 	attempts: AttemptLimiter;
 	authSettings: AuthSettings;
@@ -292,6 +326,11 @@ export interface Container extends Adapters {
 		changeAvatar: ChangeAvatar;
 		getPlayerSession: GetPlayerSession;
 		submitAnswer: SubmitAnswer;
+		getAssignmentSetup: GetAssignmentSetup;
+		createAssignment: CreateAssignment;
+		changeAssignmentDeadline: ChangeAssignmentDeadline;
+		endAssignment: EndAssignment;
+		getAssignmentLanding: GetAssignmentLanding;
 		deleteReportsPermanently: DeleteReportsPermanently;
 		getReport: GetReport;
 		getReportParticipant: GetReportParticipant;
@@ -310,9 +349,14 @@ export interface Container extends Adapters {
 export function createContainer(adapters: Adapters): Container {
 	// The quiz context reaches the live games through its own port (spec 008, RN-34).
 	const endGamesOfQuiz = createEndGamesOfQuiz(adapters);
+	const assignmentDeps = {
+		...adapters,
+		maxDeadlineDays: adapters.assignmentSettings.maxDeadlineDays,
+	};
 	const quizGames = {
-		// The open ones end; the ones that never started go with the quiz, and
-		// the ones that started stay, as reports (spec 015, RN-05).
+		// The open ones end, assignments too (spec 029, RN-42); the ones that
+		// never started go with the quiz, and the ones that started stay, as
+		// reports (spec 015, RN-05).
 		endGamesOfDeletedQuiz: async (quizId: string) => {
 			await endGamesOfQuiz({ quizId, reason: "quizDeleted" });
 			await adapters.games.deleteUnstartedByQuiz(quizId);
@@ -364,6 +408,11 @@ export function createContainer(adapters: Adapters): Container {
 			changeAvatar: createChangeAvatar(adapters),
 			getPlayerSession: createGetPlayerSession(adapters),
 			submitAnswer: createSubmitAnswer(adapters),
+			getAssignmentSetup: createGetAssignmentSetup(assignmentDeps),
+			createAssignment: createCreateAssignment(assignmentDeps),
+			changeAssignmentDeadline: createChangeAssignmentDeadline(assignmentDeps),
+			endAssignment: createEndAssignment(adapters),
+			getAssignmentLanding: createGetAssignmentLanding(adapters),
 			deleteReportsPermanently: createDeleteReportsPermanently(adapters),
 			getReport: createGetReport(adapters),
 			getReportParticipant: createGetReportParticipant(adapters),

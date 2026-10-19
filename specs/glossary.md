@@ -140,6 +140,18 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Jogar novamente | `playAgain` | Ação do pódio: cria uma partida nova do mesmo quiz, com outro PIN e sem jogadores (spec 011) | ✅ (`game.host`, `usePlayAgain`) |
 | Equipe | `Team` | Grupo de jogadores; pontuação = média dos membros | 📝 |
 
+## Atribuição (assignment)
+
+| PT | EN (código) | Definição | Status |
+| --- | --- | --- | --- |
+| Atribuição | `Assignment` | Sessão de um quiz que cada participante joga no próprio ritmo, sem anfitrião, até o prazo; usa a versão jogável e o título do momento em que é criada; várias por quiz, independentes da partida ao vivo; é um relatório desde que é criada (spec 029) | ✅ |
+| Prazo | `Assignment.deadline` | Data e hora cheia em que a atribuição acaba; obrigatório, depois de agora e até 28 dias à frente (configuração da instância); pode ser alterado enquanto ela está aberta (spec 029) | ✅ |
+| PIN da atribuição | `AssignmentPin` | Código de 8 dígitos, que pode começar com zero, único entre as atribuições abertas; vale até a atribuição acabar (spec 029) | ✅ |
+| Encerrar agora (atribuição) | `endAssignment` | Acaba a atribuição na hora, de forma irreversível: o link e o PIN deixam de levar ao jogo (spec 029) | ✅ |
+| Opções da atribuição | `AssignmentOptions` | Personagens (`gameCharacters`), Timer da pergunta (`questionTimer`) e Ordem aleatória de respostas (`randomizeAnswers`), guardadas na atribuição e lembradas para o criador à parte das da partida ao vivo; Gerador de apelido "Em breve" (spec 029) | ✅ |
+| Timer da pergunta | `AssignmentOptions.questionTimer` | Ligado, as perguntas da atribuição têm tempo e a resposta mais rápida vale mais; desligado, não há contagem nem redução por tempo (spec 029; efeito na 029-2/2) | ✅ (guardado; efeito 📝) |
+| Tela da atividade | `AssignmentLanding` | O que o participante vê ao abrir o link ou digitar o PIN: de quem é, até quando fica aberta, quantos participantes; ou "Esta atividade foi encerrada" (spec 029) | ✅ |
+
 ## Library, Reports, Media
 
 | PT | EN (código) | Definição | Status |
@@ -157,7 +169,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Duplicar | `duplicateQuiz` | Criar um rascunho independente com os dados e uma cópia da capa de outro quiz (spec 001) | ✅ |
 | Pasta | `Folder` | Organização de quizzes | 📝 |
 | Favorito | `Favorite` | Marcação para acesso rápido | 📝 |
-| Relatório | `Report` | Resultado de uma partida ao vivo que foi iniciada e já acabou, do criador que a organizou; independente do quiz (spec 015) | ✅ |
+| Relatório | `Report` | Resultado de uma partida ao vivo que foi iniciada e já acabou, do criador que a organizou; independente do quiz (spec 015). Uma atribuição é relatório desde que é criada, aberta ou não (spec 029) | ✅ |
 | Participante | `Participant` | No relatório, o jogador que estava na partida quando ela foi iniciada ou que entrou durante o jogo; removidos no lobby não contam (spec 015) | ✅ |
 | Pergunta jogada | `playedQuestion` | Pergunta que chegou à revelação; as únicas que entram nas contas do relatório (spec 015) | ✅ |
 | Percentual geral | `overallAccuracy` | Respostas corretas da partida sobre as respostas possíveis, somadas as perguntas de cada participante (spec 015) | ✅ |

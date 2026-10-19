@@ -8,7 +8,7 @@ import {
 	startGame,
 } from "../domain/game-progress";
 import { arrangeGameQuestions } from "../domain/game-question";
-import { loadGame, publishStage } from "./game-lifecycle";
+import { loadGame, loadLiveGame, publishStage } from "./game-lifecycle";
 import {
 	type HostGameView,
 	type HostGameViewDeps,
@@ -50,7 +50,7 @@ export function createStartGame(
 	},
 ): StartGame {
 	return async ({ ownerId, gameId, auto = false }) => {
-		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
+		const game = requireOwnedGame(await loadLiveGame(deps, gameId), ownerId);
 		if (isPlaying(game)) {
 			// A repeated request: the game goes on from where it is.
 			return loadHostGameView(deps, game);

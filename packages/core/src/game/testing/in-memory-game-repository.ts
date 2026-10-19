@@ -1,5 +1,5 @@
 import type { GameRepository } from "../application/ports/game-repository";
-import type { Game } from "../domain/game";
+import type { Game, GameMode } from "../domain/game";
 import { definedOptions, type GameOptions } from "../domain/game-options";
 import { isAtStage, type StageRef } from "../domain/game-progress";
 
@@ -17,17 +17,33 @@ export class InMemoryGameRepository implements GameRepository {
 		);
 	}
 
-	async listUnendedByQuiz(quizId: string): Promise<Game[]> {
+	async listUnendedByQuiz(
+		quizId: string,
+		modes?: readonly GameMode[],
+	): Promise<Game[]> {
 		return this.all().filter(
-			(game) => game.quizId === quizId && game.endedAt === null,
+			(game) =>
+				game.quizId === quizId &&
+				game.endedAt === null &&
+				(!modes || modes.includes(game.mode)),
 		);
+	}
+
+	async findLatestAssignmentByPin(pin: string): Promise<Game | null> {
+		const assignments = this.all()
+			.filter((game) => game.mode === "assignment" && game.pin === pin)
+			.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+		return assignments[0] ?? null;
 	}
 
 	async create(game: Game): Promise<"created" | "taken"> {
 		const taken = this.all().some(
 			(other) =>
 				other.endedAt === null &&
-				(other.pin === game.pin || other.quizId === game.quizId),
+				(other.pin === game.pin ||
+					(game.mode === "live" &&
+						other.mode === "live" &&
+						other.quizId === game.quizId)),
 		);
 		if (taken) {
 			return "taken";
@@ -45,6 +61,15 @@ export class InMemoryGameRepository implements GameRepository {
 		if (stored) {
 			this.#games.set(gameId, { ...stored, locked });
 		}
+	}
+
+	async saveDeadline(gameId: string, deadline: Date): Promise<boolean> {
+		const stored = this.#games.get(gameId);
+		if (!stored || stored.endedAt !== null) {
+			return false;
+		}
+		this.#games.set(gameId, { ...stored, expiresAt: deadline });
+		return true;
 	}
 
 	async saveOptions(

@@ -30,6 +30,18 @@ export async function loadGame(
 	return stored ? settleGame(deps, stored) : null;
 }
 
+/**
+ * The same, for the host's screen and the live players' devices: an
+ * assignment is not there for them (spec 029; ADR 0014).
+ */
+export async function loadLiveGame(
+	deps: { games: Pick<GameRepository, "findById" | "save">; clock: Clock },
+	gameId: string,
+): Promise<Game | null> {
+	const game = await loadGame(deps, gameId);
+	return game?.mode === "live" ? game : null;
+}
+
 /** Applies the deadline to a game that was read some other way. */
 export async function settleGame(
 	deps: { games: Pick<GameRepository, "save">; clock: Clock },

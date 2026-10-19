@@ -17,6 +17,63 @@ const avatar = z.object({
 	accessory: z.string().min(1).max(40).nullable(),
 });
 
+/** An instant with its zone, as the browser's `toISOString()` sends it. */
+const deadline = z.iso
+	.datetime({ offset: true })
+	.transform((value) => new Date(value));
+
+/**
+ * Assignments (spec 029): the creator's dialogs and reports, and the
+ * activity's screen, which is public. The deadline's rules are the core's.
+ */
+const assignmentRouter = router({
+	setup: protectedProcedure.query(({ ctx }) =>
+		ctx.container.useCases.getAssignmentSetup({ ownerId: ctx.session.user.id }),
+	),
+
+	create: protectedProcedure
+		.input(
+			z.object({
+				quizId: z.string().min(1),
+				deadline,
+				options: z.object({
+					gameCharacters: z.boolean(),
+					questionTimer: z.boolean(),
+					randomizeAnswers: z.boolean(),
+				}),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.createAssignment({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	changeDeadline: protectedProcedure
+		.input(gameReference.extend({ deadline }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.changeAssignmentDeadline({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	end: protectedProcedure.input(gameReference).mutation(({ ctx, input }) =>
+		ctx.container.useCases.endAssignment({
+			ownerId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
+	/** No account: whoever has the link or the PIN (spec 029, RN-44). */
+	landing: publicProcedure
+		.input(gameReference)
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.getAssignmentLanding(input),
+		),
+});
+
 /**
  * What a player's device calls. No account: the player proves who they are
  * with the pair received when joining (ADR 0009).
@@ -63,6 +120,7 @@ const joinRouter = router({
 });
 
 export const gameRouter = router({
+	assignment: assignmentRouter,
 	join: joinRouter,
 
 	/** "Organizar ao vivo" (spec 008, RN-01 to RN-09). */

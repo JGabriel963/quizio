@@ -214,3 +214,46 @@ describe("report router (spec 015)", () => {
 		});
 	});
 });
+
+describe("report router with assignments (spec 029)", () => {
+	const openAssignment = (gameId: string) =>
+		aReportGame({
+			header: {
+				gameId,
+				mode: "assignment",
+				status: "open",
+				endedAt: null,
+				deadline: new Date("2026-06-04T12:00:00.000Z"),
+				pin: "04352236",
+			},
+			questions: 2,
+			players: [],
+			answers: {},
+		});
+
+	it("report.get of an open assignment has its PIN and deadline", async () => {
+		const { ana } = setup(openAssignment("a-1"));
+
+		const { header } = await ana.report.get({ gameId: "a-1" });
+
+		expect(header).toMatchObject({
+			mode: "assignment",
+			assignment: {
+				open: true,
+				pin: "04352236",
+				remainingMs: 3 * 24 * 60 * 60 * 1000,
+			},
+		});
+	});
+
+	it("moveToTrash of an open assignment is BAD_REQUEST with REPORT.ASSIGNMENT_OPEN", async () => {
+		const { ana } = setup(openAssignment("a-1"));
+
+		await expect(
+			ana.report.moveToTrash({ gameIds: ["a-1"] }),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "REPORT.ASSIGNMENT_OPEN" },
+		});
+	});
+});

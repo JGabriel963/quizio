@@ -11,6 +11,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 	const options = overrides.options ?? DEFAULT_GAME_OPTIONS;
 	return {
 		id: "game-1",
+		mode: "live",
 		ownerId: "user-1",
 		quizId: "quiz-1",
 		quizVersion: 1,
@@ -19,6 +20,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		status: "lobby",
 		locked: false,
 		options,
+		questionTimer: true,
 		// As `newGame` leaves it: on since the game was created, or off.
 		autoplaySince: options.autoplay ? createdAt : null,
 		createdAt,

@@ -182,7 +182,7 @@ describe("game router: the player (spec 008)", () => {
 			nickname: "ACT",
 		});
 
-		expect(found).toEqual({ gameId, pin });
+		expect(found).toEqual({ gameId, pin, mode: "live" });
 		expect(
 			await visitor.game.join.session({
 				gameId,
@@ -1095,6 +1095,135 @@ describe("game router: avatars (spec 028)", () => {
 			channel: gameChannel(gameId),
 			event: GAME_EVENTS.charactersChanged,
 			payload: { on: false },
+		});
+	});
+});
+
+describe("game router: assignments (spec 029)", () => {
+	const DAY_MS = 24 * 60 * 60 * 1000;
+	// The test clock reads 2026-06-01T12:00:00.000Z.
+	const inDays = (days: number) =>
+		new Date(
+			Date.parse("2026-06-01T12:00:00.000Z") + days * DAY_MS,
+		).toISOString();
+	const options = {
+		gameCharacters: false,
+		questionTimer: true,
+		randomizeAnswers: false,
+	};
+
+	async function assigned() {
+		const api = await published();
+		const ana = api.callerFor("user-1");
+		const { gameId, pin } = await ana.game.assignment.create({
+			quizId: "quiz-1",
+			deadline: inDays(3),
+			options,
+		});
+		return { api, ana, gameId, pin };
+	}
+
+	it("assignment.setup gives the creator's options and the maximum days", async () => {
+		const api = await published();
+
+		expect(await api.callerFor("user-1").game.assignment.setup()).toEqual({
+			options,
+			maxDeadlineDays: 28,
+		});
+		await expect(
+			api.callerFor(null).game.assignment.setup(),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("assignment.create returns the gameId and an eight-digit PIN", async () => {
+		const { gameId, pin } = await assigned();
+
+		expect(gameId).toEqual(expect.any(String));
+		expect(pin).toBe("04352236");
+	});
+
+	it("assignment.create maps a past deadline to ASSIGNMENT.DEADLINE_PASSED", async () => {
+		const api = await published();
+
+		await expect(
+			api.callerFor("user-1").game.assignment.create({
+				quizId: "quiz-1",
+				deadline: inDays(-1),
+				options,
+			}),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "ASSIGNMENT.DEADLINE_PASSED" },
+		});
+	});
+
+	it("assignment.changeDeadline and end of another creator are NOT_FOUND", async () => {
+		const { api, gameId } = await assigned();
+		const bia = api.callerFor("user-2");
+
+		await expect(
+			bia.game.assignment.changeDeadline({ gameId, deadline: inDays(5) }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		await expect(bia.game.assignment.end({ gameId })).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
+	});
+
+	it("changes the deadline and ends the assignment", async () => {
+		const { api, ana, gameId } = await assigned();
+
+		await ana.game.assignment.changeDeadline({ gameId, deadline: inDays(10) });
+		expect((await api.games.findById(gameId))?.expiresAt.toISOString()).toBe(
+			inDays(10),
+		);
+
+		await ana.game.assignment.end({ gameId });
+		expect((await api.games.findById(gameId))?.endReason).toBe("host");
+		await expect(
+			ana.game.assignment.changeDeadline({ gameId, deadline: inDays(12) }),
+		).rejects.toMatchObject({ cause: { code: "GAME.ENDED" } });
+	});
+
+	it("assignment.landing is public and gives no questions", async () => {
+		const { api, gameId } = await assigned();
+		api.assignmentLanding.creatorNames.set("user-1", "Ana");
+
+		expect(
+			await api.callerFor(null).game.assignment.landing({ gameId }),
+		).toEqual({
+			status: "open",
+			name: "Capitais",
+			creatorName: "Ana",
+			remainingMs: 3 * DAY_MS,
+			participantCount: 0,
+		});
+	});
+
+	it("renaming the report renames the landing", async () => {
+		const { api, gameId } = await assigned();
+		api.assignmentLanding.reportNames.set(gameId, "Capitais — Turma A");
+
+		expect(
+			(await api.callerFor(null).game.assignment.landing({ gameId })).name,
+		).toBe("Capitais — Turma A");
+	});
+
+	it("join.find gives the assignment mode for eight digits", async () => {
+		const { api, gameId } = await assigned();
+
+		expect(
+			await api.callerFor(null).game.join.find({ pin: "0435 2236" }),
+		).toEqual({ gameId, pin: "04352236", mode: "assignment" });
+	});
+
+	it("the host's procedures treat an assignment as missing", async () => {
+		const { ana, gameId } = await assigned();
+
+		await expect(ana.game.view({ gameId })).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
+		await expect(ana.game.end({ gameId })).rejects.toMatchObject({
+			code: "NOT_FOUND",
 		});
 	});
 });

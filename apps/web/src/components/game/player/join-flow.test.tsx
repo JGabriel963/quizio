@@ -75,6 +75,8 @@ class FakeJoinApi implements JoinApi {
 		}
 	>();
 	readonly finds: string[] = [];
+	/** Open assignments, by their eight-digit PIN (spec 029). */
+	readonly assignments = new Map<string, string>();
 	/** "Personagens dos jogadores" (spec 028). */
 	charactersOn = true;
 	/** What a change of avatar ends in, when it fails. */
@@ -84,6 +86,10 @@ class FakeJoinApi implements JoinApi {
 
 	async find(pin: string) {
 		this.finds.push(pin);
+		const assignment = this.assignments.get(pin);
+		if (assignment) {
+			return { gameId: assignment, pin, mode: "assignment" as const };
+		}
 		if (this.blocked) {
 			throw refusal("GAME.TOO_MANY_PIN_ATTEMPTS");
 		}
@@ -93,7 +99,7 @@ class FakeJoinApi implements JoinApi {
 		if (this.locked) {
 			throw refusal("GAME.LOCKED");
 		}
-		return { gameId: GAME, pin };
+		return { gameId: GAME, pin, mode: "live" as const };
 	}
 
 	async enter({
@@ -259,12 +265,19 @@ function renderFlow(
 	const store = options.store ?? memoryStore();
 	const subscriber = new InMemoryRealtimeSubscriber();
 	const onPinChange = vi.fn();
+	const onAssignment = vi.fn();
 	const user = userEvent.setup(
 		vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : undefined,
 	);
 	const ui = (pin: string | null) => (
 		<RealtimeProvider createSubscriber={() => subscriber}>
-			<JoinFlow pin={pin} api={api} store={store} onPinChange={onPinChange} />
+			<JoinFlow
+				pin={pin}
+				api={api}
+				store={store}
+				onPinChange={onPinChange}
+				onAssignment={onAssignment}
+			/>
 		</RealtimeProvider>
 	);
 	const view = render(ui(options.pin ?? null));
@@ -273,6 +286,7 @@ function renderFlow(
 		store,
 		subscriber,
 		onPinChange,
+		onAssignment,
 		user,
 		/** The route follows `onPinChange` by changing the address. */
 		setAddress: (pin: string | null) => view.rerender(ui(pin)),
@@ -310,12 +324,12 @@ describe("JoinFlow: the PIN (spec 008)", () => {
 		expect(pinField()).toHaveAttribute("placeholder", "Inserir PIN");
 	});
 
-	it("keeps only six digits, ignoring spaces and letters", async () => {
+	it("keeps only digits, up to an assignment's eight, ignoring spaces and letters (spec 029, RN-20)", async () => {
 		const { user } = renderFlow();
 
-		await user.type(pinField(), "265 91a4 99");
+		await user.type(pinField(), "265 91a4 998");
 
-		expect(pinField()).toHaveValue("265914");
+		expect(pinField()).toHaveValue("26591499");
 	});
 
 	it("does not send an empty PIN", async () => {
@@ -1763,5 +1777,42 @@ describe("JoinFlow: the avatar (spec 028)", () => {
 		expect(
 			await screen.findByRole("button", { name: "Pronto" }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("JoinFlow and assignments (spec 029, RN-20)", () => {
+	it("an eight-digit PIN of an assignment goes to the activity", async () => {
+		const api = new FakeJoinApi();
+		api.assignments.set("04352236", "assignment-1");
+		const flow = renderFlow({ api });
+
+		await typePin(flow.user, "04352236");
+
+		await waitFor(() =>
+			expect(flow.onAssignment).toHaveBeenCalledWith("assignment-1"),
+		);
+		expect(api.finds).toEqual(["04352236"]);
+	});
+
+	it("the PIN field takes eight digits", async () => {
+		const flow = renderFlow();
+		const field = await screen.findByRole("textbox", { name: "PIN" });
+
+		await flow.user.type(field, "0435223699");
+
+		expect(field).toHaveValue("04352236");
+	});
+
+	it("an eight-digit PIN of nothing is a wrong PIN", async () => {
+		const flow = renderFlow();
+
+		await typePin(flow.user, "11112222");
+
+		expect(
+			await screen.findByText(
+				"Não foi possível reconhecer o PIN do jogo. Verifique-o e tente de novo.",
+			),
+		).toBeInTheDocument();
+		expect(flow.onAssignment).not.toHaveBeenCalled();
 	});
 });

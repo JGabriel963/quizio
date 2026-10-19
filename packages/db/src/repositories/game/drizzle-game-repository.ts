@@ -1,7 +1,7 @@
 import type { GameRepository } from "@quizio/core/game/application/ports/game-repository";
 import type { Game } from "@quizio/core/game/domain/game";
 import { definedOptions } from "@quizio/core/game/domain/game-options";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { game as gameTable } from "../../schema/game";
 import type { Database } from "../../types";
@@ -74,18 +74,24 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 			return row ? toGame(row) : null;
 		},
 
-		async listUnendedByQuiz(quizId) {
+		async listUnendedByQuiz(quizId, modes) {
 			const rows = await db
 				.select()
 				.from(gameTable)
-				.where(and(eq(gameTable.quizId, quizId), isNull(gameTable.endedAt)))
-				.orderBy(asc(gameTable.createdAt));
+				.where(
+					and(
+						eq(gameTable.quizId, quizId),
+						isNull(gameTable.endedAt),
+						...(modes ? [inArray(gameTable.mode, [...modes])] : []),
+					),
+				)
+				.orderBy(asc(gameTable.createdAt), asc(gameTable.id));
 			return rows.map(toGame);
 		},
 
 		async create(game) {
 			// The unique rules a new game can hit are both among unended games:
-			// the PIN, and one game per quiz.
+			// the PIN, and one live game per quiz (spec 029, RN-05).
 			const inserted = await db
 				.insert(gameTable)
 				.values(toRow(game))
@@ -100,6 +106,26 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 				.insert(gameTable)
 				.values({ id, ...fields })
 				.onConflictDoUpdate({ target: gameTable.id, set: fields });
+		},
+
+		async saveDeadline(gameId, deadline) {
+			// Only this column, and only while it is open (spec 029, RN-38).
+			const updated = await db
+				.update(gameTable)
+				.set({ expiresAt: deadline })
+				.where(and(eq(gameTable.id, gameId), isNull(gameTable.endedAt)))
+				.returning({ id: gameTable.id });
+			return updated.length > 0;
+		},
+
+		async findLatestAssignmentByPin(pin) {
+			const [row] = await db
+				.select()
+				.from(gameTable)
+				.where(and(eq(gameTable.pin, pin), eq(gameTable.mode, "assignment")))
+				.orderBy(desc(gameTable.createdAt))
+				.limit(1);
+			return row ? toGame(row) : null;
 		},
 
 		async saveLocked(gameId, locked) {

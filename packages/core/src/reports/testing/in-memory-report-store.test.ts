@@ -62,7 +62,7 @@ describe("InMemoryReportStore", () => {
 			aReportGame({
 				header: {
 					questionCount: 3,
-					outcome: "ended",
+					status: "ended",
 					stoppedAt: { questionIndex: 1, phase: "answering" },
 				},
 				questions: 3,

@@ -47,6 +47,13 @@ export const env = createEnv({
 		AI_MODEL: z.string().min(1).optional(),
 		// Generations per creator in any 24 hours (RN-31).
 		AI_GENERATIONS_PER_DAY: z.coerce.number().int().min(0).default(20),
+		// How far ahead an assignment's deadline may be (spec 029, RN-08).
+		ASSIGNMENT_MAX_DEADLINE_DAYS: z.coerce
+			.number()
+			.int()
+			.min(1)
+			.max(365)
+			.default(28),
 	},
 	runtimeEnv: process.env,
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

@@ -2,7 +2,7 @@ import { quizPublishState } from "@quizio/core/quiz/domain/quiz";
 import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
 import { Button, buttonVariants } from "@quizio/ui/components/button";
 import { Link } from "@tanstack/react-router";
-import { MonitorPlayIcon, PencilIcon } from "lucide-react";
+import { MonitorPlayIcon, PencilIcon, SendIcon } from "lucide-react";
 import type { QuizDetailsData } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
@@ -14,6 +14,8 @@ import { VisibilityBadge } from "./visibility-badge";
 export interface QuizDetailsActions {
 	/** "Organizar ao vivo": opens a live game of the quiz (spec 008). */
 	onHost: () => void;
+	/** "Atribuir": opens "Configurar atividade" (spec 029, RN-02). */
+	onAssign: () => void;
 	onEdit: () => void;
 	onDuplicate: () => void;
 	onMoveToTrash: () => void;
@@ -98,6 +100,16 @@ export function QuizDetailsView({
 								>
 									<MonitorPlayIcon data-icon="inline-start" />
 									Organizar ao vivo
+								</Button>
+								{/* The same conditions as the live game (spec 029, RN-03). */}
+								<Button
+									variant="outline"
+									disabled={!playable}
+									aria-describedby={hostHint ? "host-hint" : undefined}
+									onClick={actions.onAssign}
+								>
+									<SendIcon data-icon="inline-start" />
+									Atribuir
 								</Button>
 								{/* The editor holds the questions (spec 003, RN-05). */}
 								<Link

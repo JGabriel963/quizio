@@ -1,3 +1,4 @@
+import type { GameMode } from "../../game/domain/game";
 import type { GamePhase } from "../../game/domain/game-progress";
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
@@ -12,12 +13,15 @@ export const REPORT_NAME_MAX_LENGTH = 95;
 
 /**
  * A report as the list knows it: a live game that started and is over (spec
- * 015, RN-01), read from the game's own rows. The reports context projects
+ * 015, RN-01), or an assignment, open or not (spec 029, RN-27), read from the
+ * game's own rows. The reports context projects
  * the game, so it reuses the game's value types and none of its behavior.
  */
 export interface ReportHeader {
 	gameId: string;
 	ownerId: string;
+	/** A live game or an assignment (spec 029). */
+	mode: GameMode;
 	/** The report's own name, or the game's title (RN-45). */
 	name: string;
 	quizId: string;
@@ -30,12 +34,21 @@ export interface ReportHeader {
 	} | null;
 	/** How many questions the game had (RN-24). */
 	questionCount: number;
-	/** `finished` went to the podium; `ended` stopped before it (RN-25). */
-	outcome: "finished" | "ended";
+	/**
+	 * `finished` went to the podium; `ended` stopped before it (RN-25), or is
+	 * an assignment that is over; `open` is an assignment before its deadline
+	 * (spec 029, RN-29).
+	 */
+	status: "finished" | "ended" | "open";
 	/** Where an ended game stopped; null for a finished one. */
 	stoppedAt: { questionIndex: number; phase: GamePhase } | null;
 	startedAt: Date;
-	endedAt: Date;
+	/** Null while an assignment is open. */
+	endedAt: Date | null;
+	/** When the game closes by itself: an assignment's deadline (spec 029). */
+	deadline: Date;
+	/** The PIN of an open assignment, to share again (spec 029, RN-32). */
+	pin: string | null;
 	trashedAt: Date | null;
 }
 
@@ -54,6 +67,11 @@ export class ReportNotInTrashError extends DomainError {
 	readonly code = "REPORT.NOT_IN_TRASH";
 }
 
+/** An open assignment is ended before its report goes to the trash (spec 029, RN-41). */
+export class ReportAssignmentOpenError extends DomainError {
+	readonly code = "REPORT.ASSIGNMENT_OPEN";
+}
+
 export class InvalidReportNameError extends DomainError {
 	readonly code = "REPORT.INVALID_NAME";
 }
@@ -65,8 +83,12 @@ export class InvalidReportNameError extends DomainError {
  * (`revealedThrough`), and the two must agree.
  */
 export function playedQuestionCount(header: ReportHeader): number {
-	if (header.outcome === "finished" || header.stoppedAt === null) {
-		return header.outcome === "finished" ? header.questionCount : 0;
+	// Each participant plays every question of an assignment (spec 029, RN-35).
+	if (header.mode === "assignment" || header.status === "finished") {
+		return header.questionCount;
+	}
+	if (header.stoppedAt === null) {
+		return 0;
 	}
 	const { questionIndex, phase } = header.stoppedAt;
 	const revealed = phase === "results" || phase === "scoreboard";
@@ -78,7 +100,20 @@ export function playedQuestionCount(header: ReportHeader): number {
 
 /** The game was closed before its podium (RN-25). */
 export function endedEarly(header: ReportHeader): boolean {
-	return header.outcome === "ended";
+	return header.mode === "live" && header.status === "ended";
+}
+
+/** An assignment before its deadline (spec 029). */
+export function isOpenAssignment(header: ReportHeader): boolean {
+	return header.status === "open";
+}
+
+export function assertCanTrash(header: ReportHeader): void {
+	if (isOpenAssignment(header)) {
+		throw new ReportAssignmentOpenError(
+			"End the assignment before moving its report to the trash",
+		);
+	}
 }
 
 /** Another creator's report does not exist for the caller (RN-03). */

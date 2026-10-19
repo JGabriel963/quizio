@@ -1,4 +1,7 @@
+import { somePlayableQuestions } from "@quizio/core/game/testing/game-deps";
 import { blankQuestion } from "@quizio/core/quiz/domain/question";
+import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
+import { aPublishedQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { TRPCError } from "@trpc/server";
 import { describe, expect, it } from "vitest";
 
@@ -360,5 +363,51 @@ describe("quiz router", () => {
 		const error = await failureOf(visitor.quiz.create({ title: "Anônimo" }));
 
 		expect(error).toMatchObject({ code: "UNAUTHORIZED" });
+	});
+});
+
+describe("quiz router and assignments (spec 029, RN-42)", () => {
+	async function withAssignment() {
+		const api = createTestApi();
+		await api.quizzes.save(aPublishedQuiz({ title: "Capitais" }));
+		await api.versions.save(
+			newQuizVersion({
+				quizId: "quiz-1",
+				number: 1,
+				questions: somePlayableQuestions(),
+				now: new Date("2026-02-01T10:00:00.000Z"),
+			}),
+		);
+		const ana = api.callerFor("user-1");
+		const { gameId } = await ana.game.assignment.create({
+			quizId: "quiz-1",
+			deadline: "2026-06-04T12:00:00.000Z",
+			options: {
+				gameCharacters: false,
+				questionTimer: true,
+				randomizeAnswers: false,
+			},
+		});
+		return { api, ana, gameId };
+	}
+
+	it("trashing a quiz keeps its assignments open", async () => {
+		const { api, ana, gameId } = await withAssignment();
+
+		await ana.quiz.moveToTrash({ quizId: "quiz-1" });
+
+		expect((await api.games.findById(gameId))?.endedAt).toBeNull();
+	});
+
+	it("deleting a quiz for good ends its assignments and keeps their games", async () => {
+		const { api, ana, gameId } = await withAssignment();
+
+		await ana.quiz.moveToTrash({ quizId: "quiz-1" });
+		await ana.quiz.deletePermanently({ quizId: "quiz-1" });
+
+		expect(await api.games.findById(gameId)).toMatchObject({
+			status: "ended",
+			endReason: "quizDeleted",
+		});
 	});
 });

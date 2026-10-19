@@ -17,6 +17,7 @@ import {
 } from "@/lib/report-labels";
 
 import { AccuracyRing } from "./accuracy-ring";
+import { AssignmentSummary } from "./assignment-summary";
 import { HelpTip } from "./report-parts";
 
 /** How many participants a card of the summary lists (RN-38, RN-39). */
@@ -29,62 +30,96 @@ export function ReportSummary({
 	header,
 	summary,
 	playAgain,
+	assignmentActions,
 }: {
 	header: ReportHeaderData;
 	summary: ReportSummaryData;
 	playAgain: { start: () => void; pending: boolean; error: string | null };
+	/** What an open assignment's summary does (spec 029, RN-32, RN-33). */
+	assignmentActions?: {
+		origin: string | null;
+		onShare: () => void;
+		onChangeDeadline: () => void;
+		onEnd: () => void;
+	};
 }) {
 	const nothingPlayed = summary.accuracyPercent === null;
 	const report = { gameId: header.gameId };
+	const openAssignment =
+		header.assignment?.open && assignmentActions?.origin
+			? {
+					...header.assignment,
+					...assignmentActions,
+					origin: assignmentActions.origin,
+				}
+			: null;
 
 	return (
 		<div className="grid gap-4 lg:grid-cols-3">
-			<section
-				aria-label="Resultado geral"
-				className={`${card} flex flex-col items-center gap-5 p-5 sm:flex-row lg:col-span-2`}
-			>
-				<AccuracyRing
-					percent={summary.accuracyPercent}
-					size="lg"
-					caption="correto"
+			{openAssignment ? (
+				<AssignmentSummary
+					gameId={header.gameId}
+					name={header.name}
+					participantCount={header.participantCount}
+					assignment={openAssignment}
+					origin={openAssignment.origin}
+					onShare={openAssignment.onShare}
+					onChangeDeadline={openAssignment.onChangeDeadline}
+					onEnd={openAssignment.onEnd}
 				/>
-				<div className="flex flex-col items-center gap-3 text-center sm:items-start sm:text-left">
-					<h2 className="font-black text-2xl">
-						{nothingPlayed
-							? "A partida acabou antes da primeira revelação"
-							: summaryHeadline(summary.accuracyPercent ?? 0)}
-					</h2>
-					<p className="text-muted-foreground">
-						{nothingPlayed
-							? "Nenhuma pergunta chegou ao resultado, então não há percentuais para mostrar."
-							: "Jogue novamente e deixe o mesmo grupo melhorar a pontuação, ou veja se novos participantes superam esse resultado."}
-					</p>
-					{header.canPlayAgain && (
-						<Button disabled={playAgain.pending} onClick={playAgain.start}>
-							Jogar de novo
-						</Button>
-					)}
-					{playAgain.error && (
-						<p role="alert" className="font-semibold text-destructive text-sm">
-							{playAgain.error}
-						</p>
-					)}
-				</div>
-			</section>
+			) : (
+				<>
+					<section
+						aria-label="Resultado geral"
+						className={`${card} flex flex-col items-center gap-5 p-5 sm:flex-row lg:col-span-2`}
+					>
+						<AccuracyRing
+							percent={summary.accuracyPercent}
+							size="lg"
+							caption="correto"
+						/>
+						<div className="flex flex-col items-center gap-3 text-center sm:items-start sm:text-left">
+							<h2 className="font-black text-2xl">
+								{nothingPlayed
+									? "A partida acabou antes da primeira revelação"
+									: summaryHeadline(summary.accuracyPercent ?? 0)}
+							</h2>
+							<p className="text-muted-foreground">
+								{nothingPlayed
+									? "Nenhuma pergunta chegou ao resultado, então não há percentuais para mostrar."
+									: "Jogue novamente e deixe o mesmo grupo melhorar a pontuação, ou veja se novos participantes superam esse resultado."}
+							</p>
+							{header.canPlayAgain && (
+								<Button disabled={playAgain.pending} onClick={playAgain.start}>
+									Jogar de novo
+								</Button>
+							)}
+							{playAgain.error && (
+								<p
+									role="alert"
+									className="font-semibold text-destructive text-sm"
+								>
+									{playAgain.error}
+								</p>
+							)}
+						</div>
+					</section>
 
-			<section aria-label="Totais" className={`${card} p-2`}>
-				<dl className="divide-y divide-border">
-					<Total icon={<UserIcon />} label="Participantes">
-						{header.participantCount}
-					</Total>
-					<Total icon={<CircleHelpIcon />} label="Perguntas">
-						{playedQuestionsLabel(header.playedCount, header.questionCount)}
-					</Total>
-					<Total icon={<ClockIcon />} label="Tempo">
-						{durationLabel(summary.durationMs)}
-					</Total>
-				</dl>
-			</section>
+					<section aria-label="Totais" className={`${card} p-2`}>
+						<dl className="divide-y divide-border">
+							<Total icon={<UserIcon />} label="Participantes">
+								{header.participantCount}
+							</Total>
+							<Total icon={<CircleHelpIcon />} label="Perguntas">
+								{playedQuestionsLabel(header.playedCount, header.questionCount)}
+							</Total>
+							<Total icon={<ClockIcon />} label="Tempo">
+								{durationLabel(summary.durationMs)}
+							</Total>
+						</dl>
+					</section>
+				</>
+			)}
 
 			<SummaryCard
 				title={`Perguntas difíceis (${summary.difficultCount})`}

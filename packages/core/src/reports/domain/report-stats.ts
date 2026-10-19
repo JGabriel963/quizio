@@ -185,5 +185,8 @@ export function difficultQuestions(
 export function durationMs(
 	header: Pick<ReportHeader, "startedAt" | "endedAt">,
 ): number {
-	return Math.max(0, header.endedAt.getTime() - header.startedAt.getTime());
+	return Math.max(
+		0,
+		(header.endedAt ?? header.startedAt).getTime() - header.startedAt.getTime(),
+	);
 }

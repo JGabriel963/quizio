@@ -4,6 +4,7 @@ import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import {
 	InvalidReportNameError,
+	ReportAssignmentOpenError,
 	ReportInTrashError,
 	ReportNotFoundError,
 	ReportNotInTrashError,
@@ -216,5 +217,35 @@ describe("the reports' trash (spec 015)", () => {
 		await expect(
 			deleteForGood({ ownerId: "user-2", gameIds: ["game-1"] }),
 		).rejects.toBeInstanceOf(ReportNotFoundError);
+	});
+});
+
+describe("trashing assignments (spec 029, RN-41)", () => {
+	const assignment = (gameId: string, header: Record<string, unknown> = {}) =>
+		report(gameId, {
+			mode: "assignment",
+			status: "open",
+			endedAt: null,
+			pin: "04352236",
+			...header,
+		});
+
+	it("moving an open assignment to the trash is refused and nothing moves", async () => {
+		const { trash, names } = setup(report("live"), assignment("open"));
+
+		await expect(
+			trash({ ownerId: "user-1", gameIds: ["live", "open"] }),
+		).rejects.toThrow(ReportAssignmentOpenError);
+		expect(await names("trash")).toEqual([]);
+	});
+
+	it("an ended assignment moves to the trash", async () => {
+		const { trash, names } = setup(
+			assignment("ended", { status: "ended", endedAt: day(19), pin: null }),
+		);
+
+		await trash({ ownerId: "user-1", gameIds: ["ended"] });
+
+		expect(await names("trash")).toEqual(["ended:Capitais"]);
 	});
 });

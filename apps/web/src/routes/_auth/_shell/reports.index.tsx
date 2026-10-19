@@ -112,6 +112,7 @@ function ReportsPage() {
 				<ReportSelectionBar
 					count={selectedIds.length}
 					section={section}
+					blockedByOpenAssignment={selectedItems.some((item) => item.open)}
 					onMoveToTrash={() => {
 						mutations.moveToTrash.mutate({ gameIds: selectedIds });
 						clearSelection();

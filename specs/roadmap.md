@@ -25,7 +25,7 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 | 016 | Mais tipos: Resposta curta, Puzzle, Controle deslizante | quiz, game | Normalização de texto, tudo ou nada, margens e precisão | ⬜ | — |
 | 017 | Coletar opiniões | quiz, game | Enquete, Escala, NPS, Nuvem de palavras, Pergunta aberta | ⬜ | — |
 | 018 | Slides e modo Palestra | quiz, game | 6 layouts, ritmo manual, placar oculto, reações | ⬜ | — |
-| 019 | Atribuir e Jogar solo | game, reports | Atribuição com prazo; solo com oponentes virtuais | ⬜ | — |
+| 019 | Jogar solo | game | Solo com oponentes virtuais (a atribuição saiu para a 029) | ⬜ | — |
 | 020 | Modo equipe | game | Times, Team Talk, pontuação por média | ⬜ | — |
 | 021 | Produtividade do criador | quiz, library | Importar planilha, banco de perguntas, favoritos, pastas | ⬜ | — |
 | 022 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, Accuracy/Confidence, jogar novamente, temas e pré-visualização no editor, imagem nas alternativas do Quiz, revelação de imagem | ⬜ | — |
@@ -35,6 +35,8 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 | 026 | Exportar relatório | reports | Baixar a planilha XLSX (resumo, pontuações finais, uma aba por pergunta, dados brutos) e imprimir | ⬜ | — |
 | 027 | Criação de perguntas com IA | quiz, media | Assistente "Crie" no editor e diálogo "Criar um novo quiz"; perguntas Quiz, Verdadeiro ou falso ou misto a partir de um assunto ou de um PDF (gerar ou extrair perguntas), com idioma, nível e duração; revisar, marcar e adicionar ao quiz; marca de IA na lista; cota diária configurável | ✅ | [spec](features/027-criacao-de-perguntas-com-ia/spec.md) · [plano](features/027-criacao-de-perguntas-com-ia/plan.md) · [tarefas](features/027-criacao-de-perguntas-com-ia/tasks.md) |
 | 028 | Personagens dos jogadores | game | Avatar (personagem + acessório) sorteado ao entrar e trocável enquanto o jogador espera; no lobby, no rodapé do celular, no placar, no pódio e na classificação; chave "Personagens dos jogadores" no painel, salva por criador | ✅ | [spec](features/028-personagens-dos-jogadores/spec.md) · [plano](features/028-personagens-dos-jogadores/plan.md) · [tarefas](features/028-personagens-dos-jogadores/tasks.md) |
+| 029 | Atribuir quiz 1/2 — Criar, compartilhar e acompanhar | game, reports, library, quiz | "Atribuir" na página do quiz, na linha da biblioteca e no "O quiz está pronto"; "Configurar atividade" com prazo obrigatório (até 28 dias, hora cheia) e Mais opções (personagens, timer da pergunta, ordem aleatória de respostas; gerador de apelido em breve); compartilhar por link, PIN de 8 dígitos, QR e redes; grupos e e-mail em breve; a atribuição aberta em Relatórios, com alterar prazo e encerrar agora; tela de espera para o participante | ✅ | [spec](features/029-atribuir-quiz/spec.md) · [plano](features/029-atribuir-quiz/plan.md) · [tarefas](features/029-atribuir-quiz/tasks.md) |
+| 029-2 | Atribuir quiz 2/2 — Jogar a atribuição | game, reports | Entrar com apelido e personagem, responder no próprio ritmo, pontuação com e sem timer, retomar no mesmo aparelho, tela final com posição, resultados no relatório, "Jogue este quiz" | ⬜ | — |
 
 ## Mudanças de ordem
 
@@ -48,6 +50,8 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 - **2026-10-06 — a exportação saiu da 015 e virou a linha 026.** Por decisão do usuário ao especificar os relatórios: a planilha é um trabalho à parte, e as telas já entregam o resultado da partida. Também ficaram de fora da 015, sem linha própria por enquanto: o quiz só com as perguntas difíceis, "Ver pódio" a partir do relatório e a pesquisa de feedback.
 - **2026-10-15 — os avatares saíram de Extras e viraram uma linha própria**, entregue antes da 016, sem renumerar as outras (regra de 2026-10-06). Por decisão do usuário, a partir das capturas do Kahoot da escolha de personagem. Foi especificada como 027 e virou 028 em 2026-10-16, porque a geração por IA chegou à main antes com o mesmo número.
 - **2026-10-16 — a geração por IA saiu de Extras (022) e virou a linha 027.** Por decisão do usuário, que quer o fluxo do Kahoot! Assistant para melhorar a criação de quizzes. Entra com número novo, **sem renumerar** as linhas 016 a 026, pelo mesmo motivo de 2026-10-06; pode ser entregue antes delas.
+
+- **2026-10-19 — a atribuição saiu da 019 e virou a 029, em duas etapas.** Por decisão do usuário, a partir das capturas do Kahoot: a 029 cria, compartilha e acompanha a atribuição até a porta do jogo; a 029-2/2 liga o jogo do participante, que o usuário vai detalhar com novas capturas. Jogar solo continua na 019. Sem renumerar as outras (regra de 2026-10-06).
 
 ## Pendências técnicas fora de features
 

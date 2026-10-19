@@ -22,6 +22,13 @@ export const GAME_END_REASONS = [
 ] as const;
 export type GameEndReason = (typeof GAME_END_REASONS)[number];
 
+/**
+ * A live game, hosted from a screen, or an assignment, played by each
+ * participant at their own pace until its deadline (spec 029; ADR 0014).
+ */
+export const GAME_MODES = ["live", "assignment"] as const;
+export type GameMode = (typeof GAME_MODES)[number];
+
 /** A game stays open for at most 8 hours (spec 008, RN-11). */
 export const GAME_TTL_MS = 8 * 60 * 60 * 1000;
 
@@ -31,6 +38,8 @@ export const GAME_MAX_PLAYERS = 200;
 /** A live game of a quiz (spec 008; ADR 0009). */
 export interface Game {
 	id: string;
+	/** Live or an assignment (spec 029); the deadline of an assignment is `expiresAt`. */
+	mode: GameMode;
 	/** The host: the owner of the quiz when the game was created. */
 	ownerId: string;
 	quizId: string;
@@ -44,6 +53,11 @@ export interface Game {
 	locked: boolean;
 	/** What the host chose in the settings (spec 012). */
 	options: GameOptions;
+	/**
+	 * Answers lose points for taking time (spec 010). Always on live; an
+	 * assignment may turn it off ("Timer da pergunta", spec 029, RN-13).
+	 */
+	questionTimer: boolean;
 	/**
 	 * Since when autoplay is on in this game; null while it is off, so it is
 	 * always `options.autoplay` told another way. The countdowns of the lobby,
@@ -130,6 +144,7 @@ export function newGame(input: {
 }): Game {
 	return {
 		id: input.id,
+		mode: "live",
 		ownerId: input.ownerId,
 		quizId: input.quizId,
 		quizVersion: input.quizVersion,
@@ -138,6 +153,7 @@ export function newGame(input: {
 		status: "lobby",
 		locked: false,
 		options: { ...input.options },
+		questionTimer: true,
 		autoplaySince: input.options.autoplay ? input.now : null,
 		createdAt: input.now,
 		startedAt: null,
@@ -178,6 +194,25 @@ export function expireIfDue(game: Game, now: Date): Game {
 export function requireOwnedGame(game: Game | null, ownerId: string): Game {
 	if (!game || game.ownerId !== ownerId) {
 		throw new GameNotFoundError("Game not found");
+	}
+	return game;
+}
+
+/**
+ * What the host's screen and the live players' devices reach: an assignment
+ * is not there for them, as a game of another owner (spec 029; ADR 0014).
+ */
+export function requireLiveGame(game: Game): Game {
+	if (game.mode !== "live") {
+		throw new GameNotFoundError("Game not found");
+	}
+	return game;
+}
+
+/** The other way round: a live game is not an assignment (spec 029). */
+export function requireAssignment(game: Game): Game {
+	if (game.mode !== "assignment") {
+		throw new GameNotFoundError("Assignment not found");
 	}
 	return game;
 }

@@ -6,6 +6,8 @@ import type { QuestionGenerator } from "@quizio/core/quiz/application/ports/ques
 import { InMemoryQuestionGenerator } from "@quizio/core/quiz/testing/in-memory-question-generator";
 import { db } from "@quizio/db";
 import { createDrizzleAnswerRepository } from "@quizio/db/repositories/game/drizzle-answer-repository";
+import { createDrizzleAssignmentLandingQuery } from "@quizio/db/repositories/game/drizzle-assignment-landing-query";
+import { createDrizzleAssignmentPreferencesRepository } from "@quizio/db/repositories/game/drizzle-assignment-preferences-repository";
 import { createDrizzleGameQuestionRepository } from "@quizio/db/repositories/game/drizzle-game-question-repository";
 import { createDrizzleGameRepository } from "@quizio/db/repositories/game/drizzle-game-repository";
 import { createDrizzleHostPreferencesRepository } from "@quizio/db/repositories/game/drizzle-host-preferences-repository";
@@ -26,6 +28,7 @@ import { createPusherRealtimePublisher } from "@quizio/realtime/pusher-realtime-
 import { createS3ObjectStorage } from "@quizio/storage/s3-object-storage";
 
 import { type Adapters, type Container, createContainer } from "./container";
+import { createRandomAssignmentPinGenerator } from "./random-assignment-pin-generator";
 import { createRandomGamePinGenerator } from "./random-game-pin-generator";
 import { createRandomShuffler } from "./random-shuffler";
 
@@ -95,6 +98,12 @@ export function createAdaptersFromEnv(): Adapters {
 		reportGames: createDrizzleReportGameQuery(db),
 		reports: createDrizzleReportRepository(db),
 		pins: createRandomGamePinGenerator(),
+		assignmentPins: createRandomAssignmentPinGenerator(),
+		assignmentPreferences: createDrizzleAssignmentPreferencesRepository(db),
+		assignmentLanding: createDrizzleAssignmentLandingQuery(db),
+		assignmentSettings: {
+			maxDeadlineDays: env.ASSIGNMENT_MAX_DEADLINE_DAYS,
+		},
 		shuffler: createRandomShuffler(),
 		attempts: createDrizzleAttemptLimiter(db),
 		authSettings,

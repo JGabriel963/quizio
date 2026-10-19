@@ -1,7 +1,7 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
 import { requireOwnedGame } from "../domain/game";
-import { closeGame, loadGame } from "./game-lifecycle";
+import { closeGame, loadLiveGame } from "./game-lifecycle";
 import type { GameRepository } from "./ports/game-repository";
 
 export type EndGame = (input: {
@@ -16,7 +16,7 @@ export function createEndGame(deps: {
 	realtime: RealtimePublisher;
 }): EndGame {
 	return async ({ ownerId, gameId }) => {
-		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
+		const game = requireOwnedGame(await loadLiveGame(deps, gameId), ownerId);
 		await closeGame(deps, game, "host");
 	};
 }

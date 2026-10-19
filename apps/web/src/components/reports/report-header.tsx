@@ -9,12 +9,14 @@ import {
 import { Input } from "@quizio/ui/components/input";
 import { TabNav, TabNavItem } from "@quizio/ui/components/tab-nav";
 import { Link } from "@tanstack/react-router";
-import { EllipsisVerticalIcon, PencilIcon } from "lucide-react";
+import { EllipsisVerticalIcon, PencilIcon, TrophyIcon } from "lucide-react";
 import { useId, useState } from "react";
 
 import type { ReportHeaderData } from "@/lib/api-types";
+import { ASSIGNMENT_OPEN_TRASH_HINT } from "@/lib/assignment-error-messages";
 import { reportDateLabel } from "@/lib/report-labels";
 import { RENAME_FAILED_MESSAGE, reportNameProblem } from "@/lib/report-name";
+import { timeUntil } from "@/lib/time-until";
 
 import type { ReportTab } from "./report-parts";
 
@@ -74,34 +76,58 @@ export function ReportHeader({
 										Ver quiz
 									</DropdownMenuItem>
 								)}
-								<DropdownMenuItem variant="destructive" onClick={onMoveToTrash}>
-									Mover para a lixeira
-								</DropdownMenuItem>
+								{header.assignment?.open ? (
+									// It is ended first (spec 029, RN-41).
+									<>
+										<DropdownMenuItem disabled>
+											Mover para a lixeira
+										</DropdownMenuItem>
+										<p className="max-w-60 px-2 pb-1.5 text-muted-foreground text-xs">
+											{ASSIGNMENT_OPEN_TRASH_HINT}
+										</p>
+									</>
+								) : (
+									<DropdownMenuItem
+										variant="destructive"
+										onClick={onMoveToTrash}
+									>
+										Mover para a lixeira
+									</DropdownMenuItem>
+								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
 					<ReportName name={header.name} onRename={onRename} />
 				</div>
 
-				<dl className="flex shrink-0 flex-col gap-1 text-sm lg:w-64 lg:border-border lg:border-l lg:pl-4">
-					<div className="flex flex-wrap items-center gap-2">
-						<dt className="sr-only">Modo</dt>
-						<dd>Ao vivo</dd>
-						{header.endedEarly && (
-							<dd>
-								<Badge variant="private">Encerrada antes do fim</Badge>
-							</dd>
-						)}
-					</div>
-					<div>
-						<dt className="sr-only">Iniciada em</dt>
-						<dd>{reportDateLabel(header.startedAt)}</dd>
-					</div>
-					<div>
-						<dt className="sr-only">Anfitrião</dt>
-						<dd>Organizado por {hostName}</dd>
-					</div>
-				</dl>
+				{header.assignment ? (
+					<AssignmentFacts
+						assignment={header.assignment}
+						startedAt={header.startedAt}
+						endedAt={header.endedAt}
+						hostName={hostName}
+					/>
+				) : (
+					<dl className="flex shrink-0 flex-col gap-1 text-sm lg:w-64 lg:border-border lg:border-l lg:pl-4">
+						<div className="flex flex-wrap items-center gap-2">
+							<dt className="sr-only">Modo</dt>
+							<dd>Ao vivo</dd>
+							{header.endedEarly && (
+								<dd>
+									<Badge variant="private">Encerrada antes do fim</Badge>
+								</dd>
+							)}
+						</div>
+						<div>
+							<dt className="sr-only">Iniciada em</dt>
+							<dd>{reportDateLabel(header.startedAt)}</dd>
+						</div>
+						<div>
+							<dt className="sr-only">Anfitrião</dt>
+							<dd>Organizado por {hostName}</dd>
+						</div>
+					</dl>
+				)}
 			</div>
 
 			<div>
@@ -127,6 +153,58 @@ export function ReportHeader({
 				</TabNav>
 			</div>
 		</header>
+	);
+}
+
+/**
+ * The side of an assignment's report (spec 029, RN-31): "Atribuição", how
+ * long it stays open or "Encerrada", its dates and who organized it.
+ */
+function AssignmentFacts({
+	assignment,
+	startedAt,
+	endedAt,
+	hostName,
+}: {
+	assignment: NonNullable<ReportHeaderData["assignment"]>;
+	startedAt: string;
+	endedAt: string | null;
+	hostName: string;
+}) {
+	return (
+		<dl className="flex shrink-0 flex-col divide-y text-sm lg:w-72 lg:border-border lg:border-l lg:pl-4">
+			<div className="flex flex-wrap items-center gap-2 pb-2">
+				<dt className="sr-only">Modo</dt>
+				<dd className="inline-flex items-center gap-1.5">
+					Atribuição
+					<TrophyIcon
+						aria-hidden="true"
+						className="size-4 text-answer-yellow"
+					/>
+				</dd>
+				<dd>
+					<Badge variant="outline">
+						{assignment.open
+							? `Termina: ${timeUntil(assignment.remainingMs ?? 0)}`
+							: "Encerrada"}
+					</Badge>
+				</dd>
+			</div>
+			<div className="py-2">
+				<dt className="sr-only">Início</dt>
+				<dd>Data de início: {reportDateLabel(startedAt)}</dd>
+			</div>
+			<div className="py-2">
+				<dt className="sr-only">Término</dt>
+				<dd>
+					Data de término: {reportDateLabel(endedAt ?? assignment.deadline)}
+				</dd>
+			</div>
+			<div className="pt-2">
+				<dt className="sr-only">Anfitrião</dt>
+				<dd>Organizado por {hostName}</dd>
+			</div>
+		</dl>
 	);
 }
 

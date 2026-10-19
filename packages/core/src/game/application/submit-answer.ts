@@ -17,7 +17,7 @@ import {
 	responseTimeOf,
 } from "../domain/game-progress";
 import { canAnswer, hasPlayerSecret, isActivePlayer } from "../domain/player";
-import { loadGame, publishStage, publishToGame } from "./game-lifecycle";
+import { loadLiveGame, publishStage, publishToGame } from "./game-lifecycle";
 import type { AnswerRepository } from "./ports/answer-repository";
 import type { GameQuestionRepository } from "./ports/game-question-repository";
 import type { GameRepository } from "./ports/game-repository";
@@ -47,7 +47,7 @@ export function createSubmitAnswer(deps: {
 	realtime: RealtimePublisher;
 }): SubmitAnswer {
 	return async ({ gameId, playerId, secret, questionIndex, choiceIds }) => {
-		const game = await loadGame(deps, gameId);
+		const game = await loadLiveGame(deps, gameId);
 		const player = await deps.players.findById(playerId);
 		if (
 			!game ||

@@ -1,4 +1,4 @@
-import { GAME_PIN_LENGTH } from "@quizio/core/game/domain/game-pin";
+import { ASSIGNMENT_PIN_LENGTH } from "@quizio/core/game/domain/game-pin";
 import { NICKNAME_MAX_LENGTH } from "@quizio/core/game/domain/nickname";
 import { truncateCharacters } from "@quizio/core/shared/domain/text-length";
 import { Button } from "@quizio/ui/components/button";
@@ -95,7 +95,10 @@ export function PinForm({
 					onChange={(event) => {
 						setTouched(true);
 						setPin(
-							event.target.value.replace(/\D/g, "").slice(0, GAME_PIN_LENGTH),
+							// The longest PIN is an assignment's (spec 029, RN-18).
+							event.target.value
+								.replace(/\D/g, "")
+								.slice(0, ASSIGNMENT_PIN_LENGTH),
 						);
 					}}
 					className={fieldClass}

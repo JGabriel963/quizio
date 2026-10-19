@@ -1,3 +1,4 @@
+import { assertCanTrash } from "../domain/report";
 import { loadOwnedHeaders, type ReportReadDeps } from "./load-report";
 import type { ReportRepository } from "./ports/report-repository";
 
@@ -15,6 +16,10 @@ export function createMoveReportsToTrash(
 ): MoveReportsToTrash {
 	return async (input) => {
 		const headers = await loadOwnedHeaders(deps, input);
+		// An open assignment is ended first: one in the selection refuses it all (spec 029, RN-41).
+		for (const header of headers) {
+			assertCanTrash(header);
+		}
 		const gameIds = headers
 			.filter((header) => header.trashedAt === null)
 			.map((header) => header.gameId);
