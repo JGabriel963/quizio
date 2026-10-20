@@ -113,8 +113,12 @@ test.describe("jogar a atribuição (spec 030)", () => {
 		await expect(standings.getByRole("listitem")).toHaveCount(2);
 		await expect(standings.getByRole("listitem").nth(1)).toContainText("Bia");
 		// ← reviews the question (CA-18).
+		// The review shows the result as it ended: the points at once.
 		await ana.getByRole("button", { name: "Anterior" }).click();
-		await expect(ana.getByText("Correto", { exact: true })).toBeVisible();
+		await expect(
+			ana.getByRole("heading", { name: "Capital do Brasil?" }),
+		).toBeVisible();
+		await expect(ana.getByText(/^\+ \d+$/)).toBeVisible();
 
 		// The report shows both, and Jogue este quiz opens the activity (CA-24, CA-25).
 		await creator.reload();

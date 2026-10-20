@@ -1,96 +1,180 @@
-import {
-	ANSWER_COLOR_CLASSES,
-	AnswerShape,
-	answerShapeAt,
-} from "@quizio/ui/components/answer-shape";
 import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon, XIcon } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useState } from "react";
 
-import { Statement } from "@/components/game/player/question-on-device";
 import type { QuestionResultData } from "@/lib/api-types";
-import { ProgressSegments } from "./play-question";
+import { CountUp } from "@/lib/count-up";
+import { usePrefersReducedMotion } from "@/lib/game-motion";
 
-const BANNER = {
-	correct: { label: "Correto", className: "bg-answer-correct" },
+import {
+	ANSWER_GRID_CLASS,
+	ProgressSegments,
+	QuestionLayout,
+} from "./play-stage";
+
+/** How long "Correto" shows before it turns into the points, as in Kahoot. */
+export const RESULT_POINTS_DELAY_MS = 1200;
+
+const STRIP = {
+	correct: { label: "Correto", className: "bg-answer-correct", right: true },
 	partiallyCorrect: {
 		label: "Parcialmente correto",
 		className: "bg-answer-yellow",
+		right: true,
 	},
-	wrong: { label: "Incorreto", className: "bg-answer-red" },
-	unanswered: { label: "Tempo esgotado", className: "bg-answer-red" },
+	wrong: { label: "Incorreto", className: "bg-answer-red", right: false },
+	unanswered: {
+		label: "Tempo esgotado",
+		className: "bg-answer-red",
+		right: false,
+	},
 } as const;
 
 /**
- * A question's results on the participant's screen (spec 030, RN-11): the
- * strip with the result and the points, then the answers, the chosen and the
- * right ones marked and the others dimmed. It also serves the review of "←".
+ * A question's results on the participant's screen (spec 030, RN-11), in
+ * the question's own layout so nothing moves: the image gives its place to
+ * a tilted strip with the result which, for a right answer, turns into the
+ * points; the answers stay where they were, the right one green, the one
+ * chosen wrong red and the others faded. It also serves the review of "←",
+ * where it shows its final state at once (`animate` off).
  */
 export function PlayResult({
 	result,
 	questionCount,
+	animate = true,
 }: {
 	result: QuestionResultData;
 	questionCount: number;
+	animate?: boolean;
 }) {
-	const banner = BANNER[result.result];
+	return (
+		<>
+			<ProgressSegments index={result.question.index} count={questionCount} />
+			<QuestionLayout
+				text={result.question.text}
+				top={<ResultStrip result={result} animate={animate} />}
+				answers={<ResultAnswers result={result} />}
+			/>
+		</>
+	);
+}
+
+function ResultStrip({
+	result,
+	animate,
+}: {
+	result: QuestionResultData;
+	animate: boolean;
+}) {
+	const reduced = usePrefersReducedMotion();
+	const strip = STRIP[result.result];
+	const scores = strip.right && result.points > 0;
+	const [showPoints, setShowPoints] = useState(scores && !animate);
+
+	useEffect(() => {
+		if (!scores || !animate) {
+			return;
+		}
+		const timer = setTimeout(() => setShowPoints(true), RESULT_POINTS_DELAY_MS);
+		return () => clearTimeout(timer);
+	}, [scores, animate]);
+
+	const moving = animate && !reduced;
 
 	return (
-		<main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-3 motion-safe:animate-stage-in">
-			<ProgressSegments index={result.question.index} count={questionCount} />
-			<div
-				className={cn(
-					"mx-2 flex shrink-0 items-center justify-between gap-3 rounded-md px-4 py-3 font-black text-xl shadow-lg motion-safe:animate-pop-in",
-					banner.className,
+		<motion.div
+			data-slot="result-strip"
+			initial={moving ? { scaleX: 0, opacity: 0 } : false}
+			animate={{ scaleX: 1, opacity: 1 }}
+			transition={{ duration: 0.35, ease: "easeOut" }}
+			className={cn(
+				"-mx-8 flex h-16 w-[calc(100%+4rem)] origin-left -rotate-3 items-center justify-center text-white shadow-lg sm:h-20",
+				strip.className,
+			)}
+		>
+			<AnimatePresence mode="wait" initial={false}>
+				{showPoints ? (
+					<motion.span
+						key="points"
+						initial={moving ? { y: 16, opacity: 0 } : false}
+						animate={{ y: 0, opacity: 1 }}
+						className="font-black text-2xl sm:text-3xl"
+					>
+						<CountUp
+							prefix="+ "
+							from={moving ? 0 : result.points}
+							value={result.points}
+						/>
+					</motion.span>
+				) : (
+					<motion.span
+						key="label"
+						initial={moving ? { scale: 0.6, opacity: 0 } : false}
+						animate={{ scale: 1, opacity: 1 }}
+						exit={moving ? { y: -16, opacity: 0 } : undefined}
+						transition={{ delay: moving ? 0.2 : 0 }}
+						className="flex items-center gap-3 font-black text-2xl sm:text-3xl"
+					>
+						<span className="flex size-8 items-center justify-center rounded-full border-2 border-white">
+							{strip.right ? (
+								<CheckIcon aria-hidden="true" className="size-5 stroke-3" />
+							) : (
+								<XIcon aria-hidden="true" className="size-5 stroke-3" />
+							)}
+						</span>
+						{strip.label}
+					</motion.span>
 				)}
-			>
-				<span>{banner.label}</span>
-				<span>+ {result.points}</span>
-			</div>
-			<div className="shrink-0 px-2">
-				<Statement>{result.question.text}</Statement>
-			</div>
-			<ul aria-label="Respostas" className="grid grid-cols-2 gap-2 px-2 pb-2">
+			</AnimatePresence>
+		</motion.div>
+	);
+}
+
+function ResultAnswers({ result }: { result: QuestionResultData }) {
+	return (
+		<div className="flex min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden p-2">
+			<ul aria-label="Respostas" className={ANSWER_GRID_CLASS}>
 				{result.question.choices.map((choice) => {
 					const right = result.rightIds.includes(choice.id);
 					const chosen = result.chosenIds.includes(choice.id);
-					const shape = answerShapeAt(choice.shapeIndex);
 					return (
 						<li
 							key={choice.id}
+							data-right={right}
+							data-chosen={chosen}
 							className={cn(
-								"relative flex min-h-24 flex-col items-center justify-center gap-1 rounded-md px-3 py-6 text-answer-foreground shadow-press",
-								ANSWER_COLOR_CLASSES[shape],
-								!right && !chosen && "opacity-40",
-								chosen && "ring-4 ring-white",
+								"relative flex items-center justify-center rounded-md px-3 py-8 shadow-press transition-colors duration-300",
+								right
+									? "bg-answer-correct text-white"
+									: chosen
+										? "bg-answer-red text-white"
+										: "bg-answer-red/35 text-white/60 shadow-none",
 							)}
 						>
-							<AnswerShape
-								shape={shape}
-								className="absolute top-2 left-2 size-5 drop-shadow-sm"
-							/>
-							<span className="w-full break-words text-center font-bold text-lg leading-tight">
+							<span className="w-full break-words text-center font-bold text-lg leading-tight sm:text-2xl">
 								{choice.text}
 							</span>
-							{right ? (
-								<span className="inline-flex items-center gap-1 font-semibold text-sm">
-									<CheckIcon aria-hidden="true" className="size-4 stroke-3" />
-									Correta
-								</span>
-							) : (
-								chosen && (
-									<XIcon
-										aria-hidden="true"
-										className="absolute top-2 right-2 size-5 stroke-3"
-									/>
-								)
-							)}
-							{chosen && (
-								<span className="font-semibold text-sm">Sua resposta</span>
-							)}
+							<span
+								aria-hidden="true"
+								className={cn(
+									"absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full text-white ring-2 ring-white/80 motion-safe:animate-pop-in",
+									right ? "bg-answer-correct" : "bg-answer-red",
+									!right && !chosen && "opacity-60",
+								)}
+							>
+								{right ? (
+									<CheckIcon className="size-4 stroke-3" />
+								) : (
+									<XIcon className="size-4 stroke-3" />
+								)}
+							</span>
+							{right && <span className="sr-only">Correta</span>}
+							{chosen && <span className="sr-only">Sua resposta</span>}
 						</li>
 					);
 				})}
 			</ul>
-		</main>
+		</div>
 	);
 }

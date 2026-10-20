@@ -111,9 +111,17 @@ describe("PlayResult (spec 030, RN-11)", () => {
 		render(<PlayResult result={result()} questionCount={5} />);
 
 		expect(screen.getByText("Correto")).toBeInTheDocument();
+		expect(screen.queryByText(/^\+ /)).toBeNull();
 		expect(
 			await screen.findByText("+ 950", {}, { timeout: 3000 }),
 		).toBeInTheDocument();
+		expect(screen.queryByText("Correto")).toBeNull();
+	});
+
+	it("a reviewed question shows its points at once", () => {
+		render(<PlayResult result={result()} questionCount={5} animate={false} />);
+
+		expect(screen.getByText("+ 950")).toBeInTheDocument();
 	});
 
 	it("Incorreto with the chosen and the right one marked", () => {

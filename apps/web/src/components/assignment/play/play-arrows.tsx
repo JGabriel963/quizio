@@ -1,21 +1,26 @@
-import { Button } from "@quizio/ui/components/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { cn } from "@quizio/ui/lib/utils";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import type { QuestionResultData } from "@/lib/api-types";
 
 import { PlayResult } from "./play-result";
+import { PLAY_AREA_CLASS } from "./play-stage";
 
 type ArrowScreen = {
 	phase: "results" | "scoreboard" | "finished";
 	questionIndex: number;
 };
 
+const arrowClass =
+	"absolute top-1/2 z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white shadow-lg outline-none transition-[transform,background-color] hover:bg-black/75 focus-visible:ring-4 focus-visible:ring-white/70 active:scale-95 disabled:pointer-events-none disabled:opacity-0 motion-safe:animate-pop-in sm:size-12";
+
 /**
- * The participant's arrows (spec 030, RN-12, RN-17): → asks the server for
- * the next screen; ← walks back through the questions already with results,
- * only to look, and → comes back to where the participant is. At the end
- * there is no →: ← reviews every question from the last.
+ * The participant's arrows (spec 030, RN-12, RN-17), beside the card as in
+ * Kahoot (over its edges on a phone): → asks the server for the next
+ * screen; ← walks back through the questions already with results, only to
+ * look, and → comes back to where the participant is. At the end there is
+ * no →: ← reviews every question from the last.
  */
 export function PlayArrows({
 	screen,
@@ -46,39 +51,39 @@ export function PlayArrows({
 	const finished = screen.phase === "finished";
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col">
+		<div className={PLAY_AREA_CLASS}>
 			{reviewing ? (
-				<PlayResult result={reviewing} questionCount={questionCount} />
+				<PlayResult
+					key={reviewing.question.index}
+					result={reviewing}
+					questionCount={questionCount}
+					animate={false}
+				/>
 			) : (
 				children
 			)}
-			<nav
-				aria-label="Navegação"
-				className="flex shrink-0 items-center justify-between gap-2 bg-black/30 p-2"
+			<button
+				type="button"
+				aria-label="Anterior"
+				disabled={steps >= reviewable.length}
+				onClick={() => setBack({ at, steps: steps + 1 })}
+				className={cn(arrowClass, "left-0 sm:left-2")}
 			>
-				<Button
-					variant="secondary"
-					size="icon-lg"
-					aria-label="Anterior"
-					disabled={steps >= reviewable.length}
-					onClick={() => setBack({ at, steps: steps + 1 })}
+				<ArrowLeftIcon aria-hidden="true" className="size-5 stroke-3" />
+			</button>
+			{(!finished || reviewing) && (
+				<button
+					type="button"
+					aria-label="Próximo"
+					disabled={!reviewing && busy}
+					onClick={() =>
+						reviewing ? setBack({ at, steps: steps - 1 }) : onAdvance()
+					}
+					className={cn(arrowClass, "right-0 sm:right-2")}
 				>
-					<ChevronLeftIcon aria-hidden="true" />
-				</Button>
-				{(!finished || reviewing) && (
-					<Button
-						variant="secondary"
-						size="icon-lg"
-						aria-label="Próximo"
-						disabled={!reviewing && busy}
-						onClick={() =>
-							reviewing ? setBack({ at, steps: steps - 1 }) : onAdvance()
-						}
-					>
-						<ChevronRightIcon aria-hidden="true" />
-					</Button>
-				)}
-			</nav>
+					<ArrowRightIcon aria-hidden="true" className="size-5 stroke-3" />
+				</button>
+			)}
 		</div>
 	);
 }

@@ -22,6 +22,7 @@ import { PlayFinal } from "./play-final";
 import { PlayQuestion } from "./play-question";
 import { PlayResult } from "./play-result";
 import { PlayScoreboard } from "./play-scoreboard";
+import { PLAY_AREA_CLASS, PlayCard, ProgressSegments } from "./play-stage";
 
 /** What the participant's flow asks of the API; the route wires it to tRPC (spec 030). */
 export interface AssignmentPlayApi {
@@ -315,30 +316,32 @@ export function AssignmentPlayFlow({
 				</p>
 			)}
 			{screen.phase === "answering" ? (
-				<PlayQuestion
-					question={screen.question}
-					questionCount={view.questionCount}
-					remainingMs={screen.remainingMs}
-					durationMs={screen.durationMs}
-					receivedAt={play.receivedAt}
-					failure={play.failure}
-					onAnswer={(choiceIds) =>
-						void act(
-							() =>
-								api.answer({
-									...session,
-									questionIndex: screen.question.index,
-									choiceIds,
-								}),
-							() =>
-								setPlay((current) => ({
-									...current,
-									busy: false,
-									failure: ANSWER_NOT_SENT_MESSAGE,
-								})),
-						)
-					}
-				/>
+				<div className={PLAY_AREA_CLASS}>
+					<PlayQuestion
+						question={screen.question}
+						questionCount={view.questionCount}
+						remainingMs={screen.remainingMs}
+						durationMs={screen.durationMs}
+						receivedAt={play.receivedAt}
+						failure={play.failure}
+						onAnswer={(choiceIds) =>
+							void act(
+								() =>
+									api.answer({
+										...session,
+										questionIndex: screen.question.index,
+										choiceIds,
+									}),
+								() =>
+									setPlay((current) => ({
+										...current,
+										busy: false,
+										failure: ANSWER_NOT_SENT_MESSAGE,
+									})),
+							)
+						}
+					/>
+				</div>
 			) : (
 				<PlayArrows
 					screen={{
@@ -360,13 +363,19 @@ export function AssignmentPlayFlow({
 							questionCount={view.questionCount}
 						/>
 					) : screen.phase === "scoreboard" ? (
-						<main className="flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto px-4 py-6 motion-safe:animate-stage-in">
-							<h1 className="font-black text-3xl">Pontuações</h1>
-							<PlayScoreboard
-								scoreboard={screen.scoreboard}
-								viewerId={session.playerId}
+						<>
+							<ProgressSegments
+								index={screen.questionIndex}
+								count={view.questionCount}
 							/>
-						</main>
+							<PlayCard className="items-center justify-center gap-6 overflow-y-auto px-4 py-8 motion-safe:animate-stage-in">
+								<h1 className="font-black text-3xl">Pontuações</h1>
+								<PlayScoreboard
+									scoreboard={screen.scoreboard}
+									viewerId={session.playerId}
+								/>
+							</PlayCard>
+						</>
 					) : (
 						<PlayFinal
 							activity={view.activity}
