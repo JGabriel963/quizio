@@ -40,10 +40,18 @@ async function enterActivity(page: Page, nickname: string) {
 	).toBeVisible();
 }
 
-/** The question answered, its result, Pontuações and the end (CA-06 to CA-10, CA-17). */
+/** The question answered, its result, Pontuações and the end (CA-06 to CA-11, CA-17). */
 async function playToTheEnd(page: Page, answer: string, result: string) {
 	await page.getByRole("button", { name: new RegExp(answer) }).click();
 	await expect(page.getByText(result, { exact: true })).toBeVisible();
+	// Pontuações comes by itself after the result (RN-12).
+	await expect(page.getByRole("heading", { name: "Pontuações" })).toBeVisible();
+	// ← shows the result of the question just answered (CA-11).
+	await page.getByRole("button", { name: "Anterior" }).click();
+	await expect(
+		page.getByRole("heading", { name: "Capital do Brasil?" }),
+	).toBeVisible();
+	await expect(page.getByRole("button", { name: "Anterior" })).toBeDisabled();
 	await page.getByRole("button", { name: "Próximo" }).click();
 	await expect(page.getByRole("heading", { name: "Pontuações" })).toBeVisible();
 	await page.getByRole("button", { name: "Próximo" }).click();

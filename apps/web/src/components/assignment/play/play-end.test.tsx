@@ -145,7 +145,7 @@ describe("PlayArrows (spec 030, RN-12, RN-17)", () => {
 		expect(onAdvance).toHaveBeenCalledOnce();
 	});
 
-	it("← walks back through the history without answering", async () => {
+	it("← walks back through the answered questions' results without answering", async () => {
 		const onAdvance = vi.fn();
 		render(
 			<PlayArrows
@@ -174,6 +174,29 @@ describe("PlayArrows (spec 030, RN-12, RN-17)", () => {
 
 		expect(screen.getByText("Atual")).toBeInTheDocument();
 		expect(onAdvance).not.toHaveBeenCalled();
+	});
+
+	it("from a result, ← goes to the results before it", async () => {
+		render(
+			<PlayArrows
+				screen={{ phase: "results", questionIndex: 1 }}
+				history={history}
+				questionCount={3}
+				busy={false}
+				onAdvance={vi.fn()}
+			>
+				<p>Atual</p>
+			</PlayArrows>,
+		);
+
+		await userEvent
+			.setup()
+			.click(screen.getByRole("button", { name: "Anterior" }));
+
+		expect(
+			screen.getByRole("heading", { name: "Primeira" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Anterior" })).toBeDisabled();
 	});
 
 	it("at the end ← reviews every question from the last", async () => {

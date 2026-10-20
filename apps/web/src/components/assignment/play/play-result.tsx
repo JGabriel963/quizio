@@ -15,6 +15,8 @@ import {
 
 /** How long "Correto" shows before it turns into the points, as in Kahoot. */
 export const RESULT_POINTS_DELAY_MS = 1200;
+/** How long the result shows before Pontuações comes by itself (RN-12). */
+export const RESULT_SHOW_MS = 3200;
 
 const STRIP = {
 	correct: { label: "Correto", className: "bg-answer-correct", right: true },

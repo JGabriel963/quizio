@@ -20,7 +20,7 @@ import { AssignmentCover, NicknameStep, ReadyScreen } from "./entry-screens";
 import { PlayArrows } from "./play-arrows";
 import { PlayFinal } from "./play-final";
 import { PlayQuestion } from "./play-question";
-import { PlayResult } from "./play-result";
+import { PlayResult, RESULT_SHOW_MS } from "./play-result";
 import { PlayScoreboard } from "./play-scoreboard";
 import { PLAY_AREA_CLASS, PlayCard, ProgressSegments } from "./play-stage";
 
@@ -183,6 +183,28 @@ export function AssignmentPlayFlow({
 		);
 		return () => clearTimeout(timer);
 	}, [deadlineIn, play.receivedAt]);
+
+	// After the result's animation, Pontuações comes by itself (RN-12).
+	const resultIndex =
+		view?.screen.phase === "results" ? view.screen.result.question.index : null;
+	const leaveResult = useEffectEvent((questionIndex: number) => {
+		if (session) {
+			void act(() =>
+				api.advance({
+					...session,
+					from: { questionIndex, phase: "results" },
+				}),
+			);
+		}
+	});
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a new reading starts the wait again
+	useEffect(() => {
+		if (resultIndex === null) {
+			return;
+		}
+		const timer = setTimeout(() => leaveResult(resultIndex), RESULT_SHOW_MS);
+		return () => clearTimeout(timer);
+	}, [resultIndex, play.receivedAt]);
 
 	useEffect(() => {
 		if (!play.lost) {

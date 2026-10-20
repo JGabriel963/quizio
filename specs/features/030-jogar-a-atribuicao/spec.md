@@ -64,7 +64,7 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 | RN-09 | Com **Timer da pergunta** ligado, a pergunta tem o tempo limite do editor, contado **no servidor** a partir do momento em que ela foi mostrada ao participante, e a barra de tempo mostra os segundos que faltam. Com ele desligado, não há barra nem limite: a pergunta espera a resposta. | spec 009 · spec 029, RN-13 · kahoot-reference §5.2, §8.1 |
 | RN-10 | A resposta vale como na partida ao vivo (specs 009 e 010): correta, parcialmente correta (múltipla escolha) ou incorreta, medida no servidor, uma por pergunta, sem troca. Os **pontos** seguem a fórmula da spec 010 com o tempo de resposta dessa pergunta; com o **timer desligado, a resposta correta vale os pontos cheios** da pergunta (padrão, em dobro ou sem pontos). Não há sequência de acertos exibida. | spec 010 · kahoot-reference §5.2, §5.3 |
 | RN-11 | Respondida a pergunta, ou acabado o tempo, vem o **resultado**: as alternativas ficam apagadas, menos a que o participante escolheu e a certa, cada uma com a marca de certa ou errada; uma faixa **"Correto"** (verde), **"Incorreto"** (vermelha) ou **"Tempo esgotado"** (sem resposta) aparece e dá lugar aos pontos ganhos ("+ 932"; "+ 0" sem acerto). | vídeos · spec 010 |
-| RN-12 | **Quem avança é o participante**: no resultado, a seta **→** leva a **"Pontuações"**; em Pontuações, **→** leva à pergunta seguinte, e depois da última, ao fim. Nada avança sozinho. A seta **←** volta à tela anterior **só para ver**: o resultado já dado não muda, e uma pergunta respondida não é respondida de novo. | vídeos |
+| RN-12 | **Quem avança é o participante, menos depois do resultado**: o resultado mostra a animação (acertou ou errou e, se acertou, os pontos) e em seguida leva sozinho a **"Pontuações"** (→ antecipa); em Pontuações, **→** leva à pergunta seguinte, e depois da última, ao fim; ali nada avança sozinho. A seta **←** volta, uma a uma, aos **resultados** das perguntas já respondidas, **só para ver**: nunca a uma Pontuações anterior; o resultado já dado não muda e uma pergunta respondida não é respondida de novo. As setas só aparecem depois de responder, e cada uma só quando há para onde ir. | vídeos · decisão do usuário (2026-10-20) |
 | RN-13 | O servidor é a autoridade (constituição, artigo V): a resposta, o tempo e a pergunta em que cada participante está são guardados nele. O aparelho nunca decide os pontos nem o tempo, e uma resposta a uma pergunta que não é a atual do participante é recusada. | constituição, artigo V · spec 009 |
 
 ### Pontuações
@@ -172,15 +172,16 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 #### CA-10 — O participante avança
 
 - **Dado** o resultado da primeira pergunta
-- **Quando** o participante aciona →, e de novo → em Pontuações
-- **Então** vê Pontuações e depois a segunda pergunta
-- **E** sem acionar nada, a tela não muda
+- **Quando** a animação do resultado termina
+- **Então** o participante vê Pontuações sem acionar nada (→ no resultado antecipa)
+- **E** em Pontuações, sem acionar nada, a tela não muda; → leva à segunda pergunta
 
 #### CA-11 — Voltar só para ver
 
-- **Dado** Pontuações depois da primeira pergunta
-- **Quando** o participante aciona ←
-- **Então** vê o resultado da primeira pergunta como estava, sem poder responder de novo
+- **Dado** Pontuações depois da segunda pergunta
+- **Quando** o participante aciona ←, e de novo ←
+- **Então** vê o resultado da segunda pergunta e depois o da primeira, como estavam, sem poder responder de novo
+- **E** nunca a Pontuações da primeira pergunta
 
 #### CA-12 — O servidor manda
 
@@ -318,3 +319,4 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 - 2026-10-19 — spec criada a partir dos vídeos do Kahoot enviados pelo usuário (desktop, celular e dois jogadores ao mesmo tempo). Decisões do usuário: sem jogadores virtuais; o placar mostra o total atual de todos os participantes; o tempo da pergunta continua correndo fora da aba; "Entrar em outro jogo" no fim; "Jogue este quiz" faz o criador jogar como participante que conta.
 - 2026-10-19 — spec aprovada pelo usuário. As duas perguntas em aberto ficam com as escolhas da spec (capa antes do apelido nos dois tamanhos de tela; os cinco primeiros mais a linha de quem vê), ajustáveis na implementação.
 - 2026-10-19 — implementada (T01–T21). Sem mudança de regra. Na implementação: a tela da pergunta recebe também a duração dela, para a barra de tempo; a tela de espera "Em breve" da spec 029 deu lugar à capa e ao apelido.
+- 2026-10-20 — por decisão do usuário, a partir do Kahoot: depois da animação do resultado, Pontuações vem sozinha; ← volta só aos resultados das perguntas respondidas, nunca a uma Pontuações anterior (RN-12, CA-10, CA-11).

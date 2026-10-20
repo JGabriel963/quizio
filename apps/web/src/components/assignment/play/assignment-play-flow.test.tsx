@@ -1,14 +1,14 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { AssignmentCoverData, AssignmentPlayData } from "@/lib/api-types";
 import { createAssignmentSessionStore } from "@/lib/assignment-session";
-
 import {
 	type AssignmentPlayApi,
 	AssignmentPlayFlow,
 } from "./assignment-play-flow";
+import { RESULT_SHOW_MS } from "./play-result";
 
 const GAME = "game-1";
 const SESSION = { gameId: GAME, playerId: "me", secret: "s3cret" };
@@ -131,6 +131,36 @@ function renderFlow(api: AssignmentPlayApi, store = memoryStore()) {
 }
 
 describe("AssignmentPlayFlow (spec 030)", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("after the result's animation, Pontuações comes by itself", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		const api = fakeApi({
+			play: vi.fn(async () =>
+				viewWith({
+					phase: "results",
+					result: resultOf(0, "Qual é a capital do Brasil?", true),
+					total: 950,
+				}),
+			),
+		});
+		renderFlow(api, memoryStore(SESSION));
+
+		expect(await screen.findByText("Correto")).toBeInTheDocument();
+		expect(api.advance).not.toHaveBeenCalled();
+		await act(() => vi.advanceTimersByTimeAsync(RESULT_SHOW_MS));
+
+		expect(api.advance).toHaveBeenCalledWith({
+			...SESSION,
+			from: { questionIndex: 0, phase: "results" },
+		});
+		expect(
+			await screen.findByRole("list", { name: "Pontuações" }),
+		).toBeInTheDocument();
+	});
+
 	it("without a session: cover → nickname → first question", async () => {
 		const api = fakeApi();
 		const { store, user } = renderFlow(api);

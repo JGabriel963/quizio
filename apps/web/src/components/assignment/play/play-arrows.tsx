@@ -18,9 +18,9 @@ const arrowClass =
 /**
  * The participant's arrows (spec 030, RN-12, RN-17), beside the card as in
  * Kahoot (over its edges on a phone): → asks the server for the next
- * screen; ← walks back through the questions already with results, only to
- * look, and → comes back to where the participant is. At the end there is
- * no →: ← reviews every question from the last.
+ * screen; ← walks back through the results of the questions already
+ * answered (never an earlier Pontuações), only to look, and → comes back
+ * to where the participant is. At the end there is no →.
  */
 export function PlayArrows({
 	screen,
@@ -42,6 +42,8 @@ export function PlayArrows({
 	const [back, setBack] = useState({ at, steps: 0 });
 	// A new screen from the server starts with nothing reviewed.
 	const steps = back.at === at ? back.steps : 0;
+	// ← shows only the results of the questions already answered, never an
+	// earlier Pontuações (RN-12, RN-17).
 	const reviewable = history.filter(({ question }) =>
 		screen.phase === "results"
 			? question.index < screen.questionIndex
