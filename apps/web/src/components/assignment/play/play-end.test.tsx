@@ -168,12 +168,29 @@ describe("PlayArrows (spec 030, RN-12, RN-17)", () => {
 		expect(
 			screen.getByRole("heading", { name: "Primeira" }),
 		).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Anterior" })).toBeDisabled();
+		expect(screen.queryByRole("button", { name: "Anterior" })).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Próximo" }));
 		await user.click(screen.getByRole("button", { name: "Próximo" }));
 
 		expect(screen.getByText("Atual")).toBeInTheDocument();
 		expect(onAdvance).not.toHaveBeenCalled();
+	});
+
+	it("the first question's result has no ←", () => {
+		render(
+			<PlayArrows
+				screen={{ phase: "results", questionIndex: 0 }}
+				history={[history[0]]}
+				questionCount={3}
+				busy={false}
+				onAdvance={vi.fn()}
+			>
+				<p>Atual</p>
+			</PlayArrows>,
+		);
+
+		expect(screen.queryByRole("button", { name: "Anterior" })).toBeNull();
+		expect(screen.getByRole("button", { name: "Próximo" })).toBeInTheDocument();
 	});
 
 	it("from a result, ← goes to the results before it", async () => {
@@ -196,7 +213,7 @@ describe("PlayArrows (spec 030, RN-12, RN-17)", () => {
 		expect(
 			screen.getByRole("heading", { name: "Primeira" }),
 		).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Anterior" })).toBeDisabled();
+		expect(screen.queryByRole("button", { name: "Anterior" })).toBeNull();
 	});
 
 	it("at the end ← reviews every question from the last", async () => {

@@ -51,7 +51,7 @@ async function playToTheEnd(page: Page, answer: string, result: string) {
 	await expect(
 		page.getByRole("heading", { name: "Capital do Brasil?" }),
 	).toBeVisible();
-	await expect(page.getByRole("button", { name: "Anterior" })).toBeDisabled();
+	await expect(page.getByRole("button", { name: "Anterior" })).toHaveCount(0);
 	await page.getByRole("button", { name: "Próximo" }).click();
 	await expect(page.getByRole("heading", { name: "Pontuações" })).toBeVisible();
 	await page.getByRole("button", { name: "Próximo" }).click();
