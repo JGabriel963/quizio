@@ -160,8 +160,10 @@ export async function loadParticipant(
 		game.id,
 		player.progress.questionIndex,
 	);
+	// Finished by the end itself, at the instant it ended: `endedEarly` tells
+	// it from a participant who reached the end before (RN-23).
 	const settled = !isGameOpen(game)
-		? finishProgress(player.progress, now)
+		? finishProgress(player.progress, game.endedAt ?? now)
 		: question
 			? settleProgress(game, question, player.progress, now)
 			: player.progress;
@@ -356,10 +358,13 @@ export async function buildAssignmentPlayView(
 				? Math.max(0, game.expiresAt.getTime() - now.getTime())
 				: null,
 		},
+		// Who reached the end did it while the activity was open; who was
+		// finished by its end got the end's instant (`loadParticipant`).
 		endedEarly:
 			!open &&
 			progress.phase === "finished" &&
-			progress.questionIndex < game.questionCount - 1,
+			game.endedAt !== null &&
+			progress.startedAt.getTime() >= game.endedAt.getTime(),
 		screen,
 		history,
 	};

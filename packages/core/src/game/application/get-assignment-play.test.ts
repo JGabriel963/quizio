@@ -256,6 +256,27 @@ describe("getAssignmentPlay (spec 030)", () => {
 		);
 	});
 
+	it("ended during the last question, it still says the activity was ended", async () => {
+		const { deps, gameId, answer, moveTo, play } = await playing();
+		await answer(0, true, 950);
+		await moveTo({ questionIndex: 1, phase: "answering" });
+		deps.clock.advanceBy(1000);
+		await createEndAssignment(deps)({ ownerId: "user-1", gameId });
+
+		expect((await play()).endedEarly).toBe(true);
+	});
+
+	it("who finished before the end is not told the activity was ended", async () => {
+		const { deps, gameId, answer, moveTo, play } = await playing();
+		await answer(0, true, 950);
+		await answer(1, true, 900);
+		await moveTo({ questionIndex: 1, phase: "finished" });
+		deps.clock.advanceBy(1000);
+		await createEndAssignment(deps)({ ownerId: "user-1", gameId });
+
+		expect((await play()).endedEarly).toBe(false);
+	});
+
 	it("a wrong secret is missing", async () => {
 		const { deps, gameId, john } = await playing();
 

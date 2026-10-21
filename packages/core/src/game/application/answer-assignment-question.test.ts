@@ -122,6 +122,50 @@ describe("answerAssignmentQuestion (spec 030, RN-10, RN-11, RN-13)", () => {
 		);
 	});
 
+	it("an answer whose progress moved meanwhile still goes to its results", async () => {
+		const { deps, john, answer } = await playing({ questionTimer: false });
+		// A resume of the same nickname restarts the question's time in between.
+		const save = deps.players.saveProgressIfAt.bind(deps.players);
+		let raced = false;
+		deps.players.saveProgressIfAt = async (playerId, from, next) => {
+			if (!raced) {
+				raced = true;
+				await save(playerId, from, {
+					...from,
+					startedAt: new Date(from.startedAt.getTime() + 1000),
+				});
+			}
+			return save(playerId, from, next);
+		};
+
+		const view = await answer(["choice-1"]);
+
+		expect(view.screen.phase).toBe("results");
+		expect((await deps.players.findById(john.playerId))?.progress?.phase).toBe(
+			"results",
+		);
+	});
+
+	it("an answer stored while the progress stayed behind is taken to its results", async () => {
+		const { deps, gameId, john, answer } = await playing({
+			questionTimer: false,
+		});
+		await deps.answers.add({
+			gameId,
+			questionIndex: 0,
+			playerId: john.playerId,
+			choiceIds: ["choice-1"],
+			responseTimeMs: 0,
+			correctness: "correct",
+			points: 1000,
+			receivedAt: deps.clock.now(),
+		});
+
+		const view = await answer(["choice-1"]);
+
+		expect(view.screen).toMatchObject({ phase: "results", total: 1000 });
+	});
+
 	it("an answer after the activity ended is refused", async () => {
 		const { deps, gameId, answer } = await playing();
 		await createEndAssignment(deps)({ ownerId: "user-1", gameId });

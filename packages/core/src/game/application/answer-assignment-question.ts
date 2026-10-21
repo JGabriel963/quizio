@@ -83,13 +83,53 @@ export function createAnswerAssignmentQuestion(
 			receivedAt: now,
 		});
 		if (added === "alreadyAnswered") {
-			throw new ParticipantNotAtStageError("The question was already answered");
+			// An earlier request stored it and its progress stayed behind: the
+			// answer is in, so the question goes to its results anyway.
+			await leaveAnsweredQuestion(deps, player.id, questionIndex, game, now);
+			return buildAssignmentPlayView(
+				deps,
+				await loadParticipant(deps, participant),
+			);
 		}
 		const next = nextProgress(player.progress, game.questionCount, now);
-		await deps.players.saveProgressIfAt(player.id, player.progress, next);
-		return buildAssignmentPlayView(deps, {
-			...loaded,
-			player: { ...player, progress: next },
-		});
+		if (await deps.players.saveProgressIfAt(player.id, player.progress, next)) {
+			return buildAssignmentPlayView(deps, {
+				...loaded,
+				player: { ...player, progress: next },
+			});
+		}
+		// Something moved the progress in between (a resume restarts the time):
+		// the answer is stored, so its results come from where it is now.
+		await leaveAnsweredQuestion(deps, player.id, questionIndex, game, now);
+		return buildAssignmentPlayView(
+			deps,
+			await loadParticipant(deps, participant),
+		);
 	};
+}
+
+/**
+ * Takes a participant whose answer to `questionIndex` is stored to its
+ * results, from whatever their progress says now, unless it already moved on.
+ */
+async function leaveAnsweredQuestion(
+	deps: Pick<AssignmentPlayDeps, "players">,
+	playerId: string,
+	questionIndex: number,
+	game: { questionCount: number },
+	now: Date,
+): Promise<void> {
+	for (let attempt = 0; attempt < 3; attempt++) {
+		const current = (await deps.players.findById(playerId))?.progress;
+		if (
+			!current ||
+			!isAtProgress(current, { questionIndex, phase: "answering" })
+		) {
+			return;
+		}
+		const next = nextProgress(current, game.questionCount, now);
+		if (await deps.players.saveProgressIfAt(playerId, current, next)) {
+			return;
+		}
+	}
 }

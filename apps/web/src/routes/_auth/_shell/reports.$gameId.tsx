@@ -80,12 +80,15 @@ function ReportPage() {
 		retry: (failureCount, error) => !isRefusal(error) && failureCount < 2,
 		meta: { suppressErrorToast: true },
 	});
+	// An open detail sheet refreshes with the report, or it would go stale.
+	const detailRefreshInterval = reportRefreshInterval(report.data);
 	const participantDetail = useQuery({
 		...trpc.report.participant.queryOptions({
 			gameId,
 			playerId: participant ?? "",
 		}),
 		enabled: report.isSuccess && participant !== undefined,
+		refetchInterval: detailRefreshInterval,
 		meta: { suppressErrorToast: true },
 	});
 	const questionDetail = useQuery({
@@ -94,6 +97,7 @@ function ReportPage() {
 			questionIndex: question ?? 0,
 		}),
 		enabled: report.isSuccess && question !== undefined,
+		refetchInterval: detailRefreshInterval,
 		meta: { suppressErrorToast: true },
 	});
 
