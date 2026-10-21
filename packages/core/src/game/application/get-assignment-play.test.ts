@@ -143,7 +143,7 @@ describe("getAssignmentPlay (spec 030)", () => {
 		expect(screen).toMatchObject({ phase: "results", total: 950 });
 	});
 
-	it("the scoreboard has everyone's current total", async () => {
+	it("the scoreboard has everyone's points up to that question, as in a live game", async () => {
 		const { deps, gameId, join, answer, moveTo, play } = await playing();
 		const claude = await join({ gameId, nickname: "claude" });
 		await deps.answers.add(
@@ -170,8 +170,39 @@ describe("getAssignmentPlay (spec 030)", () => {
 		expect(
 			screen.phase === "scoreboard" && screen.scoreboard.top,
 		).toMatchObject([
-			{ nickname: "claude", total: 1700, rank: 1 },
-			{ nickname: "John", total: 950, rank: 2 },
+			{ nickname: "John", total: 950, rank: 1 },
+			{ nickname: "claude", total: 900, rank: 2 },
+		]);
+	});
+
+	it("who passed someone in that question gets the arrow", async () => {
+		const { deps, gameId, join, answer, moveTo, play } = await playing();
+		const claude = await join({ gameId, nickname: "claude" });
+		await deps.answers.add(
+			anAnswer({
+				gameId,
+				playerId: claude.playerId,
+				questionIndex: 0,
+				points: 900,
+			}),
+		);
+		await answer(0, true, 500);
+		await answer(1, true, 950);
+		await moveTo({ questionIndex: 1, phase: "scoreboard" });
+
+		const { screen } = await play();
+
+		expect(
+			screen.phase === "scoreboard" && screen.scoreboard.top,
+		).toMatchObject([
+			{
+				nickname: "John",
+				total: 1450,
+				rank: 1,
+				climbed: true,
+				previous: { rank: 2, total: 500 },
+			},
+			{ nickname: "claude", total: 900, rank: 2, climbed: false },
 		]);
 	});
 

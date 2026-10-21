@@ -71,7 +71,7 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 
 | ID | Regra | Fonte |
 | --- | --- | --- |
-| RN-14 | **"Pontuações"** mostra a classificação dos participantes da atividade pelo **total de pontos atual de cada um**, esteja ele à frente ou atrás de quem vê; o empate fica com quem entrou primeiro (spec 010). Quem joga sozinho vê só a si mesmo. Não há jogadores virtuais. | vídeo jogadores-ao-mesmo-tempo · decisão do usuário (2026-10-19) |
+| RN-14 | **"Pontuações"** depois de uma pergunta mostra a classificação dos participantes da atividade pelos **pontos de cada um até essa pergunta**, como na partida ao vivo: quem está à frente aparece com o que tinha naquele ponto, e quem ainda não chegou nela, com o que fez até agora. O empate fica com quem entrou primeiro (spec 010). O **fim** mostra os totais de agora (RN-19). Quem joga sozinho vê só a si mesmo. Não há jogadores virtuais. | vídeo jogadores-ao-mesmo-tempo · decisão do usuário (2026-10-21) |
 | RN-15 | O placar mostra os **cinco primeiros** e, se quem vê estiver fora deles, a **linha dele** com a posição. A linha de quem vê fica destacada; os totais contam até o valor atual e quem subiu de posição desde o placar anterior ganha a seta de subida, como no placar ao vivo (spec 011). | spec 010, spec 011 · vídeo jogadores-ao-mesmo-tempo |
 
 ### Fim
@@ -323,3 +323,4 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 - 2026-10-19 — implementada (T01–T21). Sem mudança de regra. Na implementação: a tela da pergunta recebe também a duração dela, para a barra de tempo; a tela de espera "Em breve" da spec 029 deu lugar à capa e ao apelido.
 - 2026-10-20 — por decisão do usuário, a partir do Kahoot: depois da animação do resultado, Pontuações vem sozinha; ← volta só aos resultados das perguntas respondidas, nunca a uma Pontuações anterior (RN-12, CA-10, CA-11).
 - 2026-10-20 — por decisão do usuário, a partir do Kahoot: voltar pergunta "Você é {apelido}?" e o participante se retoma pelo apelido, em qualquer navegador; quem abandonou recomeça a pergunta que não respondeu, com o tempo inteiro; quem terminou volta ao fim sem rever as perguntas; a tela do apelido lista quem já entrou (RN-03, RN-20 a RN-22, CA-03, CA-19 a CA-21).
+- 2026-10-21 — por decisão do usuário, a partir do Kahoot: Pontuações mostra os pontos de cada um até a pergunta que ela segue, não o total atual; a seta de subida compara com a pergunta anterior (RN-14).

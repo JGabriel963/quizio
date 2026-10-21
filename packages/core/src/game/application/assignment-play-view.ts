@@ -257,11 +257,18 @@ export async function buildAssignmentPlayView(
 ): Promise<AssignmentPlayView> {
 	const now = deps.clock.now();
 	const { progress } = player;
-	const [answers, record, everyone, totals] = await Promise.all([
+	// Pontuações tells everybody's points up to the question it follows, as
+	// in a live game (RN-14); the end, everybody's points of now.
+	const through =
+		progress.phase === "scoreboard"
+			? progress.questionIndex
+			: Math.max(0, game.questionCount - 1);
+	const [answers, record, everyone, totals, totalsBefore] = await Promise.all([
 		deps.answers.listByPlayer(game.id, player.id),
 		deps.assignmentLanding.find(game.id),
 		deps.players.listActive(game.id),
-		deps.answers.totalsThrough(game.id, Math.max(0, game.questionCount - 1)),
+		deps.answers.totalsThrough(game.id, through),
+		deps.answers.totalsThrough(game.id, through - 1),
 	]);
 	const answerOf = new Map(
 		answers.map((answer) => [answer.questionIndex, answer]),
@@ -286,20 +293,8 @@ export async function buildAssignmentPlayView(
 	const total = answers.reduce((sum, answer) => sum + answer.points, 0);
 	const players = shownPlayers(game, everyone);
 	const standings = rankPlayers(players, totals);
-	// Without the viewer's last answer: who climbed since then gets the arrow.
-	const last = answers.reduce<Answer | null>(
-		(latest, answer) =>
-			!latest || answer.questionIndex > latest.questionIndex ? answer : latest,
-		null,
-	);
-	const previous = rankPlayers(
-		players,
-		totals.map((entry) =>
-			entry.playerId === player.id && last
-				? { ...entry, total: entry.total - last.points }
-				: entry,
-		),
-	);
+	// As they were before that question: who climbed in it gets the arrow.
+	const previous = rankPlayers(players, totalsBefore);
 	const scoreboard = () => assignmentScoreboard(standings, previous, player.id);
 
 	const open = isGameOpen(game);
