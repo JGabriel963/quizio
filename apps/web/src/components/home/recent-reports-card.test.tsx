@@ -12,6 +12,9 @@ const report = (
 	overrides: Partial<ReportListItemData> = {},
 ): ReportListItemData => ({
 	gameId: "game-1",
+	mode: "live",
+	open: false,
+	remainingMs: null,
 	name: "Bom de Bíblia (Geral)",
 	coverUrl: null,
 	questionCount: 15,
@@ -114,6 +117,40 @@ describe("RecentReportsCard (spec 015)", () => {
 
 		expect(
 			await screen.findByRole("status", { name: "Carregando os relatórios" }),
+		).toBeInTheDocument();
+	});
+});
+
+describe("RecentReportsCard with an open assignment (spec 029, RN-27, RN-29)", () => {
+	it("shows Termina: em 3 dias in place of the date", async () => {
+		renderWithRouter(
+			<RecentReportsCard
+				state={{
+					status: "ready",
+					reports: {
+						total: 1,
+						items: [
+							report({
+								gameId: "a-1",
+								name: "Capitais",
+								mode: "assignment",
+								open: true,
+								remainingMs: 3 * 24 * 60 * 60 * 1000,
+								endedAt: null,
+								accuracyPercent: null,
+							}),
+						],
+					},
+				}}
+				onRetry={vi.fn()}
+			/>,
+		);
+
+		const item = (
+			await screen.findByRole("link", { name: "Capitais" })
+		).closest("li") as HTMLElement;
+		expect(
+			within(item).getByText("Atribuição · Termina: em 3 dias"),
 		).toBeInTheDocument();
 	});
 });

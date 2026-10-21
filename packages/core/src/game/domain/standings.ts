@@ -79,7 +79,7 @@ export function scoreboardOf(
 ): ScoreboardEntry[] {
 	return current
 		.slice(0, SCOREBOARD_SIZE)
-		.map((standing) => toEntry(standing, previous));
+		.map((standing) => scoreboardEntryOf(standing, previous));
 }
 
 /**
@@ -99,10 +99,10 @@ export function scoreboardLeavers(
 	return current
 		.slice(SCOREBOARD_SIZE)
 		.filter((standing) => wasShown.has(standing.playerId))
-		.map((standing) => toEntry(standing, previous));
+		.map((standing) => scoreboardEntryOf(standing, previous));
 }
 
-function toEntry(
+export function scoreboardEntryOf(
 	standing: Standing,
 	previous: readonly Standing[] | null,
 ): ScoreboardEntry {

@@ -178,7 +178,7 @@ describe("report stats: participants (spec 015)", () => {
 		const game = aReportGame({
 			header: {
 				questionCount: 5,
-				outcome: "ended",
+				status: "ended",
 				stoppedAt: { questionIndex: 2, phase: "answering" },
 			},
 			questions: 2,

@@ -13,8 +13,10 @@ import { EllipsisVerticalIcon, UsersIcon } from "lucide-react";
 
 import { QuizCover } from "@/components/quiz/quiz-cover";
 import type { ReportListItemData } from "@/lib/api-types";
+import { ASSIGNMENT_OPEN_TRASH_HINT } from "@/lib/assignment-error-messages";
 import { questionCountLabel } from "@/lib/quiz-labels";
-import { reportDateLabel } from "@/lib/report-labels";
+import { reportDateLabel, reportModeLabel } from "@/lib/report-labels";
+import { timeUntil } from "@/lib/time-until";
 
 import { AccuracyRing } from "./accuracy-ring";
 
@@ -79,7 +81,7 @@ export function ReportListItem({
 					</Link>
 				)}
 				<span className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
-					Ao vivo
+					{reportModeLabel(item.mode)}
 					{item.endedEarly && (
 						<Badge variant="private">Encerrada antes do fim</Badge>
 					)}
@@ -131,12 +133,24 @@ export function ReportListItem({
 							<DropdownMenuItem onClick={() => actions.onRename(item)}>
 								Renomear
 							</DropdownMenuItem>
-							<DropdownMenuItem
-								variant="destructive"
-								onClick={() => actions.onMoveToTrash(item)}
-							>
-								Mover para a lixeira
-							</DropdownMenuItem>
+							{item.open ? (
+								// It is ended first (spec 029, RN-41).
+								<>
+									<DropdownMenuItem disabled>
+										Mover para a lixeira
+									</DropdownMenuItem>
+									<p className="max-w-60 px-2 pb-1.5 text-muted-foreground text-xs">
+										{ASSIGNMENT_OPEN_TRASH_HINT}
+									</p>
+								</>
+							) : (
+								<DropdownMenuItem
+									variant="destructive"
+									onClick={() => actions.onMoveToTrash(item)}
+								>
+									Mover para a lixeira
+								</DropdownMenuItem>
+							)}
 						</>
 					)}
 				</DropdownMenuContent>
@@ -156,10 +170,16 @@ export function ReportListItem({
 					<span className="sr-only">Respostas corretas:</span>
 					<AccuracyRing percent={item.accuracyPercent} />
 				</span>
-				<span className="text-muted-foreground text-xs">
-					<span className="sr-only">Terminou em</span>{" "}
-					{reportDateLabel(item.endedAt)}
-				</span>
+				{item.endedAt === null ? (
+					<span className="font-semibold text-primary text-xs">
+						Termina: {timeUntil(item.remainingMs ?? 0)}
+					</span>
+				) : (
+					<span className="text-muted-foreground text-xs">
+						<span className="sr-only">Terminou em</span>{" "}
+						{reportDateLabel(item.endedAt)}
+					</span>
+				)}
 			</div>
 		</li>
 	);

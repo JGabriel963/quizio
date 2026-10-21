@@ -2,7 +2,12 @@ import { DomainError } from "../../shared/domain/domain-error";
 import type { Avatar } from "./avatar";
 import { type Game, isGameOpen } from "./game";
 import { isPlaying } from "./game-progress";
+import type { GameQuestion } from "./game-question";
 import { nicknameKeyOf } from "./nickname";
+import {
+	firstProgress,
+	type ParticipantProgress,
+} from "./participant-progress";
 
 /**
  * An anonymous participant of one game, known by a nickname. The id is public;
@@ -24,6 +29,13 @@ export interface Player {
 	avatar: Avatar;
 	joinedAt: Date;
 	removedAt: Date | null;
+	/** Where the participant of an assignment is; null in a live game (spec 030). */
+	progress: ParticipantProgress | null;
+	/**
+	 * The answers of each question in the participant's own order, by the ids
+	 * of the question's choices; null when they keep the question's (RN-07).
+	 */
+	choiceOrder: string[][] | null;
 }
 
 export function newPlayer(input: {
@@ -45,6 +57,45 @@ export function newPlayer(input: {
 		avatar: input.avatar,
 		joinedAt: input.now,
 		removedAt: null,
+		progress: null,
+		choiceOrder: null,
+	};
+}
+
+/**
+ * Who joins an assignment (spec 030, RN-05 to RN-07): all the questions are
+ * theirs, they start where `firstProgress` says, and with "Ordem aleatória de
+ * respostas" every Quiz question gets an order drawn once, for them alone;
+ * true/false keeps its order (spec 012).
+ */
+export function newAssignmentParticipant(input: {
+	id: string;
+	game: Game;
+	questions: readonly GameQuestion[];
+	nickname: string;
+	secret: string;
+	avatar: Avatar;
+	shuffle: <T>(items: readonly T[]) => T[];
+	now: Date;
+}): Player {
+	const choiceOrder = input.game.options.randomizeAnswers
+		? input.questions.map((question) => {
+				const ids = question.choices.map(({ id }) => id);
+				return question.type === "quiz" ? input.shuffle(ids) : ids;
+			})
+		: null;
+	return {
+		...newPlayer({
+			id: input.id,
+			gameId: input.game.id,
+			nickname: input.nickname,
+			secret: input.secret,
+			firstQuestionIndex: 0,
+			avatar: input.avatar,
+			now: input.now,
+		}),
+		progress: firstProgress(input.game, input.now),
+		choiceOrder,
 	};
 }
 

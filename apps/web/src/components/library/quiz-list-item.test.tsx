@@ -23,6 +23,8 @@ const item: LibraryItemView = {
 
 function fakeActions(): QuizItemActions {
 	return {
+		onAssign: vi.fn(),
+		onHost: vi.fn(),
 		onEdit: vi.fn(),
 		onDuplicate: vi.fn(),
 		onMoveToTrash: vi.fn(),
@@ -153,5 +155,78 @@ describe("QuizListItem status", () => {
 		expect(screen.queryByText("Rascunho")).toBeNull();
 		expect(screen.queryByText("Alterações não salvas")).toBeNull();
 		expect(screen.queryByText("Publicado")).toBeNull();
+	});
+});
+
+describe("QuizListItem: Atribuir and Organizar ao vivo (spec 029, RN-02)", () => {
+	const published: LibraryItemView = {
+		...item,
+		status: "published",
+		questionCount: 3,
+	};
+
+	it("a published row shows Atribuir and Organizar ao vivo on hover and focus", async () => {
+		const actions = fakeActions();
+		renderWithRouter(
+			<QuizListItem
+				item={published}
+				section="recent"
+				now={now}
+				actions={actions}
+			/>,
+		);
+		const user = userEvent.setup();
+
+		const shown = await screen.findByRole("group", {
+			name: "Jogar Bom de Bíblia (Junho)",
+		});
+		expect(shown.className).toMatch(/group-hover/);
+		expect(shown.className).toMatch(/group-focus-within/);
+		await user.click(screen.getByRole("button", { name: "Atribuir" }));
+		await user.click(screen.getByRole("button", { name: "Organizar ao vivo" }));
+
+		expect(actions.onAssign).toHaveBeenCalledWith(published);
+		expect(actions.onHost).toHaveBeenCalledWith(published);
+	});
+
+	it("a draft row shows neither", async () => {
+		renderWithRouter(
+			<QuizListItem
+				item={item}
+				section="drafts"
+				now={now}
+				actions={fakeActions()}
+			/>,
+		);
+
+		await screen.findByRole("button", {
+			name: "Ações para Bom de Bíblia (Junho)",
+		});
+		expect(screen.queryByRole("button", { name: "Atribuir" })).toBeNull();
+		expect(
+			screen.queryByRole("button", { name: "Organizar ao vivo" }),
+		).toBeNull();
+	});
+
+	it("the row's menu has both on a narrow screen", async () => {
+		const actions = fakeActions();
+		renderWithRouter(
+			<QuizListItem
+				item={published}
+				section="recent"
+				now={now}
+				actions={actions}
+			/>,
+		);
+
+		const user = await openActionsMenu("Bom de Bíblia (Junho)");
+		const assign = await screen.findByRole("menuitem", { name: "Atribuir" });
+		expect(assign.className).toMatch(/sm:hidden/);
+		expect(
+			screen.getByRole("menuitem", { name: "Organizar ao vivo" }).className,
+		).toMatch(/sm:hidden/);
+		await user.click(assign);
+
+		expect(actions.onAssign).toHaveBeenCalledWith(published);
 	});
 });

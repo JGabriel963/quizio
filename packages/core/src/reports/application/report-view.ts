@@ -2,7 +2,12 @@ import type { Correctness } from "../../game/domain/answer";
 import type { QuestionType } from "../../quiz/domain/question";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { accuracyPercent, isLowAccuracy } from "../domain/accuracy";
-import { canPlayAgain, canViewQuiz, type ReportHeader } from "../domain/report";
+import {
+	canPlayAgain,
+	canViewQuiz,
+	isOpenAssignment,
+	type ReportHeader,
+} from "../domain/report";
 import type {
 	ReportAnswer,
 	ReportGame,
@@ -108,6 +113,34 @@ export function quizLinksOf(header: ReportHeader): {
 	return {
 		quizId: canViewQuiz(header) ? header.quizId : null,
 		canPlayAgain: canPlayAgain(header),
+	};
+}
+
+/** What a report of an assignment adds (spec 029, RN-29, RN-31, RN-32). */
+export interface AssignmentPartView {
+	open: boolean;
+	deadline: Date;
+	/** Null once it is over; the screens never compare instants with their clock. */
+	remainingMs: number | null;
+	/** Only while it is open. */
+	pin: string | null;
+}
+
+export function assignmentPartOf(
+	header: ReportHeader,
+	now: Date,
+): AssignmentPartView | null {
+	if (header.mode !== "assignment") {
+		return null;
+	}
+	const open = isOpenAssignment(header);
+	return {
+		open,
+		deadline: header.deadline,
+		remainingMs: open
+			? Math.max(0, header.deadline.getTime() - now.getTime())
+			: null,
+		pin: open ? header.pin : null,
 	};
 }
 

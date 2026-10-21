@@ -12,6 +12,8 @@ const header = (
 	overrides: Partial<ReportHeaderData> = {},
 ): ReportHeaderData => ({
 	gameId: "game-1",
+	mode: "live",
+	assignment: null,
 	name: "Bom de Bíblia (Geral)",
 	coverUrl: null,
 	startedAt: "2026-06-13T17:45:00.000Z",
@@ -182,5 +184,74 @@ describe("ReportHeader (spec 015)", () => {
 		expect(
 			(await screen.findAllByRole("menuitem")).map((item) => item.textContent),
 		).toEqual(["Mover para a lixeira"]);
+	});
+});
+
+describe("ReportHeader of an assignment (spec 029, RN-31)", () => {
+	const DAY_MS = 24 * 60 * 60 * 1000;
+	const deadline = "2026-10-22T15:00:00.000Z";
+	const open = {
+		mode: "assignment" as const,
+		endedAt: null,
+		startedAt: "2026-10-19T17:11:00.000Z",
+		assignment: {
+			open: true,
+			deadline,
+			remainingMs: 3 * DAY_MS,
+			pin: "04352236",
+		},
+	};
+
+	it("an open assignment shows Atribuição, Termina, the start and end dates and Organizado por", async () => {
+		renderHeader(open);
+
+		await heading();
+		const facts = screen.getByText("Atribuição").closest("dl") as HTMLElement;
+		expect(within(facts).getByText("Atribuição")).toBeInTheDocument();
+		expect(within(facts).getByText("Termina: em 3 dias")).toBeInTheDocument();
+		expect(
+			within(facts).getByText(
+				`Data de início: ${reportDateLabel("2026-10-19T17:11:00.000Z")}`,
+			),
+		).toBeInTheDocument();
+		expect(
+			within(facts).getByText(`Data de término: ${reportDateLabel(deadline)}`),
+		).toBeInTheDocument();
+		expect(
+			within(facts).getByText("Organizado por João Gabriel"),
+		).toBeInTheDocument();
+		expect(screen.queryByText("Ao vivo")).toBeNull();
+	});
+
+	it("an ended assignment shows Encerrada", async () => {
+		renderHeader({
+			...open,
+			endedAt: "2026-10-20T12:00:00.000Z",
+			assignment: { open: false, deadline, remainingMs: null, pin: null },
+		});
+
+		await heading();
+		expect(screen.getByText("Encerrada")).toBeInTheDocument();
+		expect(screen.queryByText(/Termina:/)).toBeNull();
+		expect(
+			screen.getByText(
+				`Data de término: ${reportDateLabel("2026-10-20T12:00:00.000Z")}`,
+			),
+		).toBeInTheDocument();
+	});
+
+	it("the options menu cannot trash an open assignment", async () => {
+		const { user, onMoveToTrash } = renderHeader(open);
+
+		await user.click(
+			await screen.findByRole("button", { name: /Opções de relatório/ }),
+		);
+		const item = await screen.findByRole("menuitem", {
+			name: /Mover para a lixeira/,
+		});
+		await user.click(item);
+
+		expect(item).toHaveAttribute("aria-disabled", "true");
+		expect(onMoveToTrash).not.toHaveBeenCalled();
 	});
 });

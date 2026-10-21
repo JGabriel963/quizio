@@ -6,7 +6,7 @@ import {
 	nextStage,
 	type StageRef,
 } from "../domain/game-progress";
-import { loadGame, publishStage } from "./game-lifecycle";
+import { loadGame, loadLiveGame, publishStage } from "./game-lifecycle";
 import {
 	type HostGameView,
 	type HostGameViewDeps,
@@ -36,7 +36,7 @@ export function createAdvanceGame(
 	},
 ): AdvanceGame {
 	return async ({ ownerId, gameId, from, skip = false }) => {
-		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
+		const game = requireOwnedGame(await loadLiveGame(deps, gameId), ownerId);
 		if (game.status === "ended") {
 			throw new GameEndedError("The game is over");
 		}

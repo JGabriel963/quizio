@@ -182,7 +182,7 @@ describe("game router: the player (spec 008)", () => {
 			nickname: "ACT",
 		});
 
-		expect(found).toEqual({ gameId, pin });
+		expect(found).toEqual({ gameId, pin, mode: "live" });
 		expect(
 			await visitor.game.join.session({
 				gameId,
@@ -1096,5 +1096,292 @@ describe("game router: avatars (spec 028)", () => {
 			event: GAME_EVENTS.charactersChanged,
 			payload: { on: false },
 		});
+	});
+});
+
+describe("game router: assignments (spec 029)", () => {
+	const DAY_MS = 24 * 60 * 60 * 1000;
+	// The test clock reads 2026-06-01T12:00:00.000Z.
+	const inDays = (days: number) =>
+		new Date(
+			Date.parse("2026-06-01T12:00:00.000Z") + days * DAY_MS,
+		).toISOString();
+	const options = {
+		gameCharacters: false,
+		questionTimer: true,
+		randomizeAnswers: false,
+	};
+
+	async function assigned() {
+		const api = await published();
+		const ana = api.callerFor("user-1");
+		const { gameId, pin } = await ana.game.assignment.create({
+			quizId: "quiz-1",
+			deadline: inDays(3),
+			options,
+		});
+		return { api, ana, gameId, pin };
+	}
+
+	it("assignment.setup gives the creator's options and the maximum days", async () => {
+		const api = await published();
+
+		expect(await api.callerFor("user-1").game.assignment.setup()).toEqual({
+			options,
+			maxDeadlineDays: 28,
+		});
+		await expect(
+			api.callerFor(null).game.assignment.setup(),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("assignment.openOfQuiz lists the quiz's open assignments to share again (RN-05a)", async () => {
+		const { api, ana, gameId, pin } = await assigned();
+
+		expect(await ana.game.assignment.openOfQuiz({ quizId: "quiz-1" })).toEqual([
+			{
+				gameId,
+				name: "Capitais",
+				pin,
+				deadline: new Date(inDays(3)),
+				remainingMs: 3 * DAY_MS,
+				participantCount: 0,
+			},
+		]);
+		expect(
+			await api
+				.callerFor("user-2")
+				.game.assignment.openOfQuiz({ quizId: "quiz-1" }),
+		).toEqual([]);
+	});
+
+	it("assignment.create returns the gameId and an eight-digit PIN", async () => {
+		const { gameId, pin } = await assigned();
+
+		expect(gameId).toEqual(expect.any(String));
+		expect(pin).toBe("04352236");
+	});
+
+	it("assignment.create maps a past deadline to ASSIGNMENT.DEADLINE_PASSED", async () => {
+		const api = await published();
+
+		await expect(
+			api.callerFor("user-1").game.assignment.create({
+				quizId: "quiz-1",
+				deadline: inDays(-1),
+				options,
+			}),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "ASSIGNMENT.DEADLINE_PASSED" },
+		});
+	});
+
+	it("assignment.changeDeadline and end of another creator are NOT_FOUND", async () => {
+		const { api, gameId } = await assigned();
+		const bia = api.callerFor("user-2");
+
+		await expect(
+			bia.game.assignment.changeDeadline({ gameId, deadline: inDays(5) }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		await expect(bia.game.assignment.end({ gameId })).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
+	});
+
+	it("changes the deadline and ends the assignment", async () => {
+		const { api, ana, gameId } = await assigned();
+
+		await ana.game.assignment.changeDeadline({ gameId, deadline: inDays(10) });
+		expect((await api.games.findById(gameId))?.expiresAt.toISOString()).toBe(
+			inDays(10),
+		);
+
+		await ana.game.assignment.end({ gameId });
+		expect((await api.games.findById(gameId))?.endReason).toBe("host");
+		await expect(
+			ana.game.assignment.changeDeadline({ gameId, deadline: inDays(12) }),
+		).rejects.toMatchObject({ cause: { code: "GAME.ENDED" } });
+	});
+
+	it("assignment.cover is public and gives no questions", async () => {
+		const { api, gameId } = await assigned();
+		api.assignmentLanding.creatorNames.set("user-1", "Ana");
+
+		expect(await api.callerFor(null).game.assignment.cover({ gameId })).toEqual(
+			{
+				status: "open",
+				name: "Capitais",
+				creatorName: "Ana",
+				remainingMs: 3 * DAY_MS,
+				participantCount: 0,
+				participants: [],
+				coverUrl: null,
+				questionCount: 2,
+			},
+		);
+	});
+
+	it("renaming the report renames the landing", async () => {
+		const { api, gameId } = await assigned();
+		api.assignmentLanding.reportNames.set(gameId, "Capitais — Turma A");
+
+		expect(
+			(await api.callerFor(null).game.assignment.cover({ gameId })).name,
+		).toBe("Capitais — Turma A");
+	});
+
+	it("join.find gives the assignment mode for eight digits", async () => {
+		const { api, gameId } = await assigned();
+
+		expect(
+			await api.callerFor(null).game.join.find({ pin: "0435 2236" }),
+		).toEqual({ gameId, pin: "04352236", mode: "assignment" });
+	});
+
+	it("the host's procedures treat an assignment as missing", async () => {
+		const { ana, gameId } = await assigned();
+
+		await expect(ana.game.view({ gameId })).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
+		await expect(ana.game.end({ gameId })).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
+	});
+});
+
+describe("game router: playing an assignment (spec 030)", () => {
+	const DAY_MS = 24 * 60 * 60 * 1000;
+	async function assignedTo(options = {}) {
+		const api = await published();
+		const { gameId } = await api.callerFor("user-1").game.assignment.create({
+			quizId: "quiz-1",
+			deadline: new Date(
+				Date.parse("2026-06-01T12:00:00.000Z") + 3 * DAY_MS,
+			).toISOString(),
+			options: {
+				gameCharacters: false,
+				questionTimer: true,
+				randomizeAnswers: false,
+				...options,
+			},
+		});
+		const visitor = api.callerFor(null);
+		const john = await visitor.game.assignment.join({
+			gameId,
+			nickname: "John",
+		});
+		const participant = {
+			gameId,
+			playerId: john.playerId,
+			secret: john.secret,
+		};
+		return { api, visitor, gameId, participant };
+	}
+
+	it("assignment.resume takes the participant back up by nickname, anywhere", async () => {
+		const { visitor, gameId, participant } = await assignedTo();
+
+		expect(
+			await visitor.game.assignment.resume({ gameId, nickname: "john" }),
+		).toEqual({
+			playerId: participant.playerId,
+			secret: participant.secret,
+			nickname: "John",
+		});
+		await expect(
+			visitor.game.assignment.resume({ gameId, nickname: "Bia" }),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			cause: { code: "ASSIGNMENT.PARTICIPANT_NOT_FOUND" },
+		});
+	});
+
+	it("assignment.join, play, answer and advance play a whole assignment", async () => {
+		const { api, visitor, participant } = await assignedTo();
+
+		expect((await visitor.game.assignment.play(participant)).screen.phase).toBe(
+			"answering",
+		);
+		api.clock.advanceBy(2000);
+		const result = await visitor.game.assignment.answer({
+			...participant,
+			questionIndex: 0,
+			choiceIds: ["choice-1"],
+		});
+		expect(result.screen).toMatchObject({ phase: "results", total: 950 });
+		await visitor.game.assignment.advance({
+			...participant,
+			from: { questionIndex: 0, phase: "results" },
+		});
+		await visitor.game.assignment.advance({
+			...participant,
+			from: { questionIndex: 0, phase: "scoreboard" },
+		});
+		await visitor.game.assignment.answer({
+			...participant,
+			questionIndex: 1,
+			choiceIds: ["true"],
+		});
+		await visitor.game.assignment.advance({
+			...participant,
+			from: { questionIndex: 1, phase: "results" },
+		});
+		const end = await visitor.game.assignment.advance({
+			...participant,
+			from: { questionIndex: 1, phase: "scoreboard" },
+		});
+
+		expect(end.screen).toMatchObject({ phase: "finished", place: 1 });
+	});
+
+	it("the right answer does not travel before the results", async () => {
+		const { visitor, participant } = await assignedTo();
+
+		const view = await visitor.game.assignment.play(participant);
+
+		expect(JSON.stringify(view)).not.toMatch(/correct|rightIds/);
+	});
+
+	it("assignment.answer to another question is BAD_REQUEST with ASSIGNMENT.NOT_AT_STAGE", async () => {
+		const { visitor, participant } = await assignedTo();
+
+		await expect(
+			visitor.game.assignment.answer({
+				...participant,
+				questionIndex: 1,
+				choiceIds: ["true"],
+			}),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "ASSIGNMENT.NOT_AT_STAGE" },
+		});
+	});
+
+	it("assignment.setAvatar only while ready", async () => {
+		const { visitor, participant } = await assignedTo({ gameCharacters: true });
+
+		expect(
+			await visitor.game.assignment.setAvatar({
+				...participant,
+				avatar: { character: "fox", accessory: null },
+			}),
+		).toEqual({ avatar: { character: "fox", accessory: null } });
+		await visitor.game.assignment.start(participant);
+		await expect(
+			visitor.game.assignment.setAvatar({
+				...participant,
+				avatar: { character: "fox", accessory: null },
+			}),
+		).rejects.toMatchObject({ cause: { code: "GAME.AVATAR_FIXED" } });
+	});
+
+	it("a wrong secret is NOT_FOUND", async () => {
+		const { visitor, participant } = await assignedTo();
+
+		await expect(
+			visitor.game.assignment.play({ ...participant, secret: "nope" }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
 	});
 });

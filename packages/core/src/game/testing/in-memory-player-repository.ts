@@ -1,5 +1,6 @@
 import type { PlayerRepository } from "../application/ports/player-repository";
 import type { Avatar } from "../domain/avatar";
+import type { ParticipantProgress } from "../domain/participant-progress";
 import { canAnswer, isActivePlayer, type Player } from "../domain/player";
 
 export class InMemoryPlayerRepository implements PlayerRepository {
@@ -54,6 +55,26 @@ export class InMemoryPlayerRepository implements PlayerRepository {
 
 	async save(player: Player): Promise<void> {
 		this.#players.set(player.id, player);
+	}
+
+	async saveProgressIfAt(
+		playerId: string,
+		from: ParticipantProgress,
+		next: ParticipantProgress,
+	): Promise<boolean> {
+		const stored = this.#players.get(playerId);
+		const at = stored?.progress;
+		if (
+			!stored ||
+			!at ||
+			at.questionIndex !== from.questionIndex ||
+			at.phase !== from.phase ||
+			at.startedAt.getTime() !== from.startedAt.getTime()
+		) {
+			return false;
+		}
+		this.#players.set(playerId, { ...stored, progress: { ...next } });
+		return true;
 	}
 
 	async saveAvatar(playerId: string, avatar: Avatar): Promise<void> {

@@ -53,6 +53,9 @@ describe("listReports (spec 015)", () => {
 			items: [
 				{
 					gameId: "game-1",
+					mode: "live",
+					open: false,
+					remainingMs: null,
 					name: "Capitais",
 					coverUrl: null,
 					questionCount: 3,
@@ -73,7 +76,7 @@ describe("listReports (spec 015)", () => {
 			aReportGame({
 				header: {
 					questionCount: 5,
-					outcome: "ended",
+					status: "ended",
 					stoppedAt: { questionIndex: 0, phase: "answering" },
 				},
 				questions: 5,
@@ -98,7 +101,7 @@ describe("listReports (spec 015)", () => {
 			aReportGame({
 				header: {
 					questionCount: 5,
-					outcome: "ended",
+					status: "ended",
 					stoppedAt: { questionIndex: 2, phase: "answering" },
 				},
 				questions: 5,
@@ -251,5 +254,75 @@ describe("listReports (spec 015)", () => {
 			storage.getPublicUrl("covers/a.png"),
 			null,
 		]);
+	});
+});
+
+describe("listReports with assignments (spec 029)", () => {
+	// The list's clock reads 2026-06-20T12:00:00.000Z.
+	const assignment = (
+		gameId: string,
+		deadline: string,
+		header: Record<string, unknown> = {},
+	) =>
+		aReportGame({
+			header: {
+				gameId,
+				name: gameId,
+				mode: "assignment",
+				status: "open",
+				endedAt: null,
+				deadline: new Date(deadline),
+				pin: "04352236",
+				...header,
+			},
+			questions: 5,
+			players: [],
+			answers: {},
+		});
+
+	it("an open assignment is listed as an assignment with the time left and no accuracy", async () => {
+		const { list } = setup(assignment("a-1", "2026-06-23T12:00:00.000Z"));
+
+		expect((await list()).items[0]).toMatchObject({
+			gameId: "a-1",
+			mode: "assignment",
+			open: true,
+			remainingMs: 3 * 24 * 60 * 60 * 1000,
+			participantCount: 0,
+			accuracyPercent: null,
+			endedAt: null,
+			endedEarly: false,
+		});
+	});
+
+	it("open assignments come first, the one ending first on top", async () => {
+		const { list } = setup(
+			named("live", "Ontem", { endedAt: day(19) }),
+			assignment("in-5", "2026-06-25T12:00:00.000Z"),
+			assignment("in-2", "2026-06-22T12:00:00.000Z"),
+		);
+
+		expect((await list()).items.map(({ gameId }) => gameId)).toEqual([
+			"in-2",
+			"in-5",
+			"live",
+		]);
+	});
+
+	it("an ended assignment has no time left", async () => {
+		const { list } = setup(
+			assignment("a-1", "2026-06-19T12:00:00.000Z", {
+				status: "ended",
+				endedAt: new Date("2026-06-19T12:00:00.000Z"),
+				pin: null,
+			}),
+		);
+
+		expect((await list()).items[0]).toMatchObject({
+			mode: "assignment",
+			open: false,
+			remainingMs: null,
+			endedAt: new Date("2026-06-19T12:00:00.000Z"),
+		});
 	});
 });

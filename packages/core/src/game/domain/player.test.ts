@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { aGame, aPlayer, aPlayingGame } from "../testing/a-game";
+import { aGameQuestion } from "../testing/a-game-question";
+import { DEFAULT_ASSIGNMENT_OPTIONS, newAssignment } from "./assignment";
 import { endGame } from "./game";
 import {
 	AvatarFixedError,
@@ -9,6 +11,7 @@ import {
 	canChangeAvatar,
 	changePlayerAvatar,
 	firstQuestionFor,
+	newAssignmentParticipant,
 	newPlayer,
 	removePlayer,
 } from "./player";
@@ -144,5 +147,87 @@ describe("the player's avatar (spec 028)", () => {
 				player,
 			),
 		).toBeNull();
+	});
+});
+
+describe("assignment participant (spec 030)", () => {
+	const now = new Date("2026-10-19T14:00:00.000Z");
+	const assignment = (options = {}) =>
+		newAssignment({
+			id: "game-1",
+			ownerId: "user-1",
+			quizId: "quiz-1",
+			quizVersion: 1,
+			title: "Capitais",
+			pin: "04352236",
+			deadline: new Date("2026-10-22T15:00:00.000Z"),
+			options: { ...DEFAULT_ASSIGNMENT_OPTIONS, ...options },
+			questionCount: 2,
+			now,
+		});
+	const questions = [
+		aGameQuestion({ index: 0 }),
+		aGameQuestion({
+			index: 1,
+			type: "trueFalse",
+			choices: [
+				{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: true },
+				{ id: "false", shapeIndex: 0, text: "Falso", correct: false },
+			],
+		}),
+	];
+	const join = (game = assignment()) =>
+		newAssignmentParticipant({
+			id: "player-1",
+			game,
+			questions,
+			nickname: "John",
+			secret: "secret-1",
+			avatar: { character: "koala", accessory: null },
+			shuffle: (items) => [...items].reverse(),
+			now,
+		});
+
+	it("an assignment participant starts at the first question, with progress", () => {
+		expect(join()).toMatchObject({
+			gameId: "game-1",
+			nickname: "John",
+			firstQuestionIndex: 0,
+			progress: { questionIndex: 0, phase: "answering", startedAt: now },
+			choiceOrder: null,
+		});
+	});
+
+	it("with random answers each Quiz question gets a drawn order", () => {
+		const player = join(assignment({ randomizeAnswers: true }));
+
+		expect(player.choiceOrder?.[0]).toEqual(
+			[...(questions[0]?.choices ?? [])].reverse().map(({ id }) => id),
+		);
+	});
+
+	it("true/false is never shuffled", () => {
+		const player = join(assignment({ randomizeAnswers: true }));
+
+		expect(player.choiceOrder?.[1]).toEqual(["true", "false"]);
+	});
+
+	it("without random answers there is no order of its own", () => {
+		expect(join().choiceOrder).toBeNull();
+	});
+
+	it("a live player has no progress", () => {
+		const player = newPlayer({
+			id: "player-1",
+			gameId: "game-1",
+			nickname: "Ana",
+			secret: "s",
+			firstQuestionIndex: 0,
+			avatar: { character: "koala", accessory: null },
+			now,
+		});
+
+		expect(player.progress).toBeNull();
+		expect(player.choiceOrder).toBeNull();
 	});
 });

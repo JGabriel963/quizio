@@ -12,6 +12,7 @@ import {
 	MonitorPlayIcon,
 	PlayIcon,
 	PresentationIcon,
+	SendIcon,
 	ShareIcon,
 } from "lucide-react";
 
@@ -39,6 +40,12 @@ const NEXT_STEPS: readonly {
 		available: true,
 	},
 	{
+		icon: SendIcon,
+		name: "Atribuir",
+		description: "Os participantes jogam no próprio ritmo até o prazo",
+		available: true,
+	},
+	{
 		icon: PresentationIcon,
 		name: "Palestra",
 		description: "Apresentação de slides interativa",
@@ -58,6 +65,7 @@ export function QuizReadyDialog({
 	onBack,
 	onDone,
 	onHostLive,
+	onAssign,
 }: {
 	open: boolean;
 	/** "Voltar para edição": stays in the editor, with the quiz published. */
@@ -66,6 +74,8 @@ export function QuizReadyDialog({
 	onDone: () => void;
 	/** "Organizar ao vivo": opens a live game of the quiz. */
 	onHostLive: () => void;
+	/** "Atribuir": opens "Configurar atividade" (spec 029, RN-02). */
+	onAssign: () => void;
 }) {
 	return (
 		<Dialog
@@ -87,7 +97,9 @@ export function QuizReadyDialog({
 							{available ? (
 								<button
 									type="button"
-									onClick={onHostLive}
+									onClick={() =>
+										name === "Atribuir" ? onAssign() : onHostLive()
+									}
 									className="flex w-full items-center gap-3 rounded-md bg-muted px-3 py-2.5 text-left outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
 								>
 									<Icon aria-hidden="true" className="size-5 shrink-0" />

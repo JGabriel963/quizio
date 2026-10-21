@@ -3,7 +3,7 @@ import type { RealtimePublisher } from "../../shared/application/ports/realtime-
 import { type GameStatus, isGameOpen, requireOwnedGame } from "../domain/game";
 import { GAME_EVENTS, type HostBackPayload } from "../domain/game-events";
 import { isHostAway } from "../domain/host-presence";
-import { loadGame, publishToGame } from "./game-lifecycle";
+import { loadLiveGame, publishToGame } from "./game-lifecycle";
 import type { GameRepository } from "./ports/game-repository";
 
 export type SignalHost = (input: {
@@ -23,7 +23,7 @@ export function createSignalHost(deps: {
 	realtime: RealtimePublisher;
 }): SignalHost {
 	return async ({ ownerId, gameId }) => {
-		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
+		const game = requireOwnedGame(await loadLiveGame(deps, gameId), ownerId);
 		if (isGameOpen(game)) {
 			const now = deps.clock.now();
 			const wasAway = isHostAway(game, now);

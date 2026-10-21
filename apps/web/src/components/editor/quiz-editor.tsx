@@ -115,6 +115,7 @@ export function QuizEditor({
 	onOpenSettings,
 	onExit,
 	onHostLive = () => {},
+	onAssign = () => {},
 	onError = () => {},
 	assistant,
 }: {
@@ -128,6 +129,8 @@ export function QuizEditor({
 	onExit: (destination: ExitDestination) => void;
 	/** "Organizar ao vivo", from "O quiz está pronto" (spec 008, RN-03). */
 	onHostLive?: () => void;
+	/** "Atribuir", from "O quiz está pronto" (spec 029, RN-02). */
+	onAssign?: () => void;
 	/** Shows a passing error message. */
 	onError?: (message: string) => void;
 }) {
@@ -418,6 +421,11 @@ export function QuizEditor({
 				onBack={closeDialog}
 				onDone={() => onExit("library")}
 				onHostLive={onHostLive}
+				onAssign={() => {
+					// Its own dialog opens in place of this one.
+					closeDialog();
+					onAssign();
+				}}
 			/>
 			{assistant && (
 				<NewQuizDialog

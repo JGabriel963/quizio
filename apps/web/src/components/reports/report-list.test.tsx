@@ -14,6 +14,9 @@ const report = (
 	overrides: Partial<ReportListItemData> = {},
 ): ReportListItemData => ({
 	gameId: "game-1",
+	mode: "live",
+	open: false,
+	remainingMs: null,
 	name: "Bom de Bíblia (Geral)",
 	coverUrl: null,
 	questionCount: 15,
@@ -276,5 +279,95 @@ describe("ReportSelectionBar (spec 015)", () => {
 		expect(
 			bar.queryByRole("button", { name: "Mover para a lixeira" }),
 		).not.toBeInTheDocument();
+	});
+});
+
+describe("ReportList with assignments (spec 029)", () => {
+	const DAY_MS = 24 * 60 * 60 * 1000;
+	const openAssignment = report({
+		gameId: "a-1",
+		name: "Capitais",
+		mode: "assignment",
+		open: true,
+		remainingMs: 3 * DAY_MS,
+		endedAt: null,
+		participantCount: 0,
+		accuracyPercent: null,
+	});
+
+	it("an open assignment's row says Atribuição and Termina: em 3 dias, with — accuracy", async () => {
+		renderList({ items: [openAssignment] });
+
+		const row = (await screen.findByRole("link", { name: "Capitais" })).closest(
+			"li",
+		) as HTMLElement;
+		expect(within(row).getByText("Atribuição")).toBeInTheDocument();
+		expect(within(row).queryByText("Ao vivo")).toBeNull();
+		expect(within(row).getByText("Termina: em 3 dias")).toBeInTheDocument();
+		expect(within(row).getByText("—")).toBeInTheDocument();
+	});
+
+	it("an ended assignment's row shows its end date", async () => {
+		renderList({
+			items: [
+				{
+					...openAssignment,
+					open: false,
+					remainingMs: null,
+					endedAt: "2026-06-13T17:56:00.000Z",
+				},
+			],
+		});
+
+		const row = (await screen.findByRole("link", { name: "Capitais" })).closest(
+			"li",
+		) as HTMLElement;
+		expect(within(row).getByText("Atribuição")).toBeInTheDocument();
+		expect(
+			within(row).getByText(reportDateLabel("2026-06-13T17:56:00.000Z")),
+		).toBeInTheDocument();
+	});
+
+	it("Mover para a lixeira is disabled on an open assignment, with the hint", async () => {
+		const { actions } = renderList({ items: [openAssignment] });
+		const user = userEvent.setup();
+
+		await user.click(
+			await screen.findByRole("button", { name: "Ações para Capitais" }),
+		);
+		const item = await screen.findByRole("menuitem", {
+			name: /Mover para a lixeira/,
+		});
+		await user.click(item);
+
+		expect(item).toHaveAttribute("aria-disabled", "true");
+		expect(
+			screen.getByText(
+				"Encerre a atribuição para mover o relatório para a lixeira.",
+			),
+		).toBeInTheDocument();
+		expect(actions.onMoveToTrash).not.toHaveBeenCalled();
+	});
+});
+
+describe("ReportSelectionBar with an open assignment (spec 029, RN-41)", () => {
+	it("the selection bar cannot trash a selection with an open assignment", () => {
+		render(
+			<ReportSelectionBar
+				count={2}
+				section="reports"
+				blockedByOpenAssignment
+				onMoveToTrash={() => {}}
+				onRestore={() => {}}
+				onDeletePermanently={() => {}}
+				onClear={() => {}}
+			/>,
+		);
+
+		const button = screen.getByRole("button", { name: "Mover para a lixeira" });
+		expect(button).toBeDisabled();
+		expect(button).toHaveAccessibleDescription(
+			"Encerre a atribuição para mover o relatório para a lixeira.",
+		);
 	});
 });

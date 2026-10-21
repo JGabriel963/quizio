@@ -16,9 +16,10 @@ export type OpeningGameState =
  * "Organizar ao vivo", from the quiz page and from "O quiz está pronto":
  * creates the game and leads to its lobby.
  */
-export function useHostGame(quizId: string): {
+export function useHostGame(quizId: string | null): {
 	state: OpeningGameState;
-	start: () => void;
+	/** The hook's quiz, or another one, as the library rows ask (spec 029, RN-02). */
+	start: (otherQuizId?: string) => void;
 	cancel: () => void;
 } {
 	const trpc = useTRPC();
@@ -30,17 +31,26 @@ export function useHostGame(quizId: string): {
 		}),
 	);
 
-	const start = useCallback(() => {
-		setState({ kind: "opening" });
-		host.mutate(
-			{ quizId },
-			{
-				onSuccess: ({ gameId }) =>
-					navigate({ to: "/host/$gameId", params: { gameId } }),
-				onError: () => setState({ kind: "failed" }),
-			},
-		);
-	}, [host.mutate, navigate, quizId]);
+	const [lastQuizId, setLastQuizId] = useState(quizId);
+	const start = useCallback(
+		(otherQuizId?: string) => {
+			const target = otherQuizId ?? lastQuizId ?? quizId;
+			if (!target) {
+				return;
+			}
+			setLastQuizId(target);
+			setState({ kind: "opening" });
+			host.mutate(
+				{ quizId: target },
+				{
+					onSuccess: ({ gameId }) =>
+						navigate({ to: "/host/$gameId", params: { gameId } }),
+					onError: () => setState({ kind: "failed" }),
+				},
+			);
+		},
+		[host.mutate, navigate, quizId, lastQuizId],
+	);
 
 	const cancel = useCallback(() => setState({ kind: "idle" }), []);
 

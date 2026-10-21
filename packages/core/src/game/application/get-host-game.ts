@@ -1,5 +1,5 @@
 import { requireOwnedGame } from "../domain/game";
-import { loadGame } from "./game-lifecycle";
+import { loadLiveGame } from "./game-lifecycle";
 import {
 	type HostGameView,
 	type HostGameViewDeps,
@@ -21,7 +21,7 @@ export function createGetHostGame(
 	deps: HostGameViewDeps & { games: GameRepository },
 ): GetHostGame {
 	return async ({ ownerId, gameId }) => {
-		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
+		const game = requireOwnedGame(await loadLiveGame(deps, gameId), ownerId);
 		return loadHostGameView(deps, game);
 	};
 }

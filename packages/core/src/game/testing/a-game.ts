@@ -11,6 +11,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 	const options = overrides.options ?? DEFAULT_GAME_OPTIONS;
 	return {
 		id: "game-1",
+		mode: "live",
 		ownerId: "user-1",
 		quizId: "quiz-1",
 		quizVersion: 1,
@@ -19,6 +20,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		status: "lobby",
 		locked: false,
 		options,
+		questionTimer: true,
 		// As `newGame` leaves it: on since the game was created, or off.
 		autoplaySince: options.autoplay ? createdAt : null,
 		createdAt,
@@ -70,6 +72,8 @@ export function aPlayer(overrides: Partial<Player> = {}): Player {
 		avatar: { character: "koala", accessory: "top-hat" },
 		joinedAt: new Date("2026-06-01T12:01:00.000Z"),
 		removedAt: null,
+		progress: null,
+		choiceOrder: null,
 		...overrides,
 	};
 }

@@ -14,14 +14,17 @@ export function aReportHeader(
 	return {
 		gameId: "game-1",
 		ownerId: "user-1",
+		mode: "live",
 		name: "Capitais",
 		quizId: "quiz-1",
 		quiz: { trashed: false, playable: true, coverImageKey: null },
 		questionCount: 3,
-		outcome: "finished",
+		status: "finished",
 		stoppedAt: null,
 		startedAt: new Date("2026-06-13T17:45:00.000Z"),
 		endedAt: new Date("2026-06-13T17:56:00.000Z"),
+		deadline: new Date("2026-06-14T01:45:00.000Z"),
+		pin: null,
 		trashedAt: null,
 		...overrides,
 	};

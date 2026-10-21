@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { AccuracyRing } from "@/components/reports/accuracy-ring";
 import type { ReportListData } from "@/lib/api-types";
 import { reportDateLabel } from "@/lib/report-labels";
+import { timeUntil } from "@/lib/time-until";
 
 export type RecentReportsState =
 	| { status: "pending" }
@@ -114,7 +115,9 @@ function CardBody({
 							{report.name}
 						</Link>
 						<span className="text-muted-foreground text-xs">
-							{reportDateLabel(report.endedAt)}
+							{report.endedAt === null
+								? `Atribuição · Termina: ${timeUntil(report.remainingMs ?? 0)}`
+								: reportDateLabel(report.endedAt)}
 						</span>
 					</div>
 					<span className="inline-flex items-center">

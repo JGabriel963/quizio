@@ -22,6 +22,20 @@
       "when": 1792175348093,
       "tag": "0002_sweet_boom_boom",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792433403865,
+      "tag": "0003_complex_the_hood",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792445999358,
+      "tag": "0004_superb_sprite",
+      "breakpoints": true
     }
   ]
 }

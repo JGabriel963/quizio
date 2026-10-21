@@ -15,6 +15,8 @@ const header = (
 	overrides: Partial<ReportHeaderData> = {},
 ): ReportHeaderData => ({
 	gameId: "game-1",
+	mode: "live",
+	assignment: null,
 	name: "Bom de Bíblia (Geral)",
 	coverUrl: null,
 	startedAt: "2026-06-13T17:45:00.000Z",
@@ -72,14 +74,21 @@ function renderSummary(
 	} = {},
 ) {
 	const start = vi.fn();
+	const assignmentActions = {
+		origin: "https://quizio.app",
+		onShare: vi.fn(),
+		onChangeDeadline: vi.fn(),
+		onEnd: vi.fn(),
+	};
 	renderWithRouter(
 		<ReportSummary
 			header={header(props.header)}
 			summary={summary(props.summary)}
 			playAgain={{ start, pending: false, error: null, ...props.playAgain }}
+			assignmentActions={assignmentActions}
 		/>,
 	);
-	return { start };
+	return { start, assignmentActions };
 }
 
 const section = async (name: RegExp | string) =>
@@ -275,5 +284,88 @@ describe("ReportSummary (spec 015)", () => {
 		]) {
 			expect(screen.getByRole("button", { name: rule })).toBeInTheDocument();
 		}
+	});
+});
+
+describe("ReportSummary of an assignment (spec 029, RN-32 to RN-35)", () => {
+	const empty = {
+		accuracyPercent: null,
+		durationMs: null,
+		hardestQuestion: null,
+		difficultCount: 0,
+		needsHelp: [],
+		didNotFinish: [],
+	};
+	const deadline = "2026-10-22T15:00:00.000Z";
+
+	it("an open assignment has the invite and the controls in place of the result, and the three cards empty", async () => {
+		renderSummary({
+			header: {
+				mode: "assignment",
+				endedAt: null,
+				participantCount: 0,
+				assignment: {
+					open: true,
+					deadline,
+					remainingMs: 1000,
+					pin: "04352236",
+				},
+			},
+			summary: empty,
+		});
+
+		expect(
+			await screen.findByRole("region", { name: "Convidar participantes" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Alterar prazo" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", { name: "Resultado geral" }),
+		).toBeNull();
+		expect(screen.queryByRole("region", { name: "Totais" })).toBeNull();
+		expect(
+			screen.getByRole("heading", { name: "Perguntas difíceis (0)" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("heading", { name: /Ajuda necessária \(0\)/ }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("heading", { name: "Não concluiu (0)" }),
+		).toBeInTheDocument();
+	});
+
+	it("an ended assignment has no invite or control cards", async () => {
+		renderSummary({
+			header: {
+				mode: "assignment",
+				participantCount: 0,
+				assignment: { open: false, deadline, remainingMs: null, pin: null },
+			},
+			summary: empty,
+		});
+
+		expect(
+			await screen.findByRole("region", { name: "Resultado geral" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", { name: "Convidar participantes" }),
+		).toBeNull();
+		expect(screen.queryByRole("button", { name: "Alterar prazo" })).toBeNull();
+	});
+
+	it("an ended assignment has no Tempo", async () => {
+		renderSummary({
+			header: {
+				mode: "assignment",
+				participantCount: 1,
+				assignment: { open: false, deadline, remainingMs: null, pin: null },
+			},
+			summary: empty,
+		});
+
+		const totals = await screen.findByRole("region", { name: "Totais" });
+		expect(within(totals).getByText("Participantes")).toBeInTheDocument();
+		expect(within(totals).queryByText("Tempo")).toBeNull();
 	});
 });

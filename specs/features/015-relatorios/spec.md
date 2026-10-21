@@ -538,6 +538,7 @@ Decisões tomadas sem consulta prévia; todas podem ser revistas antes do plano:
 
 ## Changelog
 
+- 2026-10-19 — spec 029: uma atribuição é um relatório desde que é criada (altera a RN-01 e a RN-02); a lista mostra primeiro as atribuições abertas, pelo prazo (complementa a RN-23); uma atribuição aberta não vai para a lixeira (complementa a RN-50).
 - 2026-10-06 — spec entregue. Os detalhes do participante e da pergunta (RN-42, RN-44) abrem num painel lateral sobre a aba; "Ver relatório" no pódio é um botão como os outros do fim do jogo.
 - 2026-10-06 — a pedido do usuário, ficou explícito que cada partida do mesmo quiz gera o seu próprio relatório (RN-01, CA-05a).
 - 2026-10-06 — spec criada, com as capturas da área de relatórios do Kahoot enviadas pelo usuário (lista, menu da linha, Resumo, explicações dos três cartões, Participantes, Perguntas, Feedback e "Opções de relatório"). Decisões do usuário: toda partida iniciada vira relatório; os relatórios ficam quando o quiz é excluído de vez; lixeira como no Kahoot; renomear entra; Feedback, "Ver pódio", o quiz com as perguntas difíceis e o download ficam de fora.

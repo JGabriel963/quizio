@@ -22,6 +22,7 @@ import {
 import type { ReportListItemData } from "@/lib/api-types";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { useReportMutations } from "@/lib/report-mutations";
+import { reportListRefreshInterval } from "@/lib/report-refresh";
 import { useTRPC } from "@/utils/trpc";
 
 /** How many reports each "Mostrar mais" brings (spec 015, RN-28). */
@@ -55,6 +56,7 @@ function ReportsPage() {
 		}),
 		// The list stays on the screen while a longer one arrives.
 		placeholderData: keepPreviousData,
+		refetchInterval: (query) => reportListRefreshInterval(query.state.data),
 	});
 
 	// Another section or another search is another list.
@@ -112,6 +114,7 @@ function ReportsPage() {
 				<ReportSelectionBar
 					count={selectedIds.length}
 					section={section}
+					blockedByOpenAssignment={selectedItems.some((item) => item.open)}
 					onMoveToTrash={() => {
 						mutations.moveToTrash.mutate({ gameIds: selectedIds });
 						clearSelection();

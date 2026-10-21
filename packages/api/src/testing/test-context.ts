@@ -1,9 +1,13 @@
+import { ASSIGNMENT_DEFAULT_MAX_DEADLINE_DAYS } from "@quizio/core/game/domain/assignment";
 import { InMemoryAnswerRepository } from "@quizio/core/game/testing/in-memory-answer-repository";
+import { InMemoryAssignmentLandingQuery } from "@quizio/core/game/testing/in-memory-assignment-landing-query";
+import { InMemoryAssignmentPreferencesRepository } from "@quizio/core/game/testing/in-memory-assignment-preferences-repository";
 import { InMemoryGameQuestionRepository } from "@quizio/core/game/testing/in-memory-game-question-repository";
 import { InMemoryGameRepository } from "@quizio/core/game/testing/in-memory-game-repository";
 import { InMemoryHostPreferencesRepository } from "@quizio/core/game/testing/in-memory-host-preferences-repository";
 import { InMemoryPlayableQuizQuery } from "@quizio/core/game/testing/in-memory-playable-quiz-query";
 import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-player-repository";
+import { SequentialAssignmentPinGenerator } from "@quizio/core/game/testing/sequential-assignment-pin-generator";
 import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
@@ -54,6 +58,8 @@ export interface TestApi {
 	/** The assistant's model, answering with three valid questions by default. */
 	generator: InMemoryQuestionGenerator;
 	sourceUploads: InMemorySourceUploadRepository;
+	/** Reads the games above; the reports' and creators' names are set here. */
+	assignmentLanding: InMemoryAssignmentLandingQuery;
 }
 
 function toLibraryRecord(
@@ -88,6 +94,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const clock = new FixedClock("2026-06-01T12:00:00.000Z");
 	const generator = new InMemoryQuestionGenerator();
 	const sourceUploads = new InMemorySourceUploadRepository();
+	const assignmentLanding = new InMemoryAssignmentLandingQuery(games, players);
 	const adapters: Adapters = {
 		storage,
 		realtime,
@@ -119,6 +126,12 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		reportGames: reports,
 		reports,
 		pins: new SequentialGamePinGenerator("265914"),
+		assignmentPins: new SequentialAssignmentPinGenerator("04352236"),
+		assignmentPreferences: new InMemoryAssignmentPreferencesRepository(),
+		assignmentLanding,
+		assignmentSettings: {
+			maxDeadlineDays: ASSIGNMENT_DEFAULT_MAX_DEADLINE_DAYS,
+		},
 		shuffler: new FixedShuffler(),
 		attempts: new InMemoryAttemptLimiter(),
 		authSettings: { signUpEnabled: true, googleEnabled: false },
@@ -154,5 +167,6 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		clock,
 		generator,
 		sourceUploads,
+		assignmentLanding,
 	};
 }

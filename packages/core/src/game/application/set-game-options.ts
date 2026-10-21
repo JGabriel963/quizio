@@ -9,7 +9,7 @@ import {
 	definedOptions,
 	type GameOptions,
 } from "../domain/game-options";
-import { loadGame, publishToGame } from "./game-lifecycle";
+import { loadGame, loadLiveGame, publishToGame } from "./game-lifecycle";
 import {
 	type HostGameView,
 	type HostGameViewDeps,
@@ -40,7 +40,7 @@ export function createSetGameOptions(
 	},
 ): SetGameOptions {
 	return async ({ ownerId, gameId, options }) => {
-		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
+		const game = requireOwnedGame(await loadLiveGame(deps, gameId), ownerId);
 		const change = definedOptions(options);
 		// Checked against the game as it was read; what is written is only the
 		// change. The game may have moved on meanwhile, and another switch may

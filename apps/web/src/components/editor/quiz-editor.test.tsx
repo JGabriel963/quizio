@@ -107,6 +107,7 @@ async function renderEditor(
 	let setData: (data: QuizEditorData) => void = () => {};
 	const onExit = vi.fn();
 	const onError = vi.fn();
+	const onAssign = vi.fn();
 	// Uploads stay pending until the test ends them, with a failure or an image.
 	const pendingUploads: (() => void)[] = [];
 	const endUpload = (failure: string | null = null) => {
@@ -194,6 +195,7 @@ async function renderEditor(
 				onOpenSettings={vi.fn()}
 				onExit={onExit}
 				onError={onError}
+				onAssign={onAssign}
 			/>
 		);
 	}
@@ -208,6 +210,7 @@ async function renderEditor(
 		actions,
 		onExit,
 		onError,
+		onAssign,
 		user: userEvent.setup(),
 		revealAssistant: () => revealAssistant(),
 		/** Ends the oldest pending upload, as a failure when a message is given. */
@@ -517,6 +520,25 @@ describe("QuizEditor: Salvar", () => {
 
 		await user.click(within(dialog).getByRole("button", { name: "Pronto" }));
 		expect(onExit).toHaveBeenCalledExactlyOnceWith("library");
+	});
+
+	it("Atribuir closes the ready dialog before opening its own (spec 029, RN-02)", async () => {
+		const { onAssign, user } = await renderEditor(
+			editorData(complete("a", "Capital do Brasil?")),
+		);
+
+		await user.click(saveButton());
+		const dialog = await screen.findByRole("dialog", {
+			name: "O quiz está pronto",
+		});
+		await user.click(within(dialog).getByRole("button", { name: /^Atribuir/ }));
+
+		await vi.waitFor(() =>
+			expect(
+				screen.queryByRole("dialog", { name: "O quiz está pronto" }),
+			).toBeNull(),
+		);
+		expect(onAssign).toHaveBeenCalledOnce();
 	});
 
 	it("Voltar para edição stays in the editor, published", async () => {

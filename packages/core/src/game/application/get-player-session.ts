@@ -23,7 +23,7 @@ import {
 import { podiumRevealRemainingMs } from "../domain/podium";
 import { type PublicStage, publicStageOf } from "../domain/public-stage";
 import { rankPlayers, standingOf, streakAfter } from "../domain/standings";
-import { loadGame } from "./game-lifecycle";
+import { loadLiveGame } from "./game-lifecycle";
 import type { AnswerRepository } from "./ports/answer-repository";
 import type { GameQuestionRepository } from "./ports/game-question-repository";
 import type { GameRepository } from "./ports/game-repository";
@@ -230,7 +230,7 @@ export function createGetPlayerSession(deps: {
 	}
 
 	return async ({ gameId, playerId, secret }) => {
-		const game = await loadGame(deps, gameId);
+		const game = await loadLiveGame(deps, gameId);
 		const player = await deps.players.findById(playerId);
 		if (
 			!game ||

@@ -41,6 +41,7 @@ describe("findGameByPin (spec 008)", () => {
 		expect(await find({ pin: "265914", clientKey: "ip" })).toEqual({
 			gameId: "game-1",
 			pin: "265914",
+			mode: "live",
 		});
 		expect(await find({ pin: "265 914", clientKey: "ip" })).toMatchObject({
 			gameId: "game-1",
@@ -376,6 +377,7 @@ describe("joining a game in progress (spec 012)", () => {
 		expect(await createFindGameByPin(deps)(find)).toEqual({
 			gameId: "game-1",
 			pin: "265914",
+			mode: "live",
 		});
 	});
 

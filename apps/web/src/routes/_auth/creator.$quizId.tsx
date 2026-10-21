@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { useAssignQuiz } from "@/components/assignment/use-assign-quiz";
 import { EditorUnavailable } from "@/components/editor/editor-unavailable";
 import { QuizEditor } from "@/components/editor/quiz-editor";
 import { OpeningGame } from "@/components/game/opening-game";
@@ -45,6 +46,7 @@ function Creator({ quizId }: { quizId: string }) {
 	const tracker = useSaveTracker();
 	const actions = useEditorActions(quizId);
 	const hosting = useHostGame(quizId);
+	const assigning = useAssignQuiz();
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [titleRevision, setTitleRevision] = useState(0);
 	const { created } = Route.useSearch();
@@ -107,7 +109,13 @@ function Creator({ quizId }: { quizId: string }) {
 				onExit={(destination) =>
 					navigate({ to: destination === "home" ? "/" : "/library" })
 				}
-				onHostLive={hosting.start}
+				onHostLive={() => hosting.start()}
+				onAssign={() =>
+					assigning.assign({
+						id: quizId,
+						title: editor.data.quiz.title ?? "",
+					})
+				}
 				onError={(message) => toast.error(message)}
 				assistant={
 					assistantStatus.data?.enabled
@@ -119,9 +127,10 @@ function Creator({ quizId }: { quizId: string }) {
 						: undefined
 				}
 			/>
+			{assigning.dialog}
 			<OpeningGame
 				state={hosting.state}
-				onRetry={hosting.start}
+				onRetry={() => hosting.start()}
 				onCancel={hosting.cancel}
 			/>
 			<QuizFormDialog

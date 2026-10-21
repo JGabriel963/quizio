@@ -20,3 +20,42 @@ describe("InMemoryPlayerRepository", () => {
 		);
 	});
 });
+
+describe("InMemoryPlayerRepository: progress (spec 030)", () => {
+	const at = (iso: string) => new Date(iso);
+	const answering = {
+		questionIndex: 0,
+		phase: "answering" as const,
+		startedAt: at("2026-10-19T14:00:00.000Z"),
+	};
+	const results = {
+		questionIndex: 0,
+		phase: "results" as const,
+		startedAt: at("2026-10-19T14:00:05.000Z"),
+	};
+
+	it("saveProgressIfAt writes only the progress when it is still at from", async () => {
+		const players = new InMemoryPlayerRepository();
+		await players.add(aPlayer({ progress: answering }));
+
+		expect(await players.saveProgressIfAt("player-1", answering, results)).toBe(
+			true,
+		);
+		expect(await players.findById("player-1")).toEqual(
+			aPlayer({ progress: results }),
+		);
+	});
+
+	it("saveProgressIfAt refuses when another request moved first", async () => {
+		const players = new InMemoryPlayerRepository();
+		await players.add(aPlayer({ progress: results }));
+
+		expect(
+			await players.saveProgressIfAt("player-1", answering, {
+				...results,
+				phase: "scoreboard",
+			}),
+		).toBe(false);
+		expect((await players.findById("player-1"))?.progress).toEqual(results);
+	});
+});

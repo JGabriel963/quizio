@@ -17,7 +17,7 @@ import {
 import { GAME_EVENTS, type PlayerJoinedPayload } from "../domain/game-events";
 import { parseNickname } from "../domain/nickname";
 import { firstQuestionFor, newPlayer } from "../domain/player";
-import { loadGame, publishToGame } from "./game-lifecycle";
+import { loadLiveGame, publishToGame } from "./game-lifecycle";
 import { toLobbyPlayerView } from "./host-game-view";
 import type { GameRepository } from "./ports/game-repository";
 import type { PlayerRepository } from "./ports/player-repository";
@@ -49,7 +49,7 @@ export function createJoinGame(deps: {
 	shuffler: Shuffler;
 }): JoinGame {
 	return async ({ gameId, nickname: rawNickname, avatar: remembered }) => {
-		const game = await loadGame(deps, gameId);
+		const game = await loadLiveGame(deps, gameId);
 		assertJoinable(game);
 		const nickname = parseNickname(rawNickname);
 		const player = newPlayer({

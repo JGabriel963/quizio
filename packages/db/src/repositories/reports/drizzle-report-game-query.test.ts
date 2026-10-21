@@ -1,3 +1,7 @@
+import {
+	DEFAULT_ASSIGNMENT_OPTIONS,
+	newAssignment,
+} from "@quizio/core/game/domain/assignment";
 import { endGame, type Game } from "@quizio/core/game/domain/game";
 import { revealedThrough } from "@quizio/core/game/domain/game-progress";
 import { removePlayer } from "@quizio/core/game/domain/player";
@@ -133,10 +137,13 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 			quizId: "quiz-1",
 			quiz: { trashed: false, playable: true, coverImageKey: null },
 			questionCount: 3,
-			outcome: "finished",
+			status: "finished",
 			stoppedAt: null,
 			startedAt: started,
 			endedAt: ended,
+			mode: "live",
+			deadline: at("2026-06-01T20:00:00.000Z"),
+			pin: null,
 			trashedAt: null,
 		});
 		expect(await ids()).toEqual(["game-1"]);
@@ -151,7 +158,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 		await games.create(endGame(playing, "host", ended));
 
 		expect(await query.findHeader("game-1", now)).toMatchObject({
-			outcome: "ended",
+			status: "ended",
 			questionCount: 5,
 			stoppedAt: { questionIndex: 2, phase: "answering" },
 			endedAt: ended,
@@ -187,7 +194,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 		// Nobody opened it again: the row still says "playing".
 		const after = new Date(playing.expiresAt.getTime() + 1);
 		expect(await query.findHeader("game-1", after)).toMatchObject({
-			outcome: "ended",
+			status: "ended",
 			stoppedAt: { questionIndex: 1, phase: "results" },
 			endedAt: playing.expiresAt,
 		});
@@ -496,5 +503,163 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				await answers.totalsThrough("game-1", through),
 			).map(({ playerId, rank, total }) => ({ playerId, rank, total })),
 		);
+	});
+	describe("assignments (spec 029)", () => {
+		const assignment = (id: string, deadline: string, pin: string) =>
+			newAssignment({
+				id,
+				ownerId: "user-1",
+				quizId: "quiz-1",
+				quizVersion: 1,
+				title: "Capitais",
+				pin,
+				deadline: at(deadline),
+				options: DEFAULT_ASSIGNMENT_OPTIONS,
+				questionCount: 3,
+				now: created,
+			});
+
+		it("an assignment is a report from its creation", async () => {
+			await games.create(
+				assignment("a-1", "2026-06-04T12:00:00.000Z", "00000001"),
+			);
+
+			expect(await ids()).toEqual(["a-1"]);
+		});
+
+		it("an open assignment has no end, its deadline and its PIN", async () => {
+			await games.create(
+				assignment("a-1", "2026-06-04T12:00:00.000Z", "00000001"),
+			);
+
+			expect(await query.findHeader("a-1", now)).toMatchObject({
+				mode: "assignment",
+				status: "open",
+				endedAt: null,
+				deadline: at("2026-06-04T12:00:00.000Z"),
+				pin: "00000001",
+				startedAt: created,
+				questionCount: 3,
+			});
+		});
+
+		it("past its deadline an assignment ended at the deadline, without its PIN", async () => {
+			await games.create(
+				assignment("a-1", "2026-06-02T08:00:00.000Z", "00000001"),
+			);
+
+			expect(await query.findHeader("a-1", now)).toMatchObject({
+				mode: "assignment",
+				status: "ended",
+				endedAt: at("2026-06-02T08:00:00.000Z"),
+				pin: null,
+			});
+		});
+
+		it("an assignment ended now has its end and no PIN", async () => {
+			const stored = assignment("a-1", "2026-06-04T12:00:00.000Z", "00000001");
+			await games.create(stored);
+			await games.save(endGame(stored, "host", at("2026-06-01T15:00:00.000Z")));
+
+			expect(await query.findHeader("a-1", now)).toMatchObject({
+				status: "ended",
+				endedAt: at("2026-06-01T15:00:00.000Z"),
+				pin: null,
+			});
+		});
+
+		it("open assignments come first by deadline, then reports by end", async () => {
+			await games.create(finished({ id: "live", pin: "111111" }));
+			await games.create(
+				assignment("in-5", "2026-06-07T12:00:00.000Z", "00000005"),
+			);
+			await games.create(
+				assignment("in-2", "2026-06-04T12:00:00.000Z", "00000002"),
+			);
+			await games.create(
+				assignment("past", "2026-06-02T08:00:00.000Z", "00000003"),
+			);
+
+			expect(await ids()).toEqual(["in-2", "in-5", "past", "live"]);
+		});
+
+		it("a live game in the lobby or being played is still not a report", async () => {
+			await games.create(
+				aGame({ id: "lobby", pin: "111111", quizId: "quiz-2" }),
+			);
+			await games.create(
+				aPlayingGame(
+					"answering",
+					{},
+					{
+						id: "playing",
+						pin: "222222",
+						expiresAt: at("2026-06-02T17:00:00.000Z"),
+					},
+				),
+			);
+
+			expect(await ids()).toEqual([]);
+		});
+
+		it("tallies of an assignment without players have no participants", async () => {
+			await games.create(
+				assignment("a-1", "2026-06-04T12:00:00.000Z", "00000001"),
+			);
+			const [header] = await query.listHeaders({
+				ownerId: "user-1",
+				section: "reports",
+				now,
+			});
+
+			expect(await query.tallies(header ? [header] : [])).toEqual([
+				{ gameId: "a-1", participantFirstQuestions: [], correctAnswers: 0 },
+			]);
+		});
+	});
+	describe("played assignments (spec 030)", () => {
+		const played = () =>
+			newAssignment({
+				id: "game-1",
+				ownerId: "user-1",
+				quizId: "quiz-1",
+				quizVersion: 1,
+				title: "Capitais",
+				pin: "00000009",
+				deadline: at("2026-06-04T12:00:00.000Z"),
+				options: DEFAULT_ASSIGNMENT_OPTIONS,
+				questionCount: 3,
+				now: created,
+			});
+
+		it("an assignment's participants and answers are read, with every question played", async () => {
+			await seedPlayed(played());
+			await answer("p1", 0, true);
+			await answer("p1", 1, false);
+
+			const game = await query.findGame("game-1", now);
+
+			expect(game?.participants.map(({ nickname }) => nickname)).toEqual([
+				"Ana",
+				"Bia",
+			]);
+			expect(game?.questions).toHaveLength(3);
+			expect(game?.answers).toHaveLength(2);
+		});
+
+		it("an assignment ended in the middle keeps the answers given", async () => {
+			const assignment = played();
+			await seedPlayed(assignment);
+			await answer("p1", 0, true);
+			await games.save(
+				endGame(assignment, "host", at("2026-06-01T13:00:00.000Z")),
+			);
+
+			const game = await query.findGame("game-1", now);
+
+			expect(game?.header.status).toBe("ended");
+			expect(game?.questions).toHaveLength(3);
+			expect(game?.answers).toHaveLength(1);
+		});
 	});
 });

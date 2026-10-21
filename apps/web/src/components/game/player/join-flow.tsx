@@ -5,7 +5,7 @@ import {
 	type PlayerRemovedPayload,
 	type StageChangedPayload,
 } from "@quizio/core/game/domain/game-events";
-import { parseGamePin } from "@quizio/core/game/domain/game-pin";
+import { parseGamePin, parseJoinPin } from "@quizio/core/game/domain/game-pin";
 import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
@@ -48,7 +48,9 @@ import { PlayerStage } from "./player-stage";
 
 /** What the player's flow asks of the API; the route wires it to tRPC (specs 008, 009). */
 export interface JoinApi {
-	find(pin: string): Promise<{ gameId: string; pin: string }>;
+	find(
+		pin: string,
+	): Promise<{ gameId: string; pin: string; mode: "live" | "assignment" }>;
 	enter(input: {
 		gameId: string;
 		nickname: string;
@@ -92,6 +94,8 @@ type Step =
 	/** A game this browser's player left is still on: the way back (spec 008, RN-44a). */
 	| { kind: "rejoin"; pin: string; nickname: string }
 	| { kind: "nickname"; game: FoundGame; error: string | null }
+	/** An assignment's PIN: its own screen takes over (spec 029, RN-20). */
+	| { kind: "assignment"; gameId: string }
 	| {
 			/** In the game: waiting in the lobby while `play` is null, playing after. */
 			kind: "waiting";
@@ -205,6 +209,7 @@ export function JoinFlow({
 	api,
 	store,
 	onPinChange,
+	onAssignment = () => {},
 }: {
 	/** The PIN in the address, if any. */
 	pin: string | null;
@@ -212,6 +217,8 @@ export function JoinFlow({
 	store: PlayerSessionStore;
 	/** Keeps the address in step with the flow: the PIN once found, null back at the start. */
 	onPinChange: (pin: string | null) => void;
+	/** Opens the activity of an assignment whose PIN was typed (spec 029, RN-20). */
+	onAssignment?: (gameId: string) => void;
 }) {
 	const [step, setStep] = useState<Step>(() =>
 		pin || store.last() ? { kind: "resolving" } : pinStep(),
@@ -233,6 +240,17 @@ export function JoinFlow({
 	 * what they are after.
 	 */
 	async function resolve(rawPin: string, typed: boolean): Promise<Step> {
+		if (parseJoinPin(rawPin)?.mode === "assignment") {
+			try {
+				const found = await api.find(rawPin);
+				return { kind: "assignment", gameId: found.gameId };
+			} catch (error) {
+				return pinStep(
+					gameErrorMessage(error),
+					gameErrorCode(error) === PIN_NOT_RECOGNIZED,
+				);
+			}
+		}
 		const parsed = parseGamePin(rawPin);
 		if (!parsed) {
 			return pinStep(
@@ -278,7 +296,8 @@ export function JoinFlow({
 		}
 
 		try {
-			return { kind: "nickname", game: await api.find(parsed), error: null };
+			const { gameId, pin: foundPin } = await api.find(parsed);
+			return { kind: "nickname", game: { gameId, pin: foundPin }, error: null };
 		} catch (error) {
 			return pinStep(
 				gameErrorMessage(error),
@@ -288,6 +307,10 @@ export function JoinFlow({
 	}
 
 	function show(next: Step, fromPin: string | null) {
+		if (next.kind === "assignment") {
+			onAssignment(next.gameId);
+			return;
+		}
 		if (next.kind === "pin") {
 			resolvedPin.current = null;
 			onPinChange(null);

@@ -46,8 +46,13 @@ export function createHostGame(deps: {
 			);
 		}
 
-		// A quiz has one open game: the new one replaces it (RN-07).
-		await endGamesOfQuiz({ quizId: quiz.id, reason: "replaced" });
+		// A quiz has one open live game: the new one replaces it (RN-07). Its
+		// assignments stay open (spec 029, RN-05).
+		await endGamesOfQuiz({
+			quizId: quiz.id,
+			reason: "replaced",
+			modes: ["live"],
+		});
 
 		// The game starts as the host left the settings last time (spec 012, RN-05).
 		const options =
@@ -75,7 +80,11 @@ export function createHostGame(deps: {
 			}
 			// Another request got there first, with this PIN or for this quiz:
 			// the last game to be asked for is the one that stays (RN-07).
-			await endGamesOfQuiz({ quizId: quiz.id, reason: "replaced" });
+			await endGamesOfQuiz({
+				quizId: quiz.id,
+				reason: "replaced",
+				modes: ["live"],
+			});
 		}
 		throw new Error("Could not draw a free game PIN");
 	};

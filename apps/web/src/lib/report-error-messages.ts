@@ -1,5 +1,6 @@
 import { REPORT_NAME_MAX_LENGTH } from "@quizio/core/reports/domain/report";
 
+import { ASSIGNMENT_OPEN_TRASH_HINT } from "./assignment-error-messages";
 import { domainCodeOf } from "./quiz-error-messages";
 
 const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
@@ -8,6 +9,7 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 		"Este relatório está na lixeira. Restaure-o antes de abrir.",
 	"REPORT.NOT_IN_TRASH": "Mova o relatório para a lixeira antes de excluí-lo.",
 	"REPORT.INVALID_NAME": `O nome deve ter de 1 a ${REPORT_NAME_MAX_LENGTH} caracteres.`,
+	"REPORT.ASSIGNMENT_OPEN": ASSIGNMENT_OPEN_TRASH_HINT,
 };
 
 /** Portuguese message for a failed report call, based on its domain code. */

@@ -5,13 +5,18 @@ import { describe, expect, it, vi } from "vitest";
 import { QuizReadyDialog } from "./quiz-ready-dialog";
 
 function renderDialog(open = true) {
-	const props = { onBack: vi.fn(), onDone: vi.fn(), onHostLive: vi.fn() };
+	const props = {
+		onBack: vi.fn(),
+		onDone: vi.fn(),
+		onHostLive: vi.fn(),
+		onAssign: vi.fn(),
+	};
 	render(<QuizReadyDialog open={open} {...props} />);
 	return { props, user: userEvent.setup() };
 }
 
 describe("QuizReadyDialog", () => {
-	it("shows the four options, the undelivered ones as coming soon", () => {
+	it("shows the five options, the undelivered ones as coming soon", () => {
 		renderDialog();
 
 		expect(
@@ -24,19 +29,21 @@ describe("QuizReadyDialog", () => {
 			[
 				"Iniciar demonstraçãoExecute uma sessão de teste antes de apresentar ao vivoEm breve",
 				"Organizar ao vivoApresente em uma tela grande",
+				"AtribuirOs participantes jogam no próprio ritmo até o prazo",
 				"PalestraApresentação de slides interativaEm breve",
 				"CompartilharPermita que outros organizadores usem este quiz",
-			].map((text, index) => (index === 3 ? `${text}Em breve` : text)),
+			].map((text, index) => (index === 4 ? `${text}Em breve` : text)),
 		);
 	});
 
-	it("only Organizar ao vivo can be activated (spec 008, RN-03)", async () => {
+	it("only Organizar ao vivo and Atribuir can be activated (spec 008, RN-03; spec 029, RN-02)", async () => {
 		const { props, user } = renderDialog();
 
 		expect(
 			screen.getAllByRole("button").map((button) => button.textContent),
 		).toEqual([
 			"Organizar ao vivoApresente em uma tela grande",
+			"AtribuirOs participantes jogam no próprio ritmo até o prazo",
 			"Voltar para edição",
 			"Pronto",
 		]);
@@ -73,5 +80,16 @@ describe("QuizReadyDialog", () => {
 		renderDialog(false);
 
 		expect(screen.queryByRole("dialog")).toBeNull();
+	});
+});
+
+describe("QuizReadyDialog: Atribuir (spec 029, RN-02)", () => {
+	it("Atribuir is available after Organizar ao vivo", async () => {
+		const { props, user } = renderDialog();
+
+		await user.click(screen.getByRole("button", { name: /^Atribuir/ }));
+
+		expect(props.onAssign).toHaveBeenCalledOnce();
+		expect(props.onHostLive).not.toHaveBeenCalled();
 	});
 });

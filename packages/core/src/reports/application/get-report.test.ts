@@ -46,6 +46,7 @@ describe("getReport (spec 015)", () => {
 
 		expect(report.header).toEqual({
 			gameId: "game-1",
+			mode: "live",
 			name: "Capitais",
 			coverUrl: null,
 			startedAt: started,
@@ -56,6 +57,7 @@ describe("getReport (spec 015)", () => {
 			participantCount: 2,
 			quizId: "quiz-1",
 			canPlayAgain: true,
+			assignment: null,
 		});
 		expect(report.summary).toMatchObject({
 			accuracyPercent: 50,
@@ -69,7 +71,7 @@ describe("getReport (spec 015)", () => {
 			aReportGame({
 				header: {
 					questionCount: 5,
-					outcome: "ended",
+					status: "ended",
 					stoppedAt: { questionIndex: 2, phase: "answering" },
 				},
 				questions: 5,
@@ -95,7 +97,7 @@ describe("getReport (spec 015)", () => {
 			aReportGame({
 				header: {
 					questionCount: 3,
-					outcome: "ended",
+					status: "ended",
 					stoppedAt: { questionIndex: 0, phase: "answering" },
 				},
 				questions: 3,
@@ -306,5 +308,126 @@ describe("getReport (spec 015)", () => {
 			quizId: null,
 			canPlayAgain: false,
 		});
+	});
+});
+
+describe("getReport of an assignment (spec 029)", () => {
+	const deadline = new Date("2026-06-23T12:00:00.000Z");
+	const openAssignment = () =>
+		aReportGame({
+			header: {
+				mode: "assignment",
+				status: "open",
+				endedAt: null,
+				startedAt: new Date("2026-06-19T14:11:00.000Z"),
+				deadline,
+				pin: "04352236",
+				questionCount: 3,
+			},
+			questions: 3,
+			players: [],
+			answers: {},
+		});
+
+	it("an open assignment's report has its deadline, time left and PIN", async () => {
+		const getReport = createGetReport({
+			reportGames: new InMemoryReportStore([openAssignment()]),
+			storage: new InMemoryObjectStorage(),
+			clock: new FixedClock("2026-06-20T12:00:00.000Z"),
+		});
+
+		const { header } = await getReport({ ownerId: "user-1", gameId: "game-1" });
+
+		expect(header).toMatchObject({
+			mode: "assignment",
+			endedAt: null,
+			endedEarly: false,
+			participantCount: 0,
+			assignment: {
+				open: true,
+				deadline,
+				remainingMs: 3 * 24 * 60 * 60 * 1000,
+				pin: "04352236",
+			},
+		});
+	});
+
+	it("an open assignment lists every question with no accuracy", async () => {
+		const getReport = createGetReport({
+			reportGames: new InMemoryReportStore([openAssignment()]),
+			storage: new InMemoryObjectStorage(),
+			clock: new FixedClock("2026-06-20T12:00:00.000Z"),
+		});
+
+		const report = await getReport({ ownerId: "user-1", gameId: "game-1" });
+
+		expect(report.header.playedCount).toBe(3);
+		expect(report.questions.map((q) => q.accuracyPercent)).toEqual([
+			null,
+			null,
+			null,
+		]);
+		expect(report.summary).toMatchObject({
+			accuracyPercent: null,
+			hardestQuestion: null,
+			needsHelp: [],
+			didNotFinish: [],
+		});
+	});
+
+	it("a live report has no assignment part", async () => {
+		const getReport = createGetReport({
+			reportGames: new InMemoryReportStore([
+				aReportGame({
+					questions: 1,
+					players: ["Ana"],
+					answers: { Ana: ["right"] },
+				}),
+			]),
+			storage: new InMemoryObjectStorage(),
+			clock: new FixedClock("2026-06-20T12:00:00.000Z"),
+		});
+
+		const { header } = await getReport({ ownerId: "user-1", gameId: "game-1" });
+
+		expect(header).toMatchObject({ mode: "live", assignment: null });
+	});
+});
+
+describe("getReport of a played assignment (spec 030, RN-25 to RN-27)", () => {
+	const played = () =>
+		aReportGame({
+			header: {
+				mode: "assignment",
+				status: "open",
+				endedAt: null,
+				deadline: new Date("2026-06-23T12:00:00.000Z"),
+				pin: "04352236",
+				questionCount: 5,
+			},
+			questions: 5,
+			players: ["John"],
+			answers: { John: ["right", "right", "wrong", null, null] },
+		});
+	const getReport = () =>
+		createGetReport({
+			reportGames: new InMemoryReportStore([played()]),
+			storage: new InMemoryObjectStorage(),
+			clock: new FixedClock("2026-06-20T12:00:00.000Z"),
+		})({ ownerId: "user-1", gameId: "game-1" });
+
+	it("an assignment counts every question for every participant: 3 of 5 answered is 2 unanswered", async () => {
+		const report = await getReport();
+
+		expect(report.participants).toMatchObject([
+			{ nickname: "John", accuracyPercent: 40, unanswered: 2 },
+		]);
+		expect(report.summary.didNotFinish).toMatchObject([
+			{ nickname: "John", unanswered: 2 },
+		]);
+	});
+
+	it("an assignment's summary has no duration", async () => {
+		expect((await getReport()).summary.durationMs).toBeNull();
 	});
 });

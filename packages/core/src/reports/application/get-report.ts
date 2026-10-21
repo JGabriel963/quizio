@@ -1,3 +1,4 @@
+import type { GameMode } from "../../game/domain/game";
 import { accuracyPercent } from "../domain/accuracy";
 import { endedEarly, playedQuestionCount } from "../domain/report";
 import {
@@ -11,6 +12,8 @@ import {
 } from "../domain/report-stats";
 import { loadReport, type ReportReadDeps } from "./load-report";
 import {
+	type AssignmentPartView,
+	assignmentPartOf,
 	coverUrlOf,
 	type ImageUrlResolver,
 	imageUrlOf,
@@ -24,10 +27,12 @@ import {
 /** The top of a report (spec 015, RN-32, RN-33). */
 export interface ReportHeaderView {
 	gameId: string;
+	/** A live game or an assignment (spec 029). */
+	mode: GameMode;
 	name: string;
 	coverUrl: string | null;
 	startedAt: Date;
-	endedAt: Date;
+	endedAt: Date | null;
 	endedEarly: boolean;
 	/** How many questions the game had. */
 	questionCount: number;
@@ -37,6 +42,8 @@ export interface ReportHeaderView {
 	/** Null when the quiz cannot be opened (RN-05). */
 	quizId: string | null;
 	canPlayAgain: boolean;
+	/** Null for a live game (spec 029, RN-31 to RN-33). */
+	assignment: AssignmentPartView | null;
 }
 
 /** The hardest question, as its card shows it (RN-37). */
@@ -48,7 +55,8 @@ export interface HardestQuestionView extends QuestionRowView {
 export interface ReportSummaryView {
 	/** Null when no question reached its results. */
 	accuracyPercent: number | null;
-	durationMs: number;
+	/** Null for an assignment: each participant plays at their own pace (spec 030, RN-27). */
+	durationMs: number | null;
 	hardestQuestion: HardestQuestionView | null;
 	difficultCount: number;
 	/** Lowest accuracy first (RN-38). */
@@ -92,6 +100,7 @@ export function createGetReport(
 		return {
 			header: {
 				gameId: header.gameId,
+				mode: header.mode,
 				name: header.name,
 				coverUrl: coverUrlOf(header, deps.storage),
 				startedAt: header.startedAt,
@@ -101,6 +110,7 @@ export function createGetReport(
 				playedCount: played,
 				participantCount: game.participants.length,
 				...quizLinksOf(header),
+				assignment: assignmentPartOf(header, deps.clock.now()),
 			},
 			summary: {
 				accuracyPercent: accuracyPercent(
@@ -110,7 +120,7 @@ export function createGetReport(
 						participants.reduce((sum, p) => sum + p.accuracy.correct, 0),
 					),
 				),
-				durationMs: durationMs(header),
+				durationMs: header.mode === "assignment" ? null : durationMs(header),
 				hardestQuestion:
 					hardest && hardestQuestion
 						? {

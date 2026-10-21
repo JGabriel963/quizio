@@ -58,6 +58,11 @@ export function reportDateLabel(
 	}).format(new Date(date));
 }
 
+/** "Ao vivo" or "Atribuição" (spec 015, RN-24; spec 029, RN-29). */
+export function reportModeLabel(mode: "live" | "assignment"): string {
+	return mode === "assignment" ? "Atribuição" : "Ao vivo";
+}
+
 /** Told in text everywhere: never by color alone (RN-55). */
 export const RESULT_LABELS: Record<AnswerResultData, string> = {
 	correct: "Correta",

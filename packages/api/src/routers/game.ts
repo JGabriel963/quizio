@@ -1,4 +1,5 @@
 import { GAME_PHASES } from "@quizio/core/game/domain/game-progress";
+import { PARTICIPANT_PHASES } from "@quizio/core/game/domain/participant-progress";
 import { MAX_CHOICE_COUNT } from "@quizio/core/quiz/domain/question";
 import { z } from "zod";
 
@@ -15,6 +16,130 @@ const questionIndex = z.number().int().min(0);
 const avatar = z.object({
 	character: z.string().min(1).max(40),
 	accessory: z.string().min(1).max(40).nullable(),
+});
+
+/** An instant with its zone, as the browser's `toISOString()` sends it. */
+const deadline = z.iso
+	.datetime({ offset: true })
+	.transform((value) => new Date(value));
+
+/**
+ * Assignments (spec 029): the creator's dialogs and reports, and the
+ * activity's screen, which is public. The deadline's rules are the core's.
+ */
+const assignmentRouter = router({
+	setup: protectedProcedure.query(({ ctx }) =>
+		ctx.container.useCases.getAssignmentSetup({ ownerId: ctx.session.user.id }),
+	),
+
+	create: protectedProcedure
+		.input(
+			z.object({
+				quizId: z.string().min(1),
+				deadline,
+				options: z.object({
+					gameCharacters: z.boolean(),
+					questionTimer: z.boolean(),
+					randomizeAnswers: z.boolean(),
+				}),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.createAssignment({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	changeDeadline: protectedProcedure
+		.input(gameReference.extend({ deadline }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.changeAssignmentDeadline({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** "Atividades em andamento", before creating another (spec 029, RN-05a). */
+	openOfQuiz: protectedProcedure
+		.input(z.object({ quizId: z.string().min(1) }))
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.listOpenAssignments({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	end: protectedProcedure.input(gameReference).mutation(({ ctx, input }) =>
+		ctx.container.useCases.endAssignment({
+			ownerId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
+	/** No account: whoever has the link or the PIN (spec 029, RN-44; spec 030, RN-01). */
+	cover: publicProcedure
+		.input(gameReference)
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.getAssignmentCover(input),
+		),
+
+	/** The participant's own steps (spec 030): proven by the pair received on joining. */
+	join: publicProcedure
+		.input(
+			gameReference.extend({
+				nickname: z.string().max(100),
+				avatar: avatar.nullable().optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) => ctx.container.useCases.joinAssignment(input)),
+
+	/** "Sim" to "Você é {apelido}?": the nickname is enough, as in Kahoot (spec 030, RN-20). */
+	resume: publicProcedure
+		.input(gameReference.extend({ nickname: z.string().max(100) }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.resumeAssignment(input),
+		),
+
+	play: publicProcedure
+		.input(playerReference)
+		.query(({ ctx, input }) => ctx.container.useCases.getAssignmentPlay(input)),
+
+	start: publicProcedure
+		.input(playerReference)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.startAssignmentPlay(input),
+		),
+
+	answer: publicProcedure
+		.input(
+			playerReference.extend({
+				questionIndex,
+				choiceIds: z.array(z.string().min(1)).min(1).max(MAX_CHOICE_COUNT),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.answerAssignmentQuestion(input),
+		),
+
+	advance: publicProcedure
+		.input(
+			playerReference.extend({
+				from: z.object({
+					questionIndex,
+					phase: z.enum(PARTICIPANT_PHASES),
+				}),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.advanceAssignmentPlay(input),
+		),
+
+	setAvatar: publicProcedure
+		.input(playerReference.extend({ avatar }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.changeAssignmentAvatar(input),
+		),
 });
 
 /**
@@ -63,6 +188,7 @@ const joinRouter = router({
 });
 
 export const gameRouter = router({
+	assignment: assignmentRouter,
 	join: joinRouter,
 
 	/** "Organizar ao vivo" (spec 008, RN-01 to RN-09). */

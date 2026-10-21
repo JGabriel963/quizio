@@ -16,7 +16,7 @@ type DeviceImage = NonNullable<PlayerQuestionData["image"]>;
  */
 
 /** The white strip with the statement, as on the host's screen. */
-function Statement({ children }: { children: ReactNode }) {
+export function Statement({ children }: { children: ReactNode }) {
 	return (
 		<h1 className="w-full break-words rounded-md bg-white px-3 py-2 text-center font-bold text-lg text-neutral-900 leading-snug shadow-lg sm:text-2xl">
 			{children}

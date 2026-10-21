@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import type { GamePhase } from "../../game/domain/game-progress";
 import { aReportHeader } from "../testing/a-report-game";
 import {
+	assertCanTrash,
 	assertInTrash,
 	assertOutOfTrash,
+	endedEarly,
 	InvalidReportNameError,
 	parseReportName,
 	playedQuestionCount,
 	REPORT_NAME_MAX_LENGTH,
+	ReportAssignmentOpenError,
 	ReportInTrashError,
 	ReportNotFoundError,
 	ReportNotInTrashError,
@@ -24,7 +27,7 @@ describe("report header (spec 015)", () => {
 		const endedAt = (questionIndex: number, phase: GamePhase) =>
 			aReportHeader({
 				questionCount: 5,
-				outcome: "ended",
+				status: "ended",
 				stoppedAt: { questionIndex, phase },
 			});
 
@@ -71,5 +74,51 @@ describe("report header (spec 015)", () => {
 		expect(parseReportName("  Capitais — Turma A ")).toBe("Capitais — Turma A");
 		// 95 flags are 95 characters, though many more code units.
 		expect(() => parseReportName("🇧🇷".repeat(95))).not.toThrow();
+	});
+});
+
+describe("assignment reports (spec 029)", () => {
+	const openAssignment = aReportHeader({
+		mode: "assignment",
+		status: "open",
+		questionCount: 5,
+		endedAt: null,
+		pin: "04352236",
+	});
+
+	it("every question of an assignment counts as played", () => {
+		expect(playedQuestionCount(openAssignment)).toBe(5);
+		expect(
+			playedQuestionCount({
+				...openAssignment,
+				status: "ended",
+				endedAt: new Date(),
+				pin: null,
+			}),
+		).toBe(5);
+	});
+
+	it("an open assignment cannot go to the trash", () => {
+		expect(() => assertCanTrash(openAssignment)).toThrow(
+			ReportAssignmentOpenError,
+		);
+	});
+
+	it("an ended assignment can go to the trash", () => {
+		expect(() =>
+			assertCanTrash({
+				...openAssignment,
+				status: "ended",
+				endedAt: new Date(),
+			}),
+		).not.toThrow();
+		expect(() => assertCanTrash(aReportHeader())).not.toThrow();
+	});
+
+	it("an ended live game is still the only one that ended early", () => {
+		expect(endedEarly(aReportHeader({ status: "ended" }))).toBe(true);
+		expect(
+			endedEarly({ ...openAssignment, status: "ended", endedAt: new Date() }),
+		).toBe(false);
 	});
 });

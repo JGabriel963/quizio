@@ -28,6 +28,7 @@ const quiz: QuizDetailsData = {
 function fakeActions(): QuizDetailsActions {
 	return {
 		onHost: vi.fn(),
+		onAssign: vi.fn(),
 		onEdit: vi.fn(),
 		onDuplicate: vi.fn(),
 		onMoveToTrash: vi.fn(),
@@ -246,5 +247,56 @@ describe("QuizDetailsView: Organizar ao vivo (spec 008)", () => {
 		expect(
 			screen.queryByRole("button", { name: "Organizar ao vivo" }),
 		).toBeNull();
+	});
+});
+
+describe("QuizDetailsView: Atribuir (spec 029)", () => {
+	const published: QuizDetailsData = {
+		...quiz,
+		status: "published",
+		publishedVersion: 1,
+		publishedAt: "2026-06-01T12:00:00.000Z",
+		questionCount: 3,
+	};
+
+	it("Atribuir sits beside Organizar ao vivo and opens Configurar atividade", async () => {
+		const actions = fakeActions();
+		renderWithRouter(
+			<QuizDetailsView quiz={published} actions={actions} now={now} />,
+		);
+
+		const host = await screen.findByRole("button", {
+			name: "Organizar ao vivo",
+		});
+		const assign = screen.getByRole("button", { name: "Atribuir" });
+		await userEvent.setup().click(assign);
+
+		expect(host.nextElementSibling).toBe(assign);
+		expect(actions.onAssign).toHaveBeenCalledOnce();
+	});
+
+	it("Atribuir is unavailable for a draft, with the hint", async () => {
+		renderWithRouter(
+			<QuizDetailsView quiz={quiz} actions={fakeActions()} now={now} />,
+		);
+
+		const button = await screen.findByRole("button", { name: "Atribuir" });
+		expect(button).toBeDisabled();
+		expect(button).toHaveAccessibleDescription(
+			"Salve o quiz no editor para poder jogar.",
+		);
+	});
+
+	it("there is no Atribuir in the trash", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={{ ...published, trashedAt: "2026-06-10T12:00:00.000Z" }}
+				actions={fakeActions()}
+				now={now}
+			/>,
+		);
+
+		await screen.findByText("Este quiz está na lixeira.");
+		expect(screen.queryByRole("button", { name: "Atribuir" })).toBeNull();
 	});
 });

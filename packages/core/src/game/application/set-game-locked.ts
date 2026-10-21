@@ -2,7 +2,7 @@ import type { Clock } from "../../shared/application/ports/clock";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
 import { requireOwnedGame, setGameLocked } from "../domain/game";
 import { GAME_EVENTS, type LockChangedPayload } from "../domain/game-events";
-import { loadGame, publishToGame } from "./game-lifecycle";
+import { loadLiveGame, publishToGame } from "./game-lifecycle";
 import type { GameRepository } from "./ports/game-repository";
 
 export type SetGameLocked = (input: {
@@ -21,7 +21,7 @@ export function createSetGameLocked(deps: {
 	realtime: RealtimePublisher;
 }): SetGameLocked {
 	return async ({ ownerId, gameId, locked }) => {
-		const game = requireOwnedGame(await loadGame(deps, gameId), ownerId);
+		const game = requireOwnedGame(await loadLiveGame(deps, gameId), ownerId);
 		const changed = setGameLocked(game, locked);
 		// Only the lock is written: the game may have moved on meanwhile, and
 		// an option may have been changed at the same time.

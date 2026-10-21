@@ -20,14 +20,17 @@ export interface ReportTally {
 /**
  * Read model of the live games as the reports show them (spec 015; ADR 0010).
  * Contract:
- * - a game is a report when it started and is over: it ended, or its deadline
- *   passed, in which case it ended at the deadline, where it was (RN-01,
- *   RN-02). A game still in the lobby, or being played, is not one;
+ * - a live game is a report when it started and is over: it ended, or its
+ *   deadline passed, in which case it ended at the deadline, where it was
+ *   (RN-01, RN-02). A game still in the lobby, or being played, is not one;
+ * - an assignment is a report from its creation (spec 029, RN-27): `open`
+ *   before its deadline, with no `endedAt` and with its PIN; `ended` after;
  * - `name` is the report's own name, or the game's title (RN-45);
  * - participants are the players who were not removed, in order of arrival;
  * - questions and answers are only the played ones (RN-09);
  * - `listHeaders`: only games of `ownerId`; `reports` out of the trash and
- *   `trash` in it; by `endedAt` desc, ties broken by `gameId`.
+ *   `trash` in it; open assignments first, by `deadline` asc (spec 029,
+ *   RN-30), then by `endedAt` desc, ties broken by `gameId`.
  */
 export interface ReportGameQuery {
 	listHeaders(criteria: ReportHeaderCriteria): Promise<ReportHeader[]>;

@@ -16,6 +16,7 @@ import {
 import { ANSWER_SHAPES } from "@quizio/ui/components/answer-shape";
 import { Badge } from "@quizio/ui/components/badge";
 import { Button } from "@quizio/ui/components/button";
+import { Calendar } from "@quizio/ui/components/calendar";
 import { Checkbox } from "@quizio/ui/components/checkbox";
 import {
 	Dialog,
@@ -44,6 +45,7 @@ import { TabNav, TabNavItem } from "@quizio/ui/components/tab-nav";
 import { Textarea } from "@quizio/ui/components/textarea";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
+import { useState } from "react";
 import { Avatar } from "@/components/game/avatar";
 import { AVATAR_CATALOG } from "@/lib/avatar-catalog";
 
@@ -312,6 +314,10 @@ function DesignSystemPage() {
 				</Sheet>
 			</Section>
 
+			<Section title="Calendário">
+				<CalendarExample />
+			</Section>
+
 			<Section title="Avatares">
 				<p className="text-muted-foreground text-sm">
 					Personagens e acessórios dos jogadores (spec 028). A matriz mostra
@@ -349,6 +355,27 @@ function DesignSystemPage() {
 				</div>
 			</Section>
 		</main>
+	);
+}
+
+/** A month with the past disabled, as the deadline of an assignment (spec 029). */
+function CalendarExample() {
+	const today = new Date();
+	const [month, setMonth] = useState(
+		new Date(today.getFullYear(), today.getMonth(), 1),
+	);
+	const [selected, setSelected] = useState<Date | null>(null);
+	return (
+		<Calendar
+			className="max-w-xs"
+			month={month}
+			onMonthChange={setMonth}
+			selected={selected}
+			onSelect={setSelected}
+			isDisabled={(day) =>
+				day < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+			}
+		/>
 	);
 }
 

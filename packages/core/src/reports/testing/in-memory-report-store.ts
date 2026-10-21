@@ -4,7 +4,11 @@ import type {
 	ReportTally,
 } from "../application/ports/report-game-query";
 import type { ReportRepository } from "../application/ports/report-repository";
-import { playedQuestionCount, type ReportHeader } from "../domain/report";
+import {
+	isOpenAssignment,
+	playedQuestionCount,
+	type ReportHeader,
+} from "../domain/report";
 import type { ReportGame } from "../domain/report-game";
 
 /** Copies, so a test cannot change what is stored by keeping a reference. */
@@ -54,19 +58,27 @@ export class InMemoryReportStore implements ReportGameQuery, ReportRepository {
 		ownerId,
 		section,
 	}: ReportHeaderCriteria): Promise<ReportHeader[]> {
-		return [...this.#games.values()]
-			.map(({ header }) => header)
-			.filter(
-				(header) =>
-					header.ownerId === ownerId &&
-					(header.trashedAt !== null) === (section === "trash"),
-			)
-			.sort(
-				(a, b) =>
-					b.endedAt.getTime() - a.endedAt.getTime() ||
-					a.gameId.localeCompare(b.gameId),
-			)
-			.map((header) => copyHeader(header));
+		return (
+			[...this.#games.values()]
+				.map(({ header }) => header)
+				.filter(
+					(header) =>
+						header.ownerId === ownerId &&
+						(header.trashedAt !== null) === (section === "trash"),
+				)
+				// Open assignments first, the one ending first on top (spec 029,
+				// RN-30), then by their end, newest first (spec 015, RN-23).
+				.sort(
+					(a, b) =>
+						Number(isOpenAssignment(b)) - Number(isOpenAssignment(a)) ||
+						(isOpenAssignment(a)
+							? a.deadline.getTime() - b.deadline.getTime()
+							: (b.endedAt ?? b.deadline).getTime() -
+								(a.endedAt ?? a.deadline).getTime()) ||
+						a.gameId.localeCompare(b.gameId),
+				)
+				.map((header) => copyHeader(header))
+		);
 	}
 
 	async findHeader(gameId: string, _now?: Date): Promise<ReportHeader | null> {

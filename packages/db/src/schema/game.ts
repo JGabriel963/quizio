@@ -1,6 +1,11 @@
 import { CORRECTNESS } from "@quizio/core/game/domain/answer";
-import { GAME_END_REASONS, GAME_STATUSES } from "@quizio/core/game/domain/game";
+import {
+	GAME_END_REASONS,
+	GAME_MODES,
+	GAME_STATUSES,
+} from "@quizio/core/game/domain/game";
 import { GAME_PHASES } from "@quizio/core/game/domain/game-progress";
+import { PARTICIPANT_PHASES } from "@quizio/core/game/domain/participant-progress";
 import { sql } from "drizzle-orm";
 import {
 	boolean,
@@ -17,10 +22,12 @@ import {
 
 import { user } from "./auth";
 
+export const gameMode = pgEnum("game_mode", GAME_MODES);
 export const gameStatus = pgEnum("game_status", GAME_STATUSES);
 export const gameEndReason = pgEnum("game_end_reason", GAME_END_REASONS);
 export const gamePhase = pgEnum("game_phase", GAME_PHASES);
 export const answerCorrectness = pgEnum("answer_correctness", CORRECTNESS);
+export const participantPhase = pgEnum("participant_phase", PARTICIPANT_PHASES);
 
 /**
  * A live game (spec 008; ADR 0009). The whole state is here: no request
@@ -30,6 +37,11 @@ export const game = pgTable(
 	"game",
 	{
 		id: text("id").primaryKey(),
+		/**
+		 * A live game or an assignment (spec 029; ADR 0014). An assignment's
+		 * deadline is `expires_at`.
+		 */
+		mode: gameMode("mode").notNull().default("live"),
 		ownerId: text("owner_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
@@ -53,6 +65,8 @@ export const game = pgTable(
 		randomizeAnswers: boolean("randomize_answers").notNull().default(false),
 		/** "Personagens dos jogadores" (spec 028). */
 		gameCharacters: boolean("game_characters").notNull().default(true),
+		/** "Timer da pergunta": always on live; an assignment may turn it off (spec 029). */
+		questionTimer: boolean("question_timer").notNull().default(true),
 		/**
 		 * Since when autoplay is on; null while it is off (spec 014). One column
 		 * for the switch and for the instant its countdowns count from.
@@ -87,10 +101,17 @@ export const game = pgTable(
 		uniqueIndex("game_unended_pin_idx")
 			.on(table.pin)
 			.where(sql`${table.endedAt} is null`),
-		/** A quiz has one game that was not ended (RN-07). */
+		/**
+		 * A quiz has one live game that was not ended (RN-07); its assignments
+		 * are as many as the creator wants (spec 029, RN-05).
+		 */
 		uniqueIndex("game_unended_quiz_idx")
 			.on(table.quizId)
-			.where(sql`${table.endedAt} is null`),
+			.where(sql`${table.endedAt} is null and ${table.mode} = 'live'`),
+		/** The newest assignment that had a PIN (spec 029, CA-42). */
+		index("game_assignment_pin_idx")
+			.on(table.pin, table.createdAt)
+			.where(sql`${table.mode} = 'assignment'`),
 		/** The reports list: a creator's games by their end (spec 015). */
 		index("game_owner_ended_idx").on(table.ownerId, table.endedAt),
 	],
@@ -120,6 +141,15 @@ export const gamePlayer = pgTable(
 		accessory: text("accessory"),
 		joinedAt: timestamp("joined_at", { withTimezone: true }).notNull(),
 		removedAt: timestamp("removed_at", { withTimezone: true }),
+		/**
+		 * Where a participant of an assignment is (spec 030; ADR 0014): the
+		 * three are set together, and are null in a live game.
+		 */
+		participantPhase: participantPhase("participant_phase"),
+		progressQuestionIndex: integer("progress_question_index"),
+		progressStartedAt: timestamp("progress_started_at", { withTimezone: true }),
+		/** The answers of each question in the participant's order (RN-07). */
+		choiceOrder: jsonb("choice_order").$type<string[][]>(),
 	},
 	(table) => [
 		uniqueIndex("game_player_nickname_idx").on(table.gameId, table.nicknameKey),
@@ -143,6 +173,20 @@ export const hostPreferences = pgTable("host_preferences", {
 	randomizeAnswers: boolean("randomize_answers").notNull().default(false),
 	autoplay: boolean("autoplay").notNull().default(false),
 	gameCharacters: boolean("game_characters").notNull().default(true),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
+
+/**
+ * The options a creator chose in the last assignment: the next one starts
+ * with them (spec 029, RN-14). Apart from the live game's preferences.
+ */
+export const assignmentPreferences = pgTable("assignment_preferences", {
+	ownerId: text("owner_id")
+		.primaryKey()
+		.references(() => user.id, { onDelete: "cascade" }),
+	gameCharacters: boolean("game_characters").notNull().default(false),
+	questionTimer: boolean("question_timer").notNull().default(true),
+	randomizeAnswers: boolean("randomize_answers").notNull().default(false),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 

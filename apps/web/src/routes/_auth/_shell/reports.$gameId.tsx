@@ -9,8 +9,12 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
+import { useState } from "react";
 import { z } from "zod";
 
+import { ShareAssignmentDialog } from "@/components/assignment/share-assignment-dialog";
+import { ChangeDeadlineDialog } from "@/components/reports/change-deadline-dialog";
+import { EndAssignmentDialog } from "@/components/reports/end-assignment-dialog";
 import { ParticipantDetail } from "@/components/reports/participant-detail";
 import { ParticipantsTable } from "@/components/reports/participants-table";
 import { QuestionDetail } from "@/components/reports/question-detail";
@@ -25,9 +29,12 @@ import {
 	ReportTrashed,
 } from "@/components/reports/report-states";
 import { ReportSummary } from "@/components/reports/report-summary";
+import { useAssignmentMutations } from "@/lib/assignment-mutations";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { isReportInTrash, isReportNotFound } from "@/lib/report-error-messages";
 import { useReportMutations } from "@/lib/report-mutations";
+import { reportRefreshInterval } from "@/lib/report-refresh";
+import { useOrigin } from "@/lib/use-origin";
 import { useTRPC } from "@/utils/trpc";
 
 /** The tab, the list inside it and the open detail are all in the address (RN-33). */
@@ -54,18 +61,34 @@ function ReportPage() {
 	const navigate = Route.useNavigate();
 	const trpc = useTRPC();
 	const mutations = useReportMutations();
+	const assignmentMutations = useAssignmentMutations();
 	const playAgain = usePlayAgain();
+	const origin = useOrigin();
+	/** Which dialog of an open assignment is up (spec 029), and since when. */
+	const [assignmentDialog, setAssignmentDialog] = useState<{
+		kind: "share" | "deadline" | "end";
+		openedAt: Date;
+	} | null>(null);
+	const assignmentSetup = useQuery({
+		...trpc.game.assignment.setup.queryOptions(),
+		enabled: assignmentDialog?.kind === "deadline",
+	});
 	const report = useQuery({
 		...trpc.report.get.queryOptions({ gameId }),
+		// Participants play an open assignment meanwhile (spec 030, RN-28).
+		refetchInterval: (query) => reportRefreshInterval(query.state.data),
 		retry: (failureCount, error) => !isRefusal(error) && failureCount < 2,
 		meta: { suppressErrorToast: true },
 	});
+	// An open detail sheet refreshes with the report, or it would go stale.
+	const detailRefreshInterval = reportRefreshInterval(report.data);
 	const participantDetail = useQuery({
 		...trpc.report.participant.queryOptions({
 			gameId,
 			playerId: participant ?? "",
 		}),
 		enabled: report.isSuccess && participant !== undefined,
+		refetchInterval: detailRefreshInterval,
 		meta: { suppressErrorToast: true },
 	});
 	const questionDetail = useQuery({
@@ -74,6 +97,7 @@ function ReportPage() {
 			questionIndex: question ?? 0,
 		}),
 		enabled: report.isSuccess && question !== undefined,
+		refetchInterval: detailRefreshInterval,
 		meta: { suppressErrorToast: true },
 	});
 
@@ -149,7 +173,59 @@ function ReportPage() {
 									}
 								},
 							}}
+							assignmentActions={{
+								origin,
+								onShare: () =>
+									setAssignmentDialog({ kind: "share", openedAt: new Date() }),
+								onChangeDeadline: () =>
+									setAssignmentDialog({
+										kind: "deadline",
+										openedAt: new Date(),
+									}),
+								onEnd: () =>
+									setAssignmentDialog({ kind: "end", openedAt: new Date() }),
+							}}
 						/>
+					)}
+					{report.data.header.assignment?.open && origin && (
+						<>
+							<ShareAssignmentDialog
+								open={assignmentDialog?.kind === "share"}
+								onOpenChange={(open) => !open && setAssignmentDialog(null)}
+								origin={origin}
+								assignment={{
+									gameId,
+									name: report.data.header.name,
+									pin: report.data.header.assignment.pin ?? "",
+									deadline: report.data.header.assignment.deadline,
+									remainingMs: report.data.header.assignment.remainingMs ?? 0,
+									participantCount: report.data.header.participantCount,
+								}}
+							/>
+							{assignmentDialog?.kind === "deadline" && (
+								<ChangeDeadlineDialog
+									open
+									onOpenChange={(open) => !open && setAssignmentDialog(null)}
+									deadline={new Date(report.data.header.assignment.deadline)}
+									now={assignmentDialog.openedAt}
+									maxDays={assignmentSetup.data?.maxDeadlineDays ?? 28}
+									onSave={async (deadline) => {
+										await assignmentMutations.changeDeadline.mutateAsync({
+											gameId,
+											deadline: deadline.toISOString(),
+										});
+									}}
+								/>
+							)}
+							<EndAssignmentDialog
+								open={assignmentDialog?.kind === "end"}
+								onCancel={() => setAssignmentDialog(null)}
+								onConfirm={() => {
+									setAssignmentDialog(null);
+									assignmentMutations.end.mutate({ gameId });
+								}}
+							/>
+						</>
 					)}
 					{tab === "participants" && (
 						<ParticipantsTable
