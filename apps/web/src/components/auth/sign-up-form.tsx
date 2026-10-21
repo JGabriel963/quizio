@@ -15,8 +15,12 @@ import {
 } from "@/lib/auth-error-messages";
 
 import { AuthField } from "./auth-field";
-import { AuthDivider, GoogleSignInButton } from "./google-sign-in-button";
 import type { AuthActionResult } from "./sign-in-form";
+import {
+	AuthDivider,
+	GoogleSignInButton,
+	SocialSignIn,
+} from "./social-sign-in";
 
 export interface SignUpFormProps {
 	signUpEnabled: boolean;
@@ -77,7 +81,7 @@ export function SignUpForm({
 	});
 
 	const switchToSignIn = (
-		<p className="text-center text-muted-foreground text-sm">
+		<p className="text-sm">
 			Já tem conta?{" "}
 			<Button variant="link" className="h-auto p-0" onClick={onSwitchToSignIn}>
 				Entrar
@@ -87,8 +91,8 @@ export function SignUpForm({
 
 	if (!signUpEnabled) {
 		return (
-			<div className="flex flex-col gap-6 text-center">
-				<h1 className="font-bold text-2xl">Criar conta</h1>
+			<div className="flex flex-col gap-5">
+				<h1 className="font-bold text-xl">Criar conta</h1>
 				<p className="rounded-md bg-muted px-3 py-3 text-sm">
 					{authErrorMessage({ code: "SIGNUP_DISABLED" })}
 				</p>
@@ -98,13 +102,8 @@ export function SignUpForm({
 	}
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex flex-col gap-1 text-center">
-				<h1 className="font-bold text-2xl">Criar conta</h1>
-				<p className="text-muted-foreground text-sm">
-					Crie e organize seus quizzes.
-				</p>
-			</div>
+		<div className="flex flex-col gap-5">
+			<h1 className="font-bold text-xl">Criar conta</h1>
 
 			{error && (
 				<p
@@ -113,6 +112,15 @@ export function SignUpForm({
 				>
 					{authErrorMessage(error)}
 				</p>
+			)}
+
+			{googleEnabled && (
+				<>
+					<SocialSignIn>
+						<GoogleSignInButton onClick={onGoogleSignIn} />
+					</SocialSignIn>
+					<AuthDivider />
+				</>
 			)}
 
 			<form
@@ -157,13 +165,6 @@ export function SignUpForm({
 					)}
 				</form.Subscribe>
 			</form>
-
-			{googleEnabled && (
-				<>
-					<AuthDivider />
-					<GoogleSignInButton onClick={onGoogleSignIn} />
-				</>
-			)}
 
 			{switchToSignIn}
 		</div>

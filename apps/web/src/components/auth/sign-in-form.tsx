@@ -9,7 +9,11 @@ import {
 } from "@/lib/auth-error-messages";
 
 import { AuthField } from "./auth-field";
-import { AuthDivider, GoogleSignInButton } from "./google-sign-in-button";
+import {
+	AuthDivider,
+	GoogleSignInButton,
+	SocialSignIn,
+} from "./social-sign-in";
 
 export interface AuthActionResult {
 	error?: AuthErrorLike | null;
@@ -60,13 +64,8 @@ export function SignInForm({
 	});
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex flex-col gap-1 text-center">
-				<h1 className="font-bold text-2xl">Entrar</h1>
-				<p className="text-muted-foreground text-sm">
-					Acesse sua biblioteca de quizzes.
-				</p>
-			</div>
+		<div className="flex flex-col gap-5">
+			<h1 className="font-bold text-xl">Entrar</h1>
 
 			{error && (
 				<p
@@ -75,6 +74,15 @@ export function SignInForm({
 				>
 					{authErrorMessage(error)}
 				</p>
+			)}
+
+			{googleEnabled && (
+				<>
+					<SocialSignIn>
+						<GoogleSignInButton onClick={onGoogleSignIn} />
+					</SocialSignIn>
+					<AuthDivider />
+				</>
 			)}
 
 			<form
@@ -115,14 +123,7 @@ export function SignInForm({
 				</form.Subscribe>
 			</form>
 
-			{googleEnabled && (
-				<>
-					<AuthDivider />
-					<GoogleSignInButton onClick={onGoogleSignIn} />
-				</>
-			)}
-
-			<p className="text-center text-muted-foreground text-sm">
+			<p className="text-sm">
 				Ainda não tem conta?{" "}
 				<Button
 					variant="link"

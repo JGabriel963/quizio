@@ -84,4 +84,16 @@ describe("SignInForm", () => {
 
 		expect(props.onGoogleSignIn).toHaveBeenCalledOnce();
 	});
+
+	it("shows and hides the password", async () => {
+		renderForm();
+		const user = userEvent.setup();
+		const password = screen.getByLabelText("Senha");
+
+		await user.click(screen.getByRole("button", { name: "Mostrar senha" }));
+		expect(password).toHaveAttribute("type", "text");
+
+		await user.click(screen.getByRole("button", { name: "Ocultar senha" }));
+		expect(password).toHaveAttribute("type", "password");
+	});
 });
