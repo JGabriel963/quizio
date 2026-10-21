@@ -98,35 +98,53 @@ test.describe("jogar a atribuição (spec 030)", () => {
 		// Ana by the link: right answer, first place (CA-14, CA-17).
 		const ana = await newParticipant(browser);
 		await ana.goto(`/assignment/${gameId}`);
-		await expect(ana.getByText("1 pergunta")).toBeVisible();
+		// The activity's page is compiled on its first visit to a fresh dev server.
+		await expect(ana.getByText("1 pergunta")).toBeVisible({ timeout: 15_000 });
 		expect(await noSideScroll(ana)).toBe(true);
 		await enterActivity(ana, "Ana P");
 		expect(await noSideScroll(ana)).toBe(true);
 		await playToTheEnd(ana, "Brasília", "Correto");
 		await expect(ana.getByRole("heading", { name: "1º lugar" })).toBeVisible();
-
-		// Bia by the PIN: wrong answer, second (CA-15, CA-23).
-		const bia = await newParticipant(browser);
-		await bia.goto("/join");
-		await bia.getByRole("textbox", { name: "PIN" }).fill(pin);
-		await bia.getByRole("button", { name: "Entrar" }).click();
-		await expect(bia).toHaveURL(new RegExp(`/assignment/${gameId}$`));
-		await enterActivity(bia, "Bia");
-		await playToTheEnd(bia, "Rio de Janeiro", "Incorreto");
-		await expect(bia.getByRole("heading", { name: "2º lugar" })).toBeVisible();
-
-		// Ana back to the link: straight to her end, with Bia below (CA-19, CA-22).
-		await ana.reload();
-		const standings = ana.getByRole("list", { name: "Pontuações" });
-		await expect(standings.getByRole("listitem")).toHaveCount(2);
-		await expect(standings.getByRole("listitem").nth(1)).toContainText("Bia");
-		// ← reviews the question (CA-18).
-		// The review shows the result as it ended: the points at once.
+		// Who just finished reviews the questions with ←, the points at once (CA-18).
 		await ana.getByRole("button", { name: "Anterior" }).click();
 		await expect(
 			ana.getByRole("heading", { name: "Capital do Brasil?" }),
 		).toBeVisible();
 		await expect(ana.getByText(/^\+ \d+$/)).toBeVisible();
+		await ana.getByRole("button", { name: "Próximo" }).click();
+
+		// Bia by the PIN: Ana is listed, and her nickname asks "Você é…?" (CA-02, CA-03).
+		const bia = await newParticipant(browser);
+		await bia.goto("/join");
+		await bia.getByRole("textbox", { name: "PIN" }).fill(pin);
+		await bia.getByRole("button", { name: "Entrar" }).click();
+		await expect(bia).toHaveURL(new RegExp(`/assignment/${gameId}$`));
+		await bia.getByRole("button", { name: "Iniciar" }).click();
+		await expect(
+			bia
+				.getByRole("list", { name: "Quem já entrou" })
+				.getByRole("button", { name: "Ana P" }),
+		).toBeVisible();
+		await bia.getByRole("textbox", { name: "Insira um apelido" }).fill("ana p");
+		await bia.getByRole("button", { name: "Ok, vamos lá!" }).click();
+		await expect(
+			bia.getByRole("heading", { name: "Você é Ana P?" }),
+		).toBeVisible();
+		await bia.getByRole("button", { name: "Não" }).click();
+		await bia.getByRole("textbox", { name: "Insira um apelido" }).fill("Bia");
+		await bia.getByRole("button", { name: "Ok, vamos lá!" }).click();
+		// Wrong answer, second (CA-15, CA-23).
+		await playToTheEnd(bia, "Rio de Janeiro", "Incorreto");
+		await expect(bia.getByRole("heading", { name: "2º lugar" })).toBeVisible();
+
+		// Ana back to the link: "Você é Ana P?", Sim, her end with Bia below
+		// and no ← (CA-19, CA-21, CA-22).
+		await ana.reload();
+		await ana.getByRole("button", { name: "Sim" }).click();
+		const standings = ana.getByRole("list", { name: "Pontuações" });
+		await expect(standings.getByRole("listitem")).toHaveCount(2);
+		await expect(standings.getByRole("listitem").nth(1)).toContainText("Bia");
+		await expect(ana.getByRole("button", { name: "Anterior" })).toHaveCount(0);
 
 		// The report shows both, and Jogue este quiz opens the activity (CA-24, CA-25).
 		await creator.reload();

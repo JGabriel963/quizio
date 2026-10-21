@@ -26,7 +26,7 @@ async function withAssignment() {
 describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () => {
 	it("an open assignment gives its name, its creator, the time left and the participants", async () => {
 		const { deps, gameId } = await withAssignment();
-		await deps.players.save(aPlayer({ gameId }));
+		await deps.players.save(aPlayer({ gameId, nickname: "John" }));
 		deps.clock.advanceBy(DAY_MS);
 
 		expect(await createGetAssignmentCover(deps)({ gameId })).toEqual({
@@ -35,6 +35,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 			creatorName: "Ana",
 			remainingMs: DAY_MS,
 			participantCount: 1,
+			participants: ["John"],
 			coverUrl: "https://media.test/media/user-1/cover.png",
 			questionCount: 2,
 		});
@@ -80,6 +81,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 			"creatorName",
 			"name",
 			"participantCount",
+			"participants",
 			"questionCount",
 			"remainingMs",
 			"status",

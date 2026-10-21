@@ -94,6 +94,13 @@ const assignmentRouter = router({
 		)
 		.mutation(({ ctx, input }) => ctx.container.useCases.joinAssignment(input)),
 
+	/** "Sim" to "Você é {apelido}?": the nickname is enough, as in Kahoot (spec 030, RN-20). */
+	resume: publicProcedure
+		.input(gameReference.extend({ nickname: z.string().max(100) }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.resumeAssignment(input),
+		),
+
 	play: publicProcedure
 		.input(playerReference)
 		.query(({ ctx, input }) => ctx.container.useCases.getAssignmentPlay(input)),

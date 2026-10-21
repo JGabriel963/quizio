@@ -50,7 +50,7 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 | --- | --- | --- |
 | RN-01 | O link da atribuição abre a **capa** da atividade: a capa do quiz (ou a imagem padrão), o número de perguntas ("5 perguntas"), o nome da atividade (spec 029, RN-28) e **"Iniciar"**, que leva à tela do apelido. O PIN de 8 dígitos (spec 029, RN-20) leva à mesma capa. | vídeo Desktop (2026-10-19) |
 | RN-02 | A tela do apelido é a da spec 029 (RN-46), agora funcionando: **"Insira um apelido"**, **"Ok, vamos lá!"** e "Não use seu nome verdadeiro". Ela deixa de mostrar "Em breve". | spec 029, RN-46 · vídeo Desktop |
-| RN-03 | O apelido segue as regras da partida ao vivo (spec 008): de 1 a 15 caracteres sem os espaços das pontas, e **único na atividade**, sem diferenciar maiúsculas, minúsculas e acentos. Um apelido em uso é recusado com "Esse apelido já está em uso. Escolha outro." Não é possível entrar de novo com o apelido de quem já entrou. | spec 008 · kahoot-reference §8.1, §9 |
+| RN-03 | O apelido segue as regras da partida ao vivo (spec 008): de 1 a 15 caracteres sem os espaços das pontas, e **único na atividade**, sem diferenciar maiúsculas, minúsculas e acentos. A tela do apelido mostra os apelidos de quem já entrou. Um apelido em uso (digitado ou tocado na lista) pergunta **"Você é {apelido}?"** ("Um jogador com esse apelido já começou o jogo. Se foi você, continue jogando de onde parou ou comece a jogar com um apelido diferente."): **"Sim"** retoma esse participante (RN-20) e **"Não"** volta ao apelido para escolher outro. | spec 008 · kahoot-reference §8.1, §9 · captura do Kahoot (2026-10-20) |
 | RN-04 | Entra quem chega enquanto a atribuição está **aberta**, até o limite técnico de **200 participantes** por atividade (spec 008, RN-45), sem nenhuma menção a plano. Encerrada (prazo ou "Encerrar agora"), a capa e o apelido dão lugar a "Esta atividade foi encerrada" (spec 029, RN-47). | spec 008, RN-45 · spec 029 · constituição, artigo VI |
 | RN-05 | Ao entrar, a tela mostra por um instante o número de participantes já com o apelido de quem entrou, e **a primeira pergunta começa sozinha**: não há lobby nem anfitrião. | vídeos Desktop e Mobile |
 | RN-06 | Com **Personagens** ligada na atribuição (spec 029, RN-13), o participante recebe um personagem sorteado ao entrar e pode trocá-lo **antes de começar**, numa tela com o editor da spec 028 e o botão **"Começar"**; o personagem aparece no placar e na tela final. Desligada, não há personagem nem essa tela. | spec 028 · spec 029, RN-13 · decisão do produto (2026-10-19) |
@@ -87,9 +87,9 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 
 | ID | Regra | Fonte |
 | --- | --- | --- |
-| RN-20 | O aparelho guarda quem o participante é na atividade. Voltar ao link ou ao PIN **no mesmo navegador** leva direto aonde ele estava: à pergunta, ao resultado, a Pontuações ou ao fim. Outro navegador começa do zero, com outro apelido. | kahoot-reference §8.1, §9 · spec 008, RN-44a |
-| RN-21 | O tempo de uma pergunta **continua correndo** enquanto o participante está fora. Se ele volta depois do tempo, a pergunta conta como **não respondida** e ele vê o resultado dela ("Tempo esgotado"). Com o timer desligado, a pergunta o espera. | decisão do usuário (2026-10-19) |
-| RN-22 | Quem terminou não joga de novo a mesma atividade: voltar leva ao fim (RN-16). | kahoot-reference §8.1 · decisão do produto (2026-10-19) |
+| RN-20 | O aparelho guarda quem o participante é na atividade. Voltar ao link ou ao PIN no mesmo navegador pergunta **"Você é {apelido}?"**: "Sim" leva aonde ele estava (à pergunta, ao resultado, a Pontuações ou ao fim) e "Não" começa outro participante, com outro apelido; quem já jogou continua no placar. Em outro navegador, o participante se retoma pelo apelido (RN-03). Como no Kahoot, o apelido basta para retomar: a atividade é anônima. | kahoot-reference §8.1, §9 · spec 008, RN-44a · decisão do usuário (2026-10-20) |
+| RN-21 | Quem **abandona** a partida no meio de uma pergunta e volta (RN-20) recomeça **essa pergunta**, com o tempo inteiro, se não a respondeu; se já a respondeu, segue para a próxima tela. Quem estava no aparelho quando o tempo acabou vê o resultado ("Tempo esgotado") e a pergunta conta como não respondida. Com o timer desligado, a pergunta o espera. | captura do Kahoot · decisão do usuário (2026-10-20) |
+| RN-22 | Quem terminou não joga de novo a mesma atividade: voltar e dizer "Sim" leva direto ao fim (RN-16), **sem ← para rever as perguntas**; a revisão é de quem acabou de terminar. | kahoot-reference §8.1 · captura do Kahoot (2026-10-20) |
 | RN-23 | Quando a atribuição **acaba** (prazo ou "Encerrar agora", spec 029) com o participante no meio, as respostas seguintes são recusadas e o aparelho mostra o fim com o que ele fez, com o aviso "Esta atividade foi encerrada". As perguntas que faltavam contam como não respondidas. | spec 029, RN-39, RN-40 · decisão do produto (2026-10-19) |
 | RN-24 | Sem conexão, a resposta não enviada mostra "Sua resposta não foi enviada." e devolve as alternativas, como na partida ao vivo (spec 013), enquanto o tempo da pergunta não acabou. | spec 013 |
 
@@ -128,8 +128,9 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 #### CA-03 — Apelido em uso
 
 - **Dado** que "John" já entrou na atividade
-- **Quando** outra pessoa tenta entrar como "john"
-- **Então** vê "Esse apelido já está em uso. Escolha outro." e continua na tela do apelido
+- **Quando** alguém abre a tela do apelido e digita "john" (ou toca em "John" na lista de quem entrou)
+- **Então** vê "Você é John?" com "Sim" e "Não"
+- **E** "Não" volta à tela do apelido, e "Sim" leva aonde John estava
 
 #### CA-04 — Atividade cheia ou encerrada
 
@@ -231,20 +232,21 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 
 #### CA-19 — Voltar no mesmo navegador
 
-- **Dado** John na terceira pergunta, de 30 s, que fecha a aba depois de 5 s
-- **Quando** volta pelo link 10 s depois
-- **Então** vê a terceira pergunta com cerca de 15 s restantes
+- **Dado** John na terceira pergunta, que fecha a aba sem responder
+- **Quando** abre o link de novo no mesmo navegador e responde "Sim" a "Você é John?"
+- **Então** vê a terceira pergunta de novo, com o tempo inteiro
 
-#### CA-20 — Voltar depois do tempo
+#### CA-20 — Outro participante no mesmo navegador
 
-- **Dado** o mesmo John, que volta 1 minuto depois
-- **Então** vê o resultado da terceira pergunta com "Tempo esgotado", e a pergunta conta como não respondida
+- **Dado** John, que jogou nesse navegador
+- **Quando** abre o link e responde "Não" a "Você é John?"
+- **Então** vai ao apelido e entra como outra pessoa, e John continua em Pontuações
 
 #### CA-21 — Quem terminou não joga de novo
 
 - **Dado** John, que chegou ao fim
-- **Quando** abre o link de novo no mesmo navegador
-- **Então** vê o fim, com a classificação de agora
+- **Quando** abre o link de novo, em qualquer navegador, e responde "Sim" a "Você é John?"
+- **Então** vê o fim, com a classificação de agora, sem ← para rever as perguntas
 
 #### CA-22 — Encerrada no meio
 
@@ -320,3 +322,4 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 - 2026-10-19 — spec aprovada pelo usuário. As duas perguntas em aberto ficam com as escolhas da spec (capa antes do apelido nos dois tamanhos de tela; os cinco primeiros mais a linha de quem vê), ajustáveis na implementação.
 - 2026-10-19 — implementada (T01–T21). Sem mudança de regra. Na implementação: a tela da pergunta recebe também a duração dela, para a barra de tempo; a tela de espera "Em breve" da spec 029 deu lugar à capa e ao apelido.
 - 2026-10-20 — por decisão do usuário, a partir do Kahoot: depois da animação do resultado, Pontuações vem sozinha; ← volta só aos resultados das perguntas respondidas, nunca a uma Pontuações anterior (RN-12, CA-10, CA-11).
+- 2026-10-20 — por decisão do usuário, a partir do Kahoot: voltar pergunta "Você é {apelido}?" e o participante se retoma pelo apelido, em qualquer navegador; quem abandonou recomeça a pergunta que não respondeu, com o tempo inteiro; quem terminou volta ao fim sem rever as perguntas; a tela do apelido lista quem já entrou (RN-03, RN-20 a RN-22, CA-03, CA-19 a CA-21).

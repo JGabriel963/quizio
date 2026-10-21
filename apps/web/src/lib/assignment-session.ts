@@ -3,6 +3,8 @@ export interface StoredAssignmentSession {
 	gameId: string;
 	playerId: string;
 	secret: string;
+	/** For "Você é {apelido}?" on coming back (spec 030, RN-20); older ones have none. */
+	nickname?: string;
 }
 
 export interface AssignmentSessionStore {
@@ -19,11 +21,15 @@ function isSession(value: unknown): value is StoredAssignmentSession {
 	if (typeof value !== "object" || value === null) {
 		return false;
 	}
-	const { gameId, playerId, secret } = value as Record<string, unknown>;
+	const { gameId, playerId, secret, nickname } = value as Record<
+		string,
+		unknown
+	>;
 	return (
 		typeof gameId === "string" &&
 		typeof playerId === "string" &&
-		typeof secret === "string"
+		typeof secret === "string" &&
+		(nickname === undefined || typeof nickname === "string")
 	);
 }
 

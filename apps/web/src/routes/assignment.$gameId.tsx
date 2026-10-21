@@ -28,6 +28,7 @@ function AssignmentPage() {
 		() => ({
 			cover: (id) => client.game.assignment.cover.query({ gameId: id }),
 			join: (input) => client.game.assignment.join.mutate(input),
+			resume: (input) => client.game.assignment.resume.mutate(input),
 			// Without an answer in time, the device takes the connection as lost
 			// (spec 013): the server refuses a step that already happened.
 			play: (input) => withTimeout(client.game.assignment.play.query(input)),

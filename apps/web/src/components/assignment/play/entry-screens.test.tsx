@@ -1,8 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { AssignmentCover, NicknameStep, ReadyScreen } from "./entry-screens";
+import {
+	AssignmentCover,
+	ConfirmParticipant,
+	NicknameStep,
+	ReadyScreen,
+} from "./entry-screens";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const cover = {
@@ -11,6 +16,7 @@ const cover = {
 	creatorName: "Ana",
 	remainingMs: 2 * DAY_MS,
 	participantCount: 1,
+	participants: ["John"],
 	coverUrl: "https://media.test/cover.png",
 	questionCount: 5,
 };
@@ -35,16 +41,31 @@ describe("AssignmentCover (spec 030, RN-01)", () => {
 describe("NicknameStep (spec 030, RN-02 to RN-04)", () => {
 	function renderStep(notice: string | null = null) {
 		const onSubmit = vi.fn();
+		const onPick = vi.fn();
 		render(
 			<NicknameStep
 				cover={cover}
 				busy={false}
 				notice={notice}
 				onSubmit={onSubmit}
+				onPick={onPick}
 			/>,
 		);
-		return { onSubmit, user: userEvent.setup() };
+		return { onSubmit, onPick, user: userEvent.setup() };
 	}
+
+	it("lists who joined, and a tap on one asks Você é…? (RN-03)", async () => {
+		const { onPick, user } = renderStep();
+
+		await user.click(
+			within(screen.getByRole("list", { name: "Quem já entrou" })).getByRole(
+				"button",
+				{ name: "John" },
+			),
+		);
+
+		expect(onPick).toHaveBeenCalledWith("John");
+	});
 
 	it("Ok, vamos lá! sends the nickname", async () => {
 		const { onSubmit, user } = renderStep();
@@ -100,5 +121,31 @@ describe("ReadyScreen (spec 030, RN-06)", () => {
 		await user.click(screen.getByRole("button", { name: "Começar" }));
 
 		expect(onStart).toHaveBeenCalledOnce();
+	});
+});
+
+describe("ConfirmParticipant (spec 030, RN-03, RN-20)", () => {
+	it("asks Você é John? with Sim and Não", async () => {
+		const onYes = vi.fn();
+		const onNo = vi.fn();
+		render(
+			<ConfirmParticipant
+				nickname="John"
+				busy={false}
+				notice={null}
+				onYes={onYes}
+				onNo={onNo}
+			/>,
+		);
+		const user = userEvent.setup();
+
+		expect(
+			screen.getByRole("heading", { name: "Você é John?" }),
+		).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Sim" }));
+		await user.click(screen.getByRole("button", { name: "Não" }));
+
+		expect(onYes).toHaveBeenCalledOnce();
+		expect(onNo).toHaveBeenCalledOnce();
 	});
 });

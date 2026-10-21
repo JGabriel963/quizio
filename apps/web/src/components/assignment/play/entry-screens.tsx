@@ -92,12 +92,15 @@ export function NicknameStep({
 	busy,
 	notice,
 	onSubmit,
+	onPick,
 }: {
 	cover: OpenAssignmentCoverData;
 	busy: boolean;
 	/** Why the server refused the last nickname; null otherwise. */
 	notice: string | null;
 	onSubmit: (nickname: string) => void;
+	/** A tap on who already joined: "Você é {apelido}?" (RN-03). */
+	onPick: (nickname: string) => void;
 }) {
 	const id = useId();
 	const [nickname, setNickname] = useState("");
@@ -118,6 +121,24 @@ export function NicknameStep({
 				{cover.participantCount}{" "}
 				{cover.participantCount === 1 ? "participante" : "participantes"}
 			</p>
+			{cover.participants.length > 0 && (
+				<ul
+					aria-label="Quem já entrou"
+					className="flex max-w-xl flex-wrap justify-center gap-2"
+				>
+					{cover.participants.map((nickname) => (
+						<li key={nickname}>
+							<button
+								type="button"
+								onClick={() => onPick(nickname)}
+								className="rounded-md bg-black/40 px-4 py-2 font-black text-lg shadow-press-sm outline-none transition-colors hover:bg-black/55 focus-visible:ring-4 focus-visible:ring-white/70"
+							>
+								{nickname}
+							</button>
+						</li>
+					))}
+				</ul>
+			)}
 			<form
 				className="mt-auto flex w-full max-w-sm flex-col gap-3"
 				onSubmit={(event) => {
@@ -191,6 +212,56 @@ export function ReadyScreen({
 				onChange={onChange}
 				onClose={() => setEditing(false)}
 			/>
+		</Card>
+	);
+}
+
+/**
+ * "Você é {apelido}?" (spec 030, RN-03, RN-20): coming back, or choosing a
+ * nickname already in the activity. "Sim" takes that participant back up,
+ * where they were; "Não" goes to the nickname to start as somebody else.
+ */
+export function ConfirmParticipant({
+	nickname,
+	busy,
+	notice,
+	onYes,
+	onNo,
+}: {
+	nickname: string;
+	busy: boolean;
+	notice: string | null;
+	onYes: () => void;
+	onNo: () => void;
+}) {
+	return (
+		<Card>
+			<div className="my-auto flex w-full max-w-md flex-col items-center gap-4 text-center motion-safe:animate-pop-in">
+				<h1 className="font-black text-2xl">Você é {nickname}?</h1>
+				<p className="font-semibold">
+					Um jogador com esse apelido já começou o jogo. Se foi você, continue
+					jogando de onde parou ou comece a jogar com um apelido diferente.
+				</p>
+				<Button
+					variant="secondary"
+					size="lg"
+					className="w-full"
+					disabled={busy}
+					onClick={onYes}
+				>
+					Sim
+				</Button>
+				<Button
+					variant="outline"
+					size="lg"
+					className="w-full border-white bg-transparent text-white hover:bg-white/10"
+					disabled={busy}
+					onClick={onNo}
+				>
+					Não
+				</Button>
+				<JoinNotice message={notice} />
+			</div>
 		</Card>
 	);
 }

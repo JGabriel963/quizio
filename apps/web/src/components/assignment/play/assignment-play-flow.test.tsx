@@ -19,6 +19,7 @@ const cover: AssignmentCoverData = {
 	creatorName: "Ana",
 	remainingMs: 2 * 86_400_000,
 	participantCount: 0,
+	participants: [],
 	coverUrl: null,
 	questionCount: 2,
 };
@@ -99,12 +100,19 @@ function fakeApi(overrides: Partial<AssignmentPlayApi> = {}) {
 			}),
 		),
 		setAvatar: vi.fn(async ({ avatar }) => ({ avatar })),
+		resume: vi.fn(async () => ({
+			playerId: "me",
+			secret: "s3cret",
+			nickname: "John",
+		})),
 		...overrides,
 	};
 	return api;
 }
 
-function memoryStore(saved: typeof SESSION | null = null) {
+function memoryStore(
+	saved: (typeof SESSION & { nickname?: string }) | null = null,
+) {
 	const items = new Map<string, string>();
 	const store = createAssignmentSessionStore({
 		getItem: (key) => items.get(key) ?? null,
@@ -182,10 +190,10 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 			nickname: "John",
 			avatar: null,
 		});
-		expect(store.load(GAME)).toEqual(SESSION);
+		expect(store.load(GAME)).toEqual({ ...SESSION, nickname: "John" });
 	});
 
-	it("with a session: straight to where the participant was", async () => {
+	it("with a session: Você é John?, and Sim goes where John was", async () => {
 		const api = fakeApi({
 			play: vi.fn(async () =>
 				viewWith({
@@ -195,21 +203,72 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 				}),
 			),
 		});
-		const { user } = renderFlow(api, memoryStore(SESSION));
+		const { user } = renderFlow(
+			api,
+			memoryStore({ ...SESSION, nickname: "John" }),
+		);
+
+		expect(
+			await screen.findByRole("heading", { name: "Você é John?" }),
+		).toBeInTheDocument();
+		expect(api.play).not.toHaveBeenCalled();
+		await user.click(screen.getByRole("button", { name: "Sim" }));
 
 		expect(
 			await screen.findByRole("list", { name: "Pontuações" }),
 		).toBeInTheDocument();
-		expect(api.cover).not.toHaveBeenCalled();
+		expect(api.resume).toHaveBeenCalledWith({ gameId: GAME, nickname: "John" });
 		await user.click(screen.getByRole("button", { name: "Próximo" }));
-
 		expect(api.advance).toHaveBeenCalledWith({
 			...SESSION,
 			from: { questionIndex: 0, phase: "scoreboard" },
 		});
 	});
 
-	it("a finished participant goes to the end", async () => {
+	it("Não forgets John in this browser and asks for another nickname", async () => {
+		const api = fakeApi();
+		const { store, user } = renderFlow(
+			api,
+			memoryStore({ ...SESSION, nickname: "John" }),
+		);
+
+		await user.click(await screen.findByRole("button", { name: "Não" }));
+
+		expect(
+			await screen.findByRole("textbox", { name: "Insira um apelido" }),
+		).toBeInTheDocument();
+		expect(store.load(GAME)).toBeNull();
+		expect(api.resume).not.toHaveBeenCalled();
+	});
+
+	it("a nickname in use asks Você é…? and Sim resumes it", async () => {
+		const api = fakeApi({
+			join: vi.fn(async () => {
+				throw Object.assign(new Error("taken"), {
+					data: { domainCode: "GAME.NICKNAME_TAKEN" },
+				});
+			}),
+		});
+		const { store, user } = renderFlow(api);
+
+		await user.click(await screen.findByRole("button", { name: "Iniciar" }));
+		await user.type(
+			screen.getByRole("textbox", { name: "Insira um apelido" }),
+			"john",
+		);
+		await user.click(screen.getByRole("button", { name: "Ok, vamos lá!" }));
+		await user.click(await screen.findByRole("button", { name: "Sim" }));
+
+		expect(api.resume).toHaveBeenCalledWith({ gameId: GAME, nickname: "john" });
+		expect(
+			await screen.findByRole("heading", {
+				name: "Qual é a capital do Brasil?",
+			}),
+		).toBeInTheDocument();
+		expect(store.load(GAME)).toEqual({ ...SESSION, nickname: "John" });
+	});
+
+	it("a finished participant who comes back sees the end, without ←", async () => {
 		const api = fakeApi({
 			play: vi.fn(async () => ({
 				...viewWith({
@@ -221,12 +280,17 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 				history: [resultOf(0, "Primeira", true), resultOf(1, "Segunda", true)],
 			})),
 		});
-		const { onLeave, user } = renderFlow(api, memoryStore(SESSION));
+		const { onLeave, user } = renderFlow(
+			api,
+			memoryStore({ ...SESSION, nickname: "John" }),
+		);
 
+		await user.click(await screen.findByRole("button", { name: "Sim" }));
 		await user.click(
 			await screen.findByRole("button", { name: "Entrar em outro jogo" }),
 		);
 
+		expect(screen.queryByRole("button", { name: "Anterior" })).toBeNull();
 		expect(onLeave).toHaveBeenCalledOnce();
 	});
 

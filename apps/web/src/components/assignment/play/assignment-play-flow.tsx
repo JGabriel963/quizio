@@ -1,6 +1,7 @@
 import type { Avatar } from "@quizio/core/game/domain/avatar";
+import { nicknameKeyOf } from "@quizio/core/game/domain/nickname";
 import type { ParticipantPhase } from "@quizio/core/game/domain/participant-progress";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { AssignmentLanding } from "@/components/assignment/assignment-landing";
 import { GameScreen } from "@/components/game/game-screen";
@@ -16,7 +17,12 @@ import {
 	gameErrorMessage,
 } from "@/lib/game-error-messages";
 
-import { AssignmentCover, NicknameStep, ReadyScreen } from "./entry-screens";
+import {
+	AssignmentCover,
+	ConfirmParticipant,
+	NicknameStep,
+	ReadyScreen,
+} from "./entry-screens";
 import { PlayArrows } from "./play-arrows";
 import { PlayFinal } from "./play-final";
 import { PlayQuestion } from "./play-question";
@@ -48,6 +54,11 @@ export interface AssignmentPlayApi {
 	setAvatar(
 		input: StoredAssignmentSession & { avatar: Avatar },
 	): Promise<{ avatar: Avatar }>;
+	/** "Sim" to "Você é {apelido}?" (RN-20). */
+	resume(input: {
+		gameId: string;
+		nickname: string;
+	}): Promise<{ playerId: string; secret: string; nickname: string }>;
 }
 
 /** How often the activity's cover asks again: the deadline may change or end (spec 029, RN-37). */
@@ -66,6 +77,8 @@ type CoverState =
 type Step =
 	| { kind: "cover" }
 	| { kind: "nickname"; notice: string | null }
+	/** "Você é {apelido}?": coming back, or a nickname already in (RN-03, RN-20). */
+	| { kind: "confirm"; nickname: string; notice: string | null }
 	| { kind: "play"; session: StoredAssignmentSession };
 
 interface PlayState {
@@ -108,12 +121,30 @@ export function AssignmentPlayFlow({
 }) {
 	const [step, setStep] = useState<Step>(() => {
 		const session = store.load(gameId);
-		return session ? { kind: "play", session } : { kind: "cover" };
+		if (!session) {
+			return { kind: "cover" };
+		}
+		// Older sessions kept no nickname: they go straight back in.
+		return session.nickname
+			? { kind: "confirm", nickname: session.nickname, notice: null }
+			: { kind: "play", session };
 	});
+	const [resuming, setResuming] = useState(false);
+	// Who comes back already at the end sees it without ← (RN-22).
+	const [reviewLocked, setReviewLocked] = useState(false);
+	const entering = useRef(false);
 	const [coverState, setCoverState] = useState<CoverState>({ kind: "loading" });
 	const [joining, setJoining] = useState(false);
 	const [play, setPlay] = useState<PlayState>(NO_PLAY);
-	const session = step.kind === "play" ? step.session : null;
+	// What the server is told: the pair, never the nickname kept for "Você é…?".
+	const session =
+		step.kind === "play"
+			? {
+					gameId: step.session.gameId,
+					playerId: step.session.playerId,
+					secret: step.session.secret,
+				}
+			: null;
 
 	const loadCover = useEffectEvent(async () => {
 		try {
@@ -136,7 +167,11 @@ export function AssignmentPlayFlow({
 		return () => clearInterval(timer);
 	}, [step.kind]);
 
-	const show = (view: AssignmentPlayData) =>
+	const show = (view: AssignmentPlayData) => {
+		if (entering.current) {
+			entering.current = false;
+			setReviewLocked(view.screen.phase === "finished");
+		}
 		setPlay({
 			view,
 			receivedAt: Date.now(),
@@ -144,6 +179,7 @@ export function AssignmentPlayFlow({
 			failure: null,
 			lost: false,
 		});
+	};
 
 	const load = useEffectEvent(async () => {
 		if (!session) {
@@ -244,14 +280,80 @@ export function AssignmentPlayFlow({
 				gameId,
 				playerId: joined.playerId,
 				secret: joined.secret,
+				nickname: joined.nickname,
 			};
 			store.save(stored);
 			setStep({ kind: "play", session: stored });
 		} catch (error) {
-			setStep({ kind: "nickname", notice: gameErrorMessage(error) });
+			setStep(
+				gameErrorCode(error) === "GAME.NICKNAME_TAKEN"
+					? { kind: "confirm", nickname: knownAs(nickname), notice: null }
+					: { kind: "nickname", notice: gameErrorMessage(error) },
+			);
 		} finally {
 			setJoining(false);
 		}
+	}
+
+	/** The nickname as its participant wrote it, when the cover lists it. */
+	function knownAs(typed: string): string {
+		const key = nicknameKeyOf(typed.trim());
+		const participants =
+			coverState.kind === "ready" && coverState.cover.status === "open"
+				? coverState.cover.participants
+				: [];
+		return (
+			participants.find((nickname) => nicknameKeyOf(nickname) === key) ??
+			typed.trim()
+		);
+	}
+
+	/** "Sim": that participant, where they were (RN-20 to RN-22). */
+	async function resume(nickname: string) {
+		setResuming(true);
+		try {
+			const resumed = await api.resume({ gameId, nickname });
+			const stored = {
+				gameId,
+				playerId: resumed.playerId,
+				secret: resumed.secret,
+				nickname: resumed.nickname,
+			};
+			store.save(stored);
+			entering.current = true;
+			setStep({ kind: "play", session: stored });
+		} catch (error) {
+			const code = gameErrorCode(error);
+			if (code === "ASSIGNMENT.PARTICIPANT_NOT_FOUND") {
+				store.clear(gameId);
+				setStep({ kind: "nickname", notice: null });
+			} else if (code === "GAME.NOT_FOUND") {
+				store.clear(gameId);
+				setStep({ kind: "cover" });
+			} else {
+				setStep({ kind: "confirm", nickname, notice: gameErrorMessage(error) });
+			}
+		} finally {
+			setResuming(false);
+		}
+	}
+
+	/** "Não": somebody else, with a nickname of their own (RN-20). */
+	function startOver() {
+		store.clear(gameId);
+		setStep({ kind: "nickname", notice: null });
+	}
+
+	if (step.kind === "confirm") {
+		return (
+			<ConfirmParticipant
+				nickname={step.nickname}
+				busy={resuming}
+				notice={step.notice}
+				onYes={() => void resume(step.nickname)}
+				onNo={startOver}
+			/>
+		);
 	}
 
 	if (!session) {
@@ -276,6 +378,9 @@ export function AssignmentPlayFlow({
 				busy={joining}
 				notice={step.notice}
 				onSubmit={(nickname) => void join(nickname)}
+				onPick={(nickname) =>
+					setStep({ kind: "confirm", nickname, notice: null })
+				}
 			/>
 		) : (
 			<AssignmentCover
@@ -370,7 +475,7 @@ export function AssignmentPlayFlow({
 						phase: screen.phase,
 						questionIndex: from?.questionIndex ?? view.questionCount - 1,
 					}}
-					history={view.history}
+					history={reviewLocked ? [] : view.history}
 					questionCount={view.questionCount}
 					busy={play.busy}
 					onAdvance={() => {

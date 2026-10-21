@@ -15,7 +15,12 @@ function memoryStorage() {
 	};
 }
 
-const john = { gameId: "a-1", playerId: "player-1", secret: "secret-1" };
+const john = {
+	gameId: "a-1",
+	playerId: "player-1",
+	secret: "secret-1",
+	nickname: "John",
+};
 
 describe("assignment session (spec 030, RN-20)", () => {
 	it("remembers the participant of each activity", () => {

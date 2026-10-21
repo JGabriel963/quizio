@@ -1215,6 +1215,7 @@ describe("game router: assignments (spec 029)", () => {
 				creatorName: "Ana",
 				remainingMs: 3 * DAY_MS,
 				participantCount: 0,
+				participants: [],
 				coverUrl: null,
 				questionCount: 2,
 			},
@@ -1278,6 +1279,24 @@ describe("game router: playing an assignment (spec 030)", () => {
 		};
 		return { api, visitor, gameId, participant };
 	}
+
+	it("assignment.resume takes the participant back up by nickname, anywhere", async () => {
+		const { visitor, gameId, participant } = await assignedTo();
+
+		expect(
+			await visitor.game.assignment.resume({ gameId, nickname: "john" }),
+		).toEqual({
+			playerId: participant.playerId,
+			secret: participant.secret,
+			nickname: "John",
+		});
+		await expect(
+			visitor.game.assignment.resume({ gameId, nickname: "Bia" }),
+		).rejects.toMatchObject({
+			code: "NOT_FOUND",
+			cause: { code: "ASSIGNMENT.PARTICIPANT_NOT_FOUND" },
+		});
+	});
 
 	it("assignment.join, play, answer and advance play a whole assignment", async () => {
 		const { api, visitor, participant } = await assignedTo();
