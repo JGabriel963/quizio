@@ -110,6 +110,18 @@ export async function createStartedGame(
 		});
 	}
 
+	/** Player `number` (1-based) types an answer to the question being asked (spec 031). */
+	async function type(number: number, text: string) {
+		const { questionIndex } = await stage();
+		await submitAnswer({
+			gameId: "game-1",
+			playerId: `p${number}`,
+			secret: `s${number}`,
+			questionIndex,
+			text,
+		});
+	}
+
 	/** Someone gets in with the game on (spec 012); the session to ask with. */
 	async function join(nickname: string) {
 		const joined = await createJoinGame(deps)({ gameId: "game-1", nickname });
@@ -131,5 +143,6 @@ export async function createStartedGame(
 		reach,
 		finish,
 		answer,
+		type,
 	};
 }

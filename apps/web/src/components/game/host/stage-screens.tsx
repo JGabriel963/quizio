@@ -14,6 +14,7 @@ import { Wordmark } from "../game-screen";
 import { AutoCountdown } from "./auto-countdown";
 import { AnswerBars, StageChoices } from "./stage-choices";
 import { StageImage } from "./stage-image";
+import { TypedAnswersReveal } from "./typed-answers-reveal";
 
 /** The white strip with the question, as in Kahoot. */
 function QuestionText({ children }: { children: ReactNode }) {
@@ -152,10 +153,13 @@ export function QuestionIntro({
 function QuestionStage({
 	question,
 	action,
+	footer,
 	children,
 }: {
 	question: HostQuestionData;
 	action: ReactNode;
+	/** What takes the answers' place at the bottom, as in a type answer (spec 031). */
+	footer?: ReactNode;
 	children: ReactNode;
 }) {
 	return (
@@ -170,7 +174,11 @@ function QuestionStage({
 			<div className="flex min-h-0 flex-1 items-stretch gap-4 px-4 pb-2">
 				{children}
 			</div>
-			<StageChoices choices={question.choices} />
+			{question.type === "typeAnswer" ? (
+				footer
+			) : (
+				<StageChoices choices={question.choices} />
+			)}
 		</main>
 	);
 }
@@ -197,6 +205,12 @@ export function Answering({
 	return (
 		<QuestionStage
 			question={question}
+			footer={
+				// No answers to show: the players type theirs (spec 031, RN-22).
+				<p className="mx-auto mb-3 w-full max-w-3xl rounded-md bg-answer-blue px-4 py-3 text-center font-black text-2xl shadow-lg sm:text-4xl">
+					Jogadores, digitem a resposta!
+				</p>
+			}
 			action={
 				<Button variant="game" disabled={busy} onClick={onSkip}>
 					<SkipForwardIcon aria-hidden="true" />
@@ -243,33 +257,59 @@ export function Results({
 	question,
 	auto = null,
 	busy,
+	animate = true,
 	onAdvance,
+	onReview,
 }: {
 	stage: HostStageData;
 	question: HostQuestionData;
 	/** Autoplay's countdown to move on, when it is on. */
 	auto?: { remainingMs: number; receivedAt: number } | null;
 	busy: boolean;
+	/** False when the screen opened already in the results: no animation (spec 031, RN-23a). */
+	animate?: boolean;
 	onAdvance: () => void;
+	/** "Revisar respostas" of a type answer (spec 031, RN-26). */
+	onReview?: () => void;
 }) {
+	const advanceAction = auto ? (
+		<AutoCountdown
+			label="Avança em"
+			remainingMs={auto.remainingMs}
+			receivedAt={auto.receivedAt}
+		/>
+	) : (
+		<Button variant="secondary" disabled={busy} onClick={onAdvance}>
+			Avançar
+			<ChevronRightIcon aria-hidden="true" />
+		</Button>
+	);
+	if (question.type === "typeAnswer") {
+		return (
+			<QuestionStage
+				question={question}
+				action={
+					<div className="flex flex-col items-end gap-2">
+						{advanceAction}
+						{onReview && (
+							<Button variant="game" disabled={busy} onClick={onReview}>
+								Revisar respostas
+							</Button>
+						)}
+					</div>
+				}
+			>
+				<TypedAnswersReveal
+					tags={stage.typedAnswers?.tags ?? []}
+					image={question.image}
+					seed={`${stage.questionIndex}:${question.text}`}
+					animate={animate}
+				/>
+			</QuestionStage>
+		);
+	}
 	return (
-		<QuestionStage
-			question={question}
-			action={
-				auto ? (
-					<AutoCountdown
-						label="Avança em"
-						remainingMs={auto.remainingMs}
-						receivedAt={auto.receivedAt}
-					/>
-				) : (
-					<Button variant="secondary" disabled={busy} onClick={onAdvance}>
-						Avançar
-						<ChevronRightIcon aria-hidden="true" />
-					</Button>
-				)
-			}
-		>
+		<QuestionStage question={question} action={advanceAction}>
 			{question.image?.placement === "media" && (
 				<div className="hidden min-w-0 flex-1 items-center justify-center sm:flex">
 					<StageImage image={question.image} />

@@ -40,6 +40,7 @@ export function aReportQuestion(
 		type: "quiz",
 		text: `Pergunta ${index + 1}`,
 		imageKey: null,
+		acceptedAnswers: [],
 		choices: ["a", "b", "c", "d"].map((letter, shapeIndex) => ({
 			id: `q${index}-${letter}`,
 			shapeIndex,
@@ -62,9 +63,11 @@ export type AnswerSpec =
 	| null
 	| {
 			choiceIds: string[];
+			text?: string;
 			correctness: Correctness;
 			points?: number;
 			responseTimeMs?: number;
+			receivedAt?: Date;
 	  };
 
 function answerOf(
@@ -72,14 +75,20 @@ function answerOf(
 	question: ReportQuestion,
 	playerId: string,
 ): ReportAnswer {
-	const base = { questionIndex: question.index, playerId };
+	const base = {
+		questionIndex: question.index,
+		playerId,
+		receivedAt: new Date("2026-06-13T17:46:00.000Z"),
+	};
 	if (typeof spec !== "string") {
 		return {
 			...base,
 			choiceIds: spec.choiceIds,
+			text: spec.text ?? null,
 			correctness: spec.correctness,
 			points: spec.points ?? (spec.correctness === "correct" ? 1000 : 0),
 			responseTimeMs: spec.responseTimeMs ?? 2000,
+			receivedAt: spec.receivedAt ?? base.receivedAt,
 		};
 	}
 	const right = question.choices.find((choice) => choice.correct);
@@ -88,6 +97,7 @@ function answerOf(
 	return {
 		...base,
 		choiceIds: choice ? [choice.id] : [],
+		text: null,
 		correctness:
 			spec === "right"
 				? "correct"

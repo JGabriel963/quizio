@@ -116,6 +116,30 @@ export class InMemoryGameRepository implements GameRepository {
 		}
 	}
 
+	async saveReview(
+		gameId: string,
+		from: StageRef,
+		review: { openedAt: Date | null; closedAt: Date | null },
+	): Promise<boolean> {
+		const stored = this.#games.get(gameId);
+		if (
+			!stored?.progress ||
+			stored.endedAt !== null ||
+			!isAtStage(stored, from)
+		) {
+			return false;
+		}
+		this.#games.set(gameId, {
+			...stored,
+			progress: {
+				...stored.progress,
+				reviewOpenedAt: review.openedAt,
+				reviewClosedAt: review.closedAt,
+			},
+		});
+		return true;
+	}
+
 	async deleteUnstartedByQuiz(quizId: string): Promise<void> {
 		for (const game of this.all()) {
 			if (game.quizId === quizId && game.questionCount === 0) {

@@ -1,17 +1,22 @@
 import { describe, expect, it } from "vitest";
 
+import { asTypeAnswer } from "../testing/a-question";
 import {
+	AcceptedAnswerTooLongError,
 	blankContent,
 	blankQuestion,
 	CHOICE_TEXT_MAX_LENGTH,
 	ChoiceTextTooLongError,
 	choiceIdAt,
 	copyQuestion,
+	defaultTimeLimitFor,
+	fitTimeLimit,
 	InvalidQuestionPointsError,
 	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
 	InvalidTimeLimitError,
 	isBlankQuestion,
+	parseAcceptedAnswer,
 	parseChoiceText,
 	parsePoints,
 	parseQuestionText,
@@ -28,6 +33,8 @@ import {
 	questionContent,
 	storedContent,
 	TIME_LIMITS_SECONDS,
+	TYPE_ANSWER_MAX_LENGTH,
+	timeLimitsFor,
 	toggledTrueFalseCorrect,
 } from "./question";
 
@@ -77,8 +84,8 @@ describe("true/false question", () => {
 		});
 	});
 
-	it("offers quiz and true/false, and rejects an unknown question type", () => {
-		expect(QUESTION_TYPES).toEqual(["quiz", "trueFalse"]);
+	it("offers quiz, true/false and type answer, and rejects an unknown question type", () => {
+		expect(QUESTION_TYPES).toEqual(["quiz", "trueFalse", "typeAnswer"]);
 		expect(parseQuestionType("trueFalse")).toBe("trueFalse");
 		expect(() => parseQuestionType("slider")).toThrow(InvalidQuestionTypeError);
 	});
@@ -321,6 +328,95 @@ describe("copyQuestion", () => {
 		expect(copyQuestion(source, "question-2")).toEqual({
 			...source,
 			id: "question-2",
+		});
+	});
+});
+
+describe("type answer question", () => {
+	it("a blank type answer has one empty accepted answer, 30 s and standard points", () => {
+		expect(QUESTION_TYPES).toContain("typeAnswer");
+		expect(blankQuestion("question-1", "typeAnswer")).toEqual({
+			id: "question-1",
+			type: "typeAnswer",
+			text: null,
+			timeLimitSeconds: 30,
+			points: "standard",
+			image: null,
+			aiGenerated: false,
+			acceptedAnswers: [null],
+		});
+	});
+
+	it("type answer time limits run from 20 s to 4 min", () => {
+		expect(timeLimitsFor("typeAnswer")).toEqual([
+			20, 30, 45, 60, 90, 120, 180, 240,
+		]);
+		expect(timeLimitsFor("quiz")).toEqual(TIME_LIMITS_SECONDS);
+		expect(defaultTimeLimitFor("typeAnswer")).toBe(30);
+		expect(defaultTimeLimitFor("trueFalse")).toBe(20);
+	});
+
+	it("fits a time below the type's minimum to it", () => {
+		expect(fitTimeLimit("typeAnswer", 10)).toBe(20);
+		expect(fitTimeLimit("typeAnswer", 45)).toBe(45);
+		expect(fitTimeLimit("quiz", 5)).toBe(5);
+	});
+
+	it("parses stored accepted answers, tolerating missing or long ones", () => {
+		expect(
+			parseStoredContent("typeAnswer", {
+				acceptedAnswers: ["Pedro", null, "Jesus"],
+			}),
+		).toEqual({
+			type: "typeAnswer",
+			acceptedAnswers: ["Pedro", null, "Jesus"],
+		});
+		expect(parseStoredContent("typeAnswer", {})).toEqual({
+			type: "typeAnswer",
+			acceptedAnswers: [null],
+		});
+		expect(
+			parseStoredContent("typeAnswer", {
+				acceptedAnswers: ["a".repeat(25), 3, "b", "c", "d", "e"],
+			}),
+		).toEqual({
+			type: "typeAnswer",
+			acceptedAnswers: ["a".repeat(TYPE_ANSWER_MAX_LENGTH), null, "b", "c"],
+		});
+	});
+
+	it("refuses an accepted answer over 20 characters", () => {
+		expect(parseAcceptedAnswer("  Pedro ")).toBe("Pedro");
+		expect(parseAcceptedAnswer("   ")).toBeNull();
+		expect(() => parseAcceptedAnswer("a".repeat(21))).toThrow(
+			AcceptedAnswerTooLongError,
+		);
+	});
+
+	it("copying a type answer copies its accepted answers", () => {
+		const source: Question = {
+			...blankQuestion("question-1", "typeAnswer"),
+			acceptedAnswers: ["Pedro", "Jesus"],
+		};
+
+		const copy = copyQuestion(source, "question-2");
+
+		expect(copy).toEqual({ ...source, id: "question-2" });
+		expect(asTypeAnswer(copy).acceptedAnswers).not.toBe(
+			asTypeAnswer(source).acceptedAnswers,
+		);
+	});
+
+	it("a type answer with an empty main answer is blank", () => {
+		const blank = blankQuestion("question-1", "typeAnswer");
+
+		expect(isBlankQuestion(blank)).toBe(true);
+		expect(isBlankQuestion({ ...blank, acceptedAnswers: ["Pedro"] })).toBe(
+			false,
+		);
+		expect(blankContent("typeAnswer")).toEqual({
+			type: "typeAnswer",
+			acceptedAnswers: [null],
 		});
 	});
 });

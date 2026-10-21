@@ -2,7 +2,7 @@ import {
 	QUESTION_INTRO_MS,
 	QUESTION_TYPE_REVEAL_MS,
 } from "@quizio/core/game/domain/game-progress";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -56,6 +56,8 @@ function stageAt(overrides: Partial<HostStageData>): HostStageData {
 		scoreboard: null,
 		scoreboardLeavers: null,
 		autoAdvance: null,
+		typedAnswers: null,
+		reviewOpen: false,
 		...overrides,
 	};
 }
@@ -87,13 +89,18 @@ const game: HostGameData = {
 
 function renderStage(
 	stage: HostStageData,
-	options: { advance?: HostStageActions["advance"]; receivedAt?: number } = {},
+	options: {
+		advance?: HostStageActions["advance"];
+		receivedAt?: number;
+		review?: HostStageActions["review"];
+	} = {},
 ) {
 	const actions: HostStageActions = {
 		advance: options.advance ?? vi.fn(async () => {}),
 		setLocked: vi.fn(),
 		setOptions: vi.fn(),
 		end: vi.fn(),
+		review: options.review,
 	};
 	const user = userEvent.setup(
 		vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : undefined,
@@ -1184,5 +1191,107 @@ describe("HostStage: autoplay (spec 014)", () => {
 			{ questionIndex: 0, phase: "results" },
 			false,
 		);
+	});
+});
+
+describe("HostStage: type answer (spec 031)", () => {
+	const typed: HostQuestionData = {
+		type: "typeAnswer",
+		selection: "single",
+		text: "Quem andou sobre as águas?",
+		choices: [],
+		image: null,
+	};
+	const results = (overrides: Partial<HostStageData> = {}) =>
+		stageAt({
+			phase: "results",
+			remainingMs: null,
+			durationMs: null,
+			question: typed,
+			answerCount: 2,
+			typedAnswers: {
+				tags: [
+					{ text: "Pedro", count: 1, correct: true },
+					{ text: "Pedra", count: 1, correct: false },
+				],
+			},
+			...overrides,
+		});
+	const reviewActions = () => ({
+		open: vi.fn(async () => {}),
+		close: vi.fn(async () => {}),
+		answers: vi.fn(async () => [
+			{
+				key: "pedro",
+				text: "Pedro",
+				count: 1,
+				correct: true,
+				accepted: true,
+				similar: false,
+			},
+			{
+				key: "pedra",
+				text: "Pedra",
+				count: 1,
+				correct: false,
+				accepted: false,
+				similar: true,
+			},
+		]),
+		submit: vi.fn(async () => {}),
+	});
+
+	it("a type answer shows Jogadores, digitem a resposta! instead of choices", () => {
+		renderStage(stageAt({ question: typed }));
+
+		expect(
+			screen.getByText("Jogadores, digitem a resposta!"),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
+	});
+
+	it("the results opened at once show the correct answers", () => {
+		renderStage(results());
+
+		expect(
+			screen.getByRole("heading", { name: "As respostas corretas são:" }),
+		).toBeInTheDocument();
+	});
+
+	it("opens the review, which sends the marks", async () => {
+		const review = reviewActions();
+		const { user } = renderStage(results(), { review });
+
+		await user.click(screen.getByRole("button", { name: "Revisar respostas" }));
+		await user.click(await screen.findByRole("button", { name: /Pedra/ }));
+		await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+		expect(review.open).toHaveBeenCalledWith({
+			questionIndex: 0,
+			phase: "results",
+		});
+		expect(review.submit).toHaveBeenCalledWith(
+			{ questionIndex: 0, phase: "results" },
+			[{ key: "pedra", correct: true }],
+		);
+	});
+
+	it("no countdown while the review is open", async () => {
+		vi.useFakeTimers();
+		const review = reviewActions();
+		const advance = vi.fn(async () => {});
+		renderStage(results({ autoAdvance: { remainingMs: 5_000, token: "a" } }), {
+			advance,
+			review,
+		});
+
+		fireEvent.click(screen.getByRole("button", { name: "Revisar respostas" }));
+		await tick(10_000);
+
+		expect(advance).not.toHaveBeenCalled();
+
+		fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+		expect(review.close).toHaveBeenCalledOnce();
 	});
 });

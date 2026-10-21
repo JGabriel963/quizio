@@ -74,6 +74,7 @@ describe("getReportParticipant (spec 015)", () => {
 				choices: [{ shapeIndex: 0, text: "Resposta A", correct: true }],
 				points: 893,
 				responseTimeMs: 3200,
+				typedText: null,
 			},
 			{
 				questionIndex: 1,
@@ -83,6 +84,7 @@ describe("getReportParticipant (spec 015)", () => {
 				choices: [{ shapeIndex: 1, text: "Resposta B", correct: false }],
 				points: 0,
 				responseTimeMs: 2000,
+				typedText: null,
 			},
 		]);
 	});
@@ -98,6 +100,7 @@ describe("getReportParticipant (spec 015)", () => {
 			choices: [],
 			points: 0,
 			responseTimeMs: null,
+			typedText: null,
 		});
 	});
 
@@ -229,6 +232,7 @@ describe("getReportQuestion (spec 015)", () => {
 				choices: [{ shapeIndex: 0, text: "Resposta A", correct: true }],
 				points: 1000,
 				responseTimeMs: 4000,
+				typedText: null,
 			},
 			{
 				playerId: "player-Bia",
@@ -237,6 +241,7 @@ describe("getReportQuestion (spec 015)", () => {
 				choices: [{ shapeIndex: 1, text: "Resposta B", correct: false }],
 				points: 0,
 				responseTimeMs: 6000,
+				typedText: null,
 			},
 			{
 				playerId: "player-Caio",
@@ -245,6 +250,7 @@ describe("getReportQuestion (spec 015)", () => {
 				choices: [{ shapeIndex: 1, text: "Resposta B", correct: false }],
 				points: 0,
 				responseTimeMs: 5000,
+				typedText: null,
 			},
 			{
 				playerId: "player-Dani",
@@ -253,6 +259,7 @@ describe("getReportQuestion (spec 015)", () => {
 				choices: [],
 				points: 0,
 				responseTimeMs: null,
+				typedText: null,
 			},
 		]);
 	});
@@ -302,5 +309,77 @@ describe("getReportQuestion (spec 015)", () => {
 
 		await expect(question(0)).rejects.toBeInstanceOf(ReportInTrashError);
 		await expect(participant("Ana")).rejects.toBeInstanceOf(ReportInTrashError);
+	});
+});
+
+describe("a type answer in the report (spec 031, RN-36, RN-37)", () => {
+	const typed = (
+		text: string,
+		correctness: "correct" | "wrong",
+		seconds: number,
+	) => ({
+		choiceIds: [],
+		text,
+		correctness,
+		receivedAt: new Date(Date.UTC(2026, 5, 13, 17, 46, seconds)),
+	});
+
+	const typeAnswerGame = () =>
+		aReportGame({
+			questions: [
+				aReportQuestion(0, {
+					type: "typeAnswer",
+					text: "Como se chama?",
+					choices: [],
+					acceptedAnswers: ["The Colosseum", "Colosseum", "Colosseum in Rome"],
+				}),
+			],
+			players: ["Ana", "Bia", "Caio", "Davi"],
+			answers: {
+				Ana: [typed("colosseum", "correct", 1)],
+				Bia: [typed("COLOSSEUM", "correct", 2)],
+				// Accepted by the host's review.
+				Caio: [typed("the coloseum", "correct", 3)],
+				Davi: [typed("Roma", "wrong", 4)],
+			},
+		});
+
+	it("a type answer lists the sent answers grouped, correct first, accepted ones with zero", async () => {
+		const view = await setup(typeAnswerGame()).question(0);
+
+		expect(view.typedAnswers).toEqual([
+			{ text: "Colosseum", count: 2, correct: true },
+			{ text: "the coloseum", count: 1, correct: true },
+			{ text: "The Colosseum", count: 0, correct: true },
+			{ text: "Colosseum in Rome", count: 0, correct: true },
+			{ text: "Roma", count: 1, correct: false },
+		]);
+		expect(view.choices).toEqual([]);
+		expect(view.participants.map((p) => p.typedText)).toContain("the coloseum");
+	});
+
+	it("a reviewed answer counts as correct", async () => {
+		const view = await setup(typeAnswerGame()).question(0);
+
+		expect(view.accuracyPercent).toBe(75);
+	});
+
+	it("shows what the participant typed", async () => {
+		const view = await setup(typeAnswerGame()).participant("Davi");
+
+		expect(view.answers).toEqual([
+			expect.objectContaining({
+				type: "typeAnswer",
+				result: "wrong",
+				typedText: "Roma",
+				choices: [],
+			}),
+		]);
+	});
+
+	it("a choice question has no typed answers", async () => {
+		const view = await setup(threeQuestions()).question(0);
+
+		expect(view.typedAnswers).toBeNull();
 	});
 });

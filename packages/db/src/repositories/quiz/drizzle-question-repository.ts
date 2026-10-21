@@ -1,11 +1,10 @@
 import type { QuestionRepository } from "@quizio/core/quiz/application/ports/question-repository";
 import {
-	DEFAULT_TIME_LIMIT_SECONDS,
 	parseStoredContent,
+	parseStoredTimeLimit,
 	QUESTION_POINTS,
 	type Question,
 	storedContent,
-	TIME_LIMITS_SECONDS,
 } from "@quizio/core/quiz/domain/question";
 import { parseStoredImage } from "@quizio/core/quiz/domain/question-image";
 import { and, asc, count, eq, notInArray, sql } from "drizzle-orm";
@@ -30,11 +29,7 @@ function toQuestion(row: QuestionRow): Question {
 	return {
 		id: row.id,
 		text: row.text,
-		timeLimitSeconds: (TIME_LIMITS_SECONDS as readonly number[]).includes(
-			row.timeLimitSeconds,
-		)
-			? (row.timeLimitSeconds as Question["timeLimitSeconds"])
-			: DEFAULT_TIME_LIMIT_SECONDS,
+		timeLimitSeconds: parseStoredTimeLimit(row.type, row.timeLimitSeconds),
 		points: QUESTION_POINTS.includes(row.points) ? row.points : "standard",
 		image: parseStoredImage(row.image),
 		aiGenerated: row.aiGenerated,

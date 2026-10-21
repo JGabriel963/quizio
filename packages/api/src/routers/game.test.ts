@@ -8,6 +8,7 @@ import { QUESTION_INTRO_MS } from "@quizio/core/game/domain/game-progress";
 import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import { somePlayableQuestions } from "@quizio/core/game/testing/game-deps";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
+import { aTypeAnswerQuestion } from "@quizio/core/quiz/testing/a-question";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { describe, expect, it } from "vitest";
 
@@ -1383,5 +1384,168 @@ describe("game router: playing an assignment (spec 030)", () => {
 		await expect(
 			visitor.game.assignment.play({ ...participant, secret: "nope" }),
 		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+});
+
+describe("game router: type answer (spec 031)", () => {
+	async function typing() {
+		const api = createTestApi();
+		await api.quizzes.save(aPublishedQuiz({ title: "Nomes" }));
+		await api.versions.save(
+			newQuizVersion({
+				quizId: "quiz-1",
+				number: 1,
+				questions: [
+					aTypeAnswerQuestion({
+						acceptedAnswers: ["Pedro"],
+						timeLimitSeconds: 30,
+					}),
+					...somePlayableQuestions(),
+				],
+				now: new Date("2026-02-01T10:00:00.000Z"),
+			}),
+		);
+		const host = api.callerFor("user-1");
+		const visitor = api.callerFor(null);
+		const { gameId } = await host.game.host({ quizId: "quiz-1" });
+		const join = async (nickname: string) => {
+			const { playerId, secret } = await visitor.game.join.enter({
+				gameId,
+				nickname,
+			});
+			return { gameId, playerId, secret };
+		};
+		const ana = await join("Ana");
+		const bia = await join("Bia");
+		await host.game.start({ gameId });
+		api.clock.advanceBy(3_000);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "gameIntro" },
+		});
+		api.clock.advanceBy(QUESTION_INTRO_MS);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "questionIntro" },
+		});
+		return { api, host, visitor, gameId, ana, bia };
+	}
+
+	it("no accepted answer in the player's session before the results", async () => {
+		const { visitor, ana } = await typing();
+
+		const session = await visitor.game.join.session(ana);
+
+		expect(session.stage?.question?.type).toBe("typeAnswer");
+		expect(JSON.stringify(session)).not.toContain("Pedro");
+	});
+
+	it("a player answers a type answer with text", async () => {
+		const { api, visitor, gameId, ana } = await typing();
+
+		await visitor.game.join.answer({ ...ana, questionIndex: 0, text: "pedro" });
+
+		expect(await api.answers.find(gameId, 0, ana.playerId)).toMatchObject({
+			text: "pedro",
+			correctness: "correct",
+		});
+	});
+
+	it("refuses text and choices together", async () => {
+		const { visitor, ana } = await typing();
+
+		await expect(
+			visitor.game.join.answer({
+				...ana,
+				questionIndex: 0,
+				text: "pedro",
+				choiceIds: ["choice-1"],
+			}),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.INVALID_ANSWER" },
+		});
+	});
+
+	it("the host opens, lists and submits a review", async () => {
+		const { api, host, visitor, gameId, ana, bia } = await typing();
+		await visitor.game.join.answer({ ...ana, questionIndex: 0, text: "pedro" });
+		await visitor.game.join.answer({ ...bia, questionIndex: 0, text: "Pedra" });
+		const from = { questionIndex: 0, phase: "results" } as const;
+
+		await host.game.review.open({ gameId, from });
+		const { groups } = await host.game.review.answers({
+			gameId,
+			questionIndex: 0,
+		});
+		const view = await host.game.review.submit({
+			gameId,
+			from,
+			changes: [{ key: "pedra", correct: true }],
+		});
+
+		expect(groups.map((group) => [group.text, group.similar])).toEqual([
+			["Pedro", false],
+			["Pedra", true],
+		]);
+		expect(view.stage?.phase).toBe("scoreboard");
+		expect(await api.answers.find(gameId, 0, bia.playerId)).toMatchObject({
+			correctness: "correct",
+		});
+	});
+
+	it("refuses a review from someone else", async () => {
+		const { api, visitor, gameId, ana, bia } = await typing();
+		await visitor.game.join.answer({ ...ana, questionIndex: 0, text: "pedro" });
+		await visitor.game.join.answer({ ...bia, questionIndex: 0, text: "Pedra" });
+		const from = { questionIndex: 0, phase: "results" } as const;
+
+		await expect(
+			api.callerFor("user-2").game.review.submit({
+				gameId,
+				from,
+				changes: [{ key: "pedra", correct: true }],
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		await expect(
+			visitor.game.review.open({ gameId, from }),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("a participant answers a type answer of an assignment with text", async () => {
+		const { api } = await typing();
+		const { gameId } = await api.callerFor("user-1").game.assignment.create({
+			quizId: "quiz-1",
+			deadline: new Date(
+				Date.parse("2026-06-01T12:00:00.000Z") + 3 * 24 * 60 * 60 * 1000,
+			).toISOString(),
+			options: {
+				gameCharacters: false,
+				questionTimer: false,
+				randomizeAnswers: false,
+			},
+		});
+		const visitor = api.callerFor(null);
+		const john = await visitor.game.assignment.join({
+			gameId,
+			nickname: "John",
+		});
+
+		const view = await visitor.game.assignment.answer({
+			gameId,
+			playerId: john.playerId,
+			secret: john.secret,
+			questionIndex: 0,
+			text: "Pedro",
+		});
+
+		expect(view.screen).toMatchObject({
+			phase: "results",
+			result: {
+				result: "correct",
+				typedText: "Pedro",
+				acceptedAnswers: ["Pedro"],
+			},
+		});
 	});
 });

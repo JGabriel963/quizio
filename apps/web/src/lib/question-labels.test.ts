@@ -3,11 +3,13 @@ import {
 	QUESTION_TYPES,
 	TIME_LIMITS_SECONDS,
 } from "@quizio/core/quiz/domain/question";
+import { aTypeAnswerQuestion } from "@quizio/core/quiz/testing/a-question";
 import { describe, expect, it } from "vitest";
 
 import {
 	answerPlaceholder,
 	changeNoticeMessage,
+	NO_ACCEPTED_ANSWER_HINT,
 	NO_CORRECT_ANSWER_HINT,
 	NO_CORRECT_TRUE_FALSE_HINT,
 	POINTS_LABELS,
@@ -86,6 +88,7 @@ describe("question labels", () => {
 		expect(QUESTION_TYPES.map(questionTypeLabel)).toEqual([
 			"Quiz",
 			"Verdadeiro ou falso",
+			"Resposta curta",
 		]);
 		expect(TRUE_FALSE_LABELS).toEqual({ true: "Verdadeiro", false: "Falso" });
 		expect(changeNoticeMessage({ kind: "quizAnswersKept" })).toBe(
@@ -116,5 +119,14 @@ describe("question labels", () => {
 		);
 		expect(timeAppliedMessage(1)).toBe("Tempo aplicado a 1 pergunta");
 		expect(timeAppliedMessage(3)).toBe("Tempo aplicado a 3 perguntas");
+	});
+
+	it("names the missing accepted answer (spec 031, RN-09)", () => {
+		const typed = aTypeAnswerQuestion({ acceptedAnswers: [null] });
+
+		expect(questionIssueLabel(typed, "noAcceptedAnswer")).toBe(
+			"Resposta aceita ausente",
+		);
+		expect(NO_ACCEPTED_ANSWER_HINT).toBe("Adicione uma resposta aceita");
 	});
 });

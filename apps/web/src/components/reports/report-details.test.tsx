@@ -29,6 +29,7 @@ const ana: ParticipantDetailData = {
 			choices: [{ shapeIndex: 0, text: "Brasília", correct: true }],
 			points: 893,
 			responseTimeMs: 3200,
+			typedText: null,
 		},
 		{
 			questionIndex: 1,
@@ -38,6 +39,7 @@ const ana: ParticipantDetailData = {
 			choices: [{ shapeIndex: 1, text: "Lyon", correct: false }],
 			points: 0,
 			responseTimeMs: 7400,
+			typedText: null,
 		},
 		{
 			questionIndex: 2,
@@ -47,6 +49,7 @@ const ana: ParticipantDetailData = {
 			choices: [],
 			points: 0,
 			responseTimeMs: null,
+			typedText: null,
 		},
 	],
 };
@@ -117,6 +120,7 @@ describe("ParticipantDetail (spec 015)", () => {
 							choices: [{ shapeIndex: 0, text: "Lima", correct: true }],
 							points: 450,
 							responseTimeMs: 5000,
+							typedText: null,
 						},
 					],
 				}}
@@ -156,6 +160,7 @@ const salmo: QuestionDetailData = {
 	imageUrl: "https://media.test/salmo.png",
 	unanswered: 2,
 	averageResponseTimeMs: 4860,
+	typedAnswers: null,
 	choices: [
 		{ id: "a", shapeIndex: 0, text: "Moisés", correct: true, count: 5 },
 		{ id: "b", shapeIndex: 1, text: "Davi", correct: false, count: 12 },
@@ -170,6 +175,7 @@ const salmo: QuestionDetailData = {
 			choices: [{ shapeIndex: 0, text: "Moisés", correct: true }],
 			points: 912,
 			responseTimeMs: 2600,
+			typedText: null,
 		},
 		{
 			playerId: "p2",
@@ -178,6 +184,7 @@ const salmo: QuestionDetailData = {
 			choices: [{ shapeIndex: 1, text: "Davi", correct: false }],
 			points: 0,
 			responseTimeMs: 6100,
+			typedText: null,
 		},
 		{
 			playerId: "p3",
@@ -186,6 +193,7 @@ const salmo: QuestionDetailData = {
 			choices: [],
 			points: 0,
 			responseTimeMs: null,
+			typedText: null,
 		},
 	],
 };
@@ -281,5 +289,58 @@ describe("report states (spec 015)", () => {
 			"href",
 			"/reports?section=reports",
 		);
+	});
+});
+
+describe("report details of a type answer (spec 031, RN-37)", () => {
+	it("a type answer lists the sent answers with counts and marks", () => {
+		render(
+			<QuestionDetail
+				detail={{
+					...salmo,
+					type: "typeAnswer",
+					choices: [],
+					typedAnswers: [
+						{ text: "Moisés", count: 5, correct: true },
+						{ text: "Davi", count: 3, correct: false },
+					],
+					participants: [],
+				}}
+			/>,
+		);
+
+		const list = screen.getByRole("list", { name: "Respostas digitadas" });
+		expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent(
+			"MoisésCorreta5",
+		);
+		expect(within(list).getAllByRole("listitem")[1]).toHaveTextContent(
+			"DaviIncorreta3",
+		);
+	});
+
+	it("the participant detail shows the typed text", () => {
+		render(
+			<ParticipantDetail
+				detail={{
+					...ana,
+					answers: [
+						{
+							questionIndex: 0,
+							text: "Quem escreveu o Salmo 90?",
+							type: "typeAnswer",
+							result: "wrong",
+							choices: [],
+							typedText: "Davi",
+							points: 0,
+							responseTimeMs: 4000,
+						},
+					],
+				}}
+			/>,
+		);
+
+		expect(
+			screen.getByText("Resposta enviada:").parentElement,
+		).toHaveTextContent("Davi");
 	});
 });

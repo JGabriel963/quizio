@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { Question } from "../../quiz/domain/question";
-import { aQuestion, aTrueFalseQuestion } from "../../quiz/testing/a-question";
+import {
+	aQuestion,
+	aTrueFalseQuestion,
+	aTypeAnswerQuestion,
+} from "../../quiz/testing/a-question";
 import { aGame, aPlayer } from "../testing/a-game";
 import {
 	createGameDeps,
@@ -754,5 +758,66 @@ describe("getHostGame: avatars (spec 028)", () => {
 				avatar: { character: "moon", accessory: "fire" },
 			},
 		]);
+	});
+});
+
+describe("getHostGame with a type answer (spec 031)", () => {
+	async function typing() {
+		const game = await createStartedGame({
+			players: ["Ana", "Bia", "Caio"],
+			questions: [
+				aTypeAnswerQuestion({
+					acceptedAnswers: ["The Colosseum", "Colosseum", "Colosseum in Rome"],
+				}),
+			],
+		});
+		await game.reach("answering");
+		return game;
+	}
+
+	it("while answering a type answer, the host gets no accepted answers", async () => {
+		const { deps } = await typing();
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage).toMatchObject({
+			phase: "answering",
+			question: { type: "typeAnswer", choices: [] },
+			typedAnswers: null,
+		});
+		expect(JSON.stringify(view)).not.toContain("Colosseum");
+	});
+
+	it("the results of a type answer carry the reveal tags with counts", async () => {
+		const { deps, type, stage } = await typing();
+		await type(1, "colosseum");
+		await type(2, "COLOSSEUM");
+		await type(3, "the coloseum");
+		expect((await stage()).phase).toBe("results");
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage?.typedAnswers?.tags).toEqual([
+			{ text: "Colosseum", count: 2, correct: true },
+			{ text: "The Colosseum", count: 0, correct: true },
+			{ text: "Colosseum in Rome", count: 0, correct: true },
+			{ text: "the coloseum", count: 1, correct: false },
+		]);
+		expect(view.stage?.reviewOpen).toBe(false);
+	});
+
+	it("reviewOpen tells an open review", async () => {
+		const { deps, type, stage } = await typing();
+		await type(1, "colosseum");
+		await type(2, "x");
+		await type(3, "y");
+		await deps.games.saveReview("game-1", await stage(), {
+			openedAt: deps.clock.now(),
+			closedAt: null,
+		});
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage?.reviewOpen).toBe(true);
 	});
 });

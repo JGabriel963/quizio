@@ -224,6 +224,7 @@ class FakeJoinApi implements JoinApi {
 			points: right ? 639 : 0,
 			streak: right ? 1 : 0,
 			rank: right ? 1 : 2,
+			reviewed: false,
 			behind: right ? null : { nickname: "Bia", points: 639 },
 		};
 	}

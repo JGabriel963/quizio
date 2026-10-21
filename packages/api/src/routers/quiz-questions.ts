@@ -30,7 +30,13 @@ const content = z.discriminatedUnion("type", [
 			.max(16),
 	}),
 	z.object({ type: z.literal("trueFalse"), correct: z.boolean().nullable() }),
+	z.object({
+		type: z.literal("typeAnswer"),
+		acceptedAnswers: z.array(z.string().max(200).nullable()).max(8),
+	}),
 ]);
+/** An accepted answer's position; how many there may be is the core's (spec 031). */
+const acceptedAnswerIndex = z.number().int().min(0).max(7);
 
 const change = z.discriminatedUnion("kind", [
 	z.object({ kind: z.literal("text"), text: z.string().nullable() }),
@@ -52,6 +58,16 @@ const change = z.discriminatedUnion("kind", [
 	}),
 	z.object({ kind: z.literal("extraChoices"), visible: z.boolean() }),
 	z.object({ kind: z.literal("trueFalseCorrect"), correct: z.boolean() }),
+	z.object({
+		kind: z.literal("acceptedAnswerText"),
+		index: acceptedAnswerIndex,
+		text: z.string().max(200).nullable(),
+	}),
+	z.object({ kind: z.literal("acceptedAnswerAdded") }),
+	z.object({
+		kind: z.literal("acceptedAnswerRemoved"),
+		index: acceptedAnswerIndex,
+	}),
 	z.object({
 		kind: z.literal("type"),
 		type: z.enum(QUESTION_TYPES),

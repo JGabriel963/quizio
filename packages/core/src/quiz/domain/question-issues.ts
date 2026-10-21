@@ -1,12 +1,14 @@
 import { DomainError } from "../../shared/domain/domain-error";
+import { normalizeTypedAnswer } from "../../shared/domain/typed-answer";
 import type { Question, QuizQuestion } from "./question";
 
-/** Why a question is incomplete (spec 004, RN-14; spec 005, RN-11). */
+/** Why a question is incomplete (spec 004, RN-14; spec 005, RN-11; spec 031, RN-09). */
 export type QuestionIssue =
 	| "missingText"
 	| "notEnoughAnswers"
 	| "noCorrectAnswer"
-	| "noCorrectTrueFalse";
+	| "noCorrectTrueFalse"
+	| "noAcceptedAnswer";
 
 export const MIN_ANSWERS = 2;
 
@@ -28,17 +30,30 @@ export function questionIssues(question: Question): QuestionIssue[] {
 	if (question.text === null) {
 		issues.push("missingText");
 	}
-	if (question.type === "trueFalse") {
-		if (question.correct === null) {
-			issues.push("noCorrectTrueFalse");
-		}
-		return issues;
-	}
-	if (answeredCount(question) < MIN_ANSWERS) {
-		issues.push("notEnoughAnswers");
-	}
-	if (!question.choices.some((choice) => choice.correct)) {
-		issues.push("noCorrectAnswer");
+	switch (question.type) {
+		case "quiz":
+			if (answeredCount(question) < MIN_ANSWERS) {
+				issues.push("notEnoughAnswers");
+			}
+			if (!question.choices.some((choice) => choice.correct)) {
+				issues.push("noCorrectAnswer");
+			}
+			break;
+		case "trueFalse":
+			if (question.correct === null) {
+				issues.push("noCorrectTrueFalse");
+			}
+			break;
+		case "typeAnswer":
+			// An answer of signs only would match nothing anybody types (RN-09).
+			if (
+				!question.acceptedAnswers.some(
+					(answer) => answer !== null && normalizeTypedAnswer(answer) !== "",
+				)
+			) {
+				issues.push("noAcceptedAnswer");
+			}
+			break;
 	}
 	return issues;
 }

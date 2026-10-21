@@ -112,6 +112,8 @@ describe("applyLobbyEvent: autoplay (spec 014)", () => {
 			distribution: null,
 			scoreboard: null,
 			scoreboardLeavers: null,
+			typedAnswers: null,
+			reviewOpen: false,
 			autoAdvance: { remainingMs: 3_000, token: "a1" },
 		},
 	};

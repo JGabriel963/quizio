@@ -89,6 +89,13 @@ export const game = pgTable(
 		phase: gamePhase("phase"),
 		phaseStartedAt: timestamp("phase_started_at", { withTimezone: true }),
 		/**
+		 * While the host reviews the typed answers of the results, and when the
+		 * review was last closed (spec 031, RN-32). They belong to the stage:
+		 * every transition clears them.
+		 */
+		reviewOpenedAt: timestamp("review_opened_at", { withTimezone: true }),
+		reviewClosedAt: timestamp("review_closed_at", { withTimezone: true }),
+		/**
 		 * When the host's screen last told the server it is there (spec 013). It
 		 * is written on its own, every few seconds, while the game is open.
 		 */
@@ -219,12 +226,19 @@ export const gameAnswer = pgTable(
 			.notNull()
 			.references(() => gamePlayer.id, { onDelete: "cascade" }),
 		choiceIds: jsonb("choice_ids").$type<string[]>().notNull(),
+		/** The typed text of a type answer; null for the other types (spec 031). */
+		text: text("text"),
 		/** Measured by the server, from the answers opening (RN-18). */
 		responseTimeMs: integer("response_time_ms").notNull(),
 		correctness: answerCorrectness("correctness").notNull(),
-		/** Worked out on receipt and never changed (spec 010, RN-07). */
+		/**
+		 * Worked out on receipt (spec 010, RN-07); only the host's review of a
+		 * type answer changes it afterwards (spec 031, RN-30).
+		 */
 		points: integer("points").notNull().default(0),
 		receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+		/** When the host's review changed the answer (spec 031, RN-31). */
+		reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
 	},
 	(table) => [
 		primaryKey({

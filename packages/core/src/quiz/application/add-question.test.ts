@@ -141,4 +141,19 @@ describe("addQuestion", () => {
 		).rejects.toThrow(QuestionLimitReachedError);
 		expect(questions.listOf("quiz-1")).toHaveLength(QUIZ_MAX_QUESTIONS);
 	});
+
+	it("adds a blank type answer (spec 031)", async () => {
+		const result = await addQuestion({
+			...ref,
+			afterQuestionId: "a",
+			type: "typeAnswer",
+		});
+
+		expect(questions.listOf("quiz-1")[1]).toEqual({
+			...blankQuestion("new-1", "typeAnswer"),
+			timeLimitSeconds: 30,
+			acceptedAnswers: [null],
+		});
+		expect(result.index).toBe(1);
+	});
 });

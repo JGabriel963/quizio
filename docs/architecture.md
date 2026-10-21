@@ -129,7 +129,7 @@ A Vercel não mantém WebSockets nem processos vivos entre requisições. Por is
 - **Transições condicionais.** Cada mudança de fase é pedida com a fase de onde parte e gravada com `saveIfAt`, um `UPDATE` condicionado a essa fase: de dois pedidos iguais, um grava e o outro não faz nada (spec 009).
 - **O pódio é uma leitura, não uma fase.** A revelação da última pergunta termina a partida; o pódio e a classificação final saem das respostas de uma partida `finished`, e a revelação dos lugares é contada de `endedAt` (spec 011).
 - **Animação é só apresentação.** Fica no cliente, não muda estado nem prazo, e nada espera por ela (spec 011).
-- **Pontos gravados, classificação derivada.** Os pontos ficam na resposta; total, sequência, posição e placar saem das respostas a cada leitura, sempre até a última pergunta revelada (spec 010).
+- **Pontos gravados, classificação derivada.** Os pontos ficam na resposta; total, sequência, posição e placar saem das respostas a cada leitura, sempre até a última pergunta revelada (spec 010). A única regravação é a revisão das respostas digitadas pelo anfitrião, que avança a partida antes de regravar ([ADR 0009](adr/0009-partida-ao-vivo.md), spec 031).
 - **A correta não sai do servidor antes da revelação**, nem para a tela do anfitrião, que é projetada. O jogador recebe só cor e forma das alternativas, e o próprio resultado.
 - **Jogador anônimo**: `playerId` público e um segredo guardado no navegador, sem Better Auth.
 

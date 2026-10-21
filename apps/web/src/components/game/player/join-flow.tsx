@@ -68,7 +68,10 @@ export interface JoinApi {
 		input: StoredPlayerSession & { avatar: Avatar },
 	): Promise<{ avatar: Avatar }>;
 	answer(
-		input: StoredPlayerSession & { questionIndex: number; choiceIds: string[] },
+		input: StoredPlayerSession & {
+			questionIndex: number;
+			/** The marked answers, or the typed text of a type answer (spec 031). */
+		} & ({ choiceIds: string[] } | { text: string }),
 	): Promise<unknown>;
 }
 
@@ -231,6 +234,8 @@ export function JoinFlow({
 		questionIndex: number;
 		message: string;
 	} | null>(null);
+	/** The last typed answer, given back to the field when it was not sent (spec 031). */
+	const [typedDraft, setTypedDraft] = useState("");
 	/** The PIN the current step came from, so the address following it is not resolved again. */
 	const resolvedPin = useRef<string | null>(null);
 
@@ -700,16 +705,20 @@ export function JoinFlow({
 	 * Sends the answer. The waiting screen shows at once; the server may still
 	 * refuse it for arriving late, which the player is told (spec 009, RN-20).
 	 */
-	async function submitAnswer(choiceIds: string[]) {
+	async function submitAnswer(
+		response: { choiceIds: string[] } | { text: string },
+	) {
 		const stage = waiting?.play?.stage;
 		if (!waiting || !stage) {
 			return;
 		}
 		const { questionIndex } = stage;
 		setAnswerFailure(null);
+		// Given back to the field if it does not get through (spec 031, RN-19).
+		setTypedDraft("text" in response ? response.text : "");
 		markAnswered(questionIndex, true);
 		try {
-			await api.answer({ ...waiting.session, questionIndex, choiceIds });
+			await api.answer({ ...waiting.session, questionIndex, ...response });
 		} catch (error) {
 			const code = gameErrorCode(error);
 			if (code === "GAME.ALREADY_ANSWERED") {
@@ -821,7 +830,9 @@ export function JoinFlow({
 						late={questionIndex !== null && lateFor === questionIndex}
 						// The bar sits where the notice would: it shows it instead.
 						notice={trouble ? null : notice}
-						onAnswer={submitAnswer}
+						onAnswer={(choiceIds) => void submitAnswer({ choiceIds })}
+						onType={(text) => void submitAnswer({ text })}
+						typedDraft={typedDraft}
 						onLeave={() => leave(null)}
 					/>
 					{editor}

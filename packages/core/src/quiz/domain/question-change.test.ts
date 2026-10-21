@@ -4,24 +4,31 @@ import {
 	aQuestion,
 	asQuiz,
 	asTrueFalse,
+	asTypeAnswer,
 	aTrueFalseQuestion,
+	aTypeAnswerQuestion,
 } from "../testing/a-question";
 import {
+	AcceptedAnswerTooLongError,
 	ChoiceTextTooLongError,
 	InvalidQuestionPointsError,
 	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
 	InvalidTimeLimitError,
+	type Question,
 	QuestionTextTooLongError,
 	type QuizQuestion,
 	questionContent,
 } from "./question";
 import {
+	AcceptedAnswerNotFoundError,
 	applyQuestionChange,
 	ChoiceNotFoundError,
 	EmptyChoiceCannotBeCorrectError,
 	type QuestionChange,
 	QuestionChangeNotApplicableError,
+	TimeLimitNotAllowedError,
+	TooManyAcceptedAnswersError,
 } from "./question-change";
 
 function withChoices(
@@ -548,5 +555,148 @@ describe("applyQuestionChange", () => {
 				}),
 			).toThrow(ChoiceNotFoundError);
 		});
+	});
+});
+
+describe("applyQuestionChange on a type answer question", () => {
+	const apply = (question: Question, change: QuestionChange) =>
+		applyQuestionChange(question, change).question;
+
+	it("writes an accepted answer at its position", () => {
+		const question = aTypeAnswerQuestion({ acceptedAnswers: ["Pedro", null] });
+
+		const changed = apply(question, {
+			kind: "acceptedAnswerText",
+			index: 1,
+			text: "  Jesus ",
+		});
+
+		expect(asTypeAnswer(changed).acceptedAnswers).toEqual(["Pedro", "Jesus"]);
+	});
+
+	it("refuses an accepted answer over 20 characters", () => {
+		expect(() =>
+			apply(aTypeAnswerQuestion(), {
+				kind: "acceptedAnswerText",
+				index: 0,
+				text: "a".repeat(21),
+			}),
+		).toThrow(AcceptedAnswerTooLongError);
+	});
+
+	it("refuses a position the question does not have", () => {
+		expect(() =>
+			apply(aTypeAnswerQuestion(), {
+				kind: "acceptedAnswerText",
+				index: 1,
+				text: "Jesus",
+			}),
+		).toThrow(AcceptedAnswerNotFoundError);
+	});
+
+	it("adds accepted answers up to four", () => {
+		let question: Question = aTypeAnswerQuestion();
+		for (let i = 0; i < 3; i++) {
+			question = apply(question, { kind: "acceptedAnswerAdded" });
+		}
+
+		expect(asTypeAnswer(question).acceptedAnswers).toEqual([
+			"Pedro",
+			null,
+			null,
+			null,
+		]);
+	});
+
+	it("refuses a fifth accepted answer", () => {
+		const question = aTypeAnswerQuestion({
+			acceptedAnswers: ["a", "b", "c", "d"],
+		});
+
+		expect(() => apply(question, { kind: "acceptedAnswerAdded" })).toThrow(
+			TooManyAcceptedAnswersError,
+		);
+	});
+
+	it("removes an extra accepted answer", () => {
+		const question = aTypeAnswerQuestion({
+			acceptedAnswers: ["Pedro", "Jesus", null],
+		});
+
+		const changed = apply(question, {
+			kind: "acceptedAnswerRemoved",
+			index: 1,
+		});
+
+		expect(asTypeAnswer(changed).acceptedAnswers).toEqual(["Pedro", null]);
+	});
+
+	it("never removes the main accepted answer", () => {
+		expect(() =>
+			apply(aTypeAnswerQuestion(), { kind: "acceptedAnswerRemoved", index: 0 }),
+		).toThrow(AcceptedAnswerNotFoundError);
+	});
+
+	it("refuses a time limit the type does not take", () => {
+		expect(() =>
+			apply(aTypeAnswerQuestion(), { kind: "timeLimit", seconds: 10 }),
+		).toThrow(TimeLimitNotAllowedError);
+		expect(
+			apply(aTypeAnswerQuestion(), { kind: "timeLimit", seconds: 20 })
+				.timeLimitSeconds,
+		).toBe(20);
+	});
+
+	it("changing to type answer raises the time to 20 s and starts blank", () => {
+		const quiz = aQuestion({ timeLimitSeconds: 10, points: "double" });
+
+		const changed = apply(quiz, {
+			kind: "type",
+			type: "typeAnswer",
+			remembered: null,
+		});
+
+		expect(changed).toMatchObject({
+			type: "typeAnswer",
+			text: quiz.text,
+			timeLimitSeconds: 20,
+			points: "double",
+			acceptedAnswers: [null],
+		});
+	});
+
+	it("changing back restores the remembered accepted answers", () => {
+		const changed = apply(aQuestion(), {
+			kind: "type",
+			type: "typeAnswer",
+			remembered: { type: "typeAnswer", acceptedAnswers: ["Pedro", " Jesus "] },
+		});
+
+		expect(asTypeAnswer(changed).acceptedAnswers).toEqual(["Pedro", "Jesus"]);
+	});
+
+	it("validates remembered accepted answers like any edit", () => {
+		expect(() =>
+			apply(aQuestion(), {
+				kind: "type",
+				type: "typeAnswer",
+				remembered: {
+					type: "typeAnswer",
+					acceptedAnswers: ["a", "b", "c", "d", "e"],
+				},
+			}),
+		).toThrow(TooManyAcceptedAnswersError);
+	});
+
+	it("accepted-answer changes do not apply to other types", () => {
+		expect(() => apply(aQuestion(), { kind: "acceptedAnswerAdded" })).toThrow(
+			QuestionChangeNotApplicableError,
+		);
+		expect(() =>
+			apply(aTypeAnswerQuestion(), {
+				kind: "selection",
+				selection: "multiple",
+			}),
+		).toThrow(QuestionChangeNotApplicableError);
 	});
 });

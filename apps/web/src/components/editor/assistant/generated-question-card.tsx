@@ -22,6 +22,10 @@ interface CardAnswer {
 }
 
 function answersOf(question: GeneratedQuestionData): CardAnswer[] {
+	// The assistant creates Quiz and true/false only (spec 031, Fora de escopo).
+	if (question.type === "typeAnswer") {
+		return [];
+	}
 	if (question.type === "trueFalse") {
 		return TRUE_FALSE_ANSWERS.map(({ label, value, shape }) => ({
 			key: label,

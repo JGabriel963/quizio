@@ -12,6 +12,18 @@ const playerReference = gameReference.extend({
 	secret: z.string().min(1),
 });
 const questionIndex = z.number().int().min(0);
+/**
+ * What a player sends: the marked answers, or the typed text of a type answer
+ * (spec 031). Which one the question takes, and the 20 characters, are the core's.
+ */
+const response = {
+	choiceIds: z
+		.array(z.string().min(1).max(32))
+		.max(MAX_CHOICE_COUNT)
+		.optional(),
+	text: z.string().max(200).optional(),
+};
+const stageRef = z.object({ questionIndex, phase: z.enum(GAME_PHASES) });
 /** Two ids; which ones exist is the catalog's, in the core (spec 028, RN-06). */
 const avatar = z.object({
 	character: z.string().min(1).max(40),
@@ -112,12 +124,7 @@ const assignmentRouter = router({
 		),
 
 	answer: publicProcedure
-		.input(
-			playerReference.extend({
-				questionIndex,
-				choiceIds: z.array(z.string().min(1)).min(1).max(MAX_CHOICE_COUNT),
-			}),
-		)
+		.input(playerReference.extend({ questionIndex, ...response }))
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.answerAssignmentQuestion(input),
 		),
@@ -178,18 +185,64 @@ const joinRouter = router({
 
 	/** The time and the correctness are the server's: the device sends only the choice (spec 009, RN-18). */
 	answer: publicProcedure
+		.input(playerReference.extend({ questionIndex, ...response }))
+		.mutation(({ ctx, input }) => ctx.container.useCases.submitAnswer(input)),
+});
+
+/**
+ * "Revisar respostas" of a type answer (spec 031, RN-26 to RN-33): only the
+ * host, only while the question's results are on the screen.
+ */
+const reviewRouter = router({
+	open: protectedProcedure
+		.input(gameReference.extend({ from: stageRef }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.openAnswerReview({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	close: protectedProcedure
+		.input(gameReference.extend({ from: stageRef }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.closeAnswerReview({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	answers: protectedProcedure
+		.input(gameReference.extend({ questionIndex }))
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.getTypedAnswers({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** "Enviar": grades the marked answers again and moves on (RN-30a). */
+	submit: protectedProcedure
 		.input(
-			playerReference.extend({
-				questionIndex,
-				choiceIds: z.array(z.string().min(1).max(32)).max(MAX_CHOICE_COUNT),
+			gameReference.extend({
+				from: stageRef,
+				changes: z
+					.array(z.object({ key: z.string().max(200), correct: z.boolean() }))
+					.max(200),
 			}),
 		)
-		.mutation(({ ctx, input }) => ctx.container.useCases.submitAnswer(input)),
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.reviewTypedAnswers({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
 });
 
 export const gameRouter = router({
 	assignment: assignmentRouter,
 	join: joinRouter,
+	review: reviewRouter,
 
 	/** "Organizar ao vivo" (spec 008, RN-01 to RN-09). */
 	host: protectedProcedure

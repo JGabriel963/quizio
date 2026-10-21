@@ -54,6 +54,8 @@ export interface PlayerOutcome {
 	rank: number;
 	/** Who is right ahead, and by how much; null for the first. */
 	behind: { nickname: string; points: number } | null;
+	/** The host's review changed the answer (spec 031, RN-31). */
+	reviewed: boolean;
 }
 
 /**
@@ -159,6 +161,7 @@ export function createGetPlayerSession(deps: {
 			streak: streakAfter(ownAnswers, questionIndex),
 			rank: standing?.rank ?? standings.length,
 			behind: standing?.behind ?? null,
+			reviewed: Boolean(answer?.reviewedAt),
 		};
 	}
 

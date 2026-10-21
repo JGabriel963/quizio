@@ -1,4 +1,5 @@
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
+import { questionIssues } from "@quizio/core/quiz/domain/question-issues";
 
 import type { ReactNode } from "react";
 
@@ -8,6 +9,7 @@ import { type ImageUploadState, QuestionMedia } from "./question-media";
 import { QuestionTextField } from "./question-text-field";
 import { QuizAnswers } from "./quiz-answers";
 import { TrueFalseAnswers } from "./true-false-answers";
+import { TypeAnswerAnswers } from "./type-answer-answers";
 
 /** The selected question in the middle of the editor (specs 003 to 005, 007). */
 export function QuestionCanvas({
@@ -17,6 +19,7 @@ export function QuestionCanvas({
 	showHints,
 	onSaveText,
 	onSaveChoiceText,
+	onSaveAcceptedAnswer,
 	onChange,
 	onUploadImage,
 	titleAside,
@@ -29,6 +32,11 @@ export function QuestionCanvas({
 	showHints: boolean;
 	onSaveText: (text: string | null) => Promise<unknown>;
 	onSaveChoiceText: (choiceId: string, text: string | null) => Promise<unknown>;
+	/** The autosaved text of an accepted answer of a type answer (spec 031). */
+	onSaveAcceptedAnswer: (
+		index: number,
+		text: string | null,
+	) => Promise<unknown>;
 	/** Changes saved at once: corrects and the extra answers. */
 	onChange: (change: QuestionChange) => void;
 	onUploadImage: (file: File) => void;
@@ -73,20 +81,33 @@ export function QuestionCanvas({
 				</div>
 			</div>
 
-			{question.type === "quiz" ? (
+			{question.type === "quiz" && (
 				<QuizAnswers
 					question={question}
 					showHints={showHints}
 					onSaveChoiceText={onSaveChoiceText}
 					onChange={onChange}
 				/>
-			) : (
+			)}
+			{question.type === "trueFalse" && (
 				<TrueFalseAnswers
 					correct={question.correct}
 					showHint={showHints}
 					onCorrectChange={(correct) =>
 						onChange({ kind: "trueFalseCorrect", correct })
 					}
+				/>
+			)}
+			{question.type === "typeAnswer" && (
+				<TypeAnswerAnswers
+					key={question.id}
+					questionId={question.id}
+					acceptedAnswers={question.acceptedAnswers}
+					hint={
+						showHints && questionIssues(question).includes("noAcceptedAnswer")
+					}
+					onSaveAnswer={onSaveAcceptedAnswer}
+					onChange={onChange}
 				/>
 			)}
 		</div>

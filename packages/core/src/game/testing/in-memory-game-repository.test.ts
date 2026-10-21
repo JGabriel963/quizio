@@ -134,4 +134,46 @@ describe("InMemoryGameRepository with assignments (spec 029)", () => {
 		expect((await games.findById("open"))?.expiresAt).toEqual(deadline);
 		expect((await games.findById("ended"))?.expiresAt).not.toEqual(deadline);
 	});
+
+	describe("the answer review (spec 031)", () => {
+		const at = new Date("2026-06-01T12:01:00.000Z");
+		const from = { questionIndex: 0, phase: "results" } as const;
+
+		it("saveReview writes the instants only while at from", async () => {
+			const games = new InMemoryGameRepository();
+			await games.save(aPlayingGame("results"));
+
+			expect(
+				await games.saveReview("game-1", from, {
+					openedAt: at,
+					closedAt: null,
+				}),
+			).toBe(true);
+			expect((await games.findById("game-1"))?.progress).toMatchObject({
+				phase: "results",
+				reviewOpenedAt: at,
+				reviewClosedAt: null,
+			});
+			expect(
+				await games.saveReview(
+					"game-1",
+					{ questionIndex: 1, phase: "results" },
+					{ openedAt: null, closedAt: at },
+				),
+			).toBe(false);
+		});
+
+		it("saveIfAt clears the review instants", async () => {
+			const games = new InMemoryGameRepository();
+			const results = aPlayingGame("results");
+			await games.save(results);
+			await games.saveReview("game-1", from, { openedAt: at, closedAt: null });
+
+			await games.saveIfAt(aPlayingGame("scoreboard", { since: at }), from);
+
+			const progress = (await games.findById("game-1"))?.progress;
+			expect(progress?.reviewOpenedAt ?? null).toBeNull();
+			expect(progress?.reviewClosedAt ?? null).toBeNull();
+		});
+	});
 });

@@ -18,6 +18,8 @@ export interface ParticipantAnswerView {
 	result: AnswerResult;
 	/** What they marked; empty without an answer. */
 	choices: ChoiceView[];
+	/** What they typed in a type answer (spec 031, RN-37); null otherwise. */
+	typedText: string | null;
 	points: number;
 	/** Null without an answer. */
 	responseTimeMs: number | null;
@@ -62,6 +64,7 @@ export function createGetReportParticipant(
 						type: question.type,
 						result: answer?.correctness ?? "unanswered",
 						choices: chosenChoices(question, answer),
+						typedText: answer?.text ?? null,
 						points: answer?.points ?? 0,
 						responseTimeMs: answer?.responseTimeMs ?? null,
 					};

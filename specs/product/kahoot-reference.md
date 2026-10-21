@@ -245,7 +245,7 @@ Personas secundárias no Kahoot real, fora do escopo inicial do Quizio: administ
   - A pontuação a seguir é **ignorada**: `` ~ ` ! @ # $ % ^ & * ( ) { } [ ] ; : " ' < , . > ? / \ | - _ + = ``
 - **No dispositivo:** campo de texto e botão de envio.
 - **Na tela de resultados:** em contas escolares, só as respostas corretas aparecem; em contas de trabalho ou pessoais, todas as respostas enviadas.
-- **Pontuação:** acerto (igual a qualquer variante aceita após normalização) aplicando a fórmula de tempo. No Kahoot, contas de professor podem aceitar respostas alternativas depois, na revisão.
+- **Pontuação:** acerto (igual a qualquer variante aceita após normalização) aplicando a fórmula de tempo. Na partida ao vivo, depois das respostas, o anfitrião pode aceitar como corretas outras respostas enviadas, que passam a render pontos ("Review answers"; em contas escolares exige a assinatura EDU). Fonte: artigo de ajuda "Kahoot! question types" (consultado em 2026-10-21).
 - **Dá pontos:** sim.
 
 #### 4.1.4 Controle deslizante (`slider`)

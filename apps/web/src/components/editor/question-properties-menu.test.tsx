@@ -167,4 +167,21 @@ describe("QuestionPropertiesMenu", () => {
 			await screen.findByRole("menuitem", { name: "Excluir" }),
 		).toHaveAttribute("aria-disabled", "true");
 	});
+
+	it("a type answer offers times from 20 s (spec 031, RN-06)", async () => {
+		const { user } = renderMenu(2, {
+			...blankQuestion("a", "typeAnswer"),
+			text: "Quem?",
+		});
+
+		await openItem(user, "Definir limite de tempo");
+		const time = await dialog("Limite de tempo");
+
+		expect(
+			within(time).queryByRole("radio", { name: "10 segundos" }),
+		).toBeNull();
+		expect(
+			within(time).getByRole("radio", { name: "30 segundos" }),
+		).toBeChecked();
+	});
 });

@@ -152,4 +152,20 @@ describe("image urls of the cached editor (spec 007)", () => {
 		expect(imageUrlOf(data, { image: null })).toBeNull();
 		expect(imageUrlOf(data, { image })).toBeNull();
 	});
+
+	it("applying 10 s to all gives type answers 20 s (spec 031, RN-07)", () => {
+		const data = {
+			...editorWith("a"),
+			questions: [
+				{ ...blankQuestion("a"), text: "a" },
+				{ ...blankQuestion("b", "typeAnswer"), text: "b" },
+			],
+		};
+
+		expect(
+			withTimeLimitForAll(data, 10).questions.map(
+				(question) => question.timeLimitSeconds,
+			),
+		).toEqual([10, 20]);
+	});
 });

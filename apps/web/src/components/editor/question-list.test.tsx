@@ -291,4 +291,22 @@ describe("QuestionList", () => {
 			).not.toBeInTheDocument();
 		});
 	});
+
+	it("a type answer shows one bar per accepted answer (spec 031)", () => {
+		renderList([
+			question("a", "A?"),
+			{
+				...blankQuestion("b", "typeAnswer"),
+				text: "Quem?",
+				acceptedAnswers: ["Pedro", "Jesus", null],
+			},
+		]);
+
+		const [, second] = items();
+		expect(second).toHaveTextContent("2 Resposta curta");
+		expect(within(second as HTMLElement).getByText("30")).toBeInTheDocument();
+		expect(
+			(second as HTMLElement).querySelectorAll("[data-slot=answer-bar]"),
+		).toHaveLength(3);
+	});
 });

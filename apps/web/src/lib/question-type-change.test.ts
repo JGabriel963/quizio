@@ -2,6 +2,7 @@ import { applyQuestionChange } from "@quizio/core/quiz/domain/question-change";
 import {
 	aQuestion,
 	aTrueFalseQuestion,
+	aTypeAnswerQuestion,
 } from "@quizio/core/quiz/testing/a-question";
 import { describe, expect, it } from "vitest";
 
@@ -111,6 +112,27 @@ describe("typeChangeFor", () => {
 			kind: "type",
 			type: "quiz",
 			remembered: null,
+		});
+	});
+
+	it("remembers the accepted answers across type changes (spec 031)", () => {
+		const remembered = createRememberedContents();
+		const typed = aTypeAnswerQuestion({
+			id: "q-2",
+			acceptedAnswers: ["Pedro", "Jesus"],
+		});
+		const toQuiz = typeChangeFor(remembered, typed, "quiz");
+		const asQuiz = applyQuestionChange(
+			typed,
+			toQuiz ?? { kind: "text", text: null },
+		).question;
+
+		const back = typeChangeFor(remembered, asQuiz, "typeAnswer");
+
+		expect(back).toEqual({
+			kind: "type",
+			type: "typeAnswer",
+			remembered: { type: "typeAnswer", acceptedAnswers: ["Pedro", "Jesus"] },
 		});
 	});
 });

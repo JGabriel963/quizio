@@ -32,6 +32,7 @@ import {
 	scoreboardLeavers,
 	scoreboardOf,
 } from "../domain/standings";
+import { revealTags, typedAnswerGroupsOf } from "../domain/typed-answer-review";
 import type { AnswerRepository } from "./ports/answer-repository";
 import type { GameQuestionRepository } from "./ports/game-question-repository";
 import type { PlayerRepository } from "./ports/player-repository";
@@ -90,6 +91,13 @@ function toCountdown(
 	return remainingMs === null || token === null ? null : { remainingMs, token };
 }
 
+/** A tag of the results of a type answer (spec 031, RN-23). */
+export interface TypedAnswerTagView {
+	text: string;
+	count: number;
+	correct: boolean;
+}
+
 /** Where a game in progress is, as its host sees it (spec 009, RN-07 to RN-11). */
 export interface HostStageView {
 	questionIndex: number;
@@ -109,6 +117,13 @@ export interface HostStageView {
 	scoreboardLeavers: ScoreboardEntry[] | null;
 	/** With autoplay, in the results and the scoreboard (spec 014, RN-11, RN-12). */
 	autoAdvance: AutoCountdownView | null;
+	/**
+	 * The tags of the results animation of a type answer, correct ones first
+	 * (spec 031, RN-23, RN-23a); null in any other stage.
+	 */
+	typedAnswers: { tags: TypedAnswerTagView[] } | null;
+	/** The host is reviewing the typed answers (spec 031, RN-32). */
+	reviewOpen: boolean;
 }
 
 /** The end of a game that played every question (spec 011). */
@@ -285,6 +300,15 @@ async function loadStageView(
 			autoAdvanceRemainingMs(game, deps.clock.now()),
 			autoAdvanceToken(game),
 		),
+		typedAnswers:
+			answers && question?.type === "typeAnswer"
+				? {
+						tags: revealTags(typedAnswerGroupsOf(question, answers)).map(
+							({ text, count, correct }) => ({ text, count, correct }),
+						),
+					}
+				: null,
+		reviewOpen: Boolean(progress.reviewOpenedAt),
 	};
 }
 

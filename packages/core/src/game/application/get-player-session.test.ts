@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { aQuestion } from "../../quiz/testing/a-question";
+import { aQuestion, aTypeAnswerQuestion } from "../../quiz/testing/a-question";
 import { HOST_AWAY_AFTER_MS } from "../domain/host-presence";
 import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps, markRemoved } from "../testing/game-deps";
@@ -340,6 +340,7 @@ describe("getPlayerSession: points, streak and place (spec 010)", () => {
 			streak: 0,
 			rank: 2,
 			behind: { nickname: "Ana", points: 925 },
+			reviewed: false,
 		});
 		expect(view.stage?.total).toBe(0);
 	});
@@ -785,6 +786,66 @@ describe("getPlayerSession: the avatar (spec 028)", () => {
 		expect(await createGetPlayerSession(deps)(player(1))).toMatchObject({
 			avatar: null,
 			canChangeAvatar: false,
+		});
+	});
+});
+
+describe("getPlayerSession with a type answer (spec 031)", () => {
+	const session = { gameId: "game-1", playerId: "p1", secret: "s1" };
+
+	async function typing() {
+		const game = await createStartedGame({
+			questions: [
+				aTypeAnswerQuestion({
+					acceptedAnswers: ["Pedro"],
+					timeLimitSeconds: 30,
+				}),
+				aQuestion({ id: "q2" }),
+			],
+		});
+		await game.reach("answering");
+		return game;
+	}
+
+	it("no accepted answer reaches the device before the results", async () => {
+		const { deps } = await typing();
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.question?.type).toBe("typeAnswer");
+		expect(JSON.stringify(view)).not.toContain("Pedro");
+	});
+
+	it("typed and not sent is a timeout", async () => {
+		const { deps, reach } = await typing();
+		await reach("results");
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.outcome).toMatchObject({
+			result: "timeout",
+			reviewed: false,
+		});
+	});
+
+	it("a reviewed answer is told as reviewed with its new points", async () => {
+		const { deps, type, reach } = await typing();
+		await type(1, "pedra");
+		await reach("results");
+		await deps.answers.regrade(
+			"game-1",
+			0,
+			[{ playerId: "p1", correctness: "correct", points: 1000 }],
+			deps.clock.now(),
+		);
+		await reach("scoreboard");
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.outcome).toMatchObject({
+			result: "correct",
+			points: 1000,
+			reviewed: true,
 		});
 	});
 });

@@ -1,8 +1,7 @@
 import {
 	AnswersClosedError,
-	answerPoints,
-	correctnessOf,
-	parseAnswerChoices,
+	gradeAnswer,
+	parseAnswerResponse,
 } from "../domain/answer";
 import { GameEndedError, isGameOpen } from "../domain/game";
 import {
@@ -24,7 +23,9 @@ export type AnswerAssignmentQuestion = (
 	input: ParticipantReference & {
 		/** The question the device was showing: a late tap never lands on another one. */
 		questionIndex: number;
-		choiceIds: string[];
+		/** The marked answers; or, for a type answer, the typed `text` (spec 031). */
+		choiceIds?: string[];
+		text?: string;
 	},
 ) => Promise<AssignmentPlayView>;
 
@@ -39,7 +40,7 @@ export function createAnswerAssignmentQuestion(
 		answers: Pick<AnswerRepository, "add" | "listByPlayer" | "totalsThrough">;
 	},
 ): AnswerAssignmentQuestion {
-	return async ({ questionIndex, choiceIds, ...participant }) => {
+	return async ({ questionIndex, choiceIds, text, ...participant }) => {
 		const loaded = await loadParticipant(deps, participant);
 		const { game, player, question } = loaded;
 		if (!isGameOpen(game)) {
@@ -63,7 +64,7 @@ export function createAnswerAssignmentQuestion(
 				"The participant is not answering this question",
 			);
 		}
-		const chosen = parseAnswerChoices(question, choiceIds);
+		const response = parseAnswerResponse(question, { choiceIds, text });
 		const now = deps.clock.now();
 		const deadline = answerDeadline(game, question, player.progress);
 		if (deadline && now.getTime() >= deadline.getTime()) {
@@ -76,11 +77,12 @@ export function createAnswerAssignmentQuestion(
 			gameId: game.id,
 			questionIndex,
 			playerId: player.id,
-			choiceIds: chosen,
+			choiceIds: response.choiceIds,
+			text: response.text,
 			responseTimeMs,
-			correctness: correctnessOf(question, chosen),
-			points: answerPoints(question, chosen, responseTimeMs),
+			...gradeAnswer(question, response, responseTimeMs),
 			receivedAt: now,
+			reviewedAt: null,
 		});
 		if (added === "alreadyAnswered") {
 			// An earlier request stored it and its progress stayed behind: the

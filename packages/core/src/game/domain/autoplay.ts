@@ -80,7 +80,14 @@ function autoAdvanceFrom(game: Game): Date | null {
 	) {
 		return null;
 	}
-	return laterOf(game.autoplaySince, progress.phaseStartedAt);
+	// The results wait while the host reviews the typed answers (spec 031, RN-32).
+	if (progress.reviewOpenedAt) {
+		return null;
+	}
+	const started = laterOf(game.autoplaySince, progress.phaseStartedAt);
+	return progress.reviewClosedAt
+		? laterOf(started, progress.reviewClosedAt)
+		: started;
 }
 
 /**

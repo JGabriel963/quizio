@@ -59,6 +59,12 @@ export function ParticipantDetail({
 									))}
 								</ul>
 							)}
+							{answer.typedText !== null && (
+								<p className="text-sm">
+									<span className="sr-only">Resposta enviada: </span>“
+									{answer.typedText}”
+								</p>
+							)}
 							<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
 								<ResultBadge result={answer.result} />
 								<span className="tabular-nums">

@@ -11,6 +11,14 @@ import {
 	createAnswerAssignmentQuestion,
 } from "@quizio/core/game/application/answer-assignment-question";
 import {
+	type CloseAnswerReview,
+	createCloseAnswerReview,
+	createGetTypedAnswers,
+	createOpenAnswerReview,
+	type GetTypedAnswers,
+	type OpenAnswerReview,
+} from "@quizio/core/game/application/answer-review";
+import {
 	type ChangeAssignmentAvatar,
 	createChangeAssignmentAvatar,
 } from "@quizio/core/game/application/change-assignment-avatar";
@@ -93,6 +101,10 @@ import {
 	createResumeAssignment,
 	type ResumeAssignment,
 } from "@quizio/core/game/application/resume-assignment";
+import {
+	createReviewTypedAnswers,
+	type ReviewTypedAnswers,
+} from "@quizio/core/game/application/review-typed-answers";
 import {
 	createSetGameLocked,
 	type SetGameLocked,
@@ -358,6 +370,10 @@ export interface Container extends Adapters {
 		changeAvatar: ChangeAvatar;
 		getPlayerSession: GetPlayerSession;
 		submitAnswer: SubmitAnswer;
+		openAnswerReview: OpenAnswerReview;
+		closeAnswerReview: CloseAnswerReview;
+		getTypedAnswers: GetTypedAnswers;
+		reviewTypedAnswers: ReviewTypedAnswers;
 		getAssignmentSetup: GetAssignmentSetup;
 		createAssignment: CreateAssignment;
 		changeAssignmentDeadline: ChangeAssignmentDeadline;
@@ -448,6 +464,10 @@ export function createContainer(adapters: Adapters): Container {
 			changeAvatar: createChangeAvatar(adapters),
 			getPlayerSession: createGetPlayerSession(adapters),
 			submitAnswer: createSubmitAnswer(adapters),
+			openAnswerReview: createOpenAnswerReview(adapters),
+			closeAnswerReview: createCloseAnswerReview(adapters),
+			getTypedAnswers: createGetTypedAnswers(adapters),
+			reviewTypedAnswers: createReviewTypedAnswers(adapters),
 			getAssignmentSetup: createGetAssignmentSetup(assignmentDeps),
 			createAssignment: createCreateAssignment(assignmentDeps),
 			changeAssignmentDeadline: createChangeAssignmentDeadline(assignmentDeps),

@@ -36,6 +36,14 @@ export interface GameProgress {
 	questionIndex: number;
 	phase: GamePhase;
 	phaseStartedAt: Date;
+	/**
+	 * While the host reviews the typed answers in the results (spec 031, RN-32):
+	 * the autoplay countdown waits. Absent means null; every transition clears
+	 * both.
+	 */
+	reviewOpenedAt?: Date | null;
+	/** When the review was last closed without moving on: the countdown restarts there. */
+	reviewClosedAt?: Date | null;
 }
 
 /** Which stage a request starts from: it makes every transition idempotent (RN-12). */
@@ -154,6 +162,8 @@ export function nextStage(
 		/** Of the current question; only the answers phase uses it. */
 		timeLimitSeconds: number;
 		skip: boolean;
+		/** The host's review moves the results on, autoplay deadline or not (spec 031, RN-30a). */
+		review?: boolean;
 		now: Date;
 	},
 ): Game {
@@ -170,7 +180,9 @@ export function nextStage(
 	const remaining =
 		remainingMsOf(progress, input.timeLimitSeconds, input.now) ??
 		autoAdvanceRemainingMs(game, input.now);
-	const skipped = input.skip && phase === "answering";
+	const skipped =
+		(input.skip && phase === "answering") ||
+		(input.review === true && phase === "results");
 	if (remaining !== null && remaining > 0 && !skipped) {
 		throw new StageNotDueError(`The ${phase} phase has ${remaining} ms left`);
 	}

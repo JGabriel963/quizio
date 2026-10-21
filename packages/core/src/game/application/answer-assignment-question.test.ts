@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Question } from "../../quiz/domain/question";
-import { aQuestion } from "../../quiz/testing/a-question";
+import { aQuestion, aTypeAnswerQuestion } from "../../quiz/testing/a-question";
 import { AnswersClosedError } from "../domain/answer";
 import { DEFAULT_ASSIGNMENT_OPTIONS } from "../domain/assignment";
 import { GameEndedError } from "../domain/game";
@@ -10,6 +10,7 @@ import { createGameDeps } from "../testing/game-deps";
 import { createAnswerAssignmentQuestion } from "./answer-assignment-question";
 import { createCreateAssignment } from "./create-assignment";
 import { createEndAssignment } from "./end-assignment";
+import { createGetAssignmentPlay } from "./get-assignment-play";
 import { createJoinAssignment } from "./join-assignment";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -159,6 +160,8 @@ describe("answerAssignmentQuestion (spec 030, RN-10, RN-11, RN-13)", () => {
 			correctness: "correct",
 			points: 1000,
 			receivedAt: deps.clock.now(),
+			text: null,
+			reviewedAt: null,
 		});
 
 		const view = await answer(["choice-1"]);
@@ -171,5 +174,70 @@ describe("answerAssignmentQuestion (spec 030, RN-10, RN-11, RN-13)", () => {
 		await createEndAssignment(deps)({ ownerId: "user-1", gameId });
 
 		await expect(answer(["choice-1"])).rejects.toThrow(GameEndedError);
+	});
+});
+
+describe("a type answer in an assignment (spec 031, RN-34, RN-35)", () => {
+	const questions = [
+		aTypeAnswerQuestion({
+			acceptedAnswers: ["Pedro", "Simão"],
+			timeLimitSeconds: 30,
+		}),
+	];
+
+	async function typing(options = {}) {
+		const setup = await playing(options, questions);
+		const type = (text: string) =>
+			createAnswerAssignmentQuestion(setup.deps)({
+				gameId: setup.gameId,
+				playerId: setup.john.playerId,
+				secret: setup.john.secret,
+				questionIndex: 0,
+				text,
+			});
+		return { ...setup, type };
+	}
+
+	it("a right typed answer goes to the results with its points", async () => {
+		const { deps, type } = await typing();
+		deps.clock.advanceBy(15_000);
+
+		const view = await type(" pedro ");
+
+		expect(view.screen).toMatchObject({
+			phase: "results",
+			total: 750,
+			result: {
+				result: "correct",
+				chosenIds: [],
+				rightIds: [],
+				typedText: "pedro",
+				acceptedAnswers: ["Pedro", "Simão"],
+				points: 750,
+			},
+		});
+	});
+
+	it("without the timer a right typed answer is worth the full points", async () => {
+		const { deps, type } = await typing({ questionTimer: false });
+		deps.clock.advanceBy(60_000);
+
+		expect((await type("Simao")).screen).toMatchObject({
+			phase: "results",
+			result: { result: "correct", points: 1000 },
+		});
+	});
+
+	it("accepted answers never show while answering", async () => {
+		const { deps, gameId, john } = await typing();
+
+		const view = await createGetAssignmentPlay(deps)({
+			gameId,
+			playerId: john.playerId,
+			secret: john.secret,
+		});
+
+		expect(view.screen.phase).toBe("answering");
+		expect(JSON.stringify(view)).not.toContain("Simão");
 	});
 });

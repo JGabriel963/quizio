@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { aQuestion, aTrueFalseQuestion } from "../../quiz/testing/a-question";
+import {
+	aQuestion,
+	aTrueFalseQuestion,
+	aTypeAnswerQuestion,
+} from "../../quiz/testing/a-question";
 import { aPlayingGame } from "../testing/a-game";
 import { aGameQuestion } from "../testing/a-game-question";
 import { DEFAULT_GAME_OPTIONS } from "./game-options";
@@ -273,5 +277,45 @@ describe("public stage (spec 009)", () => {
 		expect(
 			publicStageOf(aPlayingGame("results"), aGameQuestion(), urlOf),
 		).toMatchObject({ phase: "results", durationMs: null });
+	});
+});
+
+describe("type answer in a game (spec 031)", () => {
+	it("a type answer is copied with its filled accepted answers and no choices", () => {
+		const question = toGameQuestion(
+			aTypeAnswerQuestion({
+				acceptedAnswers: ["Pedro", null, "Simão Pedro"],
+				timeLimitSeconds: 45,
+			}),
+			2,
+		);
+
+		expect(question).toMatchObject({
+			index: 2,
+			type: "typeAnswer",
+			timeLimitSeconds: 45,
+			selection: "single",
+			choices: [],
+			acceptedAnswers: ["Pedro", "Simão Pedro"],
+		});
+	});
+
+	it("other types have no accepted answers", () => {
+		expect(toGameQuestion(aQuestion(), 0).acceptedAnswers).toEqual([]);
+	});
+
+	it("a stored game question without accepted answers reads as none", () => {
+		const { acceptedAnswers: _, ...stored } = aGameQuestion();
+
+		expect(parseStoredGameQuestion(stored)?.acceptedAnswers).toEqual([]);
+		expect(
+			parseStoredGameQuestion(
+				aGameQuestion({
+					type: "typeAnswer",
+					choices: [],
+					acceptedAnswers: ["Pedro"],
+				}),
+			)?.acceptedAnswers,
+		).toEqual(["Pedro"]);
 	});
 });

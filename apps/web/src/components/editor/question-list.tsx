@@ -379,6 +379,13 @@ function answerBars(
 			correct: question.correct === value,
 		}));
 	}
+	if (question.type === "typeAnswer") {
+		// One bar per accepted answer, as in Kahoot's list (spec 031, RN-11).
+		return question.acceptedAnswers.map((_, index) => ({
+			key: `accepted-${index}`,
+			correct: false,
+		}));
+	}
 	return question.choices.map((choice) => ({
 		key: choice.id,
 		correct: choice.correct,

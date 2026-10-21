@@ -6,8 +6,11 @@ import {
 	answerDistribution,
 	answerPoints,
 	correctnessOf,
+	gradeAnswer,
 	InvalidAnswerError,
 	parseAnswerChoices,
+	parseAnswerResponse,
+	reviewedPoints,
 } from "./answer";
 import { toGameQuestion } from "./game-question";
 
@@ -152,5 +155,83 @@ describe("answerPoints (spec 010)", () => {
 
 		expect(answerPoints(question, ["true"], 10_000)).toBe(750);
 		expect(answerPoints(question, ["false"], 10_000)).toBe(0);
+	});
+});
+
+describe("typed answers (spec 031)", () => {
+	const typeAnswer = aGameQuestion({
+		type: "typeAnswer",
+		timeLimitSeconds: 30,
+		choices: [],
+		acceptedAnswers: ["The Colosseum", "Colosseum", "Colosseum in Rome"],
+	});
+	const grade = (text: string, responseTimeMs = 300) =>
+		gradeAnswer(typeAnswer, { choiceIds: [], text }, responseTimeMs);
+
+	it("a typed answer equal to an accepted one after normalization is correct", () => {
+		expect(grade("  COLOSSEUM! ").correctness).toBe("correct");
+	});
+
+	it("any accepted answer is correct", () => {
+		expect(grade("colosseum in rome").correctness).toBe("correct");
+		expect(grade("the colosseum").correctness).toBe("correct");
+	});
+
+	it("one letter off is wrong", () => {
+		expect(grade("the coloseum")).toEqual({ correctness: "wrong", points: 0 });
+	});
+
+	it("an emoji-only answer matches only emojis", () => {
+		const pizza = aGameQuestion({
+			type: "typeAnswer",
+			choices: [],
+			acceptedAnswers: ["🍕"],
+		});
+
+		expect(
+			gradeAnswer(pizza, { choiceIds: [], text: "🍕" }, 0).correctness,
+		).toBe("correct");
+		expect(
+			gradeAnswer(pizza, { choiceIds: [], text: "pizza" }, 0).correctness,
+		).toBe("wrong");
+	});
+
+	it("refuses a type answer without text, over 20 characters or with choices", () => {
+		expect(parseAnswerResponse(typeAnswer, { text: "  Pedro " })).toEqual({
+			choiceIds: [],
+			text: "Pedro",
+		});
+		for (const raw of [
+			{},
+			{ text: "   " },
+			{ text: "a".repeat(21) },
+			{ text: "Pedro", choiceIds: ["choice-1"] },
+		]) {
+			expect(() => parseAnswerResponse(typeAnswer, raw)).toThrow(
+				InvalidAnswerError,
+			);
+		}
+	});
+
+	it("refuses text for a choice question", () => {
+		expect(() =>
+			parseAnswerResponse(aGameQuestion(), { text: "Brasília" }),
+		).toThrow(InvalidAnswerError);
+		expect(
+			parseAnswerResponse(aGameQuestion(), { choiceIds: ["choice-1"] }),
+		).toEqual({ choiceIds: ["choice-1"], text: null });
+	});
+
+	it("points of a right typed answer follow the speed formula", () => {
+		expect(grade("Colosseum", 300).points).toBe(1000);
+		expect(grade("Colosseum", 15_000).points).toBe(750);
+	});
+
+	it("reviewed points: right as if on arrival, wrong as zero", () => {
+		expect(reviewedPoints(typeAnswer, true, 15_000)).toBe(750);
+		expect(reviewedPoints(typeAnswer, false, 15_000)).toBe(0);
+		expect(reviewedPoints({ ...typeAnswer, points: "double" }, true, 300)).toBe(
+			2000,
+		);
 	});
 });

@@ -6,9 +6,12 @@ import {
 	choiceIdAt,
 	DEFAULT_CHOICE_COUNT,
 	emptyChoices,
+	fitTimeLimit,
 	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
+	MAX_ACCEPTED_ANSWERS,
 	MAX_CHOICE_COUNT,
+	parseAcceptedAnswer,
 	parseChoiceText,
 	parsePoints,
 	parseQuestionText,
@@ -19,6 +22,8 @@ import {
 	type QuestionContent,
 	type QuizQuestion,
 	type TrueFalseQuestion,
+	type TypeAnswerQuestion,
+	timeLimitsFor,
 } from "./question";
 import {
 	copyImage,
@@ -41,7 +46,8 @@ export type QuestionContentInput =
 			selection: string;
 			choices: { text: string | null; correct: boolean }[];
 	  }
-	| { type: "trueFalse"; correct: boolean | null };
+	| { type: "trueFalse"; correct: boolean | null }
+	| { type: "typeAnswer"; acceptedAnswers: (string | null)[] };
 
 /**
  * One edit of a question (specs 004, 005). Values arrive raw (from the API or
@@ -56,6 +62,10 @@ export type QuestionChange =
 	| { kind: "choiceCorrect"; choiceId: string; correct: boolean }
 	| { kind: "extraChoices"; visible: boolean }
 	| { kind: "trueFalseCorrect"; correct: boolean }
+	/** Spec 031, RN-03, RN-04: an accepted answer by position; 0 is the main one. */
+	| { kind: "acceptedAnswerText"; index: number; text: string | null }
+	| { kind: "acceptedAnswerAdded" }
+	| { kind: "acceptedAnswerRemoved"; index: number }
 	/** `remembered` is what the question had in that type earlier in the session (RN-17). */
 	| { kind: "type"; type: string; remembered: QuestionContentInput | null }
 	/** A new upload, or null to remove the image with its adjustments (spec 007). */
@@ -87,6 +97,19 @@ export class InvalidChoiceCountError extends DomainError {
 	readonly code = "QUIZ.INVALID_CHOICE_COUNT";
 }
 
+export class AcceptedAnswerNotFoundError extends NotFoundError {
+	readonly code = "QUIZ.ACCEPTED_ANSWER_NOT_FOUND";
+}
+
+export class TooManyAcceptedAnswersError extends DomainError {
+	readonly code = "QUIZ.TOO_MANY_ACCEPTED_ANSWERS";
+}
+
+/** A time of the editor's list that the question's type does not take (spec 031, RN-06). */
+export class TimeLimitNotAllowedError extends DomainError {
+	readonly code = "QUIZ.TIME_LIMIT_NOT_ALLOWED";
+}
+
 /** An edit that the question's type does not have (spec 005). */
 export class QuestionChangeNotApplicableError extends DomainError {
 	readonly code = "QUIZ.CHANGE_NOT_APPLICABLE";
@@ -99,9 +122,31 @@ export class QuestionChangeNotApplicableError extends DomainError {
 export function parseQuestionContent(
 	input: QuestionContentInput,
 ): QuestionContent {
-	if (input.type === "trueFalse") {
-		return { type: input.type, correct: input.correct };
+	switch (input.type) {
+		case "quiz":
+			return parseQuizInput(input);
+		case "trueFalse":
+			return { type: input.type, correct: input.correct };
+		case "typeAnswer":
+			return {
+				type: input.type,
+				acceptedAnswers: parseAcceptedAnswers(input.acceptedAnswers),
+			};
 	}
+}
+
+function parseAcceptedAnswers(answers: (string | null)[]): (string | null)[] {
+	if (answers.length === 0 || answers.length > MAX_ACCEPTED_ANSWERS) {
+		throw new TooManyAcceptedAnswersError(
+			`A type answer has 1 to ${MAX_ACCEPTED_ANSWERS} accepted answers`,
+		);
+	}
+	return answers.map(parseAcceptedAnswer);
+}
+
+function parseQuizInput(
+	input: Extract<QuestionContentInput, { type: "quiz" }>,
+): QuestionContent {
 	if (
 		input.choices.length !== DEFAULT_CHOICE_COUNT &&
 		input.choices.length !== MAX_CHOICE_COUNT
@@ -151,6 +196,69 @@ function requireTrueFalse(question: Question): TrueFalseQuestion {
 		);
 	}
 	return question;
+}
+
+function requireTypeAnswer(question: Question): TypeAnswerQuestion {
+	if (question.type !== "typeAnswer") {
+		throw new QuestionChangeNotApplicableError(
+			"This change only applies to type answer questions",
+		);
+	}
+	return question;
+}
+
+function requireAcceptedAnswerAt(
+	question: TypeAnswerQuestion,
+	index: number,
+	first = 0,
+): void {
+	if (
+		!Number.isInteger(index) ||
+		index < first ||
+		index >= question.acceptedAnswers.length
+	) {
+		throw new AcceptedAnswerNotFoundError("Accepted answer not found");
+	}
+}
+
+function setAcceptedAnswer(
+	question: TypeAnswerQuestion,
+	index: number,
+	rawText: string | null,
+): QuestionChangeResult {
+	requireAcceptedAnswerAt(question, index);
+	const text = parseAcceptedAnswer(rawText);
+	return unchanged({
+		...question,
+		acceptedAnswers: question.acceptedAnswers.map((answer, i) =>
+			i === index ? text : answer,
+		),
+	});
+}
+
+/** Spec 031, RN-04: one empty field at a time, up to four in all. */
+function addAcceptedAnswer(question: TypeAnswerQuestion): QuestionChangeResult {
+	if (question.acceptedAnswers.length >= MAX_ACCEPTED_ANSWERS) {
+		throw new TooManyAcceptedAnswersError(
+			`A type answer has at most ${MAX_ACCEPTED_ANSWERS} accepted answers`,
+		);
+	}
+	return unchanged({
+		...question,
+		acceptedAnswers: [...question.acceptedAnswers, null],
+	});
+}
+
+/** Spec 031, RN-04: an extra field goes; the main one always stays. */
+function removeAcceptedAnswer(
+	question: TypeAnswerQuestion,
+	index: number,
+): QuestionChangeResult {
+	requireAcceptedAnswerAt(question, index, 1);
+	return unchanged({
+		...question,
+		acceptedAnswers: question.acceptedAnswers.filter((_, i) => i !== index),
+	});
 }
 
 function replaceChoice(
@@ -264,7 +372,8 @@ function changeType(
 		question: {
 			id: question.id,
 			text: question.text,
-			timeLimitSeconds: question.timeLimitSeconds,
+			// Spec 031, RN-07: below what the new type takes, it gets its shortest time.
+			timeLimitSeconds: fitTimeLimit(type, question.timeLimitSeconds),
 			points: question.points,
 			// The image belongs to the question, not to its type (spec 007, RN-34).
 			image: copyImage(question.image),
@@ -294,11 +403,15 @@ export function applyQuestionChange(
 	switch (change.kind) {
 		case "text":
 			return unchanged({ ...question, text: parseQuestionText(change.text) });
-		case "timeLimit":
-			return unchanged({
-				...question,
-				timeLimitSeconds: parseTimeLimit(change.seconds),
-			});
+		case "timeLimit": {
+			const seconds = parseTimeLimit(change.seconds);
+			if (!timeLimitsFor(question.type).includes(seconds)) {
+				throw new TimeLimitNotAllowedError(
+					`${seconds} s is not an allowed time for this question type`,
+				);
+			}
+			return unchanged({ ...question, timeLimitSeconds: seconds });
+		}
 		case "points":
 			return unchanged({ ...question, points: parsePoints(change.points) });
 		case "selection":
@@ -327,6 +440,16 @@ export function applyQuestionChange(
 				...requireTrueFalse(question),
 				correct: change.correct,
 			});
+		case "acceptedAnswerText":
+			return setAcceptedAnswer(
+				requireTypeAnswer(question),
+				change.index,
+				change.text,
+			);
+		case "acceptedAnswerAdded":
+			return addAcceptedAnswer(requireTypeAnswer(question));
+		case "acceptedAnswerRemoved":
+			return removeAcceptedAnswer(requireTypeAnswer(question), change.index);
 		case "type":
 			return changeType(question, change.type, change.remembered);
 		case "image":

@@ -49,7 +49,10 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Limite de perguntas | `QUIZ_MAX_QUESTIONS` | Máximo de 200 perguntas por quiz, configurável (spec 003) | ✅ |
 | Editor | `Creator` (rota `/creator/:id`) | Tela cheia onde o criador monta as perguntas de um quiz (spec 003) | ✅ |
 | Salvamento automático | `Autosave` | Toda alteração no editor é salva sem ação do criador; o cabeçalho mostra "Salvando…", "Salvo" ou a falha (spec 003) | ✅ (`SaveTracker`) |
-| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`, `trueFalse`; demais 📝) |
+| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`, `trueFalse`, `typeAnswer`; demais 📝) |
+| Resposta curta | `typeAnswer`, `TypeAnswerQuestion` | Tipo de pergunta em que o jogador digita a resposta; correta quando, normalizada, é igual a uma das respostas aceitas; pontua pela velocidade como o Quiz (spec 031) | ✅ |
+| Respostas aceitas | `acceptedAnswers` | De 1 a 4 textos de até 20 caracteres que valem como resposta correta numa Resposta curta; a primeira é a principal (spec 031) | ✅ |
+| Normalização da resposta | `normalizeTypedAnswer` | Forma usada para comparar respostas digitadas: sem diferença de maiúsculas e acentos, sem a pontuação da lista do Kahoot, com espaços colapsados, e emojis só quando não há outro texto (spec 031) | ✅ |
 | Verdadeiro ou falso | `trueFalse`, `TrueFalseQuestion` | Tipo de pergunta com duas alternativas fixas, "Verdadeiro" (azul, losango) e "Falso" (vermelho, triângulo), e exatamente uma correta; desmarcar a correta marca a outra (spec 005) | ✅ |
 | Seletor de tipo | `QuestionTypePicker` | Escolha do tipo ao adicionar uma pergunta; mostra só os tipos já entregues (spec 005) | ✅ |
 | Troca de tipo | `QuestionChange` `kind: "type"`, `changeQuestionType` | Mudar o tipo de uma pergunta existente: mantém enunciado, tempo, pontos e posição, e substitui as respostas pelas do novo tipo (spec 005) | ✅ |
@@ -138,6 +141,8 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Pódio | `Podium` | Tela do fim da partida: os três primeiros da classificação final, revelados do 3º para o 1º; não é uma fase, é a leitura de uma partida terminada (spec 011) | ✅ (`HostGameView.final`, `podiumRevealRemainingMs`) |
 | Classificação final | `finalStandings` | Todos os jogadores da partida terminada, pelo total de pontos, com o empate pela ordem de entrada; não muda mais (spec 011) | ✅ (`final.standings`) |
 | Jogar novamente | `playAgain` | Ação do pódio: cria uma partida nova do mesmo quiz, com outro PIN e sem jogadores (spec 011) | ✅ (`game.host`, `usePlayAgain`) |
+| Revisar respostas | `reviewTypedAnswers`, `openAnswerReview`, `AnswerReview` | Na revelação de uma Resposta curta, o anfitrião marca respostas enviadas como corretas ou incorretas; a correção e os pontos de quem as enviou são refeitos, e a partida vai direto ao placar. Só enquanto a revelação está na tela (spec 031) | ✅ |
+| Respostas parecidas | `isSimilarAnswer` | Respostas erradas a até 2 letras de diferença de uma correta, com ao menos 4 caracteres; aparecem primeiro na revisão (spec 031) | ✅ |
 | Equipe | `Team` | Grupo de jogadores; pontuação = média dos membros | 📝 |
 
 ## Atribuição (assignment)
