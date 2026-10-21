@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
 	createFileRoute,
+	Link,
 	redirect,
 	useNavigate,
 	useRouter,
@@ -9,7 +10,6 @@ import { z } from "zod";
 
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { SignUpForm } from "@/components/auth/sign-up-form";
-import { PublicHeader } from "@/components/layout/public-header";
 import Loader from "@/components/loader";
 import { getUser } from "@/functions/get-user";
 import { authClient } from "@/lib/auth-client";
@@ -69,10 +69,23 @@ function LoginPage() {
 	const { signUpEnabled = true, googleEnabled = false } = settings.data ?? {};
 
 	return (
-		<>
-			<PublicHeader showSignIn={false} />
-			<main className="mx-auto flex w-full max-w-md flex-col px-4 py-10">
-				<div className="rounded-lg bg-card p-6 shadow-sm sm:p-8">
+		<div className="relative isolate flex min-h-svh flex-col overflow-hidden bg-background">
+			{/* Kahoot's backdrop: a large circle and a turned square in a faint gray. */}
+			<div
+				aria-hidden="true"
+				className="absolute bottom-[-22rem] -left-48 -z-10 size-[38rem] rounded-full bg-muted/60"
+			/>
+			<div
+				aria-hidden="true"
+				className="absolute -top-40 -right-40 -z-10 hidden size-[28rem] rotate-45 bg-muted/60 md:block"
+			/>
+			<header className="px-4 py-3">
+				<Link to="/" className="font-black text-2xl text-brand tracking-tight">
+					Quizio
+				</Link>
+			</header>
+			<main className="flex flex-1 flex-col items-center px-4 pt-6 pb-16 sm:pt-[12vh]">
+				<div className="w-full max-w-[25.5rem] rounded-md bg-card p-6 shadow-md">
 					{mode === "sign-up" ? (
 						<SignUpForm
 							signUpEnabled={signUpEnabled}
@@ -106,6 +119,6 @@ function LoginPage() {
 					)}
 				</div>
 			</main>
-		</>
+		</div>
 	);
 }

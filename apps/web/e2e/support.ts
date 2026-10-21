@@ -35,7 +35,7 @@ export async function signUp(
 	await page.goto("/login?mode=sign-up");
 	await page.getByLabel("Nome").fill(name);
 	await page.getByLabel("E-mail").fill(email);
-	await page.getByLabel("Senha").fill(E2E_PASSWORD);
+	await page.getByLabel("Senha", { exact: true }).fill(E2E_PASSWORD);
 	await page.getByRole("button", { name: "Criar conta" }).click();
 	// Signing in with no requested page lands on the dashboard (spec 002, RN-02).
 	await expect(page).toHaveURL(/\/$/);
@@ -44,7 +44,7 @@ export async function signUp(
 
 export async function signIn(page: Page, email: string) {
 	await page.getByLabel("E-mail").fill(email);
-	await page.getByLabel("Senha").fill(E2E_PASSWORD);
+	await page.getByLabel("Senha", { exact: true }).fill(E2E_PASSWORD);
 	await page.getByRole("main").getByRole("button", { name: "Entrar" }).click();
 }
 
