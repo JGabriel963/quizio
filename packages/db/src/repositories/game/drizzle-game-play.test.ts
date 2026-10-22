@@ -26,6 +26,7 @@ import { createDrizzleGameQuestionRepository } from "./drizzle-game-question-rep
 import { createDrizzleGameRepository } from "./drizzle-game-repository";
 import { createDrizzlePlayableQuizQuery } from "./drizzle-playable-quiz-query";
 import { createDrizzlePlayerRepository } from "./drizzle-player-repository";
+import { createDrizzleReviewResultsWriter } from "./drizzle-review-results-writer";
 
 const at = (iso: string) => new Date(iso);
 const now = at("2026-06-01T12:00:00.000Z");
@@ -423,6 +424,78 @@ describe("game play repositories (spec 009)", () => {
 			expect(await query.questions("quiz-1", 1)).toEqual(original);
 			expect(await query.questions("quiz-1", 2)).toHaveLength(1);
 			expect(await query.questions("quiz-1", 9)).toEqual([]);
+		});
+	});
+
+	describe("DrizzleReviewResultsWriter (spec 031, RN-30a)", () => {
+		const from = { questionIndex: 0, phase: "results" } as const;
+
+		async function inResults() {
+			const results = aPlayingGame("results", { since: now });
+			await games.save(results);
+			await answers.add(
+				anAnswer({
+					playerId: "p1",
+					choiceIds: [],
+					text: "pedra",
+					correctness: "wrong",
+					points: 0,
+				}),
+			);
+			return nextStage(results, {
+				timeLimitSeconds: 20,
+				skip: false,
+				review: true,
+				now,
+			});
+		}
+
+		it("moves on and regrades together, once", async () => {
+			const writer = createDrizzleReviewResultsWriter(testDb.db);
+			const next = await inResults();
+			const regrade = {
+				next,
+				from,
+				questionIndex: 0,
+				regrades: [
+					{ playerId: "p1", correctness: "correct" as const, points: 900 },
+				],
+				reviewedAt: now,
+			};
+
+			expect(await writer.advanceAndRegrade(regrade)).toBe(true);
+			expect(await writer.advanceAndRegrade(regrade)).toBe(false);
+			expect((await games.findById("game-1"))?.status).toBe("playing");
+			expect(await answers.find("game-1", 0, "p1")).toMatchObject({
+				correctness: "correct",
+				points: 900,
+				reviewedAt: now,
+			});
+		});
+
+		it("a failed regrade rolls the stage back with it", async () => {
+			const writer = createDrizzleReviewResultsWriter(testDb.db);
+			const next = await inResults();
+			const before = await games.findById("game-1");
+
+			await expect(
+				writer.advanceAndRegrade({
+					next,
+					from,
+					questionIndex: 0,
+					// Not a correctness: the database refuses it.
+					regrades: [
+						{ playerId: "p1", correctness: "bogus" as never, points: 900 },
+					],
+					reviewedAt: now,
+				}),
+			).rejects.toThrow();
+
+			expect(await games.findById("game-1")).toEqual(before);
+			expect(await answers.find("game-1", 0, "p1")).toMatchObject({
+				correctness: "wrong",
+				reviewedAt: null,
+			});
 		});
 	});
 });

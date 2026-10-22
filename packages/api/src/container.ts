@@ -93,6 +93,7 @@ import type { GameRepository } from "@quizio/core/game/application/ports/game-re
 import type { HostPreferencesRepository } from "@quizio/core/game/application/ports/host-preferences-repository";
 import type { PlayableQuizQuery } from "@quizio/core/game/application/ports/playable-quiz-query";
 import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
+import type { ReviewResultsWriter } from "@quizio/core/game/application/ports/review-results-writer";
 import {
 	createRemovePlayer,
 	type RemovePlayer,
@@ -306,6 +307,8 @@ export interface Adapters {
 	players: PlayerRepository;
 	gameQuestions: GameQuestionRepository;
 	answers: AnswerRepository;
+	/** The review's stage write and regrades, together (spec 031). */
+	reviewResults: ReviewResultsWriter;
 	playableQuizzes: PlayableQuizQuery;
 	preferences: HostPreferencesRepository;
 	/** The live games as the reports read them (spec 015). */

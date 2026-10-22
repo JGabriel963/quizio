@@ -15,8 +15,8 @@ import {
 	type HostGameViewDeps,
 	loadHostGameView,
 } from "./host-game-view";
-import type { AnswerRepository } from "./ports/answer-repository";
 import type { GameRepository } from "./ports/game-repository";
+import type { ReviewResultsWriter } from "./ports/review-results-writer";
 
 export type ReviewTypedAnswers = (
 	input: AnswerReviewInput & { changes: ReviewChange[] },
@@ -27,14 +27,15 @@ export type ReviewTypedAnswers = (
  * marked are graded again and the game moves on to the scoreboard, or the
  * podium after the last question.
  *
- * It moves on first, with the same conditional write as any advance: of two
+ * It moves on with the same conditional write as any advance: of two
  * requests only one gets through, and only that one grades again. So the
  * grade of a question never changes after the game left its results (RN-26).
+ * Both writes go together: a failure leaves the results open to send again.
  */
 export function createReviewTypedAnswers(
 	deps: HostGameViewDeps & {
 		games: GameRepository;
-		answers: Pick<AnswerRepository, "regrade">;
+		reviewResults: ReviewResultsWriter;
 		realtime: RealtimePublisher;
 	},
 ): ReviewTypedAnswers {
@@ -53,10 +54,6 @@ export function createReviewTypedAnswers(
 			review: true,
 			now,
 		});
-		if (!(await deps.games.saveIfAt(next, input.from))) {
-			throw new ReviewNotAvailableError("The game already moved on");
-		}
-
 		const correctByKey = new Map(
 			marked.map((change) => [change.key, change.correct]),
 		);
@@ -75,8 +72,15 @@ export function createReviewTypedAnswers(
 						},
 					];
 		});
-		if (regrades.length > 0) {
-			await deps.answers.regrade(game.id, question.index, regrades, now);
+		const moved = await deps.reviewResults.advanceAndRegrade({
+			next,
+			from: input.from,
+			questionIndex: question.index,
+			regrades,
+			reviewedAt: now,
+		});
+		if (!moved) {
+			throw new ReviewNotAvailableError("The game already moved on");
 		}
 
 		// The scoreboard and the podium show no question. The event goes out only

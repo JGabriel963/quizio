@@ -8,9 +8,13 @@ const IGNORED_SIGN = new RegExp(
 	"g",
 );
 const LETTER_OR_DIGIT = /[\p{L}\p{N}]/u;
-/** Emoji pictographs plus what joins or styles them (variation selector, ZWJ, skin tones). */
+/**
+ * Emoji pictographs plus what joins or styles them (variation selector, ZWJ,
+ * skin tones, keycaps) and what flags are made of: regional indicators
+ * (🇧🇷) and the tag characters of the subdivision flags.
+ */
 const EMOJI_PART =
-	/\p{Extended_Pictographic}|\u{FE0F}|\u{200D}|[\u{1F3FB}-\u{1F3FF}]/gu;
+	/\p{Extended_Pictographic}|\p{Regional_Indicator}|\u{FE0F}|\u{200D}|\u{20E3}|[\u{1F3FB}-\u{1F3FF}]|[\u{E0020}-\u{E007F}]/gu;
 
 /**
  * The form typed answers are compared in (spec 031, RN-13): no case, no

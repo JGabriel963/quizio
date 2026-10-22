@@ -422,6 +422,7 @@ E2E (`apps/web/e2e/type-answer.spec.ts`): criar um quiz com uma Resposta curta, 
 - `QUIZ.ACCEPTED_ANSWER_NOT_FOUND` (`AcceptedAnswerNotFoundError`) entrou para a posição de resposta aceita que não existe.
 - Os sinais ignorados contam como espaço ("São-Paulo" = "São Paulo"), para o CA-11 valer.
 - O celular recebe o texto não enviado de volta pelo `JoinFlow` (`typedDraft`).
+- **Revisão revisada (review da PR #15):** o avanço e as regravações passaram a ir juntos numa transação (`ReviewResultsWriter`, `drizzle-review-results-writer.ts`), para uma falha entre eles não deixar a partida no placar com os pontos antigos. A tela do anfitrião reabre a revisão que o servidor tem aberta (`reviewOpen`) depois de recarregar. A normalização ignora também as bandeiras (indicadores regionais e caracteres de tag) ao lado de texto.
 
 ## Riscos e decisões
 

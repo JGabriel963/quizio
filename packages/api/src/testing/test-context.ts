@@ -7,6 +7,7 @@ import { InMemoryGameRepository } from "@quizio/core/game/testing/in-memory-game
 import { InMemoryHostPreferencesRepository } from "@quizio/core/game/testing/in-memory-host-preferences-repository";
 import { InMemoryPlayableQuizQuery } from "@quizio/core/game/testing/in-memory-playable-quiz-query";
 import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-player-repository";
+import { InMemoryReviewResultsWriter } from "@quizio/core/game/testing/in-memory-review-results-writer";
 import { SequentialAssignmentPinGenerator } from "@quizio/core/game/testing/sequential-assignment-pin-generator";
 import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
@@ -110,6 +111,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		players,
 		gameQuestions: new InMemoryGameQuestionRepository(),
 		answers,
+		reviewResults: new InMemoryReviewResultsWriter(games, answers),
 		playableQuizzes: new InMemoryPlayableQuizQuery(
 			() =>
 				quizzes.all().map((quiz) => ({

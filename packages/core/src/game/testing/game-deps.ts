@@ -20,6 +20,7 @@ import {
 	InMemoryPlayableQuizQuery,
 } from "./in-memory-playable-quiz-query";
 import { InMemoryPlayerRepository } from "./in-memory-player-repository";
+import { InMemoryReviewResultsWriter } from "./in-memory-review-results-writer";
 import { SequentialAssignmentPinGenerator } from "./sequential-assignment-pin-generator";
 import { SequentialGamePinGenerator } from "./sequential-game-pin-generator";
 
@@ -64,6 +65,7 @@ export function createGameDeps(
 	]);
 	const games = new InMemoryGameRepository();
 	const players = new InMemoryPlayerRepository();
+	const answers = new InMemoryAnswerRepository();
 	return {
 		quizzes,
 		versionQuestions,
@@ -74,7 +76,8 @@ export function createGameDeps(
 		games,
 		players,
 		gameQuestions: new InMemoryGameQuestionRepository(),
-		answers: new InMemoryAnswerRepository(),
+		answers,
+		reviewResults: new InMemoryReviewResultsWriter(games, answers),
 		preferences: new InMemoryHostPreferencesRepository(),
 		/** Hands every list back backwards (spec 012). */
 		shuffler: new FixedShuffler(),

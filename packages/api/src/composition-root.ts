@@ -13,6 +13,7 @@ import { createDrizzleGameRepository } from "@quizio/db/repositories/game/drizzl
 import { createDrizzleHostPreferencesRepository } from "@quizio/db/repositories/game/drizzle-host-preferences-repository";
 import { createDrizzlePlayableQuizQuery } from "@quizio/db/repositories/game/drizzle-playable-quiz-query";
 import { createDrizzlePlayerRepository } from "@quizio/db/repositories/game/drizzle-player-repository";
+import { createDrizzleReviewResultsWriter } from "@quizio/db/repositories/game/drizzle-review-results-writer";
 import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
 import { createDrizzleSourceUploadRepository } from "@quizio/db/repositories/media/drizzle-source-upload-repository";
 import { createDrizzleAssistantPreferencesRepository } from "@quizio/db/repositories/quiz/drizzle-assistant-preferences-repository";
@@ -93,6 +94,7 @@ export function createAdaptersFromEnv(): Adapters {
 		players: createDrizzlePlayerRepository(db),
 		gameQuestions: createDrizzleGameQuestionRepository(db),
 		answers: createDrizzleAnswerRepository(db),
+		reviewResults: createDrizzleReviewResultsWriter(db),
 		playableQuizzes: createDrizzlePlayableQuizQuery(db),
 		preferences: createDrizzleHostPreferencesRepository(db),
 		reportGames: createDrizzleReportGameQuery(db),

@@ -186,3 +186,30 @@ describe("reviewTypedAnswers (spec 031, RN-29, RN-30, RN-30a)", () => {
 		});
 	});
 });
+
+describe("reviewTypedAnswers when the writes fail midway (spec 031, RN-30a)", () => {
+	it("a failed regrade leaves the results open, and the review can be sent again", async () => {
+		const { deps, stage, review } = await inResults();
+		const from = await stage();
+		deps.reviewResults.failRegradeOnce = true;
+
+		await expect(
+			review({ ...mine, from, changes: [{ key: "pedra", correct: true }] }),
+		).rejects.toThrow();
+		expect(await stage()).toEqual(from);
+		expect(
+			(await deps.answers.listByQuestion("game-1", 0)).every(
+				(answer) => answer.reviewedAt === null,
+			),
+		).toBe(true);
+
+		await review({ ...mine, from, changes: [{ key: "pedra", correct: true }] });
+
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "scoreboard" });
+		expect(
+			(await deps.answers.listByQuestion("game-1", 0)).filter(
+				(answer) => answer.reviewedAt !== null,
+			),
+		).toHaveLength(2);
+	});
+});
