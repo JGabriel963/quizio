@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	aQuestion,
+	aSliderQuestion,
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
 } from "../testing/a-question";
@@ -11,6 +12,7 @@ import {
 	missingAnswerCount,
 	missingAnswerHints,
 	questionIssues,
+	sliderScaleOf,
 } from "./question-issues";
 
 function withChoices(
@@ -160,5 +162,51 @@ describe("questionIssues of a type answer question", () => {
 		).toEqual([]);
 		expect(missingAnswerCount(aTypeAnswerQuestion())).toBe(0);
 		expect(missingAnswerHints(aTypeAnswerQuestion())).toEqual([]);
+	});
+});
+
+describe("questionIssues of a slider", () => {
+	it("a slider without an answer is incomplete", () => {
+		expect(questionIssues(aSliderQuestion({ answer: null }))).toEqual([
+			"noSliderAnswer",
+		]);
+		expect(questionIssues(blankQuestion("question-1", "slider"))).toEqual([
+			"missingText",
+			"noSliderAnswer",
+		]);
+	});
+
+	it("an empty or inverted range is an invalid range", () => {
+		for (const range of [
+			{ min: null },
+			{ max: null },
+			{ min: 900, max: 900 },
+			{ min: 900, max: 100 },
+		]) {
+			expect(questionIssues(aSliderQuestion(range))).toEqual([
+				"invalidSliderRange",
+			]);
+		}
+	});
+
+	it("an answer outside the range is out of range", () => {
+		expect(questionIssues(aSliderQuestion({ max: 200 }))).toEqual([
+			"sliderAnswerOutOfRange",
+		]);
+		expect(questionIssues(aSliderQuestion({ min: 700 }))).toEqual([
+			"sliderAnswerOutOfRange",
+		]);
+		expect(questionIssues(aSliderQuestion({ answer: 900 }))).toEqual([]);
+	});
+
+	it("a complete slider has a scale", () => {
+		expect(sliderScaleOf(aSliderQuestion({ answerMargin: "low" }))).toEqual({
+			min: 100,
+			max: 900,
+			answer: 600,
+			margin: "low",
+		});
+		expect(sliderScaleOf(aSliderQuestion({ max: 200 }))).toBeNull();
+		expect(sliderScaleOf(aSliderQuestion({ answer: null }))).toBeNull();
 	});
 });

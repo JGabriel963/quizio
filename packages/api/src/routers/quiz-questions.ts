@@ -7,6 +7,7 @@ import {
 	CROP_SHAPES,
 	IMAGE_PLACEMENTS,
 } from "@quizio/core/quiz/domain/question-image";
+import { ANSWER_MARGINS } from "@quizio/core/shared/domain/slider-scale";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -33,6 +34,14 @@ const content = z.discriminatedUnion("type", [
 	z.object({
 		type: z.literal("typeAnswer"),
 		acceptedAnswers: z.array(z.string().max(200).nullable()).max(8),
+	}),
+	z.object({
+		type: z.literal("slider"),
+		min: z.number().finite().nullable(),
+		max: z.number().finite().nullable(),
+		answer: z.number().finite().nullable(),
+		unit: z.string().max(200).nullable(),
+		answerMargin: z.enum(ANSWER_MARGINS),
 	}),
 ]);
 /** An accepted answer's position; how many there may be is the core's (spec 031). */
@@ -64,6 +73,17 @@ const change = z.discriminatedUnion("kind", [
 		text: z.string().max(200).nullable(),
 	}),
 	z.object({ kind: z.literal("acceptedAnswerAdded") }),
+	// A slider's number as typed; its 10 characters and decimals are the core's (spec 032).
+	z.object({
+		kind: z.literal("sliderNumber"),
+		field: z.enum(["min", "max", "answer"]),
+		value: z.string().max(20).nullable(),
+	}),
+	z.object({
+		kind: z.literal("sliderUnit"),
+		text: z.string().max(200).nullable(),
+	}),
+	z.object({ kind: z.literal("answerMargin"), margin: z.enum(ANSWER_MARGINS) }),
 	z.object({
 		kind: z.literal("acceptedAnswerRemoved"),
 		index: acceptedAnswerIndex,

@@ -29,4 +29,10 @@ export const QUESTION_TYPE_PREVIEWS: Record<QuestionType, QuestionTypePreview> =
 			answers: ["Nilo"],
 			description: "Peça aos participantes para digitarem uma resposta curta.",
 		},
+		slider: {
+			example: "Qual é a altura do Monte Everest?",
+			answers: ["8.849 m"],
+			description:
+				"Deixe os participantes adivinharem o número no controle deslizante.",
+		},
 	};

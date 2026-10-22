@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { aQuestion, aTypeAnswerQuestion } from "../../quiz/testing/a-question";
+import {
+	aQuestion,
+	aSliderQuestion,
+	aTypeAnswerQuestion,
+} from "../../quiz/testing/a-question";
 import { HOST_AWAY_AFTER_MS } from "../domain/host-presence";
 import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps, markRemoved } from "../testing/game-deps";
@@ -95,6 +99,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 					{ id: "choice-3", shapeIndex: 2, label: null, text: null },
 					{ id: "choice-4", shapeIndex: 3, label: null, text: null },
 				],
+				slider: null,
 			},
 			sittingOut: false,
 			answered: false,
@@ -341,6 +346,7 @@ describe("getPlayerSession: points, streak and place (spec 010)", () => {
 			rank: 2,
 			behind: { nickname: "Ana", points: 925 },
 			reviewed: false,
+			slider: null,
 		});
 		expect(view.stage?.total).toBe(0);
 	});
@@ -594,6 +600,7 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 				{ id: "choice-3", shapeIndex: 2, label: null, text: "c" },
 				{ id: "choice-4", shapeIndex: 3, label: null, text: "d" },
 			],
+			slider: null,
 		});
 		// Never which one is right (RN-20).
 		expect(JSON.stringify(view)).not.toMatch(/"correct":/);
@@ -847,5 +854,81 @@ describe("getPlayerSession with a type answer (spec 031)", () => {
 			points: 1000,
 			reviewed: true,
 		});
+	});
+});
+
+describe("getPlayerSession with a slider (spec 032)", () => {
+	const session = { gameId: "game-1", playerId: "p1", secret: "s1" };
+
+	async function sliding() {
+		const game = await createStartedGame({
+			players: ["Ana", "Bia"],
+			questions: [aSliderQuestion(), aQuestion({ id: "q2" })],
+		});
+		await game.reach("answering");
+		return game;
+	}
+
+	it("the answer never reaches the device before the results", async () => {
+		const { deps, slide } = await sliding();
+		await slide(1, 640);
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.question?.slider).toMatchObject({
+			first: 104,
+			last: 896,
+		});
+		expect(JSON.stringify(view)).not.toMatch(/"answer"|margin|600/);
+	});
+
+	it("a slider's outcome has the value sent and the answer", async () => {
+		const { deps, slide, reach } = await sliding();
+		await slide(1, 600);
+		await reach("results");
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.outcome).toMatchObject({
+			result: "correct",
+			points: 1000,
+			slider: { sent: 600, answer: 600, unit: "anos" },
+		});
+	});
+
+	it("an almost correct outcome says so", async () => {
+		const { deps, slide, reach } = await sliding();
+		await slide(1, 640);
+		await reach("results");
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.outcome).toMatchObject({
+			result: "almostCorrect",
+			slider: { sent: 640, answer: 600 },
+		});
+	});
+
+	it("moved and not sent is no answer", async () => {
+		const { deps, reach } = await sliding();
+		await reach("results");
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.outcome).toMatchObject({
+			result: "timeout",
+			slider: { sent: null, answer: 600 },
+		});
+	});
+
+	it("other types have no slider outcome", async () => {
+		const { deps, slide, reach } = await sliding();
+		await slide(1, 600);
+		await reach("answering", 1);
+		await reach("results", 1);
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.outcome?.slider).toBeNull();
 	});
 });

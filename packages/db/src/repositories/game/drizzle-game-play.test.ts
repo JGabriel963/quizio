@@ -5,6 +5,7 @@ import { aGame, aPlayer, aPlayingGame } from "@quizio/core/game/testing/a-game";
 import {
 	aGameQuestion,
 	anAnswer,
+	aSliderGameQuestion,
 } from "@quizio/core/game/testing/a-game-question";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
 import {
@@ -267,6 +268,32 @@ describe("game play repositories (spec 009)", () => {
 			expect(await answers.find("game-1", 0, "p2")).toEqual(second);
 			expect(await answers.find("game-1", 1, "p2")).toBeNull();
 			expect(await answers.countByQuestion("game-1", 1)).toBe(0);
+		});
+
+		it("stores and reads an answer's value with its decimals (spec 032)", async () => {
+			const slid = anAnswer({
+				playerId: "p1",
+				choiceIds: [],
+				value: -100.25,
+				correctness: "almostCorrect",
+				points: 640,
+			});
+
+			await answers.add(slid);
+
+			expect(await answers.find("game-1", 0, "p1")).toEqual(slid);
+			expect(await answers.find("game-1", 0, "p1")).toMatchObject({
+				value: -100.25,
+				correctness: "almostCorrect",
+			});
+		});
+
+		it("stores a slider's scale with the game's questions (spec 032)", async () => {
+			const slider = aSliderGameQuestion({ index: 0 });
+
+			await gameQuestions.saveAll("game-1", [slider]);
+
+			expect(await gameQuestions.find("game-1", 0)).toEqual(slider);
 		});
 
 		it("keeps one answer per player and question", async () => {

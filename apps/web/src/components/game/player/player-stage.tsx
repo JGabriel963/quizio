@@ -9,6 +9,7 @@ import type {
 } from "@/lib/api-types";
 import { CountUp } from "@/lib/count-up";
 import { positionMessage, waitingPhrase } from "@/lib/game-stage";
+import { formatSliderNumber } from "@/lib/slider-format";
 import { useCountdown } from "@/lib/use-countdown";
 
 import { AnswerButtons } from "./answer-buttons";
@@ -20,6 +21,7 @@ import {
 	DeviceQuestion,
 	DeviceQuestionIntro,
 } from "./question-on-device";
+import { SliderAnswerInput } from "./slider-answer-input";
 import { TypedAnswerInput } from "./typed-answer-input";
 
 const RESULTS: Record<
@@ -28,6 +30,8 @@ const RESULTS: Record<
 > = {
 	correct: { title: "Correto", good: true, strip: null },
 	partiallyCorrect: { title: "Parcialmente correto", good: true, strip: null },
+	// Within a slider's margin: it counts as right (spec 032, RN-22, RN-28).
+	almostCorrect: { title: "Quase correto", good: true, strip: null },
 	wrong: { title: "Incorreto", good: false, strip: "Boa tentativa!" },
 	timeout: { title: "Tempo esgotado", good: false, strip: "Ainda não acabou!" },
 };
@@ -65,11 +69,13 @@ function ResultScreen({
 				className={cn(
 					"flex size-24 items-center justify-center rounded-full shadow-lg motion-safe:animate-pop-in",
 					good ? "bg-success" : "bg-destructive",
-					result === "partiallyCorrect" && "bg-answer-yellow",
+					(result === "partiallyCorrect" || result === "almostCorrect") &&
+						"bg-answer-yellow",
 				)}
 			>
 				<Mark aria-hidden="true" className="size-14 stroke-3" />
 			</span>
+			{outcome?.slider && <SliderOutcome slider={outcome.slider} />}
 			{good && outcome && outcome.streak > 0 && (
 				<p className="flex items-center gap-2 font-bold">
 					Sequência de respostas
@@ -104,6 +110,33 @@ function ResultScreen({
 				</p>
 			)}
 		</Centered>
+	);
+}
+
+/** The value sent and the right one, with the slider's results (spec 032, RN-28). */
+function SliderOutcome({
+	slider,
+}: {
+	slider: NonNullable<PlayerOutcomeData["slider"]>;
+}) {
+	const withUnit = (value: number) =>
+		slider.unit
+			? `${formatSliderNumber(value)} ${slider.unit}`
+			: formatSliderNumber(value);
+	return (
+		<dl
+			data-slot="slider-outcome"
+			className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 text-left font-bold"
+		>
+			{slider.sent !== null && (
+				<>
+					<dt className="font-semibold">Sua resposta:</dt>
+					<dd>{withUnit(slider.sent)}</dd>
+				</>
+			)}
+			<dt className="font-semibold">Resposta correta:</dt>
+			<dd>{withUnit(slider.answer)}</dd>
+		</dl>
 	);
 }
 
@@ -168,6 +201,7 @@ export function PlayerStage({
 	notice,
 	onAnswer,
 	onType,
+	onSlide,
 	typedDraft,
 	onLeave,
 }: {
@@ -186,6 +220,8 @@ export function PlayerStage({
 	onAnswer: (choiceIds: string[]) => void;
 	/** The typed answer of a type answer (spec 031). */
 	onType: (text: string) => void;
+	/** The picked number of a slider (spec 032). */
+	onSlide: (value: number) => void;
 	/** A typed answer that was not sent, given back to the field (RN-19). */
 	typedDraft?: string;
 	/** "Entrar em outro jogo", from the final screen. */
@@ -286,7 +322,14 @@ export function PlayerStage({
 	}
 
 	const answerButtons =
-		question.type === "typeAnswer" ? (
+		question.slider !== null ? (
+			// With or without the questions on the devices (spec 032, RN-27).
+			<SliderAnswerInput
+				key={stage.questionIndex}
+				scale={question.slider}
+				onSubmit={onSlide}
+			/>
+		) : question.type === "typeAnswer" ? (
 			// With or without the questions on the devices, there is no other way
 			// to answer (spec 031, RN-18).
 			<TypedAnswerInput
@@ -309,12 +352,20 @@ export function PlayerStage({
 			background={<DeviceBackground image={question.image} />}
 		>
 			{question.text === null ? (
-				answerButtons
+				question.slider !== null ? (
+					// In the middle of the screen, as in Kahoot (spec 032).
+					<main className="flex min-h-0 flex-1 flex-col justify-center px-2 pb-4">
+						{answerButtons}
+					</main>
+				) : (
+					answerButtons
+				)
 			) : (
 				<DeviceQuestion
 					stage={stage}
 					question={question}
 					receivedAt={receivedAt}
+					answersInMiddle={question.slider !== null}
 				>
 					{answerButtons}
 				</DeviceQuestion>

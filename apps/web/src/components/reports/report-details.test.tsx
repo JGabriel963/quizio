@@ -30,6 +30,8 @@ const ana: ParticipantDetailData = {
 			points: 893,
 			responseTimeMs: 3200,
 			typedText: null,
+			sliderValue: null,
+			sliderUnit: null,
 		},
 		{
 			questionIndex: 1,
@@ -40,6 +42,8 @@ const ana: ParticipantDetailData = {
 			points: 0,
 			responseTimeMs: 7400,
 			typedText: null,
+			sliderValue: null,
+			sliderUnit: null,
 		},
 		{
 			questionIndex: 2,
@@ -50,6 +54,8 @@ const ana: ParticipantDetailData = {
 			points: 0,
 			responseTimeMs: null,
 			typedText: null,
+			sliderValue: null,
+			sliderUnit: null,
 		},
 	],
 };
@@ -121,6 +127,8 @@ describe("ParticipantDetail (spec 015)", () => {
 							points: 450,
 							responseTimeMs: 5000,
 							typedText: null,
+							sliderValue: null,
+							sliderUnit: null,
 						},
 					],
 				}}
@@ -161,6 +169,7 @@ const salmo: QuestionDetailData = {
 	unanswered: 2,
 	averageResponseTimeMs: 4860,
 	typedAnswers: null,
+	sliderAnswers: null,
 	choices: [
 		{ id: "a", shapeIndex: 0, text: "Moisés", correct: true, count: 5 },
 		{ id: "b", shapeIndex: 1, text: "Davi", correct: false, count: 12 },
@@ -176,6 +185,7 @@ const salmo: QuestionDetailData = {
 			points: 912,
 			responseTimeMs: 2600,
 			typedText: null,
+			sliderValue: null,
 		},
 		{
 			playerId: "p2",
@@ -185,6 +195,7 @@ const salmo: QuestionDetailData = {
 			points: 0,
 			responseTimeMs: 6100,
 			typedText: null,
+			sliderValue: null,
 		},
 		{
 			playerId: "p3",
@@ -194,6 +205,7 @@ const salmo: QuestionDetailData = {
 			points: 0,
 			responseTimeMs: null,
 			typedText: null,
+			sliderValue: null,
 		},
 	],
 };
@@ -331,6 +343,8 @@ describe("report details of a type answer (spec 031, RN-37)", () => {
 							result: "wrong",
 							choices: [],
 							typedText: "Davi",
+							sliderValue: null,
+							sliderUnit: null,
 							points: 0,
 							responseTimeMs: 4000,
 						},
@@ -342,5 +356,74 @@ describe("report details of a type answer (spec 031, RN-37)", () => {
 		expect(
 			screen.getByText("Resposta enviada:").parentElement,
 		).toHaveTextContent("Davi");
+	});
+});
+
+describe("report details of a slider (spec 032, RN-36)", () => {
+	it("a slider's detail lists values with the average", () => {
+		render(
+			<QuestionDetail
+				detail={{
+					...salmo,
+					type: "slider",
+					choices: [],
+					sliderAnswers: {
+						answer: 600,
+						unit: "anos",
+						low: 520,
+						high: 680,
+						average: 476.5,
+						values: [
+							{ value: 600, count: 2, correctness: "correct" },
+							{ value: 640, count: 1, correctness: "almostCorrect" },
+							{ value: 104, count: 1, correctness: "wrong" },
+						],
+					},
+					participants: [],
+				}}
+			/>,
+		);
+
+		expect(
+			screen.getByText("Média das respostas").nextSibling,
+		).toHaveTextContent("476,5 anos");
+		expect(
+			screen.getByText("Margem de resposta").nextSibling,
+		).toHaveTextContent("520 anos a 680 anos");
+		const items = within(
+			screen.getByRole("list", { name: "Valores enviados" }),
+		).getAllByRole("listitem");
+		expect(items[0]).toHaveTextContent("600 anosCorreta2");
+		expect(items[1]).toHaveTextContent("640 anosQuase correta1");
+		expect(items[2]).toHaveTextContent("104 anosIncorreta1");
+	});
+
+	it("a participant's slider answer shows its value", () => {
+		render(
+			<ParticipantDetail
+				detail={{
+					...ana,
+					answers: [
+						{
+							questionIndex: 0,
+							text: "Quantos anos?",
+							type: "slider",
+							result: "almostCorrect",
+							choices: [],
+							typedText: null,
+							sliderValue: 2000.5,
+							sliderUnit: "anos",
+							points: 600,
+							responseTimeMs: 4000,
+						},
+					],
+				}}
+			/>,
+		);
+
+		expect(screen.getByText("Valor enviado:").parentElement).toHaveTextContent(
+			"2.000,5 anos",
+		);
+		expect(screen.getByText("Quase correta")).toBeInTheDocument();
 	});
 });

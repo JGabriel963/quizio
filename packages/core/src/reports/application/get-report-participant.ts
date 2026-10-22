@@ -20,6 +20,10 @@ export interface ParticipantAnswerView {
 	choices: ChoiceView[];
 	/** What they typed in a type answer (spec 031, RN-37); null otherwise. */
 	typedText: string | null;
+	/** What they picked on a slider (spec 032, RN-36); null otherwise. */
+	sliderValue: number | null;
+	/** The slider's unit, told with the value ("600 anos"); null otherwise. */
+	sliderUnit: string | null;
 	points: number;
 	/** Null without an answer. */
 	responseTimeMs: number | null;
@@ -65,6 +69,8 @@ export function createGetReportParticipant(
 						result: answer?.correctness ?? "unanswered",
 						choices: chosenChoices(question, answer),
 						typedText: answer?.text ?? null,
+						sliderValue: answer?.value ?? null,
+						sliderUnit: question.slider?.unit ?? null,
 						points: answer?.points ?? 0,
 						responseTimeMs: answer?.responseTimeMs ?? null,
 					};

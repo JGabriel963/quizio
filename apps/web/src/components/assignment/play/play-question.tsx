@@ -1,6 +1,7 @@
 import { QuestionImageView } from "@/components/editor/question-image-view";
 import { AnswerButtons } from "@/components/game/player/answer-buttons";
 import { DeviceBackground } from "@/components/game/player/question-on-device";
+import { SliderAnswerInput } from "@/components/game/player/slider-answer-input";
 import { TypedAnswerInput } from "@/components/game/player/typed-answer-input";
 import type { PlayerQuestionData, PlayQuestionData } from "@/lib/api-types";
 import { useCountdown } from "@/lib/use-countdown";
@@ -16,6 +17,7 @@ export function asDeviceQuestion(
 		selection: question.selection,
 		text: question.text,
 		image: question.image,
+		slider: question.slider,
 		choices: question.choices.map((choice) => ({
 			id: choice.id,
 			shapeIndex: choice.shapeIndex,
@@ -40,6 +42,7 @@ export function PlayQuestion({
 	failure,
 	onAnswer,
 	onType,
+	onSlide,
 }: {
 	question: PlayQuestionData;
 	questionCount: number;
@@ -51,6 +54,8 @@ export function PlayQuestion({
 	onAnswer: (choiceIds: string[]) => void;
 	/** The typed answer of a type answer (spec 031, RN-34). */
 	onType: (text: string) => void;
+	/** The picked number of a slider (spec 032, RN-33). */
+	onSlide: (value: number) => void;
 }) {
 	const media = question.image?.placement === "media" ? question.image : null;
 
@@ -80,7 +85,15 @@ export function PlayQuestion({
 					</>
 				}
 				answers={
-					question.type === "typeAnswer" ? (
+					question.slider ? (
+						<div className="flex items-end px-2 pb-2">
+							<SliderAnswerInput
+								key={question.index}
+								scale={question.slider}
+								onSubmit={onSlide}
+							/>
+						</div>
+					) : question.type === "typeAnswer" ? (
 						<div className="flex items-center p-2">
 							<TypedAnswerInput key={question.index} onSubmit={onType} />
 						</div>

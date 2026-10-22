@@ -1,3 +1,4 @@
+import { cn } from "@quizio/ui/lib/utils";
 import type { ReactNode } from "react";
 
 import {
@@ -94,11 +95,17 @@ export function DeviceQuestion({
 	stage,
 	question,
 	receivedAt,
+	answersInMiddle = false,
 	children,
 }: {
 	stage: PlayerStageData;
 	question: PlayerQuestionData;
 	receivedAt: number;
+	/**
+	 * The answer takes the room left and sits in its middle, as a slider does
+	 * in Kahoot (spec 032); the image, if any, shares the room above it.
+	 */
+	answersInMiddle?: boolean;
 	/** The answer buttons. */
 	children: ReactNode;
 }) {
@@ -109,7 +116,10 @@ export function DeviceQuestion({
 			{/* Whatever is left of the screen: the buttons below keep their size. */}
 			<div
 				data-slot="device-question-image"
-				className="flex min-h-0 flex-1 basis-24 items-center justify-center px-2 pt-1"
+				className={cn(
+					"flex min-h-0 flex-1 basis-24 items-center justify-center px-2 pt-1",
+					answersInMiddle && !media && "hidden",
+				)}
 			>
 				{media && (
 					<QuestionImageView
@@ -124,7 +134,13 @@ export function DeviceQuestion({
 					<Statement>{question.text}</Statement>
 				</div>
 			)}
-			{children}
+			{answersInMiddle ? (
+				<div className="flex min-h-0 flex-1 flex-col justify-center">
+					{children}
+				</div>
+			) : (
+				children
+			)}
 			<TimeBar stage={stage} receivedAt={receivedAt} />
 		</main>
 	);

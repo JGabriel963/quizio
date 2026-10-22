@@ -42,6 +42,7 @@ const RESULT_STYLE: Record<
 > = {
 	correct: { icon: CheckIcon, tone: "text-success" },
 	partiallyCorrect: { icon: CircleSlashIcon, tone: "text-amber-700" },
+	almostCorrect: { icon: CheckIcon, tone: "text-amber-700" },
 	wrong: { icon: XIcon, tone: "text-destructive" },
 	unanswered: { icon: MinusIcon, tone: "text-muted-foreground" },
 };

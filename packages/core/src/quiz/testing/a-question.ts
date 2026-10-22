@@ -2,6 +2,7 @@ import {
 	blankQuestion,
 	type Question,
 	type QuizQuestion,
+	type SliderQuestion,
 	type TrueFalseQuestion,
 	type TypeAnswerQuestion,
 } from "../domain/question";
@@ -38,8 +39,23 @@ export function aTypeAnswerQuestion(
 ): TypeAnswerQuestion {
 	return {
 		...blankQuestion(overrides.id ?? "question-1", "typeAnswer"),
-		text: "Qual o nome do personagem que andou sobre as Ã¡guas?",
+		text: "Qual o nome do personagem que andou sobre as águas?",
 		acceptedAnswers: ["Pedro"],
+		...overrides,
+	};
+}
+
+/** Test builder: a complete slider, 100 to 900 with 600 as the answer (spec 032). */
+export function aSliderQuestion(
+	overrides: Partial<SliderQuestion> = {},
+): SliderQuestion {
+	return {
+		...blankQuestion(overrides.id ?? "question-1", "slider"),
+		text: "Quantos anos tinha Noé quando o dilúvio acabou?",
+		min: 100,
+		max: 900,
+		answer: 600,
+		unit: "anos",
 		...overrides,
 	};
 }
@@ -66,6 +82,14 @@ export function asTypeAnswer(
 ): TypeAnswerQuestion {
 	if (question?.type !== "typeAnswer") {
 		throw new Error(`Expected a type answer question, got ${question?.type}`);
+	}
+	return question;
+}
+
+/** Narrows a question a test knows to be a slider. */
+export function asSlider(question: Question | undefined): SliderQuestion {
+	if (question?.type !== "slider") {
+		throw new Error(`Expected a slider question, got ${question?.type}`);
 	}
 	return question;
 }

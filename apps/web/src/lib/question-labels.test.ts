@@ -89,6 +89,7 @@ describe("question labels", () => {
 			"Quiz",
 			"Verdadeiro ou falso",
 			"Resposta curta",
+			"Controle deslizante",
 		]);
 		expect(TRUE_FALSE_LABELS).toEqual({ true: "Verdadeiro", false: "Falso" });
 		expect(changeNoticeMessage({ kind: "quizAnswersKept" })).toBe(

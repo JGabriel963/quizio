@@ -71,7 +71,8 @@ export interface JoinApi {
 		input: StoredPlayerSession & {
 			questionIndex: number;
 			/** The marked answers, or the typed text of a type answer (spec 031). */
-		} & ({ choiceIds: string[] } | { text: string }),
+			/** Or the picked number of a slider (spec 032). */
+		} & ({ choiceIds: string[] } | { text: string } | { value: number }),
 	): Promise<unknown>;
 }
 
@@ -234,8 +235,14 @@ export function JoinFlow({
 		questionIndex: number;
 		message: string;
 	} | null>(null);
-	/** The last typed answer, given back to the field when it was not sent (spec 031). */
-	const [typedDraft, setTypedDraft] = useState("");
+	/**
+	 * The last typed answer, given back to the field when it was not sent
+	 * (spec 031). It belongs to its question: the next one starts empty.
+	 */
+	const [typedDraft, setTypedDraft] = useState<{
+		questionIndex: number;
+		text: string;
+	} | null>(null);
 	/** The PIN the current step came from, so the address following it is not resolved again. */
 	const resolvedPin = useRef<string | null>(null);
 
@@ -706,7 +713,7 @@ export function JoinFlow({
 	 * refuse it for arriving late, which the player is told (spec 009, RN-20).
 	 */
 	async function submitAnswer(
-		response: { choiceIds: string[] } | { text: string },
+		response: { choiceIds: string[] } | { text: string } | { value: number },
 	) {
 		const stage = waiting?.play?.stage;
 		if (!waiting || !stage) {
@@ -715,7 +722,9 @@ export function JoinFlow({
 		const { questionIndex } = stage;
 		setAnswerFailure(null);
 		// Given back to the field if it does not get through (spec 031, RN-19).
-		setTypedDraft("text" in response ? response.text : "");
+		setTypedDraft(
+			"text" in response ? { questionIndex, text: response.text } : null,
+		);
 		markAnswered(questionIndex, true);
 		try {
 			await api.answer({ ...waiting.session, questionIndex, ...response });
@@ -832,7 +841,12 @@ export function JoinFlow({
 						notice={trouble ? null : notice}
 						onAnswer={(choiceIds) => void submitAnswer({ choiceIds })}
 						onType={(text) => void submitAnswer({ text })}
-						typedDraft={typedDraft}
+						onSlide={(value) => void submitAnswer({ value })}
+						typedDraft={
+							typedDraft !== null && typedDraft.questionIndex === questionIndex
+								? typedDraft.text
+								: undefined
+						}
 						onLeave={() => leave(null)}
 					/>
 					{editor}

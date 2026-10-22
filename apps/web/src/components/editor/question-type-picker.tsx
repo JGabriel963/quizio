@@ -125,30 +125,57 @@ function TypePreview({ type }: { type: QuestionType }) {
 			<div className="flex flex-col items-center gap-2 rounded-sm bg-muted p-3">
 				<p className="text-center font-bold text-xs">{preview.example}</p>
 				<div className="h-12 w-24 rounded-sm bg-primary/15" />
-				<div
-					className={
-						type === "typeAnswer" ? "w-28" : "grid w-full grid-cols-2 gap-1"
-					}
-				>
-					{preview.answers.map((answer, index) => (
-						<span
-							key={answer}
-							className={
-								type === "typeAnswer"
-									? "block rounded-sm bg-answer-blue px-2 py-1.5 text-center font-bold text-white text-xs"
-									: `block truncate rounded-sm px-2 py-1 text-[10px] text-white ${PREVIEW_COLORS[type === "trueFalse" ? (index === 0 ? 1 : 0) : index] ?? ""}`
-							}
-						>
-							{answer}
-						</span>
-					))}
-				</div>
+				{type === "slider" ? (
+					<SliderPreview value={preview.answers[0] ?? ""} />
+				) : (
+					<div
+						className={
+							type === "typeAnswer" ? "w-28" : "grid w-full grid-cols-2 gap-1"
+						}
+					>
+						{preview.answers.map((answer, index) => (
+							<span
+								key={answer}
+								className={
+									type === "typeAnswer"
+										? "block rounded-sm bg-answer-blue px-2 py-1.5 text-center font-bold text-white text-xs"
+										: `block truncate rounded-sm px-2 py-1 text-[10px] text-white ${PREVIEW_COLORS[type === "trueFalse" ? (index === 0 ? 1 : 0) : index] ?? ""}`
+								}
+							>
+								{answer}
+							</span>
+						))}
+					</div>
+				)}
 			</div>
 			<div>
 				<p className="font-bold text-sm">{name}</p>
 				<p className="text-muted-foreground text-sm">{preview.description}</p>
 			</div>
 		</section>
+	);
+}
+
+/** A scale with the marker on the example's answer (spec 032, RN-01). */
+function SliderPreview({ value }: { value: string }) {
+	return (
+		<div className="flex w-full flex-col items-center">
+			<span className="rounded-sm bg-answer-blue px-2 py-1 font-black text-white text-xs">
+				{value}
+			</span>
+			<div className="flex h-8 w-full items-end justify-between rounded-sm bg-card px-1 pb-1">
+				{Array.from({ length: 21 }, (_, index) => (
+					<span
+						key={index}
+						className={
+							index === 12
+								? "h-6 w-0.5 bg-answer-blue"
+								: "h-5 w-0.5 bg-foreground/20"
+						}
+					/>
+				))}
+			</div>
+		</div>
 	);
 }
 

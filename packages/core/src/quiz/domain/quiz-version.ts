@@ -52,6 +52,15 @@ function sameContent(a: Question, b: Question): boolean {
 					(answer, index) => answer === b.acceptedAnswers[index],
 				)
 			);
+		case "slider":
+			return (
+				b.type === "slider" &&
+				a.min === b.min &&
+				a.max === b.max &&
+				a.answer === b.answer &&
+				a.unit === b.unit &&
+				a.answerMargin === b.answerMargin
+			);
 		case "quiz":
 			return b.type === "quiz" && sameQuizContent(a, b);
 	}

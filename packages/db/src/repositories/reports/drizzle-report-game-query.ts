@@ -212,7 +212,8 @@ export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 					.where(
 						and(
 							inArray(gameAnswer.gameId, gameIds),
-							eq(gameAnswer.correctness, "correct"),
+							// An almost correct slider counts as right (spec 032, RN-22).
+							inArray(gameAnswer.correctness, ["correct", "almostCorrect"]),
 						),
 					)
 					.groupBy(gameAnswer.gameId, gameAnswer.questionIndex),
@@ -271,6 +272,7 @@ export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 						playerId: gameAnswer.playerId,
 						choiceIds: gameAnswer.choiceIds,
 						text: gameAnswer.text,
+						value: gameAnswer.value,
 						correctness: gameAnswer.correctness,
 						points: gameAnswer.points,
 						responseTimeMs: gameAnswer.responseTimeMs,
@@ -300,6 +302,7 @@ export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 									imageKey: parsed.image?.key ?? null,
 									choices: parsed.choices,
 									acceptedAnswers: parsed.acceptedAnswers,
+									slider: parsed.slider,
 								},
 							]
 						: [];

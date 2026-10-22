@@ -12,6 +12,7 @@ import {
 	index,
 	integer,
 	jsonb,
+	numeric,
 	pgEnum,
 	pgTable,
 	primaryKey,
@@ -228,6 +229,8 @@ export const gameAnswer = pgTable(
 		choiceIds: jsonb("choice_ids").$type<string[]>().notNull(),
 		/** The typed text of a type answer; null for the other types (spec 031). */
 		text: text("text"),
+		/** The picked number of a slider, up to 2 decimals; null for the other types (spec 032). */
+		value: numeric("value", { precision: 14, scale: 2, mode: "number" }),
 		/** Measured by the server, from the answers opening (RN-18). */
 		responseTimeMs: integer("response_time_ms").notNull(),
 		correctness: answerCorrectness("correctness").notNull(),

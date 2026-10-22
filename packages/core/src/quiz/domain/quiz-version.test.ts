@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	aQuestion,
+	aSliderQuestion,
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
 } from "../testing/a-question";
@@ -157,7 +158,7 @@ describe("parseVersionQuestions", () => {
 		expect(
 			parseVersionQuestions([
 				"junk",
-				{ id: "x", type: "slider" },
+				{ id: "x", type: "puzzle" },
 				{ type: "quiz" },
 				{ id: "c", type: "quiz", text: 42, timeLimitSeconds: 25, points: "x" },
 				{ id: "d", type: "trueFalse", text: "Certo?", correct: "yes" },
@@ -217,5 +218,27 @@ describe("type answers in versions", () => {
 			timeLimitSeconds: 30,
 			acceptedAnswers: ["Pedro"],
 		});
+	});
+});
+
+describe("sliders in versions", () => {
+	it("different scales are different lists", () => {
+		for (const change of [
+			{ min: 0 },
+			{ max: 1000 },
+			{ answer: 500 },
+			{ unit: null },
+			{ answerMargin: "none" as const },
+		]) {
+			expect(
+				sameQuestionLists([aSliderQuestion()], [aSliderQuestion(change)]),
+			).toBe(false);
+		}
+	});
+
+	it("the same scale is the same list", () => {
+		expect(sameQuestionLists([aSliderQuestion()], [aSliderQuestion()])).toBe(
+			true,
+		);
 	});
 });

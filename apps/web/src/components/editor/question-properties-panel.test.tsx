@@ -67,6 +67,7 @@ describe("QuestionPropertiesPanel", () => {
 			"Quiz",
 			"Verdadeiro ou falso",
 			"Resposta curta",
+			"Controle deslizante",
 		]);
 		expect(
 			screen.getByRole("group", { name: "Testar conhecimento" }),
@@ -218,5 +219,57 @@ describe("QuestionPropertiesPanel", () => {
 		expect(
 			screen.queryByRole("combobox", { name: "Opções de resposta" }),
 		).toBeNull();
+	});
+
+	it("a slider offers 10 s to 4 min (spec 032, RN-13)", async () => {
+		const { user } = renderPanel(2, {
+			...blankQuestion("a", "slider"),
+			text: "Quantos?",
+		});
+
+		expect(select("Limite de tempo")).toHaveTextContent("20 segundos");
+		expect(await optionLabels(user, "Limite de tempo")).toEqual([
+			"10 segundos",
+			"15 segundos",
+			"20 segundos",
+			"30 segundos",
+			"45 segundos",
+			"1 minuto",
+			"1 minuto 30 segundos",
+			"2 minutos",
+			"3 minutos",
+			"4 minutos",
+		]);
+	});
+
+	it("the answer margin waits for the answer (spec 032, RN-06)", () => {
+		renderPanel(2, { ...blankQuestion("a", "slider"), text: "Quantos?" });
+
+		expect(select("Margem de resposta")).toHaveAttribute("data-disabled");
+	});
+
+	it("the answer margin lists its five levels with their explanations (spec 032, RN-08)", async () => {
+		const { user, handlers } = renderPanel(2, {
+			...blankQuestion("a", "slider"),
+			text: "Quantos?",
+			answer: 600,
+		});
+
+		expect(select("Margem de resposta")).toHaveTextContent("Médio");
+		await user.click(select("Margem de resposta"));
+		const options = await screen.findAllByRole("option");
+		expect(options.map((option) => option.textContent)).toEqual([
+			"NenhumaAceitar apenas a resposta correta.",
+			"BaixaAceitar respostas próximas da correta com uma margem baixa.",
+			"MédioAceitar respostas próximas da correta com uma margem média.",
+			"AltoAceitar respostas próximas da correta com uma margem alta.",
+			"MáximaQuanto mais próxima a resposta for da correta, mais pontos são dados.",
+		]);
+		await user.click(screen.getByRole("option", { name: /^Máxima/ }));
+
+		expect(handlers.onChange).toHaveBeenCalledWith({
+			kind: "answerMargin",
+			margin: "maximum",
+		});
 	});
 });

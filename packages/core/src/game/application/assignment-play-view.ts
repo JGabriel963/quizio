@@ -1,6 +1,7 @@
 import type { QuestionType, SelectionMode } from "../../quiz/domain/question";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import { marginRange } from "../../shared/domain/slider-scale";
 import type { Answer, Correctness } from "../domain/answer";
 import {
 	type AssignmentScoreboard,
@@ -26,7 +27,11 @@ import {
 	type Player,
 	shownPlayers,
 } from "../domain/player";
-import type { PublicImage } from "../domain/public-stage";
+import {
+	type PublicImage,
+	type PublicSliderScale,
+	publicSliderScale,
+} from "../domain/public-stage";
 import { rankPlayers } from "../domain/standings";
 import { loadGame } from "./game-lifecycle";
 import type { AnswerRepository } from "./ports/answer-repository";
@@ -57,6 +62,8 @@ export interface PlayQuestionView {
 	text: string;
 	image: PublicImage | null;
 	choices: PlayChoiceView[];
+	/** A slider's public scale (spec 032, RN-33). */
+	slider: PublicSliderScale | null;
 }
 
 /** A question once its results are out (RN-11): now the right answers travel. */
@@ -68,6 +75,15 @@ export interface QuestionResultView {
 	typedText: string | null;
 	/** The accepted answers of a type answer, told only with its results (RN-35). */
 	acceptedAnswers: string[];
+	/** The number the participant picked on a slider (spec 032, RN-34); null otherwise. */
+	sliderValue: number | null;
+	/** A slider's answer and margin, told only with its results (spec 032, RN-34). */
+	sliderAnswer: {
+		answer: number;
+		low: number;
+		high: number;
+		unit: string | null;
+	} | null;
 	result: Correctness | "unanswered";
 	points: number;
 }
@@ -216,6 +232,7 @@ function questionView(
 			shapeIndex,
 			text,
 		})),
+		slider: question.slider && publicSliderScale(question.slider),
 	};
 }
 
@@ -233,6 +250,12 @@ function resultView(
 			.map(({ id }) => id),
 		typedText: answer?.text ?? null,
 		acceptedAnswers: [...question.acceptedAnswers],
+		sliderValue: answer?.value ?? null,
+		sliderAnswer: question.slider && {
+			answer: question.slider.answer,
+			...marginRange(question.slider),
+			unit: question.slider.unit,
+		},
 		result: answer?.correctness ?? "unanswered",
 		points: answer?.points ?? 0,
 	};

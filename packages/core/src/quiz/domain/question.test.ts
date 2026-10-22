@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { asTypeAnswer } from "../testing/a-question";
+import { asSlider, asTypeAnswer } from "../testing/a-question";
 import {
 	AcceptedAnswerTooLongError,
 	blankContent,
@@ -14,6 +14,7 @@ import {
 	InvalidQuestionPointsError,
 	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
+	InvalidSliderNumberError,
 	InvalidTimeLimitError,
 	isBlankQuestion,
 	parseAcceptedAnswer,
@@ -23,6 +24,8 @@ import {
 	parseQuestionType,
 	parseQuizContent,
 	parseSelection,
+	parseSliderNumber,
+	parseSliderUnit,
 	parseStoredContent,
 	parseTimeLimit,
 	QUESTION_TEXT_MAX_LENGTH,
@@ -31,6 +34,8 @@ import {
 	QuestionTextTooLongError,
 	type QuizQuestion,
 	questionContent,
+	SLIDER_UNIT_MAX_LENGTH,
+	SliderUnitTooLongError,
 	storedContent,
 	TIME_LIMITS_SECONDS,
 	TYPE_ANSWER_MAX_LENGTH,
@@ -84,10 +89,15 @@ describe("true/false question", () => {
 		});
 	});
 
-	it("offers quiz, true/false and type answer, and rejects an unknown question type", () => {
-		expect(QUESTION_TYPES).toEqual(["quiz", "trueFalse", "typeAnswer"]);
+	it("offers quiz, true/false, type answer and slider, and rejects an unknown question type", () => {
+		expect(QUESTION_TYPES).toEqual([
+			"quiz",
+			"trueFalse",
+			"typeAnswer",
+			"slider",
+		]);
 		expect(parseQuestionType("trueFalse")).toBe("trueFalse");
-		expect(() => parseQuestionType("slider")).toThrow(InvalidQuestionTypeError);
+		expect(() => parseQuestionType("puzzle")).toThrow(InvalidQuestionTypeError);
 	});
 
 	it("toggling the marked answer marks the other one", () => {
@@ -418,5 +428,142 @@ describe("type answer question", () => {
 			type: "typeAnswer",
 			acceptedAnswers: [null],
 		});
+	});
+});
+
+describe("slider question", () => {
+	it("a blank slider has 0 to 50, no answer, no unit, the medium margin and 20 s", () => {
+		expect(blankQuestion("question-1", "slider")).toEqual({
+			id: "question-1",
+			type: "slider",
+			text: null,
+			timeLimitSeconds: 20,
+			points: "standard",
+			image: null,
+			aiGenerated: false,
+			min: 0,
+			max: 50,
+			answer: null,
+			unit: null,
+			answerMargin: "medium",
+		});
+		expect(isBlankQuestion(blankQuestion("question-1", "slider"))).toBe(true);
+		expect(
+			isBlankQuestion({ ...blankQuestion("question-1", "slider"), answer: 25 }),
+		).toBe(false);
+	});
+
+	it("slider time limits run from 10 s to 4 min", () => {
+		expect(timeLimitsFor("slider")).toEqual([
+			10, 15, 20, 30, 45, 60, 90, 120, 180, 240,
+		]);
+		expect(defaultTimeLimitFor("slider")).toBe(20);
+	});
+
+	it("fits 5 s to 10 s for a slider", () => {
+		expect(fitTimeLimit("slider", 5)).toBe(10);
+		expect(fitTimeLimit("slider", 15)).toBe(15);
+	});
+
+	it("parses a slider number with a comma or a dot", () => {
+		expect(parseSliderNumber("2000.03")).toBe(2000.03);
+		expect(parseSliderNumber("2000,03")).toBe(2000.03);
+		expect(parseSliderNumber(" 600 ")).toBe(600);
+		expect(parseSliderNumber("0,5")).toBe(0.5);
+		expect(parseSliderNumber("9999999999")).toBe(9999999999);
+	});
+
+	it("parses negative numbers", () => {
+		expect(parseSliderNumber("-100,3")).toBe(-100.3);
+		expect(parseSliderNumber("−100.3")).toBe(-100.3);
+	});
+
+	it("refuses a third decimal, letters, two separators and an 11th character", () => {
+		for (const raw of [
+			"2000,031",
+			"12a",
+			"1.000,5",
+			"1,2,3",
+			"",
+			"-",
+			",5",
+			"5,",
+			"12345678901",
+			"-1234567890",
+		]) {
+			expect(() => parseSliderNumber(raw), raw).toThrow(
+				InvalidSliderNumberError,
+			);
+		}
+	});
+
+	it("refuses a unit over 20 characters; an empty unit is none", () => {
+		expect(parseSliderUnit(" anos ")).toBe("anos");
+		expect(parseSliderUnit("  ")).toBeNull();
+		expect(parseSliderUnit("a".repeat(SLIDER_UNIT_MAX_LENGTH))).toHaveLength(
+			20,
+		);
+		expect(() => parseSliderUnit("a".repeat(21))).toThrow(
+			SliderUnitTooLongError,
+		);
+	});
+
+	it("parses stored slider content, tolerating bad numbers and an unknown margin", () => {
+		expect(
+			parseStoredContent("slider", {
+				min: -100.3,
+				max: 2000.03,
+				answer: 600,
+				unit: "anos",
+				answerMargin: "high",
+			}),
+		).toEqual({
+			type: "slider",
+			min: -100.3,
+			max: 2000.03,
+			answer: 600,
+			unit: "anos",
+			answerMargin: "high",
+		});
+		expect(
+			parseStoredContent("slider", {
+				min: "x",
+				max: Number.NaN,
+				answer: 1.234,
+				unit: 3,
+				answerMargin: "huge",
+			}),
+		).toEqual({
+			type: "slider",
+			min: null,
+			max: null,
+			answer: null,
+			unit: null,
+			answerMargin: "medium",
+		});
+		expect(parseStoredContent("slider", undefined)).toEqual(
+			blankContent("slider"),
+		);
+	});
+
+	it("copying a slider copies its scale", () => {
+		const source = {
+			...blankQuestion("question-1", "slider"),
+			min: 100,
+			max: 900,
+			answer: 600,
+			unit: "anos",
+			answerMargin: "high" as const,
+		};
+		const copy = asSlider(copyQuestion(source, "question-2"));
+		expect(copy).toEqual({ ...source, id: "question-2" });
+		expect(storedContent(copy)).toEqual({
+			min: 100,
+			max: 900,
+			answer: 600,
+			unit: "anos",
+			answerMargin: "high",
+		});
+		expect(questionContent(copy).type).toBe("slider");
 	});
 });

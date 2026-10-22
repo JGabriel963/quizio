@@ -1,5 +1,6 @@
 import {
 	aQuestion,
+	aSliderQuestion,
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
 } from "@quizio/core/quiz/testing/a-question";
@@ -315,6 +316,28 @@ describe("DrizzleQuestionRepository", () => {
 		await questions.saveList("quiz-1", [typed]);
 
 		expect(await questions.listByQuiz("quiz-1")).toEqual([typed]);
+	});
+
+	it("stores and reads a slider's scale (spec 032)", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const slider = aSliderQuestion({
+			id: "slider",
+			min: -100.3,
+			max: 2000.03,
+			answer: 600,
+			answerMargin: "high",
+			timeLimitSeconds: 10,
+		});
+		const blank = {
+			...aSliderQuestion({ id: "blank" }),
+			min: null,
+			answer: null,
+			unit: null,
+		};
+
+		await questions.saveList("quiz-1", [slider, blank]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([slider, blank]);
 	});
 
 	it("a stored time outside the type reads as its default (spec 031)", async () => {

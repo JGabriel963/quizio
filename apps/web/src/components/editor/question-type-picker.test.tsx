@@ -18,7 +18,7 @@ function renderPicker(unavailableReason: string | null = null) {
 const addButton = () => screen.getByRole("button", { name: "Adicionar" });
 
 describe("QuestionTypePicker", () => {
-	it("lists Quiz, Verdadeiro ou falso and Resposta curta under Testar conhecimento", async () => {
+	it("lists Quiz, Verdadeiro ou falso, Resposta curta and Controle deslizante under Testar conhecimento", async () => {
 		const { onPick, user } = renderPicker();
 		expect(screen.queryByRole("menuitem")).not.toBeInTheDocument();
 
@@ -28,7 +28,12 @@ describe("QuestionTypePicker", () => {
 			(await screen.findAllByRole("menuitem")).map((item) =>
 				item.textContent?.trim(),
 			),
-		).toEqual(["Quiz", "Verdadeiro ou falso", "Resposta curta"]);
+		).toEqual([
+			"Quiz",
+			"Verdadeiro ou falso",
+			"Resposta curta",
+			"Controle deslizante",
+		]);
 		expect(
 			screen.getByRole("group", { name: "Testar conhecimento" }),
 		).toBeInTheDocument();
@@ -39,6 +44,7 @@ describe("QuestionTypePicker", () => {
 		["Quiz", "quiz"],
 		["Verdadeiro ou falso", "trueFalse"],
 		["Resposta curta", "typeAnswer"],
+		["Controle deslizante", "slider"],
 	])("choosing %s calls back with its type and closes", async (name, type) => {
 		const { onPick, user } = renderPicker();
 		await user.click(addButton());
@@ -95,5 +101,23 @@ describe("QuestionTypePicker", () => {
 
 		// Outside the picker's own content: it takes no room there.
 		expect(screen.getByRole("menu")).not.toContainElement(preview);
+	});
+
+	it("shows Controle deslizante's preview with the Everest example (spec 032, RN-01)", async () => {
+		const { user } = renderPicker();
+		await user.click(addButton());
+
+		await user.hover(
+			await screen.findByRole("menuitem", { name: "Controle deslizante" }),
+		);
+
+		const preview = await screen.findByRole("region", {
+			name: "Prévia de Controle deslizante",
+		});
+		expect(preview).toHaveTextContent("Qual é a altura do Monte Everest?");
+		expect(preview).toHaveTextContent("8.849 m");
+		expect(preview).toHaveTextContent(
+			"Deixe os participantes adivinharem o número no controle deslizante.",
+		);
 	});
 });

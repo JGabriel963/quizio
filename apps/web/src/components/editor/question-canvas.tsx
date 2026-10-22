@@ -8,6 +8,7 @@ import type { QuestionData } from "@/lib/api-types";
 import { type ImageUploadState, QuestionMedia } from "./question-media";
 import { QuestionTextField } from "./question-text-field";
 import { QuizAnswers } from "./quiz-answers";
+import { SliderAnswers } from "./slider-answers";
 import { TrueFalseAnswers } from "./true-false-answers";
 import { TypeAnswerAnswers } from "./type-answer-answers";
 
@@ -107,6 +108,13 @@ export function QuestionCanvas({
 						showHints && questionIssues(question).includes("noAcceptedAnswer")
 					}
 					onSaveAnswer={onSaveAcceptedAnswer}
+					onChange={onChange}
+				/>
+			)}
+			{question.type === "slider" && (
+				<SliderAnswers
+					key={question.id}
+					question={question}
 					onChange={onChange}
 				/>
 			)}

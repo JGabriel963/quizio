@@ -1,6 +1,7 @@
 import type { ParticipantDetailData } from "@/lib/api-types";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import { responseTimeLabel, unansweredLabel } from "@/lib/report-labels";
+import { formatSliderNumber } from "@/lib/slider-format";
 
 import { AccuracyRing } from "./accuracy-ring";
 import { ChoiceChip, pointsLabel, ResultBadge } from "./report-parts";
@@ -63,6 +64,13 @@ export function ParticipantDetail({
 								<p className="text-sm">
 									<span className="sr-only">Resposta enviada: </span>“
 									{answer.typedText}”
+								</p>
+							)}
+							{answer.sliderValue !== null && (
+								<p className="font-semibold text-sm">
+									<span className="sr-only">Valor enviado: </span>
+									{formatSliderNumber(answer.sliderValue)}
+									{answer.sliderUnit && ` ${answer.sliderUnit}`}
 								</p>
 							)}
 							<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">

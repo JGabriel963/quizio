@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateAnswerScore, InvalidResponseTimeError } from "./scoring";
+import {
+	calculateAnswerScore,
+	calculateSliderScore,
+	InvalidResponseTimeError,
+} from "./scoring";
 
 const TWENTY_SECONDS = 20_000;
 
@@ -143,5 +147,51 @@ describe("calculateAnswerScore: multiple selection (spec 010, RN-06)", () => {
 				correctAnswers: 2,
 			}),
 		).toBe(4000);
+	});
+});
+
+describe("calculateSliderScore", () => {
+	const score = (
+		precision: number,
+		responseTimeMs: number,
+		pointsMultiplier: "standard" | "double" | "noPoints" = "standard",
+	) =>
+		calculateSliderScore({
+			precision,
+			responseTimeMs,
+			timeLimitMs: TWENTY_SECONDS,
+			pointsMultiplier,
+		});
+
+	it("an exact slider answer within 500 ms earns 1000", () => {
+		expect(score(1, 0)).toBe(1000);
+		expect(score(1, 499)).toBe(1000);
+	});
+
+	it("an exact slider answer at the time limit earns 900", () => {
+		expect(score(1, TWENTY_SECONDS)).toBe(900);
+		expect(score(1, 10_000)).toBe(950);
+	});
+
+	it("half precision within 500 ms earns 600", () => {
+		expect(score(0.5, 0)).toBe(600);
+	});
+
+	it("precision 0 earns only the speed part", () => {
+		expect(score(0, 0)).toBe(200);
+		expect(score(0, TWENTY_SECONDS)).toBe(100);
+	});
+
+	it("double points double it and no points give 0", () => {
+		expect(score(1, 0, "double")).toBe(2000);
+		expect(score(0.5, 0, "double")).toBe(1200);
+		expect(score(1, 0, "noPoints")).toBe(0);
+	});
+
+	it("checks the response time like the other questions", () => {
+		expect(() => score(1, -1)).toThrow(InvalidResponseTimeError);
+		expect(() => score(1, TWENTY_SECONDS + 1)).toThrow(
+			InvalidResponseTimeError,
+		);
 	});
 });

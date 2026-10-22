@@ -1,5 +1,6 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
+import { ANSWER_MARGINS } from "../../shared/domain/slider-scale";
 import {
 	blankContent,
 	type Choice,
@@ -9,6 +10,7 @@ import {
 	fitTimeLimit,
 	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
+	InvalidSliderNumberError,
 	MAX_ACCEPTED_ANSWERS,
 	MAX_CHOICE_COUNT,
 	parseAcceptedAnswer,
@@ -17,10 +19,13 @@ import {
 	parseQuestionText,
 	parseQuestionType,
 	parseSelection,
+	parseSliderNumber,
+	parseSliderUnit,
 	parseTimeLimit,
 	type Question,
 	type QuestionContent,
 	type QuizQuestion,
+	type SliderQuestion,
 	type TrueFalseQuestion,
 	type TypeAnswerQuestion,
 	timeLimitsFor,
@@ -47,7 +52,15 @@ export type QuestionContentInput =
 			choices: { text: string | null; correct: boolean }[];
 	  }
 	| { type: "trueFalse"; correct: boolean | null }
-	| { type: "typeAnswer"; acceptedAnswers: (string | null)[] };
+	| { type: "typeAnswer"; acceptedAnswers: (string | null)[] }
+	| {
+			type: "slider";
+			min: number | null;
+			max: number | null;
+			answer: number | null;
+			unit: string | null;
+			answerMargin: string;
+	  };
 
 /**
  * One edit of a question (specs 004, 005). Values arrive raw (from the API or
@@ -66,6 +79,17 @@ export type QuestionChange =
 	| { kind: "acceptedAnswerText"; index: number; text: string | null }
 	| { kind: "acceptedAnswerAdded" }
 	| { kind: "acceptedAnswerRemoved"; index: number }
+	/**
+	 * Spec 032, RN-04, RN-16: a slider's number as the creator typed it; null
+	 * empties the min or the max. Never moves the answer.
+	 */
+	| {
+			kind: "sliderNumber";
+			field: "min" | "max" | "answer";
+			value: string | null;
+	  }
+	| { kind: "sliderUnit"; text: string | null }
+	| { kind: "answerMargin"; margin: string }
 	/** `remembered` is what the question had in that type earlier in the session (RN-17). */
 	| { kind: "type"; type: string; remembered: QuestionContentInput | null }
 	/** A new upload, or null to remove the image with its adjustments (spec 007). */
@@ -105,6 +129,15 @@ export class TooManyAcceptedAnswersError extends DomainError {
 	readonly code = "QUIZ.TOO_MANY_ACCEPTED_ANSWERS";
 }
 
+/** A slider's answer, once added, is never emptied (spec 032, RN-07). */
+export class SliderAnswerRequiredError extends DomainError {
+	readonly code = "QUIZ.SLIDER_ANSWER_REQUIRED";
+}
+
+export class InvalidAnswerMarginError extends DomainError {
+	readonly code = "QUIZ.INVALID_ANSWER_MARGIN";
+}
+
 /** A time of the editor's list that the question's type does not take (spec 031, RN-06). */
 export class TimeLimitNotAllowedError extends DomainError {
 	readonly code = "QUIZ.TIME_LIMIT_NOT_ALLOWED";
@@ -132,7 +165,39 @@ export function parseQuestionContent(
 				type: input.type,
 				acceptedAnswers: parseAcceptedAnswers(input.acceptedAnswers),
 			};
+		case "slider":
+			return {
+				type: input.type,
+				min: parseSliderValue(input.min),
+				max: parseSliderValue(input.max),
+				answer: parseSliderValue(input.answer),
+				unit: parseSliderUnit(input.unit),
+				answerMargin: parseAnswerMargin(input.answerMargin),
+			};
 	}
+}
+
+/** A remembered number: finite, with at most 2 decimals (spec 032, RN-04). */
+function parseSliderValue(value: number | null): number | null {
+	if (value === null) {
+		return null;
+	}
+	if (
+		!Number.isFinite(value) ||
+		Math.abs(value * 100 - Math.round(value * 100)) > 1e-6
+	) {
+		throw new InvalidSliderNumberError(`${value} is not a slider number`);
+	}
+	return parseSliderNumber(String(value));
+}
+
+function parseAnswerMargin(margin: string) {
+	if (!(ANSWER_MARGINS as readonly string[]).includes(margin)) {
+		throw new InvalidAnswerMarginError(
+			`Answer margin "${margin}" is not supported`,
+		);
+	}
+	return margin as (typeof ANSWER_MARGINS)[number];
 }
 
 function parseAcceptedAnswers(answers: (string | null)[]): (string | null)[] {
@@ -205,6 +270,53 @@ function requireTypeAnswer(question: Question): TypeAnswerQuestion {
 		);
 	}
 	return question;
+}
+
+function requireSlider(question: Question): SliderQuestion {
+	if (question.type !== "slider") {
+		throw new QuestionChangeNotApplicableError(
+			"This change only applies to sliders",
+		);
+	}
+	return question;
+}
+
+/** Writes a typed number; the range may change past the answer (spec 032, RN-16). */
+function setSliderNumber(
+	question: SliderQuestion,
+	field: "min" | "max" | "answer",
+	raw: string | null,
+): QuestionChangeResult {
+	if (raw === null || raw.trim() === "") {
+		if (field === "answer") {
+			throw new SliderAnswerRequiredError(
+				"A slider's answer cannot be emptied",
+			);
+		}
+		return unchanged({ ...question, [field]: null });
+	}
+	const value = parseSliderNumber(raw);
+	if (field === "answer" && question.answer === null) {
+		// The first answer brings its range (spec 032, RN-06).
+		return unchanged({
+			...question,
+			...sliderRangeAround(value),
+			answer: value,
+		});
+	}
+	return unchanged({ ...question, [field]: value });
+}
+
+/**
+ * The range a slider gets with its first answer (spec 032, RN-06): 50 wide,
+ * from the multiple of 20 strictly below the answer. It gives Kahoot's
+ * examples: 600 → 580 to 630, 430 → 420 to 470, 10 → 0 to 50. Counted in
+ * hundredths, so 20.5 starts at 20, not one interval lower.
+ */
+function sliderRangeAround(answer: number): { min: number; max: number } {
+	const hundredths = Math.round(answer * 100);
+	const min = (Math.floor((hundredths - 1) / 2000) * 2000) / 100;
+	return { min, max: min + 50 };
 }
 
 function requireAcceptedAnswerAt(
@@ -450,6 +562,22 @@ export function applyQuestionChange(
 			return addAcceptedAnswer(requireTypeAnswer(question));
 		case "acceptedAnswerRemoved":
 			return removeAcceptedAnswer(requireTypeAnswer(question), change.index);
+		case "sliderNumber":
+			return setSliderNumber(
+				requireSlider(question),
+				change.field,
+				change.value,
+			);
+		case "sliderUnit":
+			return unchanged({
+				...requireSlider(question),
+				unit: parseSliderUnit(change.text),
+			});
+		case "answerMargin":
+			return unchanged({
+				...requireSlider(question),
+				answerMargin: parseAnswerMargin(change.margin),
+			});
 		case "type":
 			return changeType(question, change.type, change.remembered);
 		case "image":

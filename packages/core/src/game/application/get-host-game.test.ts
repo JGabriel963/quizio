@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Question } from "../../quiz/domain/question";
 import {
 	aQuestion,
+	aSliderQuestion,
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
 } from "../../quiz/testing/a-question";
@@ -819,5 +820,54 @@ describe("getHostGame with a type answer (spec 031)", () => {
 		const view = await createGetHostGame(deps)(mine);
 
 		expect(view.stage?.reviewOpen).toBe(true);
+	});
+});
+
+describe("getHostGame with a slider (spec 032)", () => {
+	async function sliding() {
+		const game = await createStartedGame({
+			players: ["Ana", "Bia", "Caio"],
+			questions: [aSliderQuestion()],
+		});
+		await game.reach("answering");
+		return game;
+	}
+
+	it("a slider's answers stage has the public scale", async () => {
+		const { deps } = await sliding();
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage).toMatchObject({
+			phase: "answering",
+			question: {
+				type: "slider",
+				choices: [],
+				slider: { first: 104, last: 896, step: 8, unit: "anos" },
+			},
+			sliderResults: null,
+		});
+		expect(JSON.stringify(view)).not.toMatch(/"answer"|margin/);
+	});
+
+	it("a slider's results count the answers per position with the margin range", async () => {
+		const { deps, slide, stage } = await sliding();
+		await slide(1, 600);
+		await slide(2, 640);
+		await slide(3, 640);
+		expect((await stage()).phase).toBe("results");
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage?.sliderResults).toEqual({
+			answer: 600,
+			low: 520,
+			high: 680,
+			unit: "anos",
+			counts: [
+				{ value: 600, count: 1 },
+				{ value: 640, count: 2 },
+			],
+		});
 	});
 });

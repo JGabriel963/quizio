@@ -25,6 +25,11 @@ import type { GameQuestion } from "../domain/game-question";
 import { avatarShown, type Player, shownPlayers } from "../domain/player";
 import { podiumRevealRemainingMs } from "../domain/podium";
 import {
+	type PublicSliderScale,
+	publicSliderScale,
+} from "../domain/public-stage";
+import { type SliderResults, sliderResultsOf } from "../domain/slider-results";
+import {
 	type RankedPlayer,
 	rankPlayers,
 	type ScoreboardEntry,
@@ -68,6 +73,8 @@ export interface HostQuestionView {
 	text: string;
 	choices: HostChoiceView[];
 	image: HostImageView | null;
+	/** A slider's public scale, without the answer (spec 032, RN-30). */
+	slider: PublicSliderScale | null;
 }
 
 /**
@@ -124,6 +131,8 @@ export interface HostStageView {
 	typedAnswers: { tags: TypedAnswerTagView[] } | null;
 	/** The host is reviewing the typed answers (spec 031, RN-32). */
 	reviewOpen: boolean;
+	/** How a slider was answered; only in its results (spec 032, RN-31). */
+	sliderResults: SliderResults | null;
 }
 
 /** The end of a game that played every question (spec 011). */
@@ -196,6 +205,7 @@ function toQuestionView(
 			crop: question.image.crop,
 			altText: question.image.altText,
 		},
+		slider: question.slider && publicSliderScale(question.slider),
 	};
 }
 
@@ -309,6 +319,10 @@ async function loadStageView(
 					}
 				: null,
 		reviewOpen: Boolean(progress.reviewOpenedAt),
+		sliderResults:
+			answers && question?.slider
+				? sliderResultsOf(question.slider, answers)
+				: null,
 	};
 }
 

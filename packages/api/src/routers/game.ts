@@ -22,6 +22,8 @@ const response = {
 		.max(MAX_CHOICE_COUNT)
 		.optional(),
 	text: z.string().max(200).optional(),
+	/** A slider's position; that it is one is the core's (spec 032). */
+	value: z.number().finite().optional(),
 };
 const stageRef = z.object({ questionIndex, phase: z.enum(GAME_PHASES) });
 /** Two ids; which ones exist is the catalog's, in the core (spec 028, RN-06). */

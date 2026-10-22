@@ -7,6 +7,7 @@ import {
 	missingAnswerCount,
 	type QuestionIssue,
 } from "@quizio/core/quiz/domain/question-issues";
+import type { AnswerMargin } from "@quizio/core/shared/domain/slider-scale";
 
 import type { QuestionData } from "./api-types";
 
@@ -72,6 +73,12 @@ export function questionIssueLabel(
 			return "Resposta correta não selecionada";
 		case "noAcceptedAnswer":
 			return "Resposta aceita ausente";
+		case "noSliderAnswer":
+			return "Resposta ausente";
+		case "invalidSliderRange":
+			return "Intervalo inválido";
+		case "sliderAnswerOutOfRange":
+			return "Resposta fora do intervalo";
 	}
 }
 
@@ -80,6 +87,27 @@ export const NO_CORRECT_ANSWER_HINT = "Marque pelo menos 1 resposta correta";
 export const NO_CORRECT_TRUE_FALSE_HINT = "Marque a resposta correta";
 /** Beside the main field of a type answer without an accepted answer (spec 031, RN-09). */
 export const NO_ACCEPTED_ANSWER_HINT = "Adicione uma resposta aceita";
+
+/** Under a slider's scale, beside the field to fix (spec 032, RN-16). */
+export const SLIDER_MAX_HINT = "Insira um valor máximo maior.";
+export const SLIDER_MIN_HINT = "Insira um valor mínimo menor.";
+
+/** The answer margins of a slider, with what each does, as in Kahoot (spec 032, RN-08). */
+export const ANSWER_MARGIN_LABELS: Record<AnswerMargin, string> = {
+	none: "Nenhuma",
+	low: "Baixa",
+	medium: "Médio",
+	high: "Alto",
+	maximum: "Máxima",
+};
+export const ANSWER_MARGIN_DESCRIPTIONS: Record<AnswerMargin, string> = {
+	none: "Aceitar apenas a resposta correta.",
+	low: "Aceitar respostas próximas da correta com uma margem baixa.",
+	medium: "Aceitar respostas próximas da correta com uma margem média.",
+	high: "Aceitar respostas próximas da correta com uma margem alta.",
+	maximum:
+		"Quanto mais próxima a resposta for da correta, mais pontos são dados.",
+};
 
 /** The two fixed answers of a true/false question (spec 005, RN-06). */
 export const TRUE_FALSE_LABELS = {

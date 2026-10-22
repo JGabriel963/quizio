@@ -193,6 +193,15 @@ describe("scoreboardLeavers (spec 011, RN-31)", () => {
 });
 
 describe("streakAfter (spec 010, RN-10)", () => {
+	it("an almost correct answer keeps the streak (spec 032, RN-22)", () => {
+		const answers = [
+			{ questionIndex: 0, correctness: "correct" as const },
+			{ questionIndex: 1, correctness: "almostCorrect" as const },
+		];
+
+		expect(streakAfter(answers, 1)).toBe(2);
+	});
+
 	const answered = (
 		questionIndex: number,
 		correctness: "correct" | "partiallyCorrect" | "wrong",

@@ -66,6 +66,7 @@ test("adds a true/false question after the selected one, marks its answer and ke
 		"Quiz",
 		"Verdadeiro ou falso",
 		"Resposta curta",
+		"Controle deslizante",
 	]);
 	await page.keyboard.press("Escape");
 	await expect(page.getByRole("menuitem")).toHaveCount(0);

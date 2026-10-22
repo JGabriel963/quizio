@@ -9,6 +9,7 @@ const question = {
 	index: 0,
 	type: "quiz" as const,
 	selection: "single" as const,
+	slider: null,
 	text: "Qual é a capital do Brasil?",
 	image: {
 		url: "https://media.test/rio.png",
@@ -36,6 +37,7 @@ function renderQuestion(
 		failure: null,
 		onAnswer: vi.fn(),
 		onType: vi.fn(),
+		onSlide: vi.fn(),
 		...overrides,
 	};
 	render(<PlayQuestion {...props} />);
@@ -104,6 +106,8 @@ describe("PlayResult (spec 030, RN-11)", () => {
 		chosenIds: ["choice-1"],
 		rightIds: ["choice-1"],
 		typedText: null,
+		sliderValue: null,
+		sliderAnswer: null,
 		acceptedAnswers: [],
 		result: "correct" as const,
 		points: 950,
@@ -169,5 +173,31 @@ describe("PlayQuestion of a type answer (spec 031, RN-34)", () => {
 		);
 
 		expect(props.onType).toHaveBeenCalledExactlyOnceWith("Pedro");
+	});
+});
+
+describe("PlayQuestion of a slider (spec 032, RN-33)", () => {
+	it("a slider shows the control", async () => {
+		const { props, user } = renderQuestion({
+			question: {
+				...question,
+				type: "slider",
+				choices: [],
+				slider: {
+					min: 0,
+					max: 50,
+					first: 0,
+					last: 50,
+					step: 1,
+					start: 25,
+					unit: null,
+				},
+			},
+		});
+
+		await user.click(screen.getByRole("button", { name: /Aumentar/ }));
+		await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+		expect(props.onSlide).toHaveBeenCalledExactlyOnceWith(26);
 	});
 });

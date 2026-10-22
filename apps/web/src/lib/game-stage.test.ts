@@ -44,6 +44,7 @@ const answering: HostGameData = {
 		autoAdvance: null,
 		typedAnswers: null,
 		reviewOpen: false,
+		sliderResults: null,
 	},
 	final: null,
 };

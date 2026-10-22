@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { Question } from "../../quiz/domain/question";
-import { aQuestion, aTypeAnswerQuestion } from "../../quiz/testing/a-question";
+import {
+	aQuestion,
+	aSliderQuestion,
+	aTypeAnswerQuestion,
+} from "../../quiz/testing/a-question";
 import { AnswersClosedError } from "../domain/answer";
 import { DEFAULT_ASSIGNMENT_OPTIONS } from "../domain/assignment";
 import { GameEndedError } from "../domain/game";
@@ -161,6 +165,7 @@ describe("answerAssignmentQuestion (spec 030, RN-10, RN-11, RN-13)", () => {
 			points: 1000,
 			receivedAt: deps.clock.now(),
 			text: null,
+			value: null,
 			reviewedAt: null,
 		});
 
@@ -239,5 +244,67 @@ describe("a type answer in an assignment (spec 031, RN-34, RN-35)", () => {
 
 		expect(view.screen.phase).toBe("answering");
 		expect(JSON.stringify(view)).not.toContain("Simão");
+	});
+});
+
+describe("a slider in an assignment (spec 032, RN-33, RN-34)", () => {
+	async function sliding(options = {}) {
+		const setup = await playing(options, [aSliderQuestion()]);
+		const slide = (value: number) =>
+			createAnswerAssignmentQuestion(setup.deps)({
+				gameId: setup.gameId,
+				playerId: setup.john.playerId,
+				secret: setup.john.secret,
+				questionIndex: 0,
+				value,
+			});
+		return { ...setup, slide };
+	}
+
+	it("a slider answer without the question timer earns full points when exact", async () => {
+		const { deps, slide } = await sliding({ questionTimer: false });
+		deps.clock.advanceBy(60_000);
+
+		expect((await slide(600)).screen).toMatchObject({
+			phase: "results",
+			result: { result: "correct", points: 1000 },
+		});
+	});
+
+	it("a slider's result shows the value sent, the answer and the margin range", async () => {
+		const { slide } = await sliding();
+
+		expect((await slide(640)).screen).toMatchObject({
+			phase: "results",
+			result: {
+				sliderValue: 640,
+				sliderAnswer: { answer: 600, low: 520, high: 680, unit: "anos" },
+			},
+		});
+	});
+
+	it("the scale shows while answering, without the answer", async () => {
+		const { deps, gameId, john } = await sliding();
+
+		const view = await createGetAssignmentPlay(deps)({
+			gameId,
+			playerId: john.playerId,
+			secret: john.secret,
+		});
+
+		expect(view.screen).toMatchObject({
+			phase: "answering",
+			question: { slider: { first: 104, last: 896, step: 8 } },
+		});
+		expect(JSON.stringify(view)).not.toMatch(/"answer"|margin|600/);
+	});
+
+	it("an almost correct slider answer loses only the precision part without the timer", async () => {
+		const { slide } = await sliding({ questionTimer: false });
+
+		expect((await slide(640)).screen).toMatchObject({
+			phase: "results",
+			result: { result: "almostCorrect", points: 600 },
+		});
 	});
 });

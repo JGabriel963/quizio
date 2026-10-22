@@ -1,5 +1,5 @@
 import type { Correctness } from "../../game/domain/answer";
-import type { GameChoice } from "../../game/domain/game-question";
+import type { GameChoice, GameSlider } from "../../game/domain/game-question";
 import type { QuestionType } from "../../quiz/domain/question";
 import type { ReportHeader } from "./report";
 
@@ -22,6 +22,8 @@ export interface ReportQuestion {
 	choices: GameChoice[];
 	/** Of a type answer, as the creator wrote them (spec 031); none otherwise. */
 	acceptedAnswers: string[];
+	/** A slider's scale (spec 032); null otherwise. */
+	slider: GameSlider | null;
 }
 
 export interface ReportAnswer {
@@ -30,6 +32,8 @@ export interface ReportAnswer {
 	choiceIds: string[];
 	/** What was typed in a type answer (spec 031); null otherwise. */
 	text: string | null;
+	/** The number picked on a slider (spec 032); null otherwise. */
+	value: number | null;
 	correctness: Correctness;
 	points: number;
 	responseTimeMs: number;

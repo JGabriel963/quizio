@@ -18,6 +18,7 @@ function quiz(
 	return {
 		type: "quiz",
 		selection,
+		slider: null,
 		text: null,
 		image: null,
 		choices: Array.from({ length: count }, (_, index) => ({
@@ -32,6 +33,7 @@ function quiz(
 const trueFalse: PlayerQuestionData = {
 	type: "trueFalse",
 	selection: "single",
+	slider: null,
 	text: null,
 	image: null,
 	choices: [
@@ -51,6 +53,7 @@ function onDevice(
 	return {
 		type: "quiz",
 		selection: "single",
+		slider: null,
 		text: STATEMENT,
 		image: null,
 		choices: texts.map((text, index) => ({
@@ -85,6 +88,7 @@ function renderStage(
 ) {
 	const onAnswer = vi.fn();
 	const onType = vi.fn();
+	const onSlide = vi.fn();
 	const user = userEvent.setup();
 	render(
 		<PlayerStage
@@ -97,11 +101,12 @@ function renderStage(
 			notice={null}
 			onAnswer={onAnswer}
 			onType={onType}
+			onSlide={onSlide}
 			onLeave={vi.fn()}
 			{...props}
 		/>,
 	);
-	return { onAnswer, onType, user };
+	return { onAnswer, onType, onSlide, user };
 }
 
 const buttons = () =>
@@ -271,6 +276,7 @@ describe("PlayerStage: results and end (spec 009)", () => {
 		rank: 2,
 		behind: { nickname: "Bia", points: 62 },
 		reviewed: false,
+		slider: null,
 		...overrides,
 	});
 	const results = (
@@ -356,6 +362,7 @@ describe("PlayerStage: results and end (spec 009)", () => {
 				notice={null}
 				onAnswer={vi.fn()}
 				onType={vi.fn()}
+				onSlide={vi.fn()}
 				onLeave={vi.fn()}
 			/>,
 		);
@@ -372,6 +379,7 @@ describe("PlayerStage: results and end (spec 009)", () => {
 				notice={null}
 				onAnswer={vi.fn()}
 				onType={vi.fn()}
+				onSlide={vi.fn()}
 				onLeave={vi.fn()}
 			/>,
 		);
@@ -472,6 +480,7 @@ describe("PlayerStage: who joined in the middle (spec 012)", () => {
 					notice={null}
 					onAnswer={vi.fn()}
 					onType={vi.fn()}
+					onSlide={vi.fn()}
 					onLeave={vi.fn()}
 				/>,
 			);
@@ -653,6 +662,7 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 				question: {
 					type: "trueFalse",
 					selection: "single",
+					slider: null,
 					text: "A capital do Brasil é Brasília",
 					image: null,
 					choices: [
@@ -709,6 +719,7 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 				notice={null}
 				onAnswer={vi.fn()}
 				onType={vi.fn()}
+				onSlide={vi.fn()}
 				onLeave={vi.fn()}
 			/>,
 		);
@@ -744,6 +755,7 @@ describe("PlayerStage: the avatar (spec 028)", () => {
 					notice={null}
 					onAnswer={vi.fn()}
 					onType={vi.fn()}
+					onSlide={vi.fn()}
 					onLeave={vi.fn()}
 				/>
 			</PlayerAvatarContext>,
@@ -767,6 +779,7 @@ describe("PlayerStage: the avatar (spec 028)", () => {
 				notice={null}
 				onAnswer={vi.fn()}
 				onType={vi.fn()}
+				onSlide={vi.fn()}
 				onLeave={vi.fn()}
 			/>,
 		);
@@ -779,6 +792,7 @@ describe("PlayerStage: type answer (spec 031)", () => {
 	const typeAnswer = (text: string | null): PlayerQuestionData => ({
 		type: "typeAnswer",
 		selection: "single",
+		slider: null,
 		text,
 		image: null,
 		choices: [],
@@ -830,6 +844,7 @@ describe("PlayerStage: type answer (spec 031)", () => {
 				rank: 1,
 				behind: null,
 				reviewed: true,
+				slider: null,
 			},
 		});
 
@@ -856,5 +871,78 @@ describe("PlayerStage: type answer (spec 031)", () => {
 				name: "Sua resposta foi marcada como incorreta",
 			}),
 		).toBeInTheDocument();
+	});
+});
+
+describe("PlayerStage: slider (spec 032)", () => {
+	const scale = {
+		min: 100,
+		max: 900,
+		first: 104,
+		last: 896,
+		step: 8,
+		start: 496,
+		unit: "anos",
+	};
+	const slider = (text: string | null): PlayerQuestionData => ({
+		type: "slider",
+		selection: "single",
+		slider: scale,
+		text,
+		image: null,
+		choices: [],
+	});
+	const outcome = (
+		result: "correct" | "almostCorrect" | "wrong",
+		sent: number | null,
+	) =>
+		stageAt({
+			phase: "results",
+			durationMs: null,
+			remainingMs: null,
+			question: slider(null),
+			outcome: {
+				result,
+				points: result === "wrong" ? 0 : 600,
+				streak: result === "wrong" ? 0 : 1,
+				rank: 1,
+				behind: null,
+				reviewed: false,
+				slider: { sent, answer: 600, unit: "anos" },
+			},
+		});
+
+	it("a slider shows the control with and without questions on devices", async () => {
+		const { onSlide, user } = renderStage(
+			stageAt({ question: slider("Quantos anos?") }),
+		);
+
+		expect(screen.getByText("Quantos anos?")).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Enviar" }));
+		expect(onSlide).toHaveBeenCalledExactlyOnceWith(496);
+	});
+
+	it("shows the control without questions on devices", () => {
+		renderStage(stageAt({ question: slider(null) }));
+
+		expect(
+			screen.getByRole("slider", { name: "Sua resposta" }),
+		).toHaveAttribute("aria-valuenow", "496");
+	});
+
+	it("the result says Quase correto", () => {
+		renderStage(outcome("almostCorrect", 640));
+
+		expect(
+			screen.getByRole("heading", { name: "Quase correto" }),
+		).toBeInTheDocument();
+	});
+
+	it("shows the value sent and the right answer", () => {
+		renderStage(outcome("wrong", 104));
+
+		const told = document.querySelector("[data-slot=slider-outcome]");
+		expect(told).toHaveTextContent("Sua resposta:104 anos");
+		expect(told).toHaveTextContent("Resposta correta:600 anos");
 	});
 });

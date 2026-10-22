@@ -44,13 +44,7 @@ export interface AnswerScoreInput {
  * Accepting or rejecting late answers is the live game's decision, so a
  * response time outside [0, timeLimit] is an invariant violation here.
  */
-export function calculateAnswerScore({
-	isCorrect,
-	responseTimeMs,
-	timeLimitMs,
-	pointsMultiplier,
-	correctAnswers = 1,
-}: AnswerScoreInput): number {
+function checkResponseTime(responseTimeMs: number, timeLimitMs: number): void {
 	if (timeLimitMs <= 0) {
 		throw new InvalidResponseTimeError(
 			`Time limit must be positive, received ${timeLimitMs}ms`,
@@ -61,6 +55,16 @@ export function calculateAnswerScore({
 			`Response time ${responseTimeMs}ms is outside the ${timeLimitMs}ms answer window`,
 		);
 	}
+}
+
+export function calculateAnswerScore({
+	isCorrect,
+	responseTimeMs,
+	timeLimitMs,
+	pointsMultiplier,
+	correctAnswers = 1,
+}: AnswerScoreInput): number {
+	checkResponseTime(responseTimeMs, timeLimitMs);
 	if (!isCorrect) {
 		return 0;
 	}
@@ -77,4 +81,37 @@ export function calculateAnswerScore({
 	return Math.round(
 		((2 * timeLimitMs - responseTimeMs) * pointsPossible) / (2 * timeLimitMs),
 	);
+}
+
+export interface SliderScoreInput {
+	/** 1 at the answer, down to 0 at the margin's edge (spec 032, RN-20). */
+	precision: number;
+	responseTimeMs: number;
+	timeLimitMs: number;
+	pointsMultiplier: PointsMultiplier;
+}
+
+/**
+ * A slider answer within the margin: 80% of the points by precision and 20% by
+ * speed (spec 032, RN-21). The speed factor is the one of
+ * `calculateAnswerScore`: 1 within the first 500 ms, down to ½ at the limit.
+ *
+ *   points = round(pointsPossible × (0.8 × precision + 0.2 × speed))
+ *
+ * Kahoot publishes the split, not the formula: this one is ours.
+ */
+export function calculateSliderScore({
+	precision,
+	responseTimeMs,
+	timeLimitMs,
+	pointsMultiplier,
+}: SliderScoreInput): number {
+	checkResponseTime(responseTimeMs, timeLimitMs);
+	const pointsPossible =
+		BASE_QUESTION_POINTS * POINTS_MULTIPLIERS[pointsMultiplier];
+	const speed =
+		responseTimeMs < FULL_POINTS_WINDOW_MS
+			? 1
+			: (2 * timeLimitMs - responseTimeMs) / (2 * timeLimitMs);
+	return Math.round(pointsPossible * (0.8 * precision + 0.2 * speed));
 }

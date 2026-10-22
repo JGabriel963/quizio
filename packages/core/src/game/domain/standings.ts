@@ -118,7 +118,8 @@ export function scoreboardEntryOf(
 
 /**
  * How many questions in a row, ending at `questionIndex`, the player got
- * right or partially right. A wrong answer or no answer breaks it (RN-10).
+ * right, partially right or almost right (spec 032, RN-22). A wrong answer or
+ * no answer breaks it (RN-10).
  */
 export function streakAfter(
 	answers: readonly Pick<Answer, "questionIndex" | "correctness">[],
@@ -130,7 +131,7 @@ export function streakAfter(
 	let streak = 0;
 	for (let index = questionIndex; index >= 0; index--) {
 		const correctness = byQuestion.get(index);
-		if (correctness !== "correct" && correctness !== "partiallyCorrect") {
+		if (correctness === undefined || correctness === "wrong") {
 			break;
 		}
 		streak++;

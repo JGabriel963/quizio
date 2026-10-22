@@ -43,6 +43,7 @@ const resultOf = (index: number, text: string) => ({
 		index,
 		type: "quiz" as const,
 		selection: "single" as const,
+		slider: null,
 		text,
 		image: null,
 		choices: [
@@ -53,6 +54,8 @@ const resultOf = (index: number, text: string) => ({
 	chosenIds: [`q${index}-a`],
 	rightIds: [`q${index}-a`],
 	typedText: null,
+	sliderValue: null,
+	sliderAnswer: null,
 	acceptedAnswers: [],
 	result: "correct" as const,
 	points: 900,

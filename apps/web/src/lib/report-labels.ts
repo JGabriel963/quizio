@@ -67,6 +67,7 @@ export function reportModeLabel(mode: "live" | "assignment"): string {
 export const RESULT_LABELS: Record<AnswerResultData, string> = {
 	correct: "Correta",
 	partiallyCorrect: "Parcialmente correta",
+	almostCorrect: "Quase correta",
 	wrong: "Incorreta",
 	unanswered: "Sem resposta",
 };

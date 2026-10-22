@@ -12,6 +12,7 @@ import { useCountdown } from "@/lib/use-countdown";
 
 import { Wordmark } from "../game-screen";
 import { AutoCountdown } from "./auto-countdown";
+import { SliderAnswering, SliderResults } from "./slider-results";
 import { AnswerBars, StageChoices } from "./stage-choices";
 import { StageImage } from "./stage-image";
 import { TypedAnswersReveal } from "./typed-answers-reveal";
@@ -174,7 +175,7 @@ function QuestionStage({
 			<div className="flex min-h-0 flex-1 items-stretch gap-4 px-4 pb-2">
 				{children}
 			</div>
-			{question.type === "typeAnswer" ? (
+			{question.type === "typeAnswer" || question.type === "slider" ? (
 				footer
 			) : (
 				<StageChoices choices={question.choices} />
@@ -206,10 +207,15 @@ export function Answering({
 		<QuestionStage
 			question={question}
 			footer={
-				// No answers to show: the players type theirs (spec 031, RN-22).
-				<p className="mx-auto mb-3 w-full max-w-3xl rounded-md bg-answer-blue px-4 py-3 text-center font-black text-2xl shadow-lg sm:text-4xl">
-					Jogadores, digitem a resposta!
-				</p>
+				question.slider ? (
+					// The scale's ends and a wandering "?" (spec 032, RN-30).
+					<SliderAnswering scale={question.slider} />
+				) : (
+					// No answers to show: the players type theirs (spec 031, RN-22).
+					<p className="mx-auto mb-3 w-full max-w-3xl rounded-md bg-answer-blue px-4 py-3 text-center font-black text-2xl shadow-lg sm:text-4xl">
+						Jogadores, digitem a resposta!
+					</p>
+				)
 			}
 			action={
 				<Button variant="game" disabled={busy} onClick={onSkip}>
@@ -284,6 +290,19 @@ export function Results({
 			<ChevronRightIcon aria-hidden="true" />
 		</Button>
 	);
+	if (question.slider) {
+		return (
+			<QuestionStage question={question} action={advanceAction}>
+				{stage.sliderResults && (
+					<SliderResults
+						scale={question.slider}
+						results={stage.sliderResults}
+						image={question.image}
+					/>
+				)}
+			</QuestionStage>
+		);
+	}
 	if (question.type === "typeAnswer") {
 		return (
 			<QuestionStage

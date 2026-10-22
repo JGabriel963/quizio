@@ -28,6 +28,7 @@ const question = (index: number, text: string) => ({
 	index,
 	type: "quiz" as const,
 	selection: "single" as const,
+	slider: null,
 	text,
 	image: null,
 	choices: [
@@ -41,6 +42,8 @@ const resultOf = (index: number, text: string, answered: boolean) => ({
 	chosenIds: answered ? [`q${index}-a`] : [],
 	rightIds: [`q${index}-a`],
 	typedText: null,
+	sliderValue: null,
+	sliderAnswer: null,
 	acceptedAnswers: [],
 	result: answered ? ("correct" as const) : ("unanswered" as const),
 	points: answered ? 950 : 0,

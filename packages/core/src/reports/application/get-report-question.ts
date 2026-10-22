@@ -9,6 +9,8 @@ import {
 	imageUrlOf,
 	type QuestionRowView,
 	questionRow,
+	type SliderAnswersView,
+	sliderAnswersOf,
 	type TypedAnswerView,
 	typedAnswersOf,
 } from "./report-view";
@@ -27,6 +29,8 @@ export interface QuestionParticipantView {
 	choices: ChoiceView[];
 	/** What they typed in a type answer (spec 031); null otherwise. */
 	typedText: string | null;
+	/** What they picked on a slider (spec 032); null otherwise. */
+	sliderValue: number | null;
 	points: number;
 	responseTimeMs: number | null;
 }
@@ -39,6 +43,8 @@ export interface QuestionDetailView extends QuestionRowView {
 	choices: QuestionChoiceView[];
 	/** The sent answers of a type answer, in place of the choices (spec 031, RN-37). */
 	typedAnswers: TypedAnswerView[] | null;
+	/** A slider's answer, margin, average and values sent (spec 032, RN-36). */
+	sliderAnswers: SliderAnswersView | null;
 	/** Who could answer it, by the game's standings. */
 	participants: QuestionParticipantView[];
 }
@@ -85,6 +91,7 @@ export function createGetReportQuestion(
 				count: countOf.get(id) ?? 0,
 			})),
 			typedAnswers: typedAnswersOf(question, [...answerOf.values()]),
+			sliderAnswers: sliderAnswersOf(question, [...answerOf.values()]),
 			participants: participantStats(game)
 				.filter(
 					({ playerId }) =>
@@ -99,6 +106,7 @@ export function createGetReportQuestion(
 						result: answer?.correctness ?? "unanswered",
 						choices: chosenChoices(question, answer),
 						typedText: answer?.text ?? null,
+						sliderValue: answer?.value ?? null,
 						points: answer?.points ?? 0,
 						responseTimeMs: answer?.responseTimeMs ?? null,
 					};

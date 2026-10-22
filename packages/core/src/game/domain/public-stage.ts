@@ -4,11 +4,17 @@ import type {
 	ImagePlacement,
 } from "../../quiz/domain/question-image";
 import {
+	firstPosition,
+	lastPosition,
+	sliderStep,
+	startPosition,
+} from "../../shared/domain/slider-scale";
+import {
 	type GamePhase,
 	type PlayingGame,
 	phaseDurationMs,
 } from "./game-progress";
-import type { GameQuestion } from "./game-question";
+import type { GameQuestion, GameSlider } from "./game-question";
 
 /** What a player's device needs to draw one answer button. */
 export interface PublicChoice {
@@ -18,6 +24,34 @@ export interface PublicChoice {
 	label: string | null;
 	/** Only with the questions on the devices, once the answers open (spec 012, RN-18). */
 	text: string | null;
+}
+
+/**
+ * What a device needs to draw a slider (spec 032, RN-23 to RN-25): the labels
+ * of the limit buttons, the ends, the step, where the marker starts and the
+ * unit. Never the answer nor the margin; the ends and the step tell only that
+ * the answer is one of the positions.
+ */
+export interface PublicSliderScale {
+	min: number;
+	max: number;
+	first: number;
+	last: number;
+	step: number;
+	start: number;
+	unit: string | null;
+}
+
+export function publicSliderScale(slider: GameSlider): PublicSliderScale {
+	return {
+		min: slider.min,
+		max: slider.max,
+		first: firstPosition(slider),
+		last: lastPosition(slider),
+		step: sliderStep(slider.min, slider.max),
+		start: startPosition(slider),
+		unit: slider.unit,
+	};
 }
 
 /** The question's image as a device draws it: an address, never a key (ADR 0003). */
@@ -51,6 +85,8 @@ export interface PublicStage {
 		/** Null with the questions off the devices and before the answers open. */
 		image: PublicImage | null;
 		choices: PublicChoice[];
+		/** A slider's scale, from the answers on, with the questions on the devices or not (RN-27). */
+		slider: PublicSliderScale | null;
 	} | null;
 }
 
@@ -90,6 +126,10 @@ export function publicStageOf(
 				label: shown.type === "trueFalse" ? choice.text : null,
 				text: answersShown ? choice.text : null,
 			})),
+			slider:
+				shown.slider && phase !== "questionIntro"
+					? publicSliderScale(shown.slider)
+					: null,
 		},
 	};
 }
