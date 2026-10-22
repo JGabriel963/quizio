@@ -29,6 +29,17 @@ describe("normalizeTypedAnswer", () => {
 		expect(normalizeTypedAnswer("👍 42")).toBe("42");
 	});
 
+	it("drops flags beside letters, as other emojis", () => {
+		expect(normalizeTypedAnswer("Brasil 🇧🇷")).toBe("brasil");
+		// England's flag: a black flag and tag characters.
+		expect(
+			normalizeTypedAnswer(
+				"\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F} England",
+			),
+		).toBe("england");
+		expect(normalizeTypedAnswer("🇧🇷")).toBe("🇧🇷");
+	});
+
 	it("keeps an emoji-only answer", () => {
 		expect(normalizeTypedAnswer(" 🍕 ")).toBe("🍕");
 		expect(normalizeTypedAnswer("🍕")).not.toBe(normalizeTypedAnswer("🍔"));

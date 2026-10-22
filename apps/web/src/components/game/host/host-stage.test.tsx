@@ -105,16 +105,23 @@ function renderStage(
 	const user = userEvent.setup(
 		vi.isFakeTimers() ? { advanceTimers: vi.advanceTimersByTime } : undefined,
 	);
-	render(
+	const receivedAt = options.receivedAt ?? Date.now();
+	const screenAt = (shown: HostStageData) => (
 		<HostStage
-			game={{ ...game, stage }}
-			stage={stage}
+			game={{ ...game, stage: shown }}
+			stage={shown}
 			origin="https://quizio.app"
-			receivedAt={options.receivedAt ?? Date.now()}
+			receivedAt={receivedAt}
 			actions={actions}
-		/>,
+		/>
 	);
-	return { actions, user };
+	const view = render(screenAt(stage));
+	return {
+		actions,
+		user,
+		/** The same screen told another view of the game. */
+		rerender: (next: HostStageData) => view.rerender(screenAt(next)),
+	};
 }
 
 const tick = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
@@ -1239,6 +1246,32 @@ describe("HostStage: type answer (spec 031)", () => {
 			},
 		]),
 		submit: vi.fn(async () => {}),
+	});
+
+	it("a review the server has open shows again after a reload (spec 031, RN-32)", async () => {
+		const review = reviewActions();
+		renderStage(results({ reviewOpen: true }), { review });
+
+		expect(
+			await screen.findByRole("region", { name: "Revisar respostas" }),
+		).toBeInTheDocument();
+		expect(review.answers).toHaveBeenCalledOnce();
+		expect(review.open).not.toHaveBeenCalled();
+	});
+
+	it("a review this screen cancelled is not reopened by a late view", async () => {
+		const user = userEvent.setup();
+		const review = reviewActions();
+		const view = renderStage(results({ reviewOpen: true }), { review });
+		await screen.findByRole("region", { name: "Revisar respostas" });
+
+		await user.click(screen.getByRole("button", { name: "Cancelar" }));
+		view.rerender(results({ reviewOpen: true }));
+
+		expect(
+			screen.queryByRole("region", { name: "Revisar respostas" }),
+		).toBeNull();
+		expect(review.close).toHaveBeenCalledOnce();
 	});
 
 	it("a type answer shows Jogadores, digitem a resposta! instead of choices", () => {

@@ -1,5 +1,5 @@
 import type { StageRef } from "@quizio/core/game/domain/game-progress";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type {
 	GameOptionsData,
@@ -147,13 +147,15 @@ export function HostStage({
 	}, [remainingMs, receivedAt, connected, reviewing]);
 
 	const from = { questionIndex, phase };
-	function openReview() {
+	/** The stage whose review this screen closed or sent: it is not reopened from a late view. */
+	const leftReviewAt = useRef<string | null>(null);
+	/** Shows the review and loads its answers. */
+	function showReview() {
 		const actionsOfReview = actions.review;
 		if (!actionsOfReview) {
 			return;
 		}
 		setReview({ groups: null, busy: false, error: null });
-		actionsOfReview.open(from).catch(() => {});
 		actionsOfReview
 			.answers(questionIndex)
 			.then((groups) =>
@@ -165,7 +167,26 @@ export function HostStage({
 				),
 			);
 	}
+	function openReview() {
+		showReview();
+		actions.review?.open(from).catch(() => {});
+	}
+	// A review the server has open (a reload, another tab) shows again: autoplay
+	// waits for it, so the screen must offer Enviar and Cancelar (RN-32).
+	const restoreReview = useEffectEvent(() => {
+		if (review === null && leftReviewAt.current !== stageKey) {
+			showReview();
+		}
+	});
+	const reviewOpenOnServer = phase === "results" && told.reviewOpen;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: each results stage asks again.
+	useEffect(() => {
+		if (reviewOpenOnServer) {
+			restoreReview();
+		}
+	}, [reviewOpenOnServer, stageKey]);
 	function closeReview() {
+		leftReviewAt.current = stageKey;
 		setReview(null);
 		actions.review?.close(from).catch(() => {});
 	}
@@ -176,7 +197,10 @@ export function HostStage({
 		}
 		setReview((current) => current && { ...current, busy: true, error: null });
 		actionsOfReview.submit(from, marks).then(
-			() => setReview(null),
+			() => {
+				leftReviewAt.current = stageKey;
+				setReview(null);
+			},
 			() =>
 				setReview(
 					(current) =>
