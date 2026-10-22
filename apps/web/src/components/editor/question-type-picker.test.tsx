@@ -18,7 +18,7 @@ function renderPicker(unavailableReason: string | null = null) {
 const addButton = () => screen.getByRole("button", { name: "Adicionar" });
 
 describe("QuestionTypePicker", () => {
-	it("lists Quiz and Verdadeiro ou falso under Testar conhecimento", async () => {
+	it("lists Quiz, Verdadeiro ou falso and Resposta curta under Testar conhecimento", async () => {
 		const { onPick, user } = renderPicker();
 		expect(screen.queryByRole("menuitem")).not.toBeInTheDocument();
 
@@ -28,7 +28,7 @@ describe("QuestionTypePicker", () => {
 			(await screen.findAllByRole("menuitem")).map((item) =>
 				item.textContent?.trim(),
 			),
-		).toEqual(["Quiz", "Verdadeiro ou falso"]);
+		).toEqual(["Quiz", "Verdadeiro ou falso", "Resposta curta"]);
 		expect(
 			screen.getByRole("group", { name: "Testar conhecimento" }),
 		).toBeInTheDocument();
@@ -38,6 +38,7 @@ describe("QuestionTypePicker", () => {
 	it.each([
 		["Quiz", "quiz"],
 		["Verdadeiro ou falso", "trueFalse"],
+		["Resposta curta", "typeAnswer"],
 	])("choosing %s calls back with its type and closes", async (name, type) => {
 		const { onPick, user } = renderPicker();
 		await user.click(addButton());
@@ -74,5 +75,25 @@ describe("QuestionTypePicker", () => {
 
 		expect(screen.queryByRole("menuitem")).not.toBeInTheDocument();
 		expect(onPick).not.toHaveBeenCalled();
+	});
+
+	it("shows the type's preview in a tooltip on hover (spec 031, RN-01)", async () => {
+		const { user } = renderPicker();
+		await user.click(addButton());
+
+		await user.hover(
+			await screen.findByRole("menuitem", { name: "Resposta curta" }),
+		);
+
+		const preview = await screen.findByRole("region", {
+			name: "Prévia de Resposta curta",
+		});
+		expect(preview).toHaveTextContent(
+			"Peça aos participantes para digitarem uma resposta curta.",
+		);
+		expect(preview).toHaveTextContent("Qual é o rio mais extenso do mundo?");
+
+		// Outside the picker's own content: it takes no room there.
+		expect(screen.getByRole("menu")).not.toContainElement(preview);
 	});
 });

@@ -1,14 +1,13 @@
 import {
 	copyQuestion,
-	DEFAULT_TIME_LIMIT_SECONDS,
 	parseStoredContent,
+	parseStoredTimeLimit,
 	QUESTION_POINTS,
 	QUESTION_TYPES,
 	type Question,
 	type QuestionPoints,
 	type QuestionType,
-	TIME_LIMITS_SECONDS,
-	type TimeLimitSeconds,
+	type QuizQuestion,
 } from "./question";
 import { parseStoredImage, sameImage } from "./question-image";
 
@@ -42,13 +41,23 @@ export function newQuizVersion(input: {
 }
 
 function sameContent(a: Question, b: Question): boolean {
-	if (a.type === "trueFalse" || b.type === "trueFalse") {
-		return (
-			a.type === "trueFalse" &&
-			b.type === "trueFalse" &&
-			a.correct === b.correct
-		);
+	switch (a.type) {
+		case "trueFalse":
+			return b.type === "trueFalse" && a.correct === b.correct;
+		case "typeAnswer":
+			return (
+				b.type === "typeAnswer" &&
+				a.acceptedAnswers.length === b.acceptedAnswers.length &&
+				a.acceptedAnswers.every(
+					(answer, index) => answer === b.acceptedAnswers[index],
+				)
+			);
+		case "quiz":
+			return b.type === "quiz" && sameQuizContent(a, b);
 	}
+}
+
+function sameQuizContent(a: QuizQuestion, b: QuizQuestion): boolean {
 	return (
 		a.selection === b.selection &&
 		a.choices.length === b.choices.length &&
@@ -122,12 +131,7 @@ export function parseVersionQuestions(raw: unknown): Question[] {
 			{
 				id,
 				text: typeof text === "string" ? text : null,
-				timeLimitSeconds: isOneOf<TimeLimitSeconds>(
-					TIME_LIMITS_SECONDS,
-					timeLimitSeconds,
-				)
-					? timeLimitSeconds
-					: DEFAULT_TIME_LIMIT_SECONDS,
+				timeLimitSeconds: parseStoredTimeLimit(type, timeLimitSeconds),
 				points: isOneOf<QuestionPoints>(QUESTION_POINTS, points)
 					? points
 					: "standard",

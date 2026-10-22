@@ -1,6 +1,15 @@
 import type { AnswerRepository } from "@quizio/core/game/application/ports/answer-repository";
 import type { Answer } from "@quizio/core/game/domain/answer";
-import { and, asc, count as countRows, eq, lte, sum } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count as countRows,
+	eq,
+	inArray,
+	lte,
+	sql,
+	sum,
+} from "drizzle-orm";
 
 import { gameAnswer as answerTable } from "../../schema/game";
 import type { Database } from "../../types";
@@ -77,6 +86,43 @@ export function createDrizzleAnswerRepository(db: Database): AnswerRepository {
 				playerId,
 				total: Number(total ?? 0),
 			}));
+		},
+
+		async regrade(gameId, questionIndex, regrades, reviewedAt) {
+			if (regrades.length === 0) {
+				return;
+			}
+			// One statement for the question: each player's answer gets its grade.
+			const correctness = sql.join(
+				regrades.map(
+					(regrade) =>
+						sql`when ${regrade.playerId} then ${regrade.correctness}::answer_correctness`,
+				),
+				sql` `,
+			);
+			const points = sql.join(
+				regrades.map(
+					(regrade) =>
+						sql`when ${regrade.playerId} then ${regrade.points}::integer`,
+				),
+				sql` `,
+			);
+			await db
+				.update(answerTable)
+				.set({
+					correctness: sql`case ${answerTable.playerId} ${correctness} end`,
+					points: sql`case ${answerTable.playerId} ${points} end`,
+					reviewedAt,
+				})
+				.where(
+					and(
+						ofQuestion(gameId, questionIndex),
+						inArray(
+							answerTable.playerId,
+							regrades.map(({ playerId }) => playerId),
+						),
+					),
+				);
 		},
 
 		async listByPlayer(gameId, playerId) {

@@ -1,6 +1,7 @@
 import {
 	aQuestion,
 	aTrueFalseQuestion,
+	aTypeAnswerQuestion,
 } from "@quizio/core/quiz/testing/a-question";
 import { aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { eq } from "drizzle-orm";
@@ -301,5 +302,39 @@ describe("DrizzleQuestionRepository", () => {
 		expect(
 			await createDrizzleQuestionRepository(testDb.db).listByQuiz("quiz-1"),
 		).toEqual([aQuestion({ id: "old", text: "?" })]);
+	});
+
+	it("stores and reads a type answer with its accepted answers (spec 031)", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const typed = aTypeAnswerQuestion({
+			id: "typed",
+			acceptedAnswers: ["Pedro", null, "Simão Pedro"],
+			timeLimitSeconds: 45,
+		});
+
+		await questions.saveList("quiz-1", [typed]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([typed]);
+	});
+
+	it("a stored time outside the type reads as its default (spec 031)", async () => {
+		await testDb.db.insert(questionTable).values({
+			id: "short",
+			type: "typeAnswer",
+			quizId: "quiz-1",
+			position: 0,
+			timeLimitSeconds: 10,
+			content: { acceptedAnswers: ["Pedro"] },
+		});
+
+		const [question] = await createDrizzleQuestionRepository(
+			testDb.db,
+		).listByQuiz("quiz-1");
+
+		expect(question).toMatchObject({
+			type: "typeAnswer",
+			timeLimitSeconds: 30,
+			acceptedAnswers: ["Pedro"],
+		});
 	});
 });

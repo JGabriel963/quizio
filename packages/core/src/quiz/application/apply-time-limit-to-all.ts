@@ -1,5 +1,5 @@
 import type { Clock } from "../../shared/application/ports/clock";
-import { parseTimeLimit } from "../domain/question";
+import { fitTimeLimit, parseTimeLimit } from "../domain/question";
 import { loadEditableQuiz, markQuizEdited } from "./editable-quiz";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
@@ -10,7 +10,10 @@ export interface ApplyTimeLimitToAllInput extends QuizReference {
 	seconds: number;
 }
 
-/** "Aplicar a todas as perguntas" (spec 004, RN-11). */
+/**
+ * "Aplicar a todas as perguntas" (spec 004, RN-11). A type that does not take
+ * the time gets its shortest one (spec 031, RN-07).
+ */
 export type ApplyTimeLimitToAll = (
 	input: ApplyTimeLimitToAllInput,
 ) => Promise<{ updatedCount: number }>;
@@ -26,7 +29,7 @@ export function createApplyTimeLimitToAll(deps: {
 		const { quiz, questions } = await loadEditableQuiz(deps, ref);
 		const list = questions.map((question) => ({
 			...question,
-			timeLimitSeconds,
+			timeLimitSeconds: fitTimeLimit(question.type, timeLimitSeconds),
 		}));
 
 		await deps.questions.saveList(quiz.id, list);

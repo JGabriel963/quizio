@@ -45,7 +45,9 @@ function changeKey(questionId: string, change: QuestionChange): string {
 	const field =
 		change.kind === "choiceText" || change.kind === "choiceCorrect"
 			? `choice:${change.choiceId}:${change.kind}`
-			: change.kind;
+			: change.kind === "acceptedAnswerText"
+				? `accepted:${change.index}`
+				: change.kind;
 	return `question:${questionId}:${field}`;
 }
 
@@ -371,23 +373,26 @@ export function useEditorActions(quizId: string): EditorActions {
 				const added = await addGenerated.mutateAsync({
 					quizId,
 					// Only what a created question is: the server checks it again.
-					questions: questions.map((question) =>
-						question.type === "quiz"
-							? {
-									type: "quiz" as const,
-									text: question.text ?? "",
-									choices: question.choices
-										.filter((choice) => choice.text !== null)
-										.map((choice) => ({
-											text: choice.text ?? "",
-											correct: choice.correct,
-										})),
-								}
-							: {
-									type: "trueFalse" as const,
-									text: question.text ?? "",
-									correct: question.correct ?? false,
-								},
+					// The assistant creates Quiz and true/false only (spec 031, Fora de escopo).
+					questions: questions.flatMap((question) =>
+						question.type === "typeAnswer"
+							? []
+							: question.type === "quiz"
+								? {
+										type: "quiz" as const,
+										text: question.text ?? "",
+										choices: question.choices
+											.filter((choice) => choice.text !== null)
+											.map((choice) => ({
+												text: choice.text ?? "",
+												correct: choice.correct,
+											})),
+									}
+								: {
+										type: "trueFalse" as const,
+										text: question.text ?? "",
+										correct: question.correct ?? false,
+									},
 					),
 				});
 				// The lone blank question may have been replaced: read the list again.

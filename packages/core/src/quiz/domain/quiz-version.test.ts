@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
+import {
+	aQuestion,
+	aTrueFalseQuestion,
+	aTypeAnswerQuestion,
+} from "../testing/a-question";
 import { blankQuestion, type Question } from "./question";
 import {
 	newQuizVersion,
@@ -162,5 +166,56 @@ describe("parseVersionQuestions", () => {
 			blankQuestion("c"),
 			{ ...blankQuestion("d", "trueFalse"), text: "Certo?" },
 		]);
+	});
+});
+
+describe("type answers in versions", () => {
+	it("different accepted answers are different lists", () => {
+		expect(
+			sameQuestionLists(
+				[aTypeAnswerQuestion({ acceptedAnswers: ["Pedro"] })],
+				[aTypeAnswerQuestion({ acceptedAnswers: ["Pedro", "Jesus"] })],
+			),
+		).toBe(false);
+		expect(
+			sameQuestionLists(
+				[aTypeAnswerQuestion()],
+				[aQuestion({ text: aTypeAnswerQuestion().text })],
+			),
+		).toBe(false);
+	});
+
+	it("the same accepted answers are the same list", () => {
+		expect(
+			sameQuestionLists(
+				[aTypeAnswerQuestion({ acceptedAnswers: ["Pedro", "Jesus"] })],
+				[
+					aTypeAnswerQuestion({
+						id: "other",
+						acceptedAnswers: ["Pedro", "Jesus"],
+					}),
+				],
+			),
+		).toBe(true);
+	});
+
+	it("a stored time outside the type falls back to its default", () => {
+		const [question] = parseVersionQuestions([
+			{
+				id: "question-1",
+				type: "typeAnswer",
+				text: "Quem?",
+				timeLimitSeconds: 10,
+				points: "standard",
+				image: null,
+				acceptedAnswers: ["Pedro"],
+			},
+		]);
+
+		expect(question).toMatchObject({
+			type: "typeAnswer",
+			timeLimitSeconds: 30,
+			acceptedAnswers: ["Pedro"],
+		});
 	});
 });

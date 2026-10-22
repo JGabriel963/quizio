@@ -61,6 +61,16 @@ export interface GameRepository {
 	 */
 	saveHostSeen(gameId: string, at: Date): Promise<void>;
 	/**
+	 * Stores when the host opened or closed the answer review, and nothing else
+	 * (spec 031, RN-32), only while the game is still at `from`. False means it
+	 * moved first.
+	 */
+	saveReview(
+		gameId: string,
+		from: StageRef,
+		review: { openedAt: Date | null; closedAt: Date | null },
+	): Promise<boolean>;
+	/**
 	 * Deletes the games of a quiz that never left the lobby, open or ended
 	 * (spec 015, RN-05): the ones that started stay, as reports, when their
 	 * quiz is deleted for good.

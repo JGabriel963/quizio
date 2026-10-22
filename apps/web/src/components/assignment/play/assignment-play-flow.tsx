@@ -43,8 +43,8 @@ export interface AssignmentPlayApi {
 	answer(
 		input: StoredAssignmentSession & {
 			questionIndex: number;
-			choiceIds: string[];
-		},
+			/** The marked answers, or the typed text of a type answer (spec 031). */
+		} & ({ choiceIds: string[] } | { text: string }),
 	): Promise<AssignmentPlayData>;
 	advance(
 		input: StoredAssignmentSession & {
@@ -451,6 +451,22 @@ export function AssignmentPlayFlow({
 						durationMs={screen.durationMs}
 						receivedAt={play.receivedAt}
 						failure={play.failure}
+						onType={(text) =>
+							void act(
+								() =>
+									api.answer({
+										...session,
+										questionIndex: screen.question.index,
+										text,
+									}),
+								() =>
+									setPlay((current) => ({
+										...current,
+										busy: false,
+										failure: ANSWER_NOT_SENT_MESSAGE,
+									})),
+							)
+						}
 						onAnswer={(choiceIds) =>
 							void act(
 								() =>

@@ -52,6 +52,8 @@ const resultOf = (index: number, text: string) => ({
 	},
 	chosenIds: [`q${index}-a`],
 	rightIds: [`q${index}-a`],
+	typedText: null,
+	acceptedAnswers: [],
 	result: "correct" as const,
 	points: 900,
 });

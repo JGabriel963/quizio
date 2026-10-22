@@ -8,6 +8,7 @@ export function questionCountLabel(count: number): string {
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
 	quiz: "Quiz",
 	trueFalse: "Verdadeiro ou falso",
+	typeAnswer: "Resposta curta",
 };
 
 export function questionTypeLabel(type: QuestionType): string {

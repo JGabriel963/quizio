@@ -71,6 +71,14 @@ Os pontos de uma resposta são calculados quando ela chega e gravados na linha d
 
 O que pode ser divulgado é sempre calculado até a última pergunta revelada: a atual, a partir da revelação; a anterior, antes disso. Pontos e posições não vão por evento. Duas entradas simultâneas podem passar do limite por um ou dois jogadores, o que é aceitável para um limite técnico.
 
+**Atualização — revisão de respostas (spec 031, 2026-10-21).** Os pontos gravados passam a ter **uma** exceção: na revelação de uma Resposta curta, o anfitrião pode marcar respostas digitadas como corretas ou incorretas, e as respostas que mudaram são regravadas com a correção nova e os pontos refeitos pela fórmula de velocidade, com o tempo de resposta medido quando chegaram (`answers.regrade`, que marca `reviewed_at`). A regra fica estreita:
+
+- só o anfitrião, só na revelação daquela pergunta e só por "Enviar", que **avança a partida** (placar ou pódio);
+- o servidor **avança e regrava numa só transação** (`ReviewResultsWriter`): a mesma escrita condicional de qualquer transição e, só se ela passar, as regravações. De dois envios, só o que avançou regrava; a correção de uma pergunta nunca muda depois que a partida saiu da revelação dela; e uma falha no meio desfaz as duas, deixando a revelação aberta para enviar de novo;
+- o evento `stage-changed` sai só depois de regravar, então as telas que consultam de novo já leem os pontos novos. Uma leitura no meio dos dois passos pode ver o placar antigo por alguns milissegundos; se incomodar, os dois passos cabem numa transação do adapter.
+
+Com a reprodução automática, a revisão aberta deixa a revelação sem prazo: a partida guarda, junto do andamento, quando a revisão foi aberta e quando foi fechada (`review_opened_at`, `review_closed_at`), gravados sozinhos por `saveReview` e apagados por qualquer transição. A contagem de 5 s recomeça do fechamento. Continua sem temporizador no servidor.
+
 ## Consequências
 
 - Qualquer tela pode ser recarregada a qualquer momento e volta ao estado certo.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aQuestion } from "../../quiz/testing/a-question";
+import { aQuestion, aTypeAnswerQuestion } from "../../quiz/testing/a-question";
 import {
 	AlreadyAnsweredError,
 	AnswersClosedError,
@@ -56,6 +56,8 @@ describe("submitAnswer (spec 009)", () => {
 				correctness: "correct",
 				points: 895,
 				receivedAt: deps.clock.now(),
+				text: null,
+				reviewedAt: null,
 			},
 		]);
 	});
@@ -335,5 +337,64 @@ describe("submitAnswer (spec 009)", () => {
 			["partiallyCorrect", 1733],
 			["wrong", 0],
 		]);
+	});
+});
+
+describe("submitAnswer of a type answer (spec 031)", () => {
+	async function typing(players = ["Ana", "Bia"]) {
+		const game = await createStartedGame({
+			players,
+			questions: [
+				aTypeAnswerQuestion({
+					acceptedAnswers: ["The Colosseum", "Colosseum"],
+					timeLimitSeconds: 30,
+				}),
+			],
+		});
+		await game.reach("answering");
+		return game;
+	}
+
+	it("a typed answer equal to an accepted one scores by speed", async () => {
+		const { deps, type } = await typing();
+		deps.clock.advanceBy(15_000);
+
+		await type(1, " colosseum! ");
+
+		expect(await deps.answers.listByQuestion("game-1", 0)).toMatchObject([
+			{
+				playerId: "p1",
+				correctness: "correct",
+				points: 750,
+				responseTimeMs: 15_000,
+			},
+		]);
+	});
+
+	it("a typed answer is stored with its text", async () => {
+		const { deps, type } = await typing();
+
+		await type(1, "  the coloseum ");
+
+		expect(await deps.answers.listByQuestion("game-1", 0)).toMatchObject([
+			{ choiceIds: [], text: "the coloseum", correctness: "wrong", points: 0 },
+		]);
+	});
+
+	it("refuses a typed answer to a choice question", async () => {
+		const { submitAnswer } = await answering();
+
+		await expect(
+			submitAnswer({ ...fromPlayer(1, []), text: "Brasília" }),
+		).rejects.toThrow(InvalidAnswerError);
+	});
+
+	it("everyone answering a type answer closes the answers", async () => {
+		const { stage, type } = await typing();
+
+		await type(1, "Colosseum");
+		await type(2, "Roma");
+
+		expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
 	});
 });

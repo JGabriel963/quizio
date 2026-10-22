@@ -30,6 +30,14 @@ export type LobbyPlayerData = HostGameData["players"][number];
 export type GameOptionsData = HostGameData["options"];
 export type HostStageData = NonNullable<HostGameData["stage"]>;
 export type HostQuestionData = NonNullable<HostStageData["question"]>;
+export type HostImageData = NonNullable<HostQuestionData["image"]>;
+/** A tag of the results of a type answer (spec 031, RN-23). */
+export type TypedAnswerTagData = NonNullable<
+	HostStageData["typedAnswers"]
+>["tags"][number];
+/** Every typed answer of a question, for the host's review (spec 031, RN-27). */
+export type TypedAnswerGroupData =
+	RouterOutputs["game"]["review"]["answers"]["groups"][number];
 export type ScoreboardEntryData = NonNullable<
 	HostStageData["scoreboard"]
 >[number];

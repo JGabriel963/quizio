@@ -1,3 +1,4 @@
+import { fitTimeLimit } from "@quizio/core/quiz/domain/question";
 import {
 	moveQuestion,
 	removeQuestion,
@@ -71,9 +72,10 @@ export function withTimeLimitForAll(
 ): QuizEditorData {
 	return {
 		...data,
+		// A type that does not take the time gets its shortest one (spec 031, RN-07).
 		questions: data.questions.map((question) => ({
 			...question,
-			timeLimitSeconds: seconds,
+			timeLimitSeconds: fitTimeLimit(question.type, seconds),
 		})),
 	};
 }

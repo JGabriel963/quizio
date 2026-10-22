@@ -1,4 +1,7 @@
-import type { AnswerRepository } from "../application/ports/answer-repository";
+import type {
+	AnswerRegrade,
+	AnswerRepository,
+} from "../application/ports/answer-repository";
 import type { Answer } from "../domain/answer";
 
 export class InMemoryAnswerRepository implements AnswerRepository {
@@ -56,6 +59,31 @@ export class InMemoryAnswerRepository implements AnswerRepository {
 			}
 		}
 		return [...totals].map(([playerId, total]) => ({ playerId, total }));
+	}
+
+	async regrade(
+		gameId: string,
+		questionIndex: number,
+		regrades: readonly AnswerRegrade[],
+		reviewedAt: Date,
+	): Promise<void> {
+		for (const [index, answer] of this.#answers.entries()) {
+			const regrade = regrades.find(
+				({ playerId }) => playerId === answer.playerId,
+			);
+			if (
+				regrade &&
+				answer.gameId === gameId &&
+				answer.questionIndex === questionIndex
+			) {
+				this.#answers[index] = {
+					...answer,
+					correctness: regrade.correctness,
+					points: regrade.points,
+					reviewedAt,
+				};
+			}
+		}
 	}
 
 	async listByPlayer(gameId: string, playerId: string): Promise<Answer[]> {

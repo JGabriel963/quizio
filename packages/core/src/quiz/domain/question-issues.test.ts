@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
+import {
+	aQuestion,
+	aTrueFalseQuestion,
+	aTypeAnswerQuestion,
+} from "../testing/a-question";
 import { blankQuestion, type Question } from "./question";
 import {
 	incompleteQuestions,
@@ -130,5 +134,31 @@ describe("missingAnswerCount", () => {
 			missingAnswerCount(withChoices(["Brasília", "Rio", "Recife", null])),
 		).toBe(0);
 		expect(missingAnswerCount(aTrueFalseQuestion())).toBe(0);
+	});
+});
+
+describe("questionIssues of a type answer question", () => {
+	it("a type answer without accepted answers is incomplete", () => {
+		expect(
+			questionIssues(aTypeAnswerQuestion({ acceptedAnswers: [null, null] })),
+		).toEqual(["noAcceptedAnswer"]);
+		expect(questionIssues(blankQuestion("question-1", "typeAnswer"))).toEqual([
+			"missingText",
+			"noAcceptedAnswer",
+		]);
+	});
+
+	it("an accepted answer of signs only does not count", () => {
+		expect(
+			questionIssues(aTypeAnswerQuestion({ acceptedAnswers: ["?!"] })),
+		).toEqual(["noAcceptedAnswer"]);
+	});
+
+	it("a type answer with an accepted answer and a text is complete", () => {
+		expect(
+			questionIssues(aTypeAnswerQuestion({ acceptedAnswers: [null, "Pedro"] })),
+		).toEqual([]);
+		expect(missingAnswerCount(aTypeAnswerQuestion())).toBe(0);
+		expect(missingAnswerHints(aTypeAnswerQuestion())).toEqual([]);
 	});
 });

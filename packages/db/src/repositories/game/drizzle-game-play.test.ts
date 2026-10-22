@@ -25,6 +25,7 @@ import { createDrizzleGameQuestionRepository } from "./drizzle-game-question-rep
 import { createDrizzleGameRepository } from "./drizzle-game-repository";
 import { createDrizzlePlayableQuizQuery } from "./drizzle-playable-quiz-query";
 import { createDrizzlePlayerRepository } from "./drizzle-player-repository";
+import { createDrizzleReviewResultsWriter } from "./drizzle-review-results-writer";
 
 const at = (iso: string) => new Date(iso);
 const now = at("2026-06-01T12:00:00.000Z");
@@ -138,6 +139,47 @@ describe("game play repositories (spec 009)", () => {
 				),
 			).toBe(false);
 			expect(await games.findById("game-1")).toEqual(ended);
+		});
+
+		it("saveReview writes only while at from (spec 031)", async () => {
+			const results = aPlayingGame("results", { since: now });
+			await games.save(results);
+			const openedAt = at("2026-06-01T12:00:02.000Z");
+
+			expect(
+				await games.saveReview(
+					"game-1",
+					{ questionIndex: 0, phase: "results" },
+					{ openedAt, closedAt: null },
+				),
+			).toBe(true);
+			expect(
+				await games.saveReview(
+					"game-1",
+					{ questionIndex: 0, phase: "scoreboard" },
+					{ openedAt: null, closedAt: openedAt },
+				),
+			).toBe(false);
+			expect((await games.findById("game-1"))?.progress).toEqual({
+				...results.progress,
+				reviewOpenedAt: openedAt,
+			});
+		});
+
+		it("saveIfAt clears the review instants (spec 031)", async () => {
+			const results = aPlayingGame("results", { since: now });
+			await games.save(results);
+			const from = { questionIndex: 0, phase: "results" } as const;
+			await games.saveReview("game-1", from, {
+				openedAt: now,
+				closedAt: null,
+			});
+			const next = aPlayingGame("scoreboard", {
+				since: at("2026-06-01T12:00:09.000Z"),
+			});
+
+			expect(await games.saveIfAt(next, from)).toBe(true);
+			expect((await games.findById("game-1"))?.progress).toEqual(next.progress);
 		});
 
 		it("finishing frees the PIN", async () => {
@@ -275,6 +317,56 @@ describe("game play repositories (spec 009)", () => {
 			]);
 			expect(await answers.listByPlayer("game-1", "p9")).toEqual([]);
 		});
+
+		it("stores a typed answer with its text (spec 031)", async () => {
+			const typed = anAnswer({
+				playerId: "p1",
+				choiceIds: [],
+				text: "the coloseum",
+				correctness: "wrong",
+				points: 0,
+			});
+
+			await answers.add(typed);
+
+			expect(await answers.find("game-1", 0, "p1")).toEqual(typed);
+		});
+
+		it("regrade rewrites the answers of one question and marks them reviewed (spec 031)", async () => {
+			const reviewedAt = at("2026-06-01T12:01:00.000Z");
+			await answers.add({
+				...first,
+				text: "pedra",
+				correctness: "wrong",
+				points: 0,
+			});
+			await answers.add({
+				...second,
+				text: "pedra",
+				correctness: "wrong",
+				points: 0,
+			});
+			await answers.add({ ...first, questionIndex: 1, points: 0 });
+
+			await answers.regrade(
+				"game-1",
+				0,
+				[
+					{ playerId: "p1", correctness: "correct", points: 790 },
+					{ playerId: "p2", correctness: "correct", points: 700 },
+				],
+				reviewedAt,
+			);
+
+			expect(await answers.listByQuestion("game-1", 0)).toMatchObject([
+				{ playerId: "p1", correctness: "correct", points: 790, reviewedAt },
+				{ playerId: "p2", correctness: "correct", points: 700, reviewedAt },
+			]);
+			expect(await answers.find("game-1", 1, "p1")).toMatchObject({
+				points: 0,
+				reviewedAt: null,
+			});
+		});
 	});
 
 	describe("DrizzlePlayableQuizQuery.questions", () => {
@@ -305,6 +397,78 @@ describe("game play repositories (spec 009)", () => {
 			expect(await query.questions("quiz-1", 1)).toEqual(original);
 			expect(await query.questions("quiz-1", 2)).toHaveLength(1);
 			expect(await query.questions("quiz-1", 9)).toEqual([]);
+		});
+	});
+
+	describe("DrizzleReviewResultsWriter (spec 031, RN-30a)", () => {
+		const from = { questionIndex: 0, phase: "results" } as const;
+
+		async function inResults() {
+			const results = aPlayingGame("results", { since: now });
+			await games.save(results);
+			await answers.add(
+				anAnswer({
+					playerId: "p1",
+					choiceIds: [],
+					text: "pedra",
+					correctness: "wrong",
+					points: 0,
+				}),
+			);
+			return nextStage(results, {
+				timeLimitSeconds: 20,
+				skip: false,
+				review: true,
+				now,
+			});
+		}
+
+		it("moves on and regrades together, once", async () => {
+			const writer = createDrizzleReviewResultsWriter(testDb.db);
+			const next = await inResults();
+			const regrade = {
+				next,
+				from,
+				questionIndex: 0,
+				regrades: [
+					{ playerId: "p1", correctness: "correct" as const, points: 900 },
+				],
+				reviewedAt: now,
+			};
+
+			expect(await writer.advanceAndRegrade(regrade)).toBe(true);
+			expect(await writer.advanceAndRegrade(regrade)).toBe(false);
+			expect((await games.findById("game-1"))?.status).toBe("playing");
+			expect(await answers.find("game-1", 0, "p1")).toMatchObject({
+				correctness: "correct",
+				points: 900,
+				reviewedAt: now,
+			});
+		});
+
+		it("a failed regrade rolls the stage back with it", async () => {
+			const writer = createDrizzleReviewResultsWriter(testDb.db);
+			const next = await inResults();
+			const before = await games.findById("game-1");
+
+			await expect(
+				writer.advanceAndRegrade({
+					next,
+					from,
+					questionIndex: 0,
+					// Not a correctness: the database refuses it.
+					regrades: [
+						{ playerId: "p1", correctness: "bogus" as never, points: 900 },
+					],
+					reviewedAt: now,
+				}),
+			).rejects.toThrow();
+
+			expect(await games.findById("game-1")).toEqual(before);
+			expect(await answers.find("game-1", 0, "p1")).toMatchObject({
+				correctness: "wrong",
+				reviewedAt: null,
+			});
 		});
 	});
 });

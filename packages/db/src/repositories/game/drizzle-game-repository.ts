@@ -17,6 +17,8 @@ function toGame(row: GameRow): Game {
 		questionIndex,
 		phase,
 		phaseStartedAt,
+		reviewOpenedAt,
+		reviewClosedAt,
 		showQuestionsOnDevices,
 		randomizeQuestions,
 		randomizeAnswers,
@@ -34,7 +36,14 @@ function toGame(row: GameRow): Game {
 		},
 		progress:
 			questionIndex !== null && phase !== null && phaseStartedAt !== null
-				? { questionIndex, phase, phaseStartedAt }
+				? {
+						questionIndex,
+						phase,
+						phaseStartedAt,
+						// Only while set: a stage without a review reads as before (spec 031).
+						...(reviewOpenedAt && { reviewOpenedAt }),
+						...(reviewClosedAt && { reviewClosedAt }),
+					}
 				: null,
 	};
 }
@@ -51,6 +60,8 @@ function toRow(game: Game): GameRow {
 		questionIndex: progress?.questionIndex ?? null,
 		phase: progress?.phase ?? null,
 		phaseStartedAt: progress?.phaseStartedAt ?? null,
+		reviewOpenedAt: progress?.reviewOpenedAt ?? null,
+		reviewClosedAt: progress?.reviewClosedAt ?? null,
 	};
 }
 
@@ -175,6 +186,8 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 				questionIndex,
 				phase,
 				phaseStartedAt,
+				reviewOpenedAt,
+				reviewClosedAt,
 			} = toRow(game);
 			const updated = await db
 				.update(gameTable)
@@ -185,6 +198,8 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 					questionIndex,
 					phase,
 					phaseStartedAt,
+					reviewOpenedAt,
+					reviewClosedAt,
 					endedAt: game.endedAt,
 					endReason: game.endReason,
 				})
@@ -199,6 +214,27 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 									eq(gameTable.phase, from.phase),
 								]
 							: [eq(gameTable.status, "lobby")]),
+					),
+				)
+				.returning({ id: gameTable.id });
+			return updated.length > 0;
+		},
+
+		async saveReview(gameId, from, review) {
+			// Only the two instants, and only while the game is at those results.
+			const updated = await db
+				.update(gameTable)
+				.set({
+					reviewOpenedAt: review.openedAt,
+					reviewClosedAt: review.closedAt,
+				})
+				.where(
+					and(
+						eq(gameTable.id, gameId),
+						isNull(gameTable.endedAt),
+						eq(gameTable.status, "playing"),
+						eq(gameTable.questionIndex, from.questionIndex),
+						eq(gameTable.phase, from.phase),
 					),
 				)
 				.returning({ id: gameTable.id });

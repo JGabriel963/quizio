@@ -3,6 +3,7 @@ import {
 	type Question,
 	type QuizQuestion,
 	type TrueFalseQuestion,
+	type TypeAnswerQuestion,
 } from "../domain/question";
 
 /** Test builder: a quiz question with some text and the blank defaults. */
@@ -31,6 +32,18 @@ export function aTrueFalseQuestion(
 	};
 }
 
+/** Test builder: a type answer question with some text and one accepted answer. */
+export function aTypeAnswerQuestion(
+	overrides: Partial<TypeAnswerQuestion> = {},
+): TypeAnswerQuestion {
+	return {
+		...blankQuestion(overrides.id ?? "question-1", "typeAnswer"),
+		text: "Qual o nome do personagem que andou sobre as Ã¡guas?",
+		acceptedAnswers: ["Pedro"],
+		...overrides,
+	};
+}
+
 /** Narrows a question a test knows to be a quiz one. */
 export function asQuiz(question: Question | undefined): QuizQuestion {
 	if (question?.type !== "quiz") {
@@ -43,6 +56,16 @@ export function asQuiz(question: Question | undefined): QuizQuestion {
 export function asTrueFalse(question: Question | undefined): TrueFalseQuestion {
 	if (question?.type !== "trueFalse") {
 		throw new Error(`Expected a true/false question, got ${question?.type}`);
+	}
+	return question;
+}
+
+/** Narrows a question a test knows to be a type answer one. */
+export function asTypeAnswer(
+	question: Question | undefined,
+): TypeAnswerQuestion {
+	if (question?.type !== "typeAnswer") {
+		throw new Error(`Expected a type answer question, got ${question?.type}`);
 	}
 	return question;
 }

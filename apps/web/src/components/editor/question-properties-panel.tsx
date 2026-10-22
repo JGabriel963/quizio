@@ -3,7 +3,7 @@ import {
 	QUESTION_TYPES,
 	type QuestionType,
 	SELECTION_MODES,
-	TIME_LIMITS_SECONDS,
+	timeLimitsFor,
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { Button } from "@quizio/ui/components/button";
@@ -109,7 +109,7 @@ export function QuestionPropertiesPanel({
 				label="Limite de tempo"
 				icon={<ClockIcon aria-hidden="true" className="size-4" />}
 				value={String(question.timeLimitSeconds)}
-				options={TIME_LIMITS_SECONDS.map((seconds) => ({
+				options={timeLimitsFor(question.type).map((seconds) => ({
 					value: String(seconds),
 					label: timeLimitLabel(seconds),
 				}))}

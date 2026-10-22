@@ -3,7 +3,7 @@ import {
 	QUESTION_TYPES,
 	type QuestionType,
 	SELECTION_MODES,
-	TIME_LIMITS_SECONDS,
+	timeLimitsFor,
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { Button } from "@quizio/ui/components/button";
@@ -183,7 +183,7 @@ export function QuestionPropertiesMenu({
 					</Button>
 				)}
 			>
-				{TIME_LIMITS_SECONDS.map((seconds) => (
+				{timeLimitsFor(question.type).map((seconds) => (
 					<Tile key={seconds} value={seconds} name={timeLimitLabel(seconds)}>
 						{shortTimeLimitLabel(seconds)}
 					</Tile>

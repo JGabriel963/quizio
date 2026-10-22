@@ -440,4 +440,106 @@ describe("quiz.questions router", () => {
 
 		expect(error).toMatchObject({ code: "BAD_REQUEST" });
 	});
+
+	describe("type answer (spec 031)", () => {
+		async function withTypeAnswer() {
+			const ana = createTestApi().callerFor("user-1");
+			const { id: quizId } = await ana.quiz.create({});
+			const {
+				questions: [first],
+			} = await ana.quiz.editor({ quizId });
+			const added = await ana.quiz.questions.add({
+				quizId,
+				afterQuestionId: first?.id ?? null,
+				type: "typeAnswer",
+			});
+			return { ana, quizId, questionId: added.question.id };
+		}
+
+		it("adds a type answer", async () => {
+			const { ana, quizId } = await withTypeAnswer();
+
+			const { questions } = await ana.quiz.editor({ quizId });
+
+			expect(questions[1]).toMatchObject({
+				type: "typeAnswer",
+				timeLimitSeconds: 30,
+				acceptedAnswers: [null],
+			});
+		});
+
+		it("updates an accepted answer and adds another", async () => {
+			const { ana, quizId, questionId } = await withTypeAnswer();
+
+			await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: { kind: "acceptedAnswerText", index: 0, text: "Pedro" },
+			});
+			await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: { kind: "acceptedAnswerAdded" },
+			});
+
+			const { questions } = await ana.quiz.editor({ quizId });
+			expect(questions[1]).toMatchObject({ acceptedAnswers: ["Pedro", null] });
+		});
+
+		it("refuses a long accepted answer with its domain code", async () => {
+			const { ana, quizId, questionId } = await withTypeAnswer();
+
+			const error = await failureOf(
+				ana.quiz.questions.update({
+					quizId,
+					questionId,
+					change: {
+						kind: "acceptedAnswerText",
+						index: 0,
+						text: "a".repeat(21),
+					},
+				}),
+			);
+
+			expect(error).toMatchObject({
+				code: "BAD_REQUEST",
+				cause: { code: "QUIZ.ACCEPTED_ANSWER_TOO_LONG" },
+			});
+		});
+
+		it("changes a question to type answer with remembered content", async () => {
+			const { ana, quizId } = await withTypeAnswer();
+			const { questions } = await ana.quiz.editor({ quizId });
+
+			const result = await ana.quiz.questions.update({
+				quizId,
+				questionId: questions[0]?.id ?? "",
+				change: {
+					kind: "type",
+					type: "typeAnswer",
+					remembered: {
+						type: "typeAnswer",
+						acceptedAnswers: ["Pedro", "Simão"],
+					},
+				},
+			});
+
+			expect(result.question).toMatchObject({
+				type: "typeAnswer",
+				acceptedAnswers: ["Pedro", "Simão"],
+				timeLimitSeconds: 20,
+			});
+		});
+
+		it("applying 10 s to all gives type answers 20 s", async () => {
+			const { ana, quizId } = await withTypeAnswer();
+
+			await ana.quiz.questions.applyTimeLimitToAll({ quizId, seconds: 10 });
+
+			const { questions } = await ana.quiz.editor({ quizId });
+			expect(questions.map((question) => question.timeLimitSeconds)).toEqual([
+				10, 20,
+			]);
+		});
+	});
 });

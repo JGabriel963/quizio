@@ -270,9 +270,11 @@ export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 						questionIndex: gameAnswer.questionIndex,
 						playerId: gameAnswer.playerId,
 						choiceIds: gameAnswer.choiceIds,
+						text: gameAnswer.text,
 						correctness: gameAnswer.correctness,
 						points: gameAnswer.points,
 						responseTimeMs: gameAnswer.responseTimeMs,
+						receivedAt: gameAnswer.receivedAt,
 					})
 					.from(gameAnswer)
 					.where(
@@ -297,6 +299,7 @@ export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 									text: parsed.text,
 									imageKey: parsed.image?.key ?? null,
 									choices: parsed.choices,
+									acceptedAnswers: parsed.acceptedAnswers,
 								},
 							]
 						: [];

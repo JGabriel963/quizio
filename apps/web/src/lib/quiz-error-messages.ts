@@ -4,7 +4,9 @@ import {
 } from "@quizio/core/quiz/domain/generation";
 import {
 	CHOICE_TEXT_MAX_LENGTH,
+	MAX_ACCEPTED_ANSWERS,
 	QUESTION_TEXT_MAX_LENGTH,
+	TYPE_ANSWER_MAX_LENGTH,
 } from "@quizio/core/quiz/domain/question";
 import { QUIZ_MAX_QUESTIONS } from "@quizio/core/quiz/domain/question-list";
 import {
@@ -40,6 +42,11 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.INVALID_CHOICE_COUNT":
 		"Não foi possível recuperar as respostas. Recarregue a página.",
 	"QUIZ.INVALID_TIME_LIMIT": "Escolha um limite de tempo da lista.",
+	"QUIZ.TIME_LIMIT_NOT_ALLOWED":
+		"Este tipo de pergunta não aceita esse limite de tempo.",
+	"QUIZ.ACCEPTED_ANSWER_TOO_LONG": `A resposta aceita deve ter no máximo ${TYPE_ANSWER_MAX_LENGTH} caracteres.`,
+	"QUIZ.TOO_MANY_ACCEPTED_ANSWERS": `Uma pergunta tem no máximo ${MAX_ACCEPTED_ANSWERS} respostas aceitas.`,
+	"QUIZ.ACCEPTED_ANSWER_NOT_FOUND": "Essa resposta aceita não existe mais.",
 	"QUIZ.INVALID_POINTS": "Escolha uma opção de pontos da lista.",
 	"QUIZ.INVALID_SELECTION": "Escolha uma opção de resposta da lista.",
 	"QUIZ.INVALID_TYPE": "Escolha um tipo de pergunta da lista.",

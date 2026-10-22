@@ -64,6 +64,10 @@ export interface QuestionResultView {
 	question: PlayQuestionView;
 	chosenIds: string[];
 	rightIds: string[];
+	/** What the participant typed in a type answer (spec 031, RN-35); null otherwise. */
+	typedText: string | null;
+	/** The accepted answers of a type answer, told only with its results (RN-35). */
+	acceptedAnswers: string[];
 	result: Correctness | "unanswered";
 	points: number;
 }
@@ -227,6 +231,8 @@ function resultView(
 		rightIds: question.choices
 			.filter((choice) => choice.correct)
 			.map(({ id }) => id),
+		typedText: answer?.text ?? null,
+		acceptedAnswers: [...question.acceptedAnswers],
 		result: answer?.correctness ?? "unanswered",
 		points: answer?.points ?? 0,
 	};

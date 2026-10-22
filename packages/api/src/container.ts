@@ -11,6 +11,14 @@ import {
 	createAnswerAssignmentQuestion,
 } from "@quizio/core/game/application/answer-assignment-question";
 import {
+	type CloseAnswerReview,
+	createCloseAnswerReview,
+	createGetTypedAnswers,
+	createOpenAnswerReview,
+	type GetTypedAnswers,
+	type OpenAnswerReview,
+} from "@quizio/core/game/application/answer-review";
+import {
 	type ChangeAssignmentAvatar,
 	createChangeAssignmentAvatar,
 } from "@quizio/core/game/application/change-assignment-avatar";
@@ -85,6 +93,7 @@ import type { GameRepository } from "@quizio/core/game/application/ports/game-re
 import type { HostPreferencesRepository } from "@quizio/core/game/application/ports/host-preferences-repository";
 import type { PlayableQuizQuery } from "@quizio/core/game/application/ports/playable-quiz-query";
 import type { PlayerRepository } from "@quizio/core/game/application/ports/player-repository";
+import type { ReviewResultsWriter } from "@quizio/core/game/application/ports/review-results-writer";
 import {
 	createRemovePlayer,
 	type RemovePlayer,
@@ -93,6 +102,10 @@ import {
 	createResumeAssignment,
 	type ResumeAssignment,
 } from "@quizio/core/game/application/resume-assignment";
+import {
+	createReviewTypedAnswers,
+	type ReviewTypedAnswers,
+} from "@quizio/core/game/application/review-typed-answers";
 import {
 	createSetGameLocked,
 	type SetGameLocked,
@@ -294,6 +307,8 @@ export interface Adapters {
 	players: PlayerRepository;
 	gameQuestions: GameQuestionRepository;
 	answers: AnswerRepository;
+	/** The review's stage write and regrades, together (spec 031). */
+	reviewResults: ReviewResultsWriter;
 	playableQuizzes: PlayableQuizQuery;
 	preferences: HostPreferencesRepository;
 	/** The live games as the reports read them (spec 015). */
@@ -358,6 +373,10 @@ export interface Container extends Adapters {
 		changeAvatar: ChangeAvatar;
 		getPlayerSession: GetPlayerSession;
 		submitAnswer: SubmitAnswer;
+		openAnswerReview: OpenAnswerReview;
+		closeAnswerReview: CloseAnswerReview;
+		getTypedAnswers: GetTypedAnswers;
+		reviewTypedAnswers: ReviewTypedAnswers;
 		getAssignmentSetup: GetAssignmentSetup;
 		createAssignment: CreateAssignment;
 		changeAssignmentDeadline: ChangeAssignmentDeadline;
@@ -448,6 +467,10 @@ export function createContainer(adapters: Adapters): Container {
 			changeAvatar: createChangeAvatar(adapters),
 			getPlayerSession: createGetPlayerSession(adapters),
 			submitAnswer: createSubmitAnswer(adapters),
+			openAnswerReview: createOpenAnswerReview(adapters),
+			closeAnswerReview: createCloseAnswerReview(adapters),
+			getTypedAnswers: createGetTypedAnswers(adapters),
+			reviewTypedAnswers: createReviewTypedAnswers(adapters),
 			getAssignmentSetup: createGetAssignmentSetup(assignmentDeps),
 			createAssignment: createCreateAssignment(assignmentDeps),
 			changeAssignmentDeadline: createChangeAssignmentDeadline(assignmentDeps),

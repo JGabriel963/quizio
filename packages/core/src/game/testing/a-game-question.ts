@@ -26,6 +26,7 @@ export function aGameQuestion(
 		points: "standard",
 		selection: "single",
 		choices: someChoices(["Brasília", "Rio de Janeiro", "Salvador", "Recife"]),
+		acceptedAnswers: [],
 		image: null,
 		...overrides,
 	};
@@ -38,10 +39,12 @@ export function anAnswer(overrides: Partial<Answer> = {}): Answer {
 		questionIndex: 0,
 		playerId: "player-1",
 		choiceIds: ["choice-1"],
+		text: null,
 		responseTimeMs: 4_200,
 		correctness: "correct",
 		points: 895,
 		receivedAt: new Date("2026-06-01T12:00:04.200Z"),
+		reviewedAt: null,
 		...overrides,
 	};
 }

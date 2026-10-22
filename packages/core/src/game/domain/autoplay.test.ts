@@ -185,3 +185,38 @@ describe("autoplay: moving on by itself (spec 014)", () => {
 		expect(autoAdvanceToken(playing("results", later(2_000)))).not.toBe(first);
 	});
 });
+
+describe("autoplay and the answer review (spec 031, RN-32)", () => {
+	/** The results since `now`, with the review opened or closed at those instants. */
+	const reviewing = (openedAt: Date | null, closedAt: Date | null = null) => {
+		const game = playing("results");
+		return {
+			...game,
+			progress: game.progress && {
+				...game.progress,
+				reviewOpenedAt: openedAt,
+				reviewClosedAt: closedAt,
+			},
+		};
+	};
+
+	it("an open review leaves the results without a deadline", () => {
+		expect(
+			autoAdvanceRemainingMs(reviewing(later(2_000)), later(60_000)),
+		).toBeNull();
+		expect(autoAdvanceToken(reviewing(later(2_000)))).toBeNull();
+	});
+
+	it("closing the review restarts the countdown from the closing", () => {
+		const closed = reviewing(null, later(20_000));
+
+		expect(autoAdvanceRemainingMs(closed, later(22_000))).toBe(3_000);
+		expect(autoAdvanceRemainingMs(closed, later(26_000))).toBe(0);
+	});
+
+	it("the token changes when the review closes", () => {
+		expect(autoAdvanceToken(reviewing(null, later(20_000)))).not.toBe(
+			autoAdvanceToken(playing("results")),
+		);
+	});
+});

@@ -1,6 +1,7 @@
 import { QuestionImageView } from "@/components/editor/question-image-view";
 import { AnswerButtons } from "@/components/game/player/answer-buttons";
 import { DeviceBackground } from "@/components/game/player/question-on-device";
+import { TypedAnswerInput } from "@/components/game/player/typed-answer-input";
 import type { PlayerQuestionData, PlayQuestionData } from "@/lib/api-types";
 import { useCountdown } from "@/lib/use-countdown";
 
@@ -38,6 +39,7 @@ export function PlayQuestion({
 	receivedAt,
 	failure,
 	onAnswer,
+	onType,
 }: {
 	question: PlayQuestionData;
 	questionCount: number;
@@ -47,6 +49,8 @@ export function PlayQuestion({
 	/** Why the last answer did not go; null otherwise. */
 	failure: string | null;
 	onAnswer: (choiceIds: string[]) => void;
+	/** The typed answer of a type answer (spec 031, RN-34). */
+	onType: (text: string) => void;
 }) {
 	const media = question.image?.placement === "media" ? question.image : null;
 
@@ -76,11 +80,17 @@ export function PlayQuestion({
 					</>
 				}
 				answers={
-					<AnswerButtons
-						key={question.index}
-						question={asDeviceQuestion(question)}
-						onAnswer={onAnswer}
-					/>
+					question.type === "typeAnswer" ? (
+						<div className="flex items-center p-2">
+							<TypedAnswerInput key={question.index} onSubmit={onType} />
+						</div>
+					) : (
+						<AnswerButtons
+							key={question.index}
+							question={asDeviceQuestion(question)}
+							onAnswer={onAnswer}
+						/>
+					)
 				}
 				footer={
 					<TimeBar

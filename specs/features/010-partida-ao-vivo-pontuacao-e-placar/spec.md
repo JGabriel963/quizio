@@ -329,3 +329,4 @@ As telas seguem as capturas do jogo de verdade, no tema escuro do Quizio.
 - 2026-10-01 — implementada. Sem mudança de regra. Um ajuste de texto: os pontos aparecem sem separador de milhar ("+ 1750"), como nas capturas do Kahoot.
 - 2026-10-01 — alterada pela spec 011: a última pergunta não tem mais placar (RN-23, CA-29), a revelação dela leva direto ao pódio; e o placar passa a ser animado (deixa de valer a divergência "Sem animação de troca de posições").
 - 2026-10-15 — spec 028: os jogadores ganham avatar (personagem e acessório), e a divergência "Sem avatar" deixa de valer enquanto a chave "Personagens dos jogadores" estiver ligada.
+- 2026-10-21 — alterada pela spec 031: RN-07 ganha uma exceção. Na revelação de uma Resposta curta, a revisão do anfitrião refaz a correção e os pontos das respostas que ele marcou, com o tempo de resposta medido quando chegaram, e a partida avança na mesma hora; depois disso eles não mudam mais.

@@ -1,15 +1,17 @@
 import type { StageRef } from "@quizio/core/game/domain/game-progress";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type {
 	GameOptionsData,
 	HostGameData,
 	HostStageData,
+	TypedAnswerGroupData,
 } from "@/lib/api-types";
 import { gameErrorCode } from "@/lib/game-error-messages";
 import { msLeft, useSteadyTimeLeft } from "@/lib/use-countdown";
 
 import { GameScreen } from "../game-screen";
+import { AnswerReview, type ReviewMark } from "./answer-review";
 import { GameHeader } from "./game-header";
 import { GameSettings } from "./game-settings";
 import { EndGameDialog } from "./lobby-dialogs";
@@ -29,6 +31,28 @@ export interface HostStageActions {
 	/** A switch of the settings: only the option that changed (spec 012). */
 	setOptions: (change: Partial<GameOptionsData>) => void;
 	end: () => void;
+	/** "Revisar respostas" of a type answer (spec 031, RN-26 to RN-32). */
+	review?: AnswerReviewActions;
+}
+
+/** The review of a type answer's typed answers, wired to the API by the route. */
+export interface AnswerReviewActions {
+	/** Holds autoplay while the review is open (RN-32). */
+	open: (from: StageRef) => Promise<unknown>;
+	/** "Cancelar": back to the results, whose countdown starts over. */
+	close: (from: StageRef) => Promise<unknown>;
+	answers: (questionIndex: number) => Promise<TypedAnswerGroupData[]>;
+	/** "Enviar": grades again and moves on to the scoreboard (RN-30a). */
+	submit: (from: StageRef, marks: ReviewMark[]) => Promise<unknown>;
+}
+
+/** Said when the review could not be sent; it stays open (spec 031). */
+export const REVIEW_FAILED_MESSAGE = "Não foi possível revisar as respostas.";
+
+interface ReviewState {
+	groups: TypedAnswerGroupData[] | null;
+	busy: boolean;
+	error: string | null;
 }
 
 /** How long to wait before asking again when the server says it is too early. */
@@ -67,6 +91,12 @@ export function HostStage({
 
 	const { questionIndex, phase, question } = told;
 	const stageKey = `${questionIndex}:${phase}`;
+	/** The stage the screen opened in: its results came without animation (spec 031, RN-23a). */
+	const [openedAt] = useState(stageKey);
+	const [review, setReview] = useState<ReviewState | null>(null);
+	// Another stage closes the review: it belonged to those results.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the stage is the trigger.
+	useEffect(() => setReview(null), [stageKey]);
 	// With autoplay the results and the scoreboard have a countdown too (spec
 	// 014). It is named by its token: turned off and on again, it starts over.
 	const auto = told.remainingMs === null ? told.autoAdvance : null;
@@ -91,8 +121,10 @@ export function HostStage({
 	);
 
 	// A phase with a deadline ends by itself: this screen asks when it is due.
+	const reviewing = review !== null;
 	useEffect(() => {
-		if (remainingMs === null || !connected) {
+		// While the host reviews, the results wait (spec 031, RN-32).
+		if (remainingMs === null || !connected || reviewing) {
 			return;
 		}
 		let cancelled = false;
@@ -112,7 +144,74 @@ export function HostStage({
 		};
 		// A new stage always comes with a new `receivedAt`, which restarts the
 		// wait; so does the connection coming back (RN-11).
-	}, [remainingMs, receivedAt, connected]);
+	}, [remainingMs, receivedAt, connected, reviewing]);
+
+	const from = { questionIndex, phase };
+	/** The stage whose review this screen closed or sent: it is not reopened from a late view. */
+	const leftReviewAt = useRef<string | null>(null);
+	/** Shows the review and loads its answers. */
+	function showReview() {
+		const actionsOfReview = actions.review;
+		if (!actionsOfReview) {
+			return;
+		}
+		setReview({ groups: null, busy: false, error: null });
+		actionsOfReview
+			.answers(questionIndex)
+			.then((groups) =>
+				setReview((current) => current && { ...current, groups }),
+			)
+			.catch(() =>
+				setReview(
+					(current) => current && { ...current, error: REVIEW_FAILED_MESSAGE },
+				),
+			);
+	}
+	function openReview() {
+		showReview();
+		actions.review?.open(from).catch(() => {});
+	}
+	// A review the server has open (a reload, another tab) shows again: autoplay
+	// waits for it, so the screen must offer Enviar and Cancelar (RN-32).
+	const restoreReview = useEffectEvent(() => {
+		if (review === null && leftReviewAt.current !== stageKey) {
+			showReview();
+		}
+	});
+	const reviewOpenOnServer = phase === "results" && told.reviewOpen;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: each results stage asks again.
+	useEffect(() => {
+		if (reviewOpenOnServer) {
+			restoreReview();
+		}
+	}, [reviewOpenOnServer, stageKey]);
+	function closeReview() {
+		leftReviewAt.current = stageKey;
+		setReview(null);
+		actions.review?.close(from).catch(() => {});
+	}
+	function submitReview(marks: ReviewMark[]) {
+		const actionsOfReview = actions.review;
+		if (!actionsOfReview) {
+			return;
+		}
+		setReview((current) => current && { ...current, busy: true, error: null });
+		actionsOfReview.submit(from, marks).then(
+			() => {
+				leftReviewAt.current = stageKey;
+				setReview(null);
+			},
+			() =>
+				setReview(
+					(current) =>
+						current && {
+							...current,
+							busy: false,
+							error: REVIEW_FAILED_MESSAGE,
+						},
+				),
+		);
+	}
 
 	function request(skip: boolean) {
 		setPending(stageKey);
@@ -169,9 +268,21 @@ export function HostStage({
 				<Results
 					stage={stage}
 					question={question}
-					auto={countdown}
-					busy={busy}
+					auto={reviewing ? null : countdown}
+					busy={busy || reviewing}
+					animate={stageKey !== openedAt}
 					onAdvance={() => request(false)}
+					onReview={actions.review && openReview}
+				/>
+			)}
+			{phase === "results" && question && review && (
+				<AnswerReview
+					questionText={question.text}
+					groups={review.groups}
+					busy={review.busy}
+					error={review.error}
+					onSubmit={submitReview}
+					onCancel={closeReview}
 				/>
 			)}
 

@@ -1,4 +1,4 @@
-import { CheckIcon, ClockIcon } from "lucide-react";
+import { CheckIcon, ClockIcon, XIcon } from "lucide-react";
 
 import type { QuestionDetailData } from "@/lib/api-types";
 import { questionTypeLabel } from "@/lib/quiz-labels";
@@ -48,6 +48,10 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 
 			<section className="flex flex-col gap-2">
 				<h3 className="font-bold">Respostas</h3>
+				{detail.typedAnswers && (
+					<TypedAnswers answers={detail.typedAnswers} answered={answered} />
+				)}
+				{/* A type answer has no alternatives: its list is empty. */}
 				<ul aria-label="Alternativas" className="flex flex-col gap-2">
 					{detail.choices.map((choice) => (
 						<li
@@ -120,6 +124,11 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 										text={choice.text}
 									/>
 								))}
+								{participant.typedText !== null && (
+									<span className="font-semibold">
+										“{participant.typedText}”
+									</span>
+								)}
 								<span className="tabular-nums">
 									{pointsLabel(participant.points)}{" "}
 									{participant.points === 1 ? "ponto" : "pontos"}
@@ -135,5 +144,67 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 				</ul>
 			</section>
 		</div>
+	);
+}
+
+/**
+ * What was typed in a type answer, grouped as the game grouped it: the correct
+ * ones first, the accepted answers nobody sent with 0 (spec 031, RN-37).
+ */
+function TypedAnswers({
+	answers,
+	answered,
+}: {
+	answers: NonNullable<QuestionDetailData["typedAnswers"]>;
+	answered: number;
+}) {
+	return (
+		<ul aria-label="Respostas digitadas" className="flex flex-col gap-2">
+			{answers.map((answer) => (
+				<li
+					key={answer.text}
+					className="flex flex-col gap-1 rounded-md p-3 ring-1 ring-foreground/10"
+				>
+					<div className="flex items-center gap-3">
+						<span className="min-w-0 flex-1 break-words font-semibold">
+							{answer.text}
+						</span>
+						<span
+							className={
+								answer.correct
+									? "inline-flex shrink-0 items-center gap-1 font-semibold text-sm text-success"
+									: "inline-flex shrink-0 items-center gap-1 font-semibold text-destructive text-sm"
+							}
+						>
+							{answer.correct ? (
+								<CheckIcon aria-hidden="true" className="size-4" />
+							) : (
+								<XIcon aria-hidden="true" className="size-4" />
+							)}
+							{answer.correct ? "Correta" : "Incorreta"}
+						</span>
+						<span className="shrink-0 font-bold tabular-nums">
+							{answer.count}
+							<span className="sr-only">
+								{answer.count === 1 ? " enviou" : " enviaram"}
+							</span>
+						</span>
+					</div>
+					<div
+						aria-hidden="true"
+						className="h-1.5 overflow-hidden rounded-full bg-muted"
+					>
+						<div
+							className={
+								answer.correct ? "h-full bg-success" : "h-full bg-foreground/40"
+							}
+							style={{
+								width: `${answered > 0 ? (answer.count / answered) * 100 : 0}%`,
+							}}
+						/>
+					</div>
+				</li>
+			))}
+		</ul>
 	);
 }

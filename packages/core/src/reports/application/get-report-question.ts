@@ -9,6 +9,8 @@ import {
 	imageUrlOf,
 	type QuestionRowView,
 	questionRow,
+	type TypedAnswerView,
+	typedAnswersOf,
 } from "./report-view";
 
 /** An answer of the question, with how many chose it (spec 015, RN-44). */
@@ -23,6 +25,8 @@ export interface QuestionParticipantView {
 	nickname: string;
 	result: AnswerResult;
 	choices: ChoiceView[];
+	/** What they typed in a type answer (spec 031); null otherwise. */
+	typedText: string | null;
 	points: number;
 	responseTimeMs: number | null;
 }
@@ -33,6 +37,8 @@ export interface QuestionDetailView extends QuestionRowView {
 	averageResponseTimeMs: number | null;
 	/** As the game showed them. */
 	choices: QuestionChoiceView[];
+	/** The sent answers of a type answer, in place of the choices (spec 031, RN-37). */
+	typedAnswers: TypedAnswerView[] | null;
 	/** Who could answer it, by the game's standings. */
 	participants: QuestionParticipantView[];
 }
@@ -78,6 +84,7 @@ export function createGetReportQuestion(
 				correct,
 				count: countOf.get(id) ?? 0,
 			})),
+			typedAnswers: typedAnswersOf(question, [...answerOf.values()]),
 			participants: participantStats(game)
 				.filter(
 					({ playerId }) =>
@@ -91,6 +98,7 @@ export function createGetReportQuestion(
 						nickname,
 						result: answer?.correctness ?? "unanswered",
 						choices: chosenChoices(question, answer),
+						typedText: answer?.text ?? null,
 						points: answer?.points ?? 0,
 						responseTimeMs: answer?.responseTimeMs ?? null,
 					};

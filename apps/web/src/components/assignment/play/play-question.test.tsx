@@ -35,6 +35,7 @@ function renderQuestion(
 		receivedAt: Date.now(),
 		failure: null,
 		onAnswer: vi.fn(),
+		onType: vi.fn(),
 		...overrides,
 	};
 	render(<PlayQuestion {...props} />);
@@ -102,6 +103,8 @@ describe("PlayResult (spec 030, RN-11)", () => {
 		question,
 		chosenIds: ["choice-1"],
 		rightIds: ["choice-1"],
+		typedText: null,
+		acceptedAnswers: [],
 		result: "correct" as const,
 		points: 950,
 		...overrides,
@@ -151,5 +154,20 @@ describe("PlayResult (spec 030, RN-11)", () => {
 		);
 
 		expect(screen.getByText("Tempo esgotado")).toBeInTheDocument();
+	});
+});
+
+describe("PlayQuestion of a type answer (spec 031, RN-34)", () => {
+	it("a type answer shows the field", async () => {
+		const { props, user } = renderQuestion({
+			question: { ...question, type: "typeAnswer", choices: [] },
+		});
+
+		await user.type(
+			screen.getByRole("textbox", { name: "Sua resposta" }),
+			"Pedro{Enter}",
+		);
+
+		expect(props.onType).toHaveBeenCalledExactlyOnceWith("Pedro");
 	});
 });

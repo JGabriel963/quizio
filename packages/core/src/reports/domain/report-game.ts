@@ -20,15 +20,20 @@ export interface ReportQuestion {
 	text: string;
 	imageKey: string | null;
 	choices: GameChoice[];
+	/** Of a type answer, as the creator wrote them (spec 031); none otherwise. */
+	acceptedAnswers: string[];
 }
 
 export interface ReportAnswer {
 	questionIndex: number;
 	playerId: string;
 	choiceIds: string[];
+	/** What was typed in a type answer (spec 031); null otherwise. */
+	text: string | null;
 	correctness: Correctness;
 	points: number;
 	responseTimeMs: number;
+	receivedAt: Date;
 }
 
 /** A whole game as its report reads it. */

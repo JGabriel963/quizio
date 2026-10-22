@@ -56,7 +56,13 @@ export function PlayResult({
 			<QuestionLayout
 				text={result.question.text}
 				top={<ResultStrip result={result} animate={animate} />}
-				answers={<ResultAnswers result={result} />}
+				answers={
+					result.question.type === "typeAnswer" ? (
+						<TypedResult result={result} />
+					) : (
+						<ResultAnswers result={result} />
+					)
+				}
 			/>
 		</>
 	);
@@ -130,6 +136,53 @@ function ResultStrip({
 				)}
 			</AnimatePresence>
 		</motion.div>
+	);
+}
+
+/**
+ * A type answer's results (spec 031, RN-35): what the participant typed, with
+ * its mark, and the accepted answers.
+ */
+function TypedResult({ result }: { result: QuestionResultData }) {
+	const right = result.result === "correct";
+	return (
+		<div className="flex min-h-0 flex-col items-center gap-3 overflow-y-auto p-2">
+			{result.typedText !== null && (
+				<p
+					data-right={right}
+					className={cn(
+						"flex w-full max-w-md items-center justify-center gap-2 rounded-md px-4 py-4 font-black text-2xl text-white shadow-press",
+						right ? "bg-answer-correct" : "bg-answer-red",
+					)}
+				>
+					{right ? (
+						<CheckIcon aria-hidden="true" className="size-6 stroke-3" />
+					) : (
+						<XIcon aria-hidden="true" className="size-6 stroke-3" />
+					)}
+					<span className="sr-only">Sua resposta:</span>
+					{result.typedText}
+				</p>
+			)}
+			<section
+				aria-labelledby="accepted-answers"
+				className="flex flex-col items-center gap-2"
+			>
+				<h2 id="accepted-answers" className="font-bold">
+					As respostas corretas são:
+				</h2>
+				<ul className="flex flex-wrap justify-center gap-2">
+					{result.acceptedAnswers.map((answer) => (
+						<li
+							key={answer}
+							className="rounded-md bg-answer-correct px-3 py-1.5 font-bold text-white"
+						>
+							{answer}
+						</li>
+					))}
+				</ul>
+			</section>
+		</div>
 	);
 }
 

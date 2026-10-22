@@ -65,6 +65,7 @@ test("adds a true/false question after the selected one, marks its answer and ke
 	await expect(page.getByRole("menuitem")).toHaveText([
 		"Quiz",
 		"Verdadeiro ou falso",
+		"Resposta curta",
 	]);
 	await page.keyboard.press("Escape");
 	await expect(page.getByRole("menuitem")).toHaveCount(0);

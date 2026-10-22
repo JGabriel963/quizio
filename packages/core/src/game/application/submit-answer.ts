@@ -4,9 +4,8 @@ import type { RealtimePublisher } from "../../shared/application/ports/realtime-
 import {
 	AlreadyAnsweredError,
 	AnswersClosedError,
-	answerPoints,
-	correctnessOf,
-	parseAnswerChoices,
+	gradeAnswer,
+	parseAnswerResponse,
 } from "../domain/answer";
 import { GameNotFoundError } from "../domain/game";
 import { type AnswerCountPayload, GAME_EVENTS } from "../domain/game-events";
@@ -29,7 +28,9 @@ export type SubmitAnswer = (input: {
 	secret: string;
 	/** The question the device was showing: a late tap never lands on the next one. */
 	questionIndex: number;
-	choiceIds: string[];
+	/** The marked answers; or, for a type answer, the typed `text` (spec 031). */
+	choiceIds?: string[];
+	text?: string;
 }) => Promise<void>;
 
 /**
@@ -46,7 +47,14 @@ export function createSubmitAnswer(deps: {
 	clock: Clock;
 	realtime: RealtimePublisher;
 }): SubmitAnswer {
-	return async ({ gameId, playerId, secret, questionIndex, choiceIds }) => {
+	return async ({
+		gameId,
+		playerId,
+		secret,
+		questionIndex,
+		choiceIds,
+		text,
+	}) => {
 		const game = await loadLiveGame(deps, gameId);
 		const player = await deps.players.findById(playerId);
 		if (
@@ -78,7 +86,7 @@ export function createSubmitAnswer(deps: {
 			throw closed();
 		}
 
-		const chosen = parseAnswerChoices(question, choiceIds);
+		const response = parseAnswerResponse(question, { choiceIds, text });
 		const responseTimeMs = responseTimeOf(
 			game.progress,
 			question.timeLimitSeconds,
@@ -88,11 +96,12 @@ export function createSubmitAnswer(deps: {
 			gameId: game.id,
 			questionIndex,
 			playerId: player.id,
-			choiceIds: chosen,
+			choiceIds: response.choiceIds,
+			text: response.text,
 			responseTimeMs,
-			correctness: correctnessOf(question, chosen),
-			points: answerPoints(question, chosen, responseTimeMs),
+			...gradeAnswer(question, response, responseTimeMs),
 			receivedAt: now,
+			reviewedAt: null,
 		});
 		if (added === "alreadyAnswered") {
 			throw new AlreadyAnsweredError(

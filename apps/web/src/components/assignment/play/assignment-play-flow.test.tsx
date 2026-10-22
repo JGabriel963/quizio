@@ -40,6 +40,8 @@ const resultOf = (index: number, text: string, answered: boolean) => ({
 	question: question(index, text),
 	chosenIds: answered ? [`q${index}-a`] : [],
 	rightIds: [`q${index}-a`],
+	typedText: null,
+	acceptedAnswers: [],
 	result: answered ? ("correct" as const) : ("unanswered" as const),
 	points: answered ? 950 : 0,
 });

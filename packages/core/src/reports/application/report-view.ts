@@ -1,6 +1,7 @@
 import type { Correctness } from "../../game/domain/answer";
 import type { QuestionType } from "../../quiz/domain/question";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import { groupTypedAnswers } from "../../shared/domain/typed-answer";
 import { accuracyPercent, isLowAccuracy } from "../domain/accuracy";
 import {
 	canPlayAgain,
@@ -81,6 +82,36 @@ export function chosenChoices(
 	return question.choices
 		.filter((choice) => answer?.choiceIds.includes(choice.id))
 		.map(({ shapeIndex, text, correct }) => ({ shapeIndex, text, correct }));
+}
+
+/** What was typed in a type answer, grouped as the game grouped it (spec 031, RN-37). */
+export interface TypedAnswerView {
+	text: string;
+	count: number;
+	correct: boolean;
+}
+
+export function typedAnswersOf(
+	question: ReportQuestion,
+	answers: readonly ReportAnswer[],
+): TypedAnswerView[] | null {
+	if (question.type !== "typeAnswer") {
+		return null;
+	}
+	return groupTypedAnswers(
+		question.acceptedAnswers,
+		answers.flatMap((answer) =>
+			answer.text === null
+				? []
+				: [
+						{
+							text: answer.text,
+							correct: answer.correctness === "correct",
+							receivedAt: answer.receivedAt,
+						},
+					],
+		),
+	).map(({ text, count, correct }) => ({ text, count, correct }));
 }
 
 /**

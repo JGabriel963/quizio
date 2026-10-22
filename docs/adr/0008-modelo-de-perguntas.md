@@ -43,6 +43,15 @@ O recorte é guardado como parâmetros (forma, zoom e posição em frações do 
 
 Os arquivos pertencem ao quiz: um arquivo só é apagado quando nenhuma pergunta viva e nenhuma versão guardada o usa (`releaseUnusedImages`), e todos são apagados na exclusão definitiva. Duplicar uma pergunta compartilha a chave dentro do quiz; duplicar um quiz copia os arquivos para chaves novas.
 
+## Atualização — Resposta curta (spec 031, 2026-10-21)
+
+O primeiro tipo novo confirmou a decisão: `typeAnswer` é um valor a mais do enum `question_type` e um formato a mais do `content` (`{ acceptedAnswers: (string | null)[] }`, de 1 a 4), sem tabela nem coluna na `question`. Duas coisas foram acrescentadas:
+
+- **Tempo por tipo.** Cada tipo diz os tempos que aceita (`timeLimitsFor`, `defaultTimeLimitFor`, `fitTimeLimit` em `question.ts`): a Resposta curta vai de 20 s a 4 min e começa com 30 s. A leitura tolerante de linhas e versões cai no padrão **do tipo**; "Aplicar a todas" e a troca de tipo sobem para o menor tempo do tipo. Os próximos tipos só acrescentam um caso.
+- **Normalização no shared kernel.** Comparar respostas digitadas (sem maiúsculas, acentos, espaços extras, a pontuação da lista do Kahoot e os emojis ao lado de texto) é a mesma regra para o editor (pergunta incompleta), para a partida (correção) e para o relatório (agrupamento). Como os contextos não importam funções uns dos outros, `normalizeTypedAnswer` e `groupTypedAnswers` ficam em `core/shared/domain/typed-answer.ts`.
+
+Na partida, a pergunta copiada leva as respostas aceitas (`GameQuestion.acceptedAnswers`, `[]` para os outros tipos e para as cópias gravadas antes) e a resposta grava o texto digitado (`game_answer.text`).
+
 ## Alternativas consideradas
 
 - **Só tabelas** (`question` + `choice` + uma tabela por tipo): integridade forte no banco, mas cada tipo novo vira migração e mais joins, e a maioria dos tipos futuros não tem "alternativas".

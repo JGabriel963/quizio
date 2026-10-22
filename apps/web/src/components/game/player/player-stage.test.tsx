@@ -84,6 +84,7 @@ function renderStage(
 	props: Partial<Parameters<typeof PlayerStage>[0]> = {},
 ) {
 	const onAnswer = vi.fn();
+	const onType = vi.fn();
 	const user = userEvent.setup();
 	render(
 		<PlayerStage
@@ -95,11 +96,12 @@ function renderStage(
 			late={false}
 			notice={null}
 			onAnswer={onAnswer}
+			onType={onType}
 			onLeave={vi.fn()}
 			{...props}
 		/>,
 	);
-	return { onAnswer, user };
+	return { onAnswer, onType, user };
 }
 
 const buttons = () =>
@@ -268,6 +270,7 @@ describe("PlayerStage: results and end (spec 009)", () => {
 		streak: result === "correct" ? 2 : 0,
 		rank: 2,
 		behind: { nickname: "Bia", points: 62 },
+		reviewed: false,
 		...overrides,
 	});
 	const results = (
@@ -352,6 +355,7 @@ describe("PlayerStage: results and end (spec 009)", () => {
 				late={false}
 				notice={null}
 				onAnswer={vi.fn()}
+				onType={vi.fn()}
 				onLeave={vi.fn()}
 			/>,
 		);
@@ -367,6 +371,7 @@ describe("PlayerStage: results and end (spec 009)", () => {
 				late={false}
 				notice={null}
 				onAnswer={vi.fn()}
+				onType={vi.fn()}
 				onLeave={vi.fn()}
 			/>,
 		);
@@ -466,6 +471,7 @@ describe("PlayerStage: who joined in the middle (spec 012)", () => {
 					late={false}
 					notice={null}
 					onAnswer={vi.fn()}
+					onType={vi.fn()}
 					onLeave={vi.fn()}
 				/>,
 			);
@@ -702,6 +708,7 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 				late={false}
 				notice={null}
 				onAnswer={vi.fn()}
+				onType={vi.fn()}
 				onLeave={vi.fn()}
 			/>,
 		);
@@ -736,6 +743,7 @@ describe("PlayerStage: the avatar (spec 028)", () => {
 					late={false}
 					notice={null}
 					onAnswer={vi.fn()}
+					onType={vi.fn()}
 					onLeave={vi.fn()}
 				/>
 			</PlayerAvatarContext>,
@@ -758,10 +766,95 @@ describe("PlayerStage: the avatar (spec 028)", () => {
 				late={false}
 				notice={null}
 				onAnswer={vi.fn()}
+				onType={vi.fn()}
 				onLeave={vi.fn()}
 			/>,
 		);
 
 		expect(avatarIn(container.querySelector("footer"))).toEqual([]);
+	});
+});
+
+describe("PlayerStage: type answer (spec 031)", () => {
+	const typeAnswer = (text: string | null): PlayerQuestionData => ({
+		type: "typeAnswer",
+		selection: "single",
+		text,
+		image: null,
+		choices: [],
+	});
+
+	it("a type answer shows the field with questions on devices", async () => {
+		const { onType, user } = renderStage(
+			stageAt({ question: typeAnswer("Quem andou sobre as águas?") }),
+		);
+
+		expect(screen.getByText("Quem andou sobre as águas?")).toBeInTheDocument();
+		await user.type(
+			screen.getByRole("textbox", { name: "Sua resposta" }),
+			"pedro{Enter}",
+		);
+
+		expect(onType).toHaveBeenCalledExactlyOnceWith("pedro");
+	});
+
+	it("a type answer shows the field without questions on devices", () => {
+		renderStage(stageAt({ question: typeAnswer(null) }));
+
+		expect(
+			screen.getByRole("textbox", { name: "Sua resposta" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Enviar" })).toBeDisabled();
+	});
+
+	it("gives back a typed answer that was not sent", () => {
+		renderStage(stageAt({ question: typeAnswer(null) }), {
+			typedDraft: "pedro",
+		});
+
+		expect(screen.getByRole("textbox", { name: "Sua resposta" })).toHaveValue(
+			"pedro",
+		);
+	});
+
+	const reviewed = (result: "correct" | "wrong") =>
+		stageAt({
+			phase: "scoreboard",
+			durationMs: null,
+			remainingMs: null,
+			question: typeAnswer(null),
+			outcome: {
+				result,
+				points: result === "correct" ? 750 : 0,
+				streak: result === "correct" ? 1 : 0,
+				rank: 1,
+				behind: null,
+				reviewed: true,
+			},
+		});
+
+	it("a reviewed answer says it was marked correct", async () => {
+		renderStage(reviewed("correct"));
+
+		expect(
+			screen.getByRole("heading", {
+				name: "Sua resposta foi marcada como correta",
+			}),
+		).toBeInTheDocument();
+		await waitFor(() =>
+			expect(
+				document.querySelector('[data-slot="answer-points"]')?.textContent,
+			).toBe("+ 750"),
+		);
+	});
+
+	it("a reviewed answer says it was marked incorrect", () => {
+		renderStage(reviewed("wrong"));
+
+		expect(
+			screen.getByRole("heading", {
+				name: "Sua resposta foi marcada como incorreta",
+			}),
+		).toBeInTheDocument();
 	});
 });

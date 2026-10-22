@@ -342,6 +342,31 @@ function HostPage() {
 	}
 
 	const endGame = () => end.mutate({ gameId }, { onSuccess: toQuiz });
+	// "Revisar respostas" of a type answer (spec 031). Enviar answers with the
+	// scoreboard (or the podium), shown like an advance.
+	const review = {
+		open: async (from: StageRef) =>
+			show(await withTimeout(client.game.review.open.mutate({ gameId, from }))),
+		close: async (from: StageRef) =>
+			show(
+				await withTimeout(client.game.review.close.mutate({ gameId, from })),
+			),
+		answers: async (questionIndex: number) =>
+			(
+				await withTimeout(
+					client.game.review.answers.query({ gameId, questionIndex }),
+				)
+			).groups,
+		submit: async (
+			from: StageRef,
+			changes: { key: string; correct: boolean }[],
+		) =>
+			show(
+				await withTimeout(
+					client.game.review.submit.mutate({ gameId, from, changes }),
+				),
+			),
+	};
 	const settings = {
 		setLocked: (locked: boolean) => setLocked.mutate({ gameId, locked }),
 		setOptions: (options: Partial<GameOptionsData>) =>
@@ -357,7 +382,7 @@ function HostPage() {
 					origin={origin}
 					receivedAt={view.dataUpdatedAt}
 					connected={!watch.lost}
-					actions={{ advance: advanceFrom, end: endGame, ...settings }}
+					actions={{ advance: advanceFrom, end: endGame, review, ...settings }}
 				/>
 				{connectionLost}
 			</>

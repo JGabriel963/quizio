@@ -372,3 +372,51 @@ describe("phases with autoplay (spec 014)", () => {
 		expect(phaseDurationMs("scoreboard", 20)).toBeNull();
 	});
 });
+
+describe("the answer review in the progress (spec 031)", () => {
+	const at0 = new Date("2026-06-01T12:00:00.000Z");
+	const resultsUnderReview = () => {
+		const game = aPlayingGame(
+			"results",
+			{ since: at0 },
+			{ autoplaySince: at0, questionCount: 3 },
+		);
+		return {
+			...game,
+			progress: game.progress && {
+				...game.progress,
+				reviewOpenedAt: at0,
+				reviewClosedAt: null,
+			},
+		};
+	};
+
+	it("a transition clears the review instants", () => {
+		const next = nextStage(resultsUnderReview(), {
+			timeLimitSeconds: 20,
+			skip: false,
+			review: true,
+			now: new Date(at0.getTime() + 1_000),
+		});
+
+		expect(next.progress).toEqual({
+			questionIndex: 0,
+			phase: "scoreboard",
+			phaseStartedAt: new Date(at0.getTime() + 1_000),
+		});
+	});
+
+	it("with review the results move on before the autoplay deadline", () => {
+		const game = aPlayingGame(
+			"results",
+			{ since: at0 },
+			{ autoplaySince: at0, questionCount: 3 },
+		);
+		const input = { timeLimitSeconds: 20, skip: false, now: at0 };
+
+		expect(() => nextStage(game, input)).toThrow(StageNotDueError);
+		expect(nextStage(game, { ...input, review: true }).progress?.phase).toBe(
+			"scoreboard",
+		);
+	});
+});

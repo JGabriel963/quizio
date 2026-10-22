@@ -13,6 +13,7 @@ function renderCanvas(question: QuestionData, showHints = true) {
 	const handlers = {
 		onSaveText: vi.fn(async () => {}),
 		onSaveChoiceText: vi.fn(async () => {}),
+		onSaveAcceptedAnswer: vi.fn(async () => {}),
 		onChange: vi.fn(),
 		onUploadImage: vi.fn(),
 	};
@@ -186,5 +187,21 @@ describe("QuestionCanvas", () => {
 				correct: true,
 			}),
 		);
+	});
+
+	it("a type answer shows its accepted answers (spec 031)", () => {
+		renderCanvas({
+			...blankQuestion("a", "typeAnswer"),
+			text: "Quem andou sobre as águas?",
+			acceptedAnswers: ["Pedro", "Jesus"],
+		});
+
+		expect(
+			screen.getByRole("textbox", { name: "Resposta aceita" }),
+		).toHaveValue("Pedro");
+		expect(
+			screen.getByRole("textbox", { name: "Outra resposta aceita 1" }),
+		).toHaveValue("Jesus");
+		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
 	});
 });

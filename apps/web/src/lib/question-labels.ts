@@ -70,12 +70,16 @@ export function questionIssueLabel(
 		case "noCorrectAnswer":
 		case "noCorrectTrueFalse":
 			return "Resposta correta não selecionada";
+		case "noAcceptedAnswer":
+			return "Resposta aceita ausente";
 	}
 }
 
 /** The hints beside the answers of a question without a correct one (spec 004, RN-16; spec 005, RN-12). */
 export const NO_CORRECT_ANSWER_HINT = "Marque pelo menos 1 resposta correta";
 export const NO_CORRECT_TRUE_FALSE_HINT = "Marque a resposta correta";
+/** Beside the main field of a type answer without an accepted answer (spec 031, RN-09). */
+export const NO_ACCEPTED_ANSWER_HINT = "Adicione uma resposta aceita";
 
 /** The two fixed answers of a true/false question (spec 005, RN-06). */
 export const TRUE_FALSE_LABELS = {

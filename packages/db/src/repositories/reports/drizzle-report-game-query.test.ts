@@ -425,6 +425,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				text: "Como foi jogada",
 				imageKey: "questions/a.png",
 				choices: aGameQuestion().choices,
+				acceptedAnswers: [],
 			},
 		]);
 		expect(game?.answers).toEqual([
@@ -432,19 +433,48 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				questionIndex: 0,
 				playerId: "p1",
 				choiceIds: ["choice-1"],
+				text: null,
 				correctness: "correct",
 				points: 900,
 				responseTimeMs: 4_200,
+				receivedAt: anAnswer().receivedAt,
 			},
 			{
 				questionIndex: 0,
 				playerId: "p2",
 				choiceIds: ["choice-2"],
+				text: null,
 				correctness: "wrong",
 				points: 0,
 				responseTimeMs: 4_200,
+				receivedAt: anAnswer().receivedAt,
 			},
 		]);
+	});
+
+	it("reads typed answers and accepted answers of a type answer question (spec 031)", async () => {
+		await seedPlayed(finished({ questionCount: 1 }), [
+			aGameQuestion({
+				index: 0,
+				type: "typeAnswer",
+				choices: [],
+				acceptedAnswers: ["Pedro"],
+			}),
+		]);
+		await answers.add(
+			anAnswer({
+				playerId: "p1",
+				choiceIds: [],
+				text: "pedra",
+				correctness: "wrong",
+				points: 0,
+			}),
+		);
+
+		const game = await query.findGame("game-1", now);
+
+		expect(game?.questions[0]?.acceptedAnswers).toEqual(["Pedro"]);
+		expect(game?.answers[0]).toMatchObject({ text: "pedra", choiceIds: [] });
 	});
 
 	it("leaves out the question that was on the screen when the game ended", async () => {

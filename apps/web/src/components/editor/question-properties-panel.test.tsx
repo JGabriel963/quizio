@@ -66,6 +66,7 @@ describe("QuestionPropertiesPanel", () => {
 		expect(options.map((option) => option.textContent?.trim())).toEqual([
 			"Quiz",
 			"Verdadeiro ou falso",
+			"Resposta curta",
 		]);
 		expect(
 			screen.getByRole("group", { name: "Testar conhecimento" }),
@@ -195,5 +196,27 @@ describe("QuestionPropertiesPanel", () => {
 		expect(remove).toHaveAccessibleDescription(
 			"Não é possível excluir todo o conteúdo",
 		);
+	});
+
+	it("a type answer offers times from 20 s (spec 031, RN-06)", async () => {
+		const { user } = renderPanel(2, {
+			...blankQuestion("a", "typeAnswer"),
+			text: "Quem?",
+		});
+
+		expect(select("Limite de tempo")).toHaveTextContent("30 segundos");
+		expect(await optionLabels(user, "Limite de tempo")).toEqual([
+			"20 segundos",
+			"30 segundos",
+			"45 segundos",
+			"1 minuto",
+			"1 minuto 30 segundos",
+			"2 minutos",
+			"3 minutos",
+			"4 minutos",
+		]);
+		expect(
+			screen.queryByRole("combobox", { name: "Opções de resposta" }),
+		).toBeNull();
 	});
 });

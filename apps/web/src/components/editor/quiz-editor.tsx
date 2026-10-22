@@ -369,6 +369,13 @@ export function QuizEditor({
 									text,
 								})
 							}
+							onSaveAcceptedAnswer={(index, text) =>
+								actions.saveQuestionField(selected.id, {
+									kind: "acceptedAnswerText",
+									index,
+									text,
+								})
+							}
 							onChange={(change) => actions.changeQuestion(selected.id, change)}
 							titleAside={
 								<QuestionPropertiesMenu

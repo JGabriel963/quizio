@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { QuestionTextTooLongError } from "../domain/question";
-import { EmptyChoiceCannotBeCorrectError } from "../domain/question-change";
+import {
+	EmptyChoiceCannotBeCorrectError,
+	TimeLimitNotAllowedError,
+} from "../domain/question-change";
 import { QuestionNotFoundError } from "../domain/question-list";
 import { newQuizVersion } from "../domain/quiz-version";
 import { aQuestion, asQuiz, aTrueFalseQuestion } from "../testing/a-question";
@@ -231,5 +234,33 @@ describe("updateQuestion", () => {
 		expect((await quizzes.findById("quiz-1"))?.updatedAt).not.toEqual(
 			clock.now(),
 		);
+	});
+
+	it("saves an accepted answer (spec 031)", async () => {
+		await updateQuestion({
+			...ref,
+			change: { kind: "type", type: "typeAnswer", remembered: null },
+		});
+		await updateQuestion({
+			...ref,
+			change: { kind: "acceptedAnswerText", index: 0, text: "Pedro" },
+		});
+
+		expect(questions.listOf("quiz-1")[0]).toMatchObject({
+			type: "typeAnswer",
+			timeLimitSeconds: 20,
+			acceptedAnswers: ["Pedro"],
+		});
+	});
+
+	it("refuses a time the type does not take (spec 031)", async () => {
+		await updateQuestion({
+			...ref,
+			change: { kind: "type", type: "typeAnswer", remembered: null },
+		});
+
+		await expect(
+			updateQuestion({ ...ref, change: { kind: "timeLimit", seconds: 5 } }),
+		).rejects.toThrow(TimeLimitNotAllowedError);
 	});
 });

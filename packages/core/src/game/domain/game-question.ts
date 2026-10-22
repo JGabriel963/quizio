@@ -34,6 +34,12 @@ export interface GameQuestion {
 	 * the editor's, or a drawn one (spec 012, RN-23).
 	 */
 	choices: GameChoice[];
+	/**
+	 * The filled accepted answers of a type answer, as the creator wrote them
+	 * (spec 031, RN-14); none for the other types. Never sent to a device before
+	 * the results (RN-15).
+	 */
+	acceptedAnswers: string[];
 	image: QuestionImage | null;
 }
 
@@ -74,7 +80,15 @@ function choicesOf(question: Question): GameChoice[] {
 					correct: question.correct === false,
 				},
 			];
+		case "typeAnswer":
+			return [];
 	}
+}
+
+function acceptedAnswersOf(question: Question): string[] {
+	return question.type === "typeAnswer"
+		? question.acceptedAnswers.filter((answer) => answer !== null)
+		: [];
 }
 
 /** The form a question of the playable version takes in a game. */
@@ -90,6 +104,7 @@ export function toGameQuestion(
 		points: question.points,
 		selection: question.type === "quiz" ? question.selection : "single",
 		choices: choicesOf(question),
+		acceptedAnswers: acceptedAnswersOf(question),
 		image: question.image
 			? {
 					...question.image,
@@ -177,6 +192,12 @@ export function parseStoredGameQuestion(raw: unknown): GameQuestion | null {
 		return null;
 	}
 	const image = stored.image as QuestionImage | null | undefined;
+	// Games stored before spec 031 have no accepted answers.
+	const acceptedAnswers = Array.isArray(stored.acceptedAnswers)
+		? stored.acceptedAnswers.filter(
+				(answer): answer is string => typeof answer === "string",
+			)
+		: [];
 	return {
 		index,
 		type: type as QuestionType,
@@ -190,6 +211,7 @@ export function parseStoredGameQuestion(raw: unknown): GameQuestion | null {
 			text: choiceText,
 			correct,
 		})),
+		acceptedAnswers,
 		image: image && typeof image.key === "string" ? image : null,
 	};
 }

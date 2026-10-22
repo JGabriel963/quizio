@@ -30,6 +30,8 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"GAME.ANSWERS_CLOSED": "Tempo esgotado",
 	"GAME.ALREADY_ANSWERED": "Você já respondeu esta pergunta.",
 	"GAME.INVALID_ANSWER": "Resposta inválida.",
+	"GAME.REVIEW_NOT_AVAILABLE": "A revisão desta pergunta já foi encerrada.",
+	"GAME.ANSWER_NOT_REVIEWABLE": "Essa resposta não pode ser revisada.",
 };
 
 /** "Jogar novamente" on a quiz that went to the trash, was deleted or is a draft again (spec 011, RN-16). */

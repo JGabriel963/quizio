@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InvalidTimeLimitError } from "../domain/question";
-import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
+import {
+	aQuestion,
+	aTrueFalseQuestion,
+	aTypeAnswerQuestion,
+} from "../testing/a-question";
 import { aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
@@ -69,5 +73,18 @@ describe("applyTimeLimitToAll", () => {
 			InvalidTimeLimitError,
 		);
 		expect(questions.listOf("quiz-1")[1]?.timeLimitSeconds).toBe(20);
+	});
+
+	it("applying 10 s gives type answers 20 s and quizzes 10 s (spec 031, RN-07)", async () => {
+		await questions.saveList("quiz-1", [
+			aQuestion({ id: "a" }),
+			aTypeAnswerQuestion({ id: "b" }),
+		]);
+
+		await applyTimeLimitToAll({ ...ref, seconds: 10 });
+
+		expect(
+			questions.listOf("quiz-1").map((question) => question.timeLimitSeconds),
+		).toEqual([10, 20]);
 	});
 });

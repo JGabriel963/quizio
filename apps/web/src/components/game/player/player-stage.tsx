@@ -20,6 +20,7 @@ import {
 	DeviceQuestion,
 	DeviceQuestionIntro,
 } from "./question-on-device";
+import { TypedAnswerInput } from "./typed-answer-input";
 
 const RESULTS: Record<
 	PlayerResultData,
@@ -47,7 +48,11 @@ function ResultScreen({
 	result: PlayerResultData;
 	outcome?: PlayerOutcomeData | null;
 }) {
-	const { title, good, strip } = RESULTS[result];
+	const { title: graded, good, strip } = RESULTS[result];
+	// The host's review changed the answer (spec 031, RN-31).
+	const title = outcome?.reviewed
+		? `Sua resposta foi marcada como ${good ? "correta" : "incorreta"}`
+		: graded;
 	const Mark = good ? CheckIcon : XIcon;
 	const position = outcome ? positionMessage(outcome) : null;
 
@@ -162,6 +167,8 @@ export function PlayerStage({
 	late,
 	notice,
 	onAnswer,
+	onType,
+	typedDraft,
 	onLeave,
 }: {
 	nickname: string;
@@ -177,6 +184,10 @@ export function PlayerStage({
 	/** A failure to send the answer, to try again. */
 	notice: string | null;
 	onAnswer: (choiceIds: string[]) => void;
+	/** The typed answer of a type answer (spec 031). */
+	onType: (text: string) => void;
+	/** A typed answer that was not sent, given back to the field (RN-19). */
+	typedDraft?: string;
 	/** "Entrar em outro jogo", from the final screen. */
 	onLeave: () => void;
 }) {
@@ -274,14 +285,23 @@ export function PlayerStage({
 		);
 	}
 
-	const answerButtons = (
-		<AnswerButtons
-			// A new question starts with nothing marked.
-			key={stage.questionIndex}
-			question={question}
-			onAnswer={onAnswer}
-		/>
-	);
+	const answerButtons =
+		question.type === "typeAnswer" ? (
+			// With or without the questions on the devices, there is no other way
+			// to answer (spec 031, RN-18).
+			<TypedAnswerInput
+				key={stage.questionIndex}
+				initialText={typedDraft}
+				onSubmit={onType}
+			/>
+		) : (
+			<AnswerButtons
+				// A new question starts with nothing marked.
+				key={stage.questionIndex}
+				question={question}
+				onAnswer={onAnswer}
+			/>
+		);
 	return (
 		<PlayerFrame
 			{...frame}
