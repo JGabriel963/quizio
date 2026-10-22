@@ -76,6 +76,7 @@ describe("getReportParticipant (spec 015)", () => {
 				responseTimeMs: 3200,
 				typedText: null,
 				sliderValue: null,
+				sliderUnit: null,
 			},
 			{
 				questionIndex: 1,
@@ -87,6 +88,7 @@ describe("getReportParticipant (spec 015)", () => {
 				responseTimeMs: 2000,
 				typedText: null,
 				sliderValue: null,
+				sliderUnit: null,
 			},
 		]);
 	});
@@ -104,6 +106,7 @@ describe("getReportParticipant (spec 015)", () => {
 			responseTimeMs: null,
 			typedText: null,
 			sliderValue: null,
+			sliderUnit: null,
 		});
 	});
 
@@ -461,6 +464,7 @@ describe("a slider in the report (spec 032, RN-35, RN-36)", () => {
 				type: "slider",
 				result: "almostCorrect",
 				sliderValue: 640,
+				sliderUnit: "anos",
 			}),
 		]);
 		expect(view.accuracyPercent).toBe(100);

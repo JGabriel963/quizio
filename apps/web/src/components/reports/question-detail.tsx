@@ -136,6 +136,8 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 								{participant.sliderValue !== null && (
 									<span className="font-semibold">
 										{formatSliderNumber(participant.sliderValue)}
+										{detail.sliderAnswers?.unit &&
+											` ${detail.sliderAnswers.unit}`}
 									</span>
 								)}
 								<span className="tabular-nums">

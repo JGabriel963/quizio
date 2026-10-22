@@ -31,6 +31,7 @@ const ana: ParticipantDetailData = {
 			responseTimeMs: 3200,
 			typedText: null,
 			sliderValue: null,
+			sliderUnit: null,
 		},
 		{
 			questionIndex: 1,
@@ -42,6 +43,7 @@ const ana: ParticipantDetailData = {
 			responseTimeMs: 7400,
 			typedText: null,
 			sliderValue: null,
+			sliderUnit: null,
 		},
 		{
 			questionIndex: 2,
@@ -53,6 +55,7 @@ const ana: ParticipantDetailData = {
 			responseTimeMs: null,
 			typedText: null,
 			sliderValue: null,
+			sliderUnit: null,
 		},
 	],
 };
@@ -125,6 +128,7 @@ describe("ParticipantDetail (spec 015)", () => {
 							responseTimeMs: 5000,
 							typedText: null,
 							sliderValue: null,
+							sliderUnit: null,
 						},
 					],
 				}}
@@ -340,6 +344,7 @@ describe("report details of a type answer (spec 031, RN-37)", () => {
 							choices: [],
 							typedText: "Davi",
 							sliderValue: null,
+							sliderUnit: null,
 							points: 0,
 							responseTimeMs: 4000,
 						},
@@ -407,6 +412,7 @@ describe("report details of a slider (spec 032, RN-36)", () => {
 							choices: [],
 							typedText: null,
 							sliderValue: 2000.5,
+							sliderUnit: "anos",
 							points: 600,
 							responseTimeMs: 4000,
 						},
@@ -416,7 +422,7 @@ describe("report details of a slider (spec 032, RN-36)", () => {
 		);
 
 		expect(screen.getByText("Valor enviado:").parentElement).toHaveTextContent(
-			"2.000,5",
+			"2.000,5 anos",
 		);
 		expect(screen.getByText("Quase correta")).toBeInTheDocument();
 	});

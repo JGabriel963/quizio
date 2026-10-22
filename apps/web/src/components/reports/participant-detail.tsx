@@ -70,6 +70,7 @@ export function ParticipantDetail({
 								<p className="font-semibold text-sm">
 									<span className="sr-only">Valor enviado: </span>
 									{formatSliderNumber(answer.sliderValue)}
+									{answer.sliderUnit && ` ${answer.sliderUnit}`}
 								</p>
 							)}
 							<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">

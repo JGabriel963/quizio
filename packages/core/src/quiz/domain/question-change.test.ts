@@ -774,6 +774,11 @@ describe("applyQuestionChange on a slider", () => {
 		expect(first("10")).toMatchObject({ min: 0, max: 50, answer: 10 });
 		expect(first("3,14")).toMatchObject({ min: 0, max: 50 });
 		expect(first("-5")).toMatchObject({ min: -20, max: 30 });
+		// Strictly below, also with decimals: never a whole interval more.
+		expect(first("20,5")).toMatchObject({ min: 20, max: 70 });
+		expect(first("20")).toMatchObject({ min: 0, max: 50 });
+		expect(first("-19,5")).toMatchObject({ min: -20, max: 30 });
+		expect(first("0,01")).toMatchObject({ min: 0, max: 50 });
 	});
 
 	it("a later answer keeps the range", () => {

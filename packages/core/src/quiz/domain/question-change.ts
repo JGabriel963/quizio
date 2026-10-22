@@ -309,11 +309,13 @@ function setSliderNumber(
 
 /**
  * The range a slider gets with its first answer (spec 032, RN-06): 50 wide,
- * from the multiple of 20 just below the answer. It gives Kahoot's examples:
- * 600 → 580 to 630, 430 → 420 to 470, 10 → 0 to 50.
+ * from the multiple of 20 strictly below the answer. It gives Kahoot's
+ * examples: 600 → 580 to 630, 430 → 420 to 470, 10 → 0 to 50. Counted in
+ * hundredths, so 20.5 starts at 20, not one interval lower.
  */
 function sliderRangeAround(answer: number): { min: number; max: number } {
-	const min = Math.floor((answer - 1) / 20) * 20;
+	const hundredths = Math.round(answer * 100);
+	const min = (Math.floor((hundredths - 1) / 2000) * 2000) / 100;
 	return { min, max: min + 50 };
 }
 
