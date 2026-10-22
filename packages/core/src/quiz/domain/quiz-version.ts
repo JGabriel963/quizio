@@ -61,6 +61,12 @@ function sameContent(a: Question, b: Question): boolean {
 				a.unit === b.unit &&
 				a.answerMargin === b.answerMargin
 			);
+		case "puzzle":
+			return (
+				b.type === "puzzle" &&
+				a.items.length === b.items.length &&
+				a.items.every((item, index) => item === b.items[index])
+			);
 		case "quiz":
 			return b.type === "quiz" && sameQuizContent(a, b);
 	}

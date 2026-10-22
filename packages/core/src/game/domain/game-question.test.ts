@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTrueFalseQuestion,
@@ -390,5 +391,114 @@ describe("public stage of a slider (spec 032)", () => {
 		const stage = publicStageOf(aPlayingGame("answering"), slider, urlOf);
 
 		expect(JSON.stringify(stage)).not.toMatch(/"answer"|margin|medium|600/);
+	});
+});
+
+describe("puzzle in a game (spec 033)", () => {
+	it("a puzzle becomes one choice per filled slot, top to bottom, with its right order", () => {
+		const copied = toGameQuestion(aPuzzleQuestion(), 1);
+
+		expect(copied).toMatchObject({
+			index: 1,
+			type: "puzzle",
+			selection: "single",
+			timeLimitSeconds: 60,
+			acceptedAnswers: [],
+			slider: null,
+			choices: [
+				{ id: "choice-1", shapeIndex: 0, text: "Nilo", correct: true },
+				{ id: "choice-2", shapeIndex: 1, text: "Amazonas", correct: true },
+				{ id: "choice-3", shapeIndex: 2, text: "Yangtzé", correct: true },
+				{ id: "choice-4", shapeIndex: 3, text: "Mississipi", correct: true },
+			],
+			correctOrder: ["choice-1", "choice-2", "choice-3", "choice-4"],
+		});
+		expect(toGameQuestion(aQuestion(), 0).correctOrder).toEqual([]);
+	});
+
+	it("slots 1, 2 and 4 make a three-answer puzzle", () => {
+		const copied = toGameQuestion(
+			aPuzzleQuestion({ items: ["Nilo", "Amazonas", null, "Yangtzé"] }),
+			0,
+		);
+
+		expect(copied.choices).toEqual([
+			{ id: "choice-1", shapeIndex: 0, text: "Nilo", correct: true },
+			{ id: "choice-2", shapeIndex: 1, text: "Amazonas", correct: true },
+			{ id: "choice-4", shapeIndex: 2, text: "Yangtzé", correct: true },
+		]);
+		expect(copied.correctOrder).toEqual(["choice-1", "choice-2", "choice-4"]);
+	});
+
+	it("a stored game question without a right order reads as none", () => {
+		const { correctOrder: _order, ...stored } = aGameQuestion();
+
+		expect(parseStoredGameQuestion(stored)?.correctOrder).toEqual([]);
+		const puzzle = toGameQuestion(aPuzzleQuestion(), 0);
+		expect(parseStoredGameQuestion(JSON.parse(JSON.stringify(puzzle)))).toEqual(
+			puzzle,
+		);
+	});
+
+	it("a puzzle is shuffled even without random answers, never in a right order", () => {
+		const [puzzle] = arrangeGameQuestions(
+			[aPuzzleQuestion()],
+			DEFAULT_GAME_OPTIONS,
+			backwards,
+		);
+
+		expect(
+			puzzle?.choices.map(({ id, shapeIndex, text }) => [id, shapeIndex, text]),
+		).toEqual([
+			["choice-1", 0, "Mississipi"],
+			["choice-2", 1, "Yangtzé"],
+			["choice-3", 2, "Amazonas"],
+			["choice-4", 3, "Nilo"],
+		]);
+		expect(puzzle?.correctOrder).toEqual([
+			"choice-4",
+			"choice-3",
+			"choice-2",
+			"choice-1",
+		]);
+	});
+
+	it("a puzzle's ids follow the drawn places, so they never tell the right order", () => {
+		for (const shuffle of [
+			backwards,
+			<T>(items: readonly T[]) => [...items.slice(1), ...items.slice(0, 1)],
+		]) {
+			const [puzzle] = arrangeGameQuestions(
+				[aPuzzleQuestion()],
+				DEFAULT_GAME_OPTIONS,
+				shuffle,
+			);
+			const ids = puzzle?.choices.map(({ id }) => id) ?? [];
+
+			// In the order the devices show them, the ids are just 1, 2, 3, 4.
+			expect(ids).toEqual(["choice-1", "choice-2", "choice-3", "choice-4"]);
+			expect([...ids].sort()).not.toEqual(puzzle?.correctOrder);
+		}
+	});
+
+	it("a draw that comes out right is turned by one place", () => {
+		// "1", "2", "1" backwards is the right order again.
+		const [puzzle] = arrangeGameQuestions(
+			[aPuzzleQuestion({ items: ["1", "2", "1", null] })],
+			DEFAULT_GAME_OPTIONS,
+			backwards,
+		);
+
+		expect(puzzle?.choices.map(({ text }) => text)).toEqual(["2", "1", "1"]);
+	});
+
+	it("true/false is still never shuffled", () => {
+		const [trueFalse] = arrangeGameQuestions(
+			[aTrueFalseQuestion({ correct: true })],
+			{ ...DEFAULT_GAME_OPTIONS, randomizeAnswers: true },
+			backwards,
+		);
+
+		expect(trueFalse?.choices.map(({ id }) => id)).toEqual(["true", "false"]);
 	});
 });

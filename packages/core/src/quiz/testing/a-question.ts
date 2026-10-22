@@ -1,5 +1,6 @@
 import {
 	blankQuestion,
+	type PuzzleQuestion,
 	type Question,
 	type QuizQuestion,
 	type SliderQuestion,
@@ -60,6 +61,18 @@ export function aSliderQuestion(
 	};
 }
 
+/** Test builder: a complete puzzle of four rivers, in the right order (spec 033). */
+export function aPuzzleQuestion(
+	overrides: Partial<PuzzleQuestion> = {},
+): PuzzleQuestion {
+	return {
+		...blankQuestion(overrides.id ?? "question-1", "puzzle"),
+		text: "Coloque estes rios do maior para o menor",
+		items: ["Nilo", "Amazonas", "Yangtzé", "Mississipi"],
+		...overrides,
+	};
+}
+
 /** Narrows a question a test knows to be a quiz one. */
 export function asQuiz(question: Question | undefined): QuizQuestion {
 	if (question?.type !== "quiz") {
@@ -90,6 +103,14 @@ export function asTypeAnswer(
 export function asSlider(question: Question | undefined): SliderQuestion {
 	if (question?.type !== "slider") {
 		throw new Error(`Expected a slider question, got ${question?.type}`);
+	}
+	return question;
+}
+
+/** Narrows a question a test knows to be a puzzle. */
+export function asPuzzle(question: Question | undefined): PuzzleQuestion {
+	if (question?.type !== "puzzle") {
+		throw new Error(`Expected a puzzle question, got ${question?.type}`);
 	}
 	return question;
 }

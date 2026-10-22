@@ -49,7 +49,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Limite de perguntas | `QUIZ_MAX_QUESTIONS` | Máximo de 200 perguntas por quiz, configurável (spec 003) | ✅ |
 | Editor | `Creator` (rota `/creator/:id`) | Tela cheia onde o criador monta as perguntas de um quiz (spec 003) | ✅ |
 | Salvamento automático | `Autosave` | Toda alteração no editor é salva sem ação do criador; o cabeçalho mostra "Salvando…", "Salvo" ou a falha (spec 003) | ✅ (`SaveTracker`) |
-| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`, `trueFalse`, `typeAnswer`, `slider`; demais 📝) |
+| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`, `trueFalse`, `typeAnswer`, `slider`, `puzzle`; demais 📝) |
 | Resposta curta | `typeAnswer`, `TypeAnswerQuestion` | Tipo de pergunta em que o jogador digita a resposta; correta quando, normalizada, é igual a uma das respostas aceitas; pontua pela velocidade como o Quiz (spec 031) | ✅ |
 | Respostas aceitas | `acceptedAnswers` | De 1 a 4 textos de até 20 caracteres que valem como resposta correta numa Resposta curta; a primeira é a principal (spec 031) | ✅ |
 | Controle deslizante | `slider`, `SliderQuestion` | Tipo de pergunta em que o jogador arrasta um marcador numa escala de números para estimar um valor; correta quando igual à resposta, quase correta dentro da margem; pontua 80% pela precisão e 20% pela velocidade (spec 032) | ✅ |
@@ -58,6 +58,9 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Valor da etapa | `step` | Distância entre posições vizinhas da escala: faixa ÷ 100 arredondada para cima no primeiro algarismo, no mínimo 1; as posições contam a partir da resposta (spec 032) | ✅ |
 | Margem de resposta | `answerMargin` | `none`, `low` (5% da faixa), `medium` (10%), `high` (20%), `maximum` (toda a escala): distância da resposta que ainda vale como quase correta (spec 032) | ✅ |
 | Precisão | `precision` | De 0 a 1: 1 − distância ÷ margem; dá 80% dos pontos do controle deslizante (spec 032) | ✅ |
+| Puzzle | `puzzle`, `PuzzleQuestion` | Tipo de pergunta em que o jogador põe 3 ou 4 respostas embaralhadas na ordem certa; correta só com a ordem inteira certa; pontua pela velocidade como o Quiz (spec 033) | ✅ |
+| Ordem certa | `correctOrder` | A ordem das respostas preenchidas de um Puzzle, de cima para baixo no editor; respostas iguais podem trocar de lugar (spec 033) | ✅ |
+| Ordem sorteada | `GameQuestion.choices` (por `shapeIndex`), `Player.choiceOrder` | A ordem em que as respostas de um Puzzle chegam na partida: uma por partida ao vivo, uma por participante na atribuição, nunca uma ordem certa (spec 033) | ✅ |
 | Normalização da resposta | `normalizeTypedAnswer` | Forma usada para comparar respostas digitadas: sem diferença de maiúsculas e acentos, sem a pontuação da lista do Kahoot, com espaços colapsados, e emojis só quando não há outro texto (spec 031) | ✅ |
 | Verdadeiro ou falso | `trueFalse`, `TrueFalseQuestion` | Tipo de pergunta com duas alternativas fixas, "Verdadeiro" (azul, losango) e "Falso" (vermelho, triângulo), e exatamente uma correta; desmarcar a correta marca a outra (spec 005) | ✅ |
 | Seletor de tipo | `QuestionTypePicker` | Escolha do tipo ao adicionar uma pergunta; mostra só os tipos já entregues (spec 005) | ✅ |

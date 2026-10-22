@@ -16,6 +16,7 @@ import { AnswerButtons } from "./answer-buttons";
 import { FinalScreen } from "./final-screen";
 import { AvatarCard } from "./player-avatar";
 import { Centered, PlayerFrame, Spinner } from "./player-frame";
+import { PuzzleAnswerInput } from "./puzzle-answer-input";
 import {
 	DeviceBackground,
 	DeviceQuestion,
@@ -203,6 +204,7 @@ export function PlayerStage({
 	onType,
 	onSlide,
 	typedDraft,
+	orderDraft,
 	onLeave,
 }: {
 	nickname: string;
@@ -224,6 +226,8 @@ export function PlayerStage({
 	onSlide: (value: number) => void;
 	/** A typed answer that was not sent, given back to the field (RN-19). */
 	typedDraft?: string;
+	/** A puzzle's order that was not sent, given back to the blocks (spec 033, RN-22). */
+	orderDraft?: readonly string[];
 	/** "Entrar em outro jogo", from the final screen. */
 	onLeave: () => void;
 }) {
@@ -329,6 +333,16 @@ export function PlayerStage({
 				scale={question.slider}
 				onSubmit={onSlide}
 			/>
+		) : question.type === "puzzle" ? (
+			// With or without the questions on the devices (spec 033, RN-20).
+			<PuzzleAnswerInput
+				key={stage.questionIndex}
+				choices={question.choices}
+				initialOrder={orderDraft}
+				// Low strips under the question; the whole screen without it.
+				size={question.text === null ? "fill" : "compact"}
+				onSubmit={onAnswer}
+			/>
 		) : question.type === "typeAnswer" ? (
 			// With or without the questions on the devices, there is no other way
 			// to answer (spec 031, RN-18).
@@ -352,7 +366,11 @@ export function PlayerStage({
 			background={<DeviceBackground image={question.image} />}
 		>
 			{question.text === null ? (
-				question.slider !== null ? (
+				question.type === "puzzle" ? (
+					<main className="flex min-h-0 flex-1 flex-col pt-2">
+						{answerButtons}
+					</main>
+				) : question.slider !== null ? (
 					// In the middle of the screen, as in Kahoot (spec 032).
 					<main className="flex min-h-0 flex-1 flex-col justify-center px-2 pb-4">
 						{answerButtons}

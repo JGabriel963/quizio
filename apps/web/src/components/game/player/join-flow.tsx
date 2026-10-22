@@ -243,6 +243,11 @@ export function JoinFlow({
 		questionIndex: number;
 		text: string;
 	} | null>(null);
+	/** A puzzle's order, given back the same way (spec 033, RN-22). */
+	const [orderDraft, setOrderDraft] = useState<{
+		questionIndex: number;
+		choiceIds: string[];
+	} | null>(null);
 	/** The PIN the current step came from, so the address following it is not resolved again. */
 	const resolvedPin = useRef<string | null>(null);
 
@@ -725,6 +730,11 @@ export function JoinFlow({
 		setTypedDraft(
 			"text" in response ? { questionIndex, text: response.text } : null,
 		);
+		setOrderDraft(
+			"choiceIds" in response
+				? { questionIndex, choiceIds: response.choiceIds }
+				: null,
+		);
 		markAnswered(questionIndex, true);
 		try {
 			await api.answer({ ...waiting.session, questionIndex, ...response });
@@ -845,6 +855,11 @@ export function JoinFlow({
 						typedDraft={
 							typedDraft !== null && typedDraft.questionIndex === questionIndex
 								? typedDraft.text
+								: undefined
+						}
+						orderDraft={
+							orderDraft !== null && orderDraft.questionIndex === questionIndex
+								? orderDraft.choiceIds
 								: undefined
 						}
 						onLeave={() => leave(null)}

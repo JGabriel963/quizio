@@ -44,6 +44,7 @@ const resultOf = (index: number, text: string, answered: boolean) => ({
 	typedText: null,
 	sliderValue: null,
 	sliderAnswer: null,
+	rightOrder: [],
 	acceptedAnswers: [],
 	result: answered ? ("correct" as const) : ("unanswered" as const),
 	points: answered ? 950 : 0,

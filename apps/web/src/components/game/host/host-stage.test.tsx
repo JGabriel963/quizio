@@ -60,6 +60,7 @@ function stageAt(overrides: Partial<HostStageData>): HostStageData {
 		typedAnswers: null,
 		reviewOpen: false,
 		sliderResults: null,
+		puzzleResults: null,
 		...overrides,
 	};
 }

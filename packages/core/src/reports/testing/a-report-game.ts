@@ -42,6 +42,7 @@ export function aReportQuestion(
 		imageKey: null,
 		acceptedAnswers: [],
 		slider: null,
+		correctOrder: [],
 		choices: ["a", "b", "c", "d"].map((letter, shapeIndex) => ({
 			id: `q${index}-${letter}`,
 			shapeIndex,

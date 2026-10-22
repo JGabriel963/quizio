@@ -28,6 +28,7 @@ function copyGame(game: ReportGame): ReportGame {
 			...question,
 			choices: question.choices.map((choice) => ({ ...choice })),
 			acceptedAnswers: [...question.acceptedAnswers],
+			correctOrder: [...question.correctOrder],
 		})),
 		answers: game.answers.map((answer) => ({
 			...answer,

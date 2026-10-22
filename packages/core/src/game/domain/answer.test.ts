@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { aTrueFalseQuestion } from "../../quiz/testing/a-question";
 import {
 	aGameQuestion,
+	aPuzzleGameQuestion,
 	aSliderGameQuestion,
 	someChoices,
 } from "../testing/a-game-question";
@@ -290,5 +291,92 @@ describe("slider answers (spec 032)", () => {
 		expect(grade(640)).toEqual({ correctness: "almostCorrect", points: 600 });
 		expect(grade(680)).toEqual({ correctness: "almostCorrect", points: 200 });
 		expect(grade(688)).toEqual({ correctness: "wrong", points: 0 });
+	});
+});
+
+describe("puzzle answers (spec 033)", () => {
+	const puzzle = aPuzzleGameQuestion();
+	const right = ["choice-1", "choice-2", "choice-3", "choice-4"];
+
+	it("a puzzle takes every choice once, in any order", () => {
+		const sent = ["choice-3", "choice-1", "choice-4", "choice-2"];
+
+		expect(parseAnswerResponse(puzzle, { choiceIds: sent })).toEqual({
+			choiceIds: sent,
+			text: null,
+			value: null,
+		});
+	});
+
+	it("a puzzle refuses a missing, an extra or a repeated id, a text and a value", () => {
+		for (const raw of [
+			{ choiceIds: ["choice-1", "choice-2", "choice-3"] },
+			{ choiceIds: [...right, "choice-5"] },
+			{ choiceIds: ["choice-1", "choice-1", "choice-3", "choice-4"] },
+			{ choiceIds: [] },
+			{ choiceIds: right, text: "Nilo" },
+			{ choiceIds: right, value: 1 },
+		]) {
+			expect(() => parseAnswerResponse(puzzle, raw)).toThrow(
+				InvalidAnswerError,
+			);
+		}
+	});
+
+	it("the right order is correct with the speed points", () => {
+		const graded = gradeAnswer(
+			puzzle,
+			{ choiceIds: right, text: null, value: null },
+			2000,
+		);
+
+		expect(graded).toEqual({
+			correctness: "correct",
+			points: reviewedPoints(puzzle, true, 2000),
+		});
+		expect(graded.points).toBeGreaterThan(900);
+		expect(graded.points).toBeLessThan(1000);
+	});
+
+	it("one swap is wrong with no points", () => {
+		expect(
+			gradeAnswer(
+				puzzle,
+				{
+					choiceIds: ["choice-1", "choice-2", "choice-4", "choice-3"],
+					text: null,
+					value: null,
+				},
+				500,
+			),
+		).toEqual({ correctness: "wrong", points: 0 });
+	});
+
+	it("both orders of equal texts are correct", () => {
+		const choices = someChoices(["1", "1", "2"], [0, 1, 2]);
+		const ones = aPuzzleGameQuestion({
+			choices,
+			correctOrder: choices.map(({ id }) => id),
+		});
+
+		for (const choiceIds of [
+			["choice-1", "choice-2", "choice-3"],
+			["choice-2", "choice-1", "choice-3"],
+		]) {
+			expect(
+				gradeAnswer(ones, { choiceIds, text: null, value: null }, 0)
+					.correctness,
+			).toBe("correct");
+		}
+	});
+
+	it("no points stays no points", () => {
+		expect(
+			gradeAnswer(
+				aPuzzleGameQuestion({ points: "noPoints" }),
+				{ choiceIds: right, text: null, value: null },
+				0,
+			),
+		).toEqual({ correctness: "correct", points: 0 });
 	});
 });

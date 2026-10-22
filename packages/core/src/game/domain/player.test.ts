@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { aGame, aPlayer, aPlayingGame } from "../testing/a-game";
-import { aGameQuestion } from "../testing/a-game-question";
+import { aGameQuestion, aPuzzleGameQuestion } from "../testing/a-game-question";
 import { DEFAULT_ASSIGNMENT_OPTIONS, newAssignment } from "./assignment";
 import { endGame } from "./game";
 import {
@@ -214,6 +214,52 @@ describe("assignment participant (spec 030)", () => {
 
 	it("without random answers there is no order of its own", () => {
 		expect(join().choiceOrder).toBeNull();
+	});
+
+	it("an assignment participant gets a wrong order for each puzzle, without random answers", () => {
+		const withPuzzle = [...questions, aPuzzleGameQuestion({ index: 2 })];
+		const player = newAssignmentParticipant({
+			id: "player-1",
+			game: assignment(),
+			questions: withPuzzle,
+			nickname: "John",
+			secret: "secret-1",
+			avatar: { character: "koala", accessory: null },
+			shuffle: (items) => [...items].reverse(),
+			now,
+		});
+
+		expect(player.choiceOrder?.[2]).toEqual([
+			"choice-4",
+			"choice-3",
+			"choice-2",
+			"choice-1",
+		]);
+		// Quiz questions keep their order without random answers.
+		expect(player.choiceOrder?.[0]).toEqual(
+			questions[0]?.choices.map(({ id }) => id),
+		);
+		expect(player.choiceOrder?.[1]).toEqual(["true", "false"]);
+	});
+
+	it("a puzzle drawn in the right order is turned for the participant too", () => {
+		const player = newAssignmentParticipant({
+			id: "player-1",
+			game: assignment(),
+			questions: [aPuzzleGameQuestion()],
+			nickname: "John",
+			secret: "secret-1",
+			avatar: { character: "koala", accessory: null },
+			shuffle: (items) => [...items],
+			now,
+		});
+
+		expect(player.choiceOrder?.[0]).toEqual([
+			"choice-2",
+			"choice-3",
+			"choice-4",
+			"choice-1",
+		]);
 	});
 
 	it("a live player has no progress", () => {

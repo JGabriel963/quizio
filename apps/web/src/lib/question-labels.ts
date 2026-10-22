@@ -79,6 +79,8 @@ export function questionIssueLabel(
 			return "Intervalo inválido";
 		case "sliderAnswerOutOfRange":
 			return "Resposta fora do intervalo";
+		case "notEnoughPuzzleItems":
+			return "Adicione no mínimo 3 respostas";
 	}
 }
 

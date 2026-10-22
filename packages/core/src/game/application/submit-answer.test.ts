@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTypeAnswerQuestion,
@@ -440,5 +441,34 @@ describe("submitAnswer of a slider (spec 032)", () => {
 		await expect(submitAnswer(fromPlayer(1, ["choice-1"]))).rejects.toThrow(
 			InvalidAnswerError,
 		);
+	});
+});
+
+describe("submitAnswer of a puzzle (spec 033)", () => {
+	it("a puzzle answer is stored in the sent order", async () => {
+		const { deps, submitAnswer, reach } = await createStartedGame({
+			players: ["Ana", "Bia"],
+			questions: [aPuzzleQuestion()],
+		});
+		await reach("answering");
+		const sent = ["choice-2", "choice-4", "choice-1", "choice-3"];
+
+		await submitAnswer(fromPlayer(1, sent));
+
+		expect(await deps.answers.listByQuestion("game-1", 0)).toMatchObject([
+			{ playerId: "p1", choiceIds: sent, correctness: "wrong", points: 0 },
+		]);
+	});
+
+	it("refuses an order that leaves an answer out", async () => {
+		const { submitAnswer, reach } = await createStartedGame({
+			players: ["Ana", "Bia"],
+			questions: [aPuzzleQuestion()],
+		});
+		await reach("answering");
+
+		await expect(
+			submitAnswer(fromPlayer(1, ["choice-4", "choice-3", "choice-2"])),
+		).rejects.toThrow(InvalidAnswerError);
 	});
 });

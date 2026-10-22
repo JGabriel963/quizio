@@ -35,4 +35,10 @@ export const QUESTION_TYPE_PREVIEWS: Record<QuestionType, QuestionTypePreview> =
 			description:
 				"Deixe os participantes adivinharem o número no controle deslizante.",
 		},
+		puzzle: {
+			example: "Ordene do menos ao mais populoso",
+			answers: ["EUA", "Itália", "Egito", "Espanha"],
+			description:
+				"Peça que os participantes coloquem as respostas na ordem certa.",
+		},
 	};

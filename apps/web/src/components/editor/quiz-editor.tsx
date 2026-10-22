@@ -376,6 +376,13 @@ export function QuizEditor({
 									text,
 								})
 							}
+							onSavePuzzleItem={(index, text) =>
+								actions.saveQuestionField(selected.id, {
+									kind: "puzzleItemText",
+									index,
+									text,
+								})
+							}
 							onChange={(change) => actions.changeQuestion(selected.id, change)}
 							titleAside={
 								<QuestionPropertiesMenu

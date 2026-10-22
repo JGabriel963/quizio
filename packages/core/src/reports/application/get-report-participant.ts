@@ -1,4 +1,5 @@
 import type { QuestionType } from "../../quiz/domain/question";
+import { puzzleOrderOf } from "../domain/puzzle-orders";
 import { ReportNotFoundError } from "../domain/report";
 import { participantStats } from "../domain/report-stats";
 import { loadReport, type ReportReadDeps } from "./load-report";
@@ -24,6 +25,8 @@ export interface ParticipantAnswerView {
 	sliderValue: number | null;
 	/** The slider's unit, told with the value ("600 anos"); null otherwise. */
 	sliderUnit: string | null;
+	/** The order they sent in a puzzle, by text (spec 033, RN-31); null otherwise. */
+	puzzleOrder: string[] | null;
 	points: number;
 	/** Null without an answer. */
 	responseTimeMs: number | null;
@@ -71,6 +74,7 @@ export function createGetReportParticipant(
 						typedText: answer?.text ?? null,
 						sliderValue: answer?.value ?? null,
 						sliderUnit: question.slider?.unit ?? null,
+						puzzleOrder: puzzleOrderOf(question, answer),
 						points: answer?.points ?? 0,
 						responseTimeMs: answer?.responseTimeMs ?? null,
 					};

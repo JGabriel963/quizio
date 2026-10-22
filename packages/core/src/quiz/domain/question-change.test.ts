@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
+	asPuzzle,
 	asQuiz,
 	asSlider,
 	asTrueFalse,
@@ -18,6 +20,7 @@ import {
 	InvalidSelectionModeError,
 	InvalidSliderNumberError,
 	InvalidTimeLimitError,
+	PUZZLE_ITEM_COUNT,
 	type Question,
 	QuestionTextTooLongError,
 	type QuizQuestion,
@@ -30,6 +33,7 @@ import {
 	ChoiceNotFoundError,
 	EmptyChoiceCannotBeCorrectError,
 	InvalidAnswerMarginError,
+	PuzzleItemNotFoundError,
 	type QuestionChange,
 	QuestionChangeNotApplicableError,
 	SliderAnswerRequiredError,
@@ -251,7 +255,7 @@ describe("applyQuestionChange changing the type", () => {
 		expect(() =>
 			applyQuestionChange(written, {
 				kind: "type",
-				type: "puzzle",
+				type: "poll",
 				remembered: null,
 			}),
 		).toThrow(InvalidQuestionTypeError);
@@ -886,5 +890,156 @@ describe("applyQuestionChange on a slider", () => {
 				kind: "acceptedAnswerAdded",
 			}),
 		).toThrow(QuestionChangeNotApplicableError);
+	});
+});
+
+describe("applyQuestionChange on a puzzle", () => {
+	const rivers = () =>
+		aPuzzleQuestion({ items: ["Nilo", "Amazonas", "Yangtzé", "Mississipi"] });
+
+	it("puzzleItemText writes a slot and empties it with null", () => {
+		const { question } = applyQuestionChange(
+			aPuzzleQuestion({ items: [null, null, null, null] }),
+			{ kind: "puzzleItemText", index: 1, text: "  Amazonas " },
+		);
+		expect(asPuzzle(question).items).toEqual([null, "Amazonas", null, null]);
+
+		const emptied = applyQuestionChange(question, {
+			kind: "puzzleItemText",
+			index: 1,
+			text: "   ",
+		});
+		expect(asPuzzle(emptied.question).items).toEqual([null, null, null, null]);
+	});
+
+	it("puzzleItemText refuses a 76th character", () => {
+		expect(() =>
+			applyQuestionChange(rivers(), {
+				kind: "puzzleItemText",
+				index: 0,
+				text: "a".repeat(76),
+			}),
+		).toThrow(ChoiceTextTooLongError);
+		expect(
+			asPuzzle(
+				applyQuestionChange(rivers(), {
+					kind: "puzzleItemText",
+					index: 0,
+					text: "a".repeat(75),
+				}).question,
+			).items[0],
+		).toHaveLength(75);
+	});
+
+	it("puzzleItemMoved takes a slot to another place and shifts the ones between", () => {
+		const up = applyQuestionChange(rivers(), {
+			kind: "puzzleItemMoved",
+			from: 2,
+			to: 0,
+		});
+		expect(asPuzzle(up.question).items).toEqual([
+			"Yangtzé",
+			"Nilo",
+			"Amazonas",
+			"Mississipi",
+		]);
+
+		const down = applyQuestionChange(rivers(), {
+			kind: "puzzleItemMoved",
+			from: 0,
+			to: 3,
+		});
+		expect(asPuzzle(down.question).items).toEqual([
+			"Amazonas",
+			"Yangtzé",
+			"Mississipi",
+			"Nilo",
+		]);
+	});
+
+	it("moving an empty slot moves the emptiness", () => {
+		const { question } = applyQuestionChange(
+			aPuzzleQuestion({ items: ["Nilo", null, "Yangtzé", null] }),
+			{ kind: "puzzleItemMoved", from: 1, to: 3 },
+		);
+		expect(asPuzzle(question).items).toEqual(["Nilo", "Yangtzé", null, null]);
+	});
+
+	it("moving a slot to its own place changes nothing", () => {
+		const before = rivers();
+		const { question } = applyQuestionChange(before, {
+			kind: "puzzleItemMoved",
+			from: 2,
+			to: 2,
+		});
+		expect(question).toEqual(before);
+	});
+
+	it("a slot outside 0 to 3 is not found", () => {
+		for (const change of [
+			{ kind: "puzzleItemText", index: PUZZLE_ITEM_COUNT, text: "x" },
+			{ kind: "puzzleItemText", index: -1, text: "x" },
+			{ kind: "puzzleItemText", index: 1.5, text: "x" },
+			{ kind: "puzzleItemMoved", from: 0, to: 4 },
+			{ kind: "puzzleItemMoved", from: 4, to: 0 },
+		] satisfies QuestionChange[]) {
+			expect(() => applyQuestionChange(rivers(), change)).toThrow(
+				PuzzleItemNotFoundError,
+			);
+		}
+	});
+
+	it("puzzle changes do not apply to other types", () => {
+		expect(() =>
+			applyQuestionChange(aQuestion(), {
+				kind: "puzzleItemMoved",
+				from: 0,
+				to: 1,
+			}),
+		).toThrow(QuestionChangeNotApplicableError);
+	});
+
+	it("changing a 10 s quiz to puzzle gives empty slots and 20 s, and back brings the choices", () => {
+		const quiz = withChoices(["A", "B", "C", "D"], [0], {
+			timeLimitSeconds: 10,
+		});
+		const { question: puzzle } = applyQuestionChange(quiz, {
+			kind: "type",
+			type: "puzzle",
+			remembered: null,
+		});
+		expect(asPuzzle(puzzle).items).toEqual([null, null, null, null]);
+		expect(puzzle.timeLimitSeconds).toBe(20);
+		expect(puzzle.text).toBe(quiz.text);
+
+		const written = applyQuestionChange(puzzle, {
+			kind: "puzzleItemText",
+			index: 0,
+			text: "Nilo",
+		}).question;
+		const remembered = questionContent(written);
+		const { question: back } = applyQuestionChange(written, {
+			kind: "type",
+			type: "quiz",
+			remembered: questionContent(quiz),
+		});
+		expect(asQuiz(back).choices).toEqual(quiz.choices);
+
+		const { question: again } = applyQuestionChange(back, {
+			kind: "type",
+			type: "puzzle",
+			remembered,
+		});
+		expect(asPuzzle(again).items).toEqual(["Nilo", null, null, null]);
+	});
+
+	it("remembered puzzle content is checked as the edits are", () => {
+		expect(() =>
+			applyQuestionChange(aQuestion(), {
+				kind: "type",
+				type: "puzzle",
+				remembered: { type: "puzzle", items: ["a".repeat(76)] },
+			}),
+		).toThrow(ChoiceTextTooLongError);
 	});
 });

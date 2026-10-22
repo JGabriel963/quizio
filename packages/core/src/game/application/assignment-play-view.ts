@@ -32,6 +32,7 @@ import {
 	type PublicSliderScale,
 	publicSliderScale,
 } from "../domain/public-stage";
+import { placedInOrder } from "../domain/puzzle";
 import { rankPlayers } from "../domain/standings";
 import { loadGame } from "./game-lifecycle";
 import type { AnswerRepository } from "./ports/answer-repository";
@@ -84,6 +85,11 @@ export interface QuestionResultView {
 		high: number;
 		unit: string | null;
 	} | null;
+	/**
+	 * A puzzle's answers in the right order (spec 033, RN-29), told only with
+	 * its results; `chosenIds` is the order sent. Empty for the other types.
+	 */
+	rightOrder: string[];
 	result: Correctness | "unanswered";
 	points: number;
 }
@@ -208,12 +214,15 @@ function questionView(
 ): PlayQuestionView {
 	const order = player.choiceOrder?.[question.index];
 	const byId = new Map(question.choices.map((choice) => [choice.id, choice]));
-	const choices = order
-		? order.flatMap((id) => {
-				const choice = byId.get(id);
-				return choice ? [choice] : [];
-			})
-		: question.choices;
+	// A puzzle's blocks take the color and shape of their place (spec 033, RN-15).
+	const choices = !order
+		? question.choices
+		: question.type === "puzzle"
+			? placedInOrder(question, order)
+			: order.flatMap((id) => {
+					const choice = byId.get(id);
+					return choice ? [choice] : [];
+				});
 	return {
 		index: question.index,
 		type: question.type,
@@ -256,6 +265,7 @@ function resultView(
 			...marginRange(question.slider),
 			unit: question.slider.unit,
 		},
+		rightOrder: [...question.correctOrder],
 		result: answer?.correctness ?? "unanswered",
 		points: answer?.points ?? 0,
 	};

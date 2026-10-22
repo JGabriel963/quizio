@@ -3,7 +3,7 @@ import { cn } from "@quizio/ui/lib/utils";
 
 /** Answer blocks of each type, in the order they appear in the question. */
 const BLOCKS: Record<
-	Exclude<QuestionType, "typeAnswer" | "slider">,
+	Exclude<QuestionType, "typeAnswer" | "slider" | "puzzle">,
 	readonly string[]
 > = {
 	quiz: [
@@ -48,6 +48,28 @@ export function QuestionTypeIcon({
 						/>
 					))}
 				</span>
+			</span>
+		);
+	}
+	if (type === "puzzle") {
+		// A phone with stacked colored blocks, one out of line (spec 033).
+		return (
+			<span
+				aria-hidden="true"
+				data-slot="question-type-icon"
+				className={cn(
+					"flex h-9 w-7 flex-col justify-center gap-0.5 rounded-sm border-2 border-foreground/80 bg-card p-0.5",
+					className,
+				)}
+			>
+				{[
+					"bg-answer-green",
+					"translate-x-0.5 bg-answer-red",
+					"bg-answer-blue",
+					"bg-answer-yellow",
+				].map((color) => (
+					<span key={color} className={cn("h-1 rounded-[1px]", color)} />
+				))}
 			</span>
 		);
 	}

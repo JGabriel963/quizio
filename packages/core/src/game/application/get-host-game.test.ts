@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Question } from "../../quiz/domain/question";
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTrueFalseQuestion,
@@ -868,6 +869,58 @@ describe("getHostGame with a slider (spec 032)", () => {
 				{ value: 600, count: 1 },
 				{ value: 640, count: 2 },
 			],
+		});
+	});
+});
+
+describe("getHostGame with a puzzle (spec 033)", () => {
+	async function ordering() {
+		const game = await createStartedGame({
+			players: ["Ana", "Bia", "Caio", "Davi", "Eva", "Fábio"],
+			questions: [aPuzzleQuestion()],
+		});
+		await game.reach("answering");
+		return game;
+	}
+	const right = ["choice-4", "choice-3", "choice-2", "choice-1"];
+	const swapped = ["choice-4", "choice-3", "choice-1", "choice-2"];
+
+	it("the host gets the puzzle's choices in the drawn order with their shapes", async () => {
+		const { deps } = await ordering();
+
+		const view = await createGetHostGame(deps)(mine);
+
+		// The test shuffler draws backwards.
+		expect(
+			view.stage?.question?.choices.map(({ id, shapeIndex, text }) => [
+				id,
+				shapeIndex,
+				text,
+			]),
+		).toEqual([
+			["choice-1", 0, "Mississipi"],
+			["choice-2", 1, "Yangtzé"],
+			["choice-3", 2, "Amazonas"],
+			["choice-4", 3, "Nilo"],
+		]);
+		expect(view.stage?.puzzleResults).toBeNull();
+	});
+
+	it("the results of a puzzle have the right order and the right and wrong counts", async () => {
+		const { deps, answer, reach } = await ordering();
+		await answer(1, ...right);
+		await answer(2, ...right);
+		await answer(3, ...right);
+		await answer(4, ...swapped);
+		await answer(5, ...swapped);
+		await reach("results");
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage?.puzzleResults).toEqual({
+			order: right,
+			correct: 3,
+			wrong: 2,
 		});
 	});
 });

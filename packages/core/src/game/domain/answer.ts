@@ -7,6 +7,7 @@ import {
 import { characterCount } from "../../shared/domain/text-length";
 import { normalizeTypedAnswer } from "../../shared/domain/typed-answer";
 import type { GameQuestion } from "./game-question";
+import { isRightOrder } from "./puzzle";
 import { calculateAnswerScore, calculateSliderScore } from "./scoring";
 
 /**
@@ -40,7 +41,7 @@ export interface Answer {
 	gameId: string;
 	questionIndex: number;
 	playerId: string;
-	/** In the question's order. */
+	/** In the question's order; a puzzle's in the order sent (spec 033). */
 	choiceIds: string[];
 	/** The typed text of a type answer, trimmed; null for the other types (spec 031). */
 	text: string | null;
@@ -100,11 +101,27 @@ export function parseAnswerChoices(
 	return known.map((choice) => choice.id);
 }
 
+/** Every answer of the question once, in any order (spec 033, RN-22). */
+function parsePuzzleOrder(
+	question: GameQuestion,
+	choiceIds: readonly string[],
+): string[] {
+	const known = new Set(question.choices.map(({ id }) => id));
+	if (
+		choiceIds.length !== known.size ||
+		new Set(choiceIds).size !== choiceIds.length ||
+		!choiceIds.every((id) => known.has(id))
+	) {
+		throw new InvalidAnswerError("A puzzle takes every answer once");
+	}
+	return [...choiceIds];
+}
+
 /**
  * What a player sent, checked against the question: the typed text of a type
  * answer (1 to 20 characters once trimmed, spec 031, RN-17), a position of a
- * slider's scale (spec 032, RN-23), the marked answers otherwise; never two
- * of them.
+ * slider's scale (spec 032, RN-23), a puzzle's order (spec 033), the marked
+ * answers otherwise; never two of them.
  */
 export function parseAnswerResponse(
 	question: GameQuestion,
@@ -145,6 +162,15 @@ export function parseAnswerResponse(
 			}
 			return { choiceIds: [], text: null, value };
 		}
+		case "puzzle":
+			if (hasText || hasValue) {
+				throw new InvalidAnswerError("A puzzle takes an order of its answers");
+			}
+			return {
+				choiceIds: parsePuzzleOrder(question, raw.choiceIds ?? []),
+				text: null,
+				value: null,
+			};
 		case "quiz":
 		case "trueFalse":
 			if (hasText || hasValue) {
@@ -214,7 +240,8 @@ export function answerPoints(
 /**
  * How a response did and what it is worth, measured on receipt: a type answer
  * is right or wrong as a whole (spec 031, RN-14, RN-16), a slider goes by how
- * close it is (spec 032, RN-19 to RN-21), the others by their answers.
+ * close it is (spec 032, RN-19 to RN-21), a puzzle is all or nothing (spec
+ * 033, RN-16, RN-18), the others by their answers.
  */
 export function gradeAnswer(
 	question: GameQuestion,
@@ -233,6 +260,13 @@ export function gradeAnswer(
 		}
 		case "slider":
 			return gradeSlider(question, response.value, responseTimeMs);
+		case "puzzle": {
+			const correct = isRightOrder(question, response.choiceIds);
+			return {
+				correctness: correct ? "correct" : "wrong",
+				points: reviewedPoints(question, correct, responseTimeMs),
+			};
+		}
 		case "quiz":
 		case "trueFalse":
 			return {

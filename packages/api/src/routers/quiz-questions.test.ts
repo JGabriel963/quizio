@@ -203,14 +203,14 @@ describe("quiz.questions router", () => {
 			ana.quiz.questions.update({
 				quizId,
 				questionId: questions[0]?.id ?? "",
-				change: { kind: "type", type: "puzzle" as never, remembered: null },
+				change: { kind: "type", type: "poll" as never, remembered: null },
 			}),
 		);
 		const added = await failureOf(
 			ana.quiz.questions.add({
 				quizId,
 				afterQuestionId: null,
-				type: "puzzle" as never,
+				type: "poll" as never,
 			}),
 		);
 
@@ -624,6 +624,92 @@ describe("quiz.questions: slider (spec 032)", () => {
 			type: "slider",
 			answer: 600,
 			answerMargin: "low",
+		});
+	});
+});
+
+describe("quiz.questions: puzzle (spec 033)", () => {
+	async function withPuzzle() {
+		const ana = createTestApi().callerFor("user-1");
+		const { id: quizId } = await ana.quiz.create({});
+		const {
+			questions: [first],
+		} = await ana.quiz.editor({ quizId });
+		const added = await ana.quiz.questions.add({
+			quizId,
+			afterQuestionId: first?.id ?? null,
+			type: "puzzle",
+		});
+		return { ana, quizId, questionId: added.question.id };
+	}
+
+	it("updates and moves puzzle slots", async () => {
+		const { ana, quizId, questionId } = await withPuzzle();
+		const update = (
+			change: Parameters<typeof ana.quiz.questions.update>[0]["change"],
+		) => ana.quiz.questions.update({ quizId, questionId, change });
+
+		await update({ kind: "puzzleItemText", index: 0, text: "Nilo" });
+		await update({ kind: "puzzleItemText", index: 1, text: "Amazonas" });
+		await update({ kind: "puzzleItemText", index: 2, text: "Yangtzé" });
+		await update({ kind: "puzzleItemMoved", from: 2, to: 0 });
+
+		const { questions } = await ana.quiz.editor({ quizId });
+		expect(questions[1]).toMatchObject({
+			type: "puzzle",
+			timeLimitSeconds: 60,
+			items: ["Yangtzé", "Nilo", "Amazonas", null],
+		});
+	});
+
+	it("refuses a slot outside 0 to 3", async () => {
+		const { ana, quizId, questionId } = await withPuzzle();
+
+		const error = await failureOf(
+			ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: { kind: "puzzleItemMoved", from: 0, to: 4 },
+			}),
+		);
+
+		expect(error).toMatchObject({ code: "BAD_REQUEST" });
+	});
+
+	it("refuses an answer of 76 characters with its domain code", async () => {
+		const { ana, quizId, questionId } = await withPuzzle();
+
+		const error = await failureOf(
+			ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: { kind: "puzzleItemText", index: 0, text: "a".repeat(76) },
+			}),
+		);
+
+		expect(error).toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "QUIZ.CHOICE_TEXT_TOO_LONG" },
+		});
+	});
+
+	it("remembers a puzzle's slots on a type change", async () => {
+		const { ana, quizId } = await withPuzzle();
+		const { questions } = await ana.quiz.editor({ quizId });
+
+		const result = await ana.quiz.questions.update({
+			quizId,
+			questionId: questions[0]?.id ?? "",
+			change: {
+				kind: "type",
+				type: "puzzle",
+				remembered: { type: "puzzle", items: ["Nilo", null, "Amazonas", null] },
+			},
+		});
+
+		expect(result.question).toMatchObject({
+			type: "puzzle",
+			items: ["Nilo", null, "Amazonas", null],
 		});
 	});
 });

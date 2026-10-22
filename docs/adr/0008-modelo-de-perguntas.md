@@ -61,6 +61,15 @@ O segundo tipo seguiu o mesmo caminho: `slider` é um valor a mais de `question_
 - **A resposta do jogador é um número.** Ela fica em `game_answer.value` (`numeric(14,2)`, nula para os outros tipos). A escala viaja na cópia da pergunta (`GameQuestion.slider`, `null` nas cópias gravadas antes).
 - **Um valor novo de correção:** `almostCorrect` (dentro da margem) entra em `answer_correctness` e conta como acerto na sequência e nos relatórios. Os pontos são 80% pela precisão e 20% pela velocidade (`calculateSliderScore`).
 
+## Atualização — Puzzle (spec 033, 2026-10-22)
+
+O terceiro tipo também coube no modelo: `puzzle` é um valor a mais de `question_type`, e o `content` guarda `{ items: (string | null)[] }`, sempre com 4 posições, de cima para baixo. **A ordem das posições é a ordem certa**, e as posições não têm id: a cor e a forma são da posição, e mover uma resposta leva o texto para outro lugar (`puzzleItemMoved`).
+
+- **Na partida, a ordem certa vai na cópia da pergunta.** `toGameQuestion` transforma cada posição preenchida numa alternativa (id da posição, todas `correct`) e guarda os ids na ordem certa em `GameQuestion.correctOrder` (`[]` para os outros tipos e para as cópias gravadas antes). Nenhum dos dois chega ao celular antes da revelação.
+- **Os ids das respostas na partida são os dos lugares sorteados**, não os das posições do editor: estes seguem a ordem certa, e ordená-los entregaria a resposta.
+- **A correção compara os textos**, posição por posição (`isRightOrder`), e não os ids: respostas repetidas valem em qualquer das posições delas, como diz o artigo do Kahoot.
+- **O sorteio nunca sai numa ordem certa.** O Puzzle é sempre embaralhado, com ou sem "Ordem aleatória de respostas". Se o sorteio sair certo, a ordem gira uma casa (`wrongOrderOf`), o que é determinístico e sempre dá uma ordem errada quando os textos não são todos iguais.
+
 ## Alternativas consideradas
 
 - **Só tabelas** (`question` + `choice` + uma tabela por tipo): integridade forte no banco, mas cada tipo novo vira migração e mais joins, e a maioria dos tipos futuros não tem "alternativas".

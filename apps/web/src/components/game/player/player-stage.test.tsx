@@ -946,3 +946,78 @@ describe("PlayerStage: slider (spec 032)", () => {
 		expect(told).toHaveTextContent("Resposta correta:600 anos");
 	});
 });
+
+describe("PlayerStage: a puzzle (spec 033)", () => {
+	const puzzle = (
+		texts: (string | null)[],
+		ids = ["choice-3", "choice-4", "choice-1", "choice-2"],
+	): PlayerQuestionData => ({
+		type: "puzzle",
+		selection: "single",
+		slider: null,
+		text: texts[0] === null ? null : "Coloque estes rios do maior para o menor",
+		image: null,
+		choices: ids.map((id, shapeIndex) => ({
+			id,
+			shapeIndex,
+			label: null,
+			text: texts[shapeIndex] ?? null,
+		})),
+	});
+	const blockTexts = () =>
+		[...document.querySelectorAll("[data-slot=puzzle-block]")].map(
+			(block) => block.textContent,
+		);
+
+	it("shows the blocks with the question on the device and sends the order", async () => {
+		const { onAnswer, user } = renderStage(
+			stageAt({
+				question: puzzle(["Yangtzé", "Mississipi", "Nilo", "Amazonas"]),
+			}),
+		);
+
+		expect(
+			screen.getByText("Coloque estes rios do maior para o menor"),
+		).toBeInTheDocument();
+		expect(blockTexts()).toEqual(["Yangtzé", "Mississipi", "Nilo", "Amazonas"]);
+
+		await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+		expect(onAnswer).toHaveBeenCalledExactlyOnceWith([
+			"choice-3",
+			"choice-4",
+			"choice-1",
+			"choice-2",
+		]);
+	});
+
+	it("without the questions on the device the blocks have only shapes", () => {
+		renderStage(stageAt({ question: puzzle([null, null, null, null]) }));
+
+		expect(blockTexts()).toEqual(["", "", "", ""]);
+		expect(screen.getByRole("button", { name: "Enviar" })).toBeEnabled();
+	});
+
+	it("gives back an order that was not sent", () => {
+		renderStage(
+			stageAt({
+				question: puzzle(["Yangtzé", "Mississipi", "Nilo", "Amazonas"]),
+			}),
+			{ orderDraft: ["choice-1", "choice-2", "choice-3", "choice-4"] },
+		);
+
+		expect(blockTexts()).toEqual(["Nilo", "Amazonas", "Yangtzé", "Mississipi"]);
+	});
+
+	it("the puzzle order does not carry over to the next question", () => {
+		renderStage(
+			stageAt({
+				questionIndex: 2,
+				question: puzzle(["a", "b", "c", "d"], ["x1", "x2", "x3", "x4"]),
+			}),
+			{ orderDraft: ["choice-1", "choice-2", "choice-3", "choice-4"] },
+		);
+
+		expect(blockTexts()).toEqual(["a", "b", "c", "d"]);
+	});
+});

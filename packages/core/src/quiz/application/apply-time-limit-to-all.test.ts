@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InvalidTimeLimitError } from "../domain/question";
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTrueFalseQuestion,
@@ -100,5 +101,33 @@ describe("applyTimeLimitToAll", () => {
 		expect(
 			questions.listOf("quiz-1").map((question) => question.timeLimitSeconds),
 		).toEqual([5, 10]);
+	});
+});
+
+describe("applyTimeLimitToAll with a puzzle (spec 033, RN-11)", () => {
+	it("applying 10 s to all gives puzzles 20 s", async () => {
+		const quizzes = new InMemoryQuizRepository();
+		const questions = new InMemoryQuestionRepository();
+		const applyTimeLimitToAll = createApplyTimeLimitToAll({
+			quizzes,
+			questions,
+			versions: new InMemoryQuizVersionRepository(),
+			clock: new FixedClock("2026-06-01T12:00:00.000Z"),
+		});
+		await quizzes.save(aQuiz());
+		await questions.saveList("quiz-1", [
+			aQuestion({ id: "a" }),
+			aPuzzleQuestion({ id: "b" }),
+		]);
+
+		await applyTimeLimitToAll({
+			ownerId: "user-1",
+			quizId: "quiz-1",
+			seconds: 10,
+		});
+
+		expect(
+			questions.listOf("quiz-1").map((question) => question.timeLimitSeconds),
+		).toEqual([10, 20]);
 	});
 });

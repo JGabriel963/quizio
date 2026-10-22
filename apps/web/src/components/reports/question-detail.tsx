@@ -55,50 +55,55 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 				{detail.sliderAnswers && (
 					<SliderAnswers answers={detail.sliderAnswers} answered={answered} />
 				)}
-				{/* A type answer has no alternatives: its list is empty. */}
-				<ul aria-label="Alternativas" className="flex flex-col gap-2">
-					{detail.choices.map((choice) => (
-						<li
-							key={choice.id}
-							className="flex flex-col gap-1 rounded-md p-3 ring-1 ring-foreground/10"
-						>
-							<div className="flex items-center gap-3">
-								<ChoiceChip
-									shapeIndex={choice.shapeIndex}
-									text={choice.text}
-									className="flex-1"
-								/>
-								{choice.correct && (
-									<span className="inline-flex shrink-0 items-center gap-1 font-semibold text-sm text-success">
-										<CheckIcon aria-hidden="true" className="size-4" />
-										Correta
-									</span>
-								)}
-								<span className="shrink-0 font-bold tabular-nums">
-									{choice.count}
-									<span className="sr-only">
-										{choice.count === 1 ? " escolheu" : " escolheram"}
-									</span>
-								</span>
-							</div>
-							<div
-								aria-hidden="true"
-								className="h-1.5 overflow-hidden rounded-full bg-muted"
+				{detail.puzzleAnswers && (
+					<PuzzleOrders answers={detail.puzzleAnswers} />
+				)}
+				{/* A type answer has no alternatives: its list is empty. A puzzle's are its orders. */}
+				{!detail.puzzleAnswers && (
+					<ul aria-label="Alternativas" className="flex flex-col gap-2">
+						{detail.choices.map((choice) => (
+							<li
+								key={choice.id}
+								className="flex flex-col gap-1 rounded-md p-3 ring-1 ring-foreground/10"
 							>
+								<div className="flex items-center gap-3">
+									<ChoiceChip
+										shapeIndex={choice.shapeIndex}
+										text={choice.text}
+										className="flex-1"
+									/>
+									{choice.correct && (
+										<span className="inline-flex shrink-0 items-center gap-1 font-semibold text-sm text-success">
+											<CheckIcon aria-hidden="true" className="size-4" />
+											Correta
+										</span>
+									)}
+									<span className="shrink-0 font-bold tabular-nums">
+										{choice.count}
+										<span className="sr-only">
+											{choice.count === 1 ? " escolheu" : " escolheram"}
+										</span>
+									</span>
+								</div>
 								<div
-									className={
-										choice.correct
-											? "h-full bg-success"
-											: "h-full bg-foreground/40"
-									}
-									style={{
-										width: `${answered > 0 ? (choice.count / answered) * 100 : 0}%`,
-									}}
-								/>
-							</div>
-						</li>
-					))}
-				</ul>
+									aria-hidden="true"
+									className="h-1.5 overflow-hidden rounded-full bg-muted"
+								>
+									<div
+										className={
+											choice.correct
+												? "h-full bg-success"
+												: "h-full bg-foreground/40"
+										}
+										style={{
+											width: `${answered > 0 ? (choice.count / answered) * 100 : 0}%`,
+										}}
+									/>
+								</div>
+							</li>
+						))}
+					</ul>
+				)}
 			</section>
 
 			<section className="flex flex-col gap-2">
@@ -131,6 +136,11 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 								{participant.typedText !== null && (
 									<span className="font-semibold">
 										“{participant.typedText}”
+									</span>
+								)}
+								{participant.puzzleOrder !== null && (
+									<span data-slot="puzzle-order" className="font-semibold">
+										{orderLabel(participant.puzzleOrder)}
 									</span>
 								)}
 								{participant.sliderValue !== null && (
@@ -228,6 +238,62 @@ function SliderAnswers({
 								}}
 							/>
 						</div>
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+/** A puzzle's order on one line, as the report says it. */
+export function orderLabel(texts: readonly string[]): string {
+	return texts.join(" → ");
+}
+
+/** A puzzle's right order and the orders sent, the right one first (spec 033, RN-31). */
+function PuzzleOrders({
+	answers,
+}: {
+	answers: NonNullable<QuestionDetailData["puzzleAnswers"]>;
+}) {
+	return (
+		<div className="flex flex-col gap-3">
+			<ol aria-label="Ordem correta" className="flex flex-col gap-1">
+				{answers.correctOrder.map((choice) => (
+					<li key={`${choice.shapeIndex}:${choice.text}`}>
+						<ChoiceChip shapeIndex={choice.shapeIndex} text={choice.text} />
+					</li>
+				))}
+			</ol>
+			<ul aria-label="Ordens enviadas" className="flex flex-col gap-2">
+				{answers.orders.map((order) => (
+					<li
+						key={order.texts.join("\u0000")}
+						className="flex items-center gap-3 rounded-md p-3 ring-1 ring-foreground/10"
+					>
+						<span className="min-w-0 flex-1 break-words font-semibold">
+							{orderLabel(order.texts)}
+						</span>
+						<span
+							className={
+								order.correct
+									? "inline-flex shrink-0 items-center gap-1 font-semibold text-sm text-success"
+									: "inline-flex shrink-0 items-center gap-1 font-semibold text-destructive text-sm"
+							}
+						>
+							{order.correct ? (
+								<CheckIcon aria-hidden="true" className="size-4" />
+							) : (
+								<XIcon aria-hidden="true" className="size-4" />
+							)}
+							{order.correct ? "Correta" : "Incorreta"}
+						</span>
+						<span className="shrink-0 font-bold tabular-nums">
+							{order.count}
+							<span className="sr-only">
+								{order.count === 1 ? " enviou" : " enviaram"}
+							</span>
+						</span>
 					</li>
 				))}
 			</ul>

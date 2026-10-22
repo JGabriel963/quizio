@@ -2,7 +2,7 @@ import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon, XIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-
+import { PuzzleBlock, PuzzleBlockCheck } from "@/components/game/puzzle-block";
 import type { QuestionResultData } from "@/lib/api-types";
 import { CountUp } from "@/lib/count-up";
 import { usePrefersReducedMotion } from "@/lib/game-motion";
@@ -65,6 +65,8 @@ export function PlayResult({
 				answers={
 					result.sliderAnswer ? (
 						<SliderResult result={result} slider={result.sliderAnswer} />
+					) : result.question.type === "puzzle" ? (
+						<PuzzleResult result={result} />
 					) : result.question.type === "typeAnswer" ? (
 						<TypedResult result={result} />
 					) : (
@@ -189,6 +191,69 @@ function TypedResult({ result }: { result: QuestionResultData }) {
 						</li>
 					))}
 				</ul>
+			</section>
+		</div>
+	);
+}
+
+/**
+ * A puzzle's result (spec 033, RN-29): the order sent, marked right or wrong
+ * as a whole, and the right order, each block with the shape it had.
+ */
+function PuzzleResult({ result }: { result: QuestionResultData }) {
+	const byId = new Map(
+		result.question.choices.map((choice) => [choice.id, choice]),
+	);
+	const blocksOf = (ids: readonly string[]) =>
+		ids.flatMap((id) => {
+			const choice = byId.get(id);
+			return choice ? [choice] : [];
+		});
+	const right = result.result === "correct";
+	return (
+		<div className="flex min-h-0 flex-col items-center gap-3 overflow-y-auto p-2">
+			{result.chosenIds.length > 0 && (
+				<ol
+					aria-label="Sua ordem"
+					data-right={right}
+					className={cn(
+						"flex w-full max-w-md flex-col gap-1 rounded-md p-1.5",
+						right ? "bg-answer-correct" : "bg-answer-red",
+					)}
+				>
+					{blocksOf(result.chosenIds).map((choice) => (
+						<li key={choice.id}>
+							<PuzzleBlock
+								shapeIndex={choice.shapeIndex}
+								text={choice.text}
+								className="min-h-10 text-sm shadow-none"
+							/>
+						</li>
+					))}
+				</ol>
+			)}
+			<section
+				aria-labelledby="right-order"
+				className="flex w-full max-w-md flex-col items-center gap-2"
+			>
+				<h2 id="right-order" className="font-bold">
+					A ordem certa é:
+				</h2>
+				<ol
+					aria-labelledby="right-order"
+					className="flex w-full flex-col gap-1"
+				>
+					{blocksOf(result.rightOrder).map((choice) => (
+						<li key={choice.id}>
+							<PuzzleBlock
+								shapeIndex={choice.shapeIndex}
+								text={choice.text}
+								className="min-h-10 text-sm"
+								end={<PuzzleBlockCheck />}
+							/>
+						</li>
+					))}
+				</ol>
 			</section>
 		</div>
 	);

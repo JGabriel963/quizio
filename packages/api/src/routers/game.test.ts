@@ -9,6 +9,7 @@ import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import { somePlayableQuestions } from "@quizio/core/game/testing/game-deps";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
 import {
+	aPuzzleQuestion,
 	aSliderQuestion,
 	aTypeAnswerQuestion,
 } from "@quizio/core/quiz/testing/a-question";
@@ -1616,6 +1617,72 @@ describe("game router: slider (spec 032)", () => {
 
 		await expect(
 			visitor.game.join.answer({ ...ana, questionIndex: 0, value: 601 }),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.INVALID_ANSWER" },
+		});
+	});
+});
+
+describe("game router: puzzle (spec 033)", () => {
+	async function ordering() {
+		const api = createTestApi();
+		await api.quizzes.save(aPublishedQuiz({ title: "Rios" }));
+		await api.versions.save(
+			newQuizVersion({
+				quizId: "quiz-1",
+				number: 1,
+				questions: [aPuzzleQuestion(), ...somePlayableQuestions()],
+				now: new Date("2026-02-01T10:00:00.000Z"),
+			}),
+		);
+		const host = api.callerFor("user-1");
+		const visitor = api.callerFor(null);
+		const { gameId } = await host.game.host({ quizId: "quiz-1" });
+		const { playerId, secret } = await visitor.game.join.enter({
+			gameId,
+			nickname: "Ana",
+		});
+		const ana = { gameId, playerId, secret };
+		await host.game.start({ gameId });
+		api.clock.advanceBy(3_000);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "gameIntro" },
+		});
+		api.clock.advanceBy(QUESTION_INTRO_MS);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "questionIntro" },
+		});
+		return { api, visitor, gameId, ana };
+	}
+
+	it("a player answers a puzzle with the ids in order", async () => {
+		const { api, visitor, gameId, ana } = await ordering();
+		const right = ["choice-4", "choice-3", "choice-2", "choice-1"];
+
+		await visitor.game.join.answer({
+			...ana,
+			questionIndex: 0,
+			choiceIds: right,
+		});
+
+		expect(await api.answers.find(gameId, 0, ana.playerId)).toMatchObject({
+			choiceIds: right,
+			correctness: "correct",
+		});
+	});
+
+	it("refuses an order that leaves an answer out", async () => {
+		const { visitor, ana } = await ordering();
+
+		await expect(
+			visitor.game.join.answer({
+				...ana,
+				questionIndex: 0,
+				choiceIds: ["choice-4", "choice-3"],
+			}),
 		).rejects.toMatchObject({
 			code: "BAD_REQUEST",
 			cause: { code: "GAME.INVALID_ANSWER" },

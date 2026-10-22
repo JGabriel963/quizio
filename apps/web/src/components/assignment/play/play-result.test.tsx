@@ -24,6 +24,7 @@ describe("PlayResult of a type answer (spec 031, RN-35)", () => {
 					typedText: "pedra",
 					sliderValue: null,
 					sliderAnswer: null,
+					rightOrder: [],
 					acceptedAnswers: ["Pedro", "Simão Pedro"],
 					result: "wrong",
 					points: 0,
@@ -70,6 +71,7 @@ describe("PlayResult of a slider (spec 032, RN-34)", () => {
 					typedText: null,
 					sliderValue: 640,
 					sliderAnswer: { answer: 600, low: 520, high: 680, unit: "anos" },
+					rightOrder: [],
 					acceptedAnswers: [],
 					result: "almostCorrect",
 					points: 600,
@@ -90,6 +92,92 @@ describe("PlayResult of a slider (spec 032, RN-34)", () => {
 		expect(screen.getByText("600 anos")).toBeInTheDocument();
 		expect(
 			screen.getByText(/Margem de resposta: 520 anos a 680 anos/),
+		).toBeInTheDocument();
+	});
+});
+
+describe("PlayResult of a puzzle (spec 033, RN-29)", () => {
+	const puzzleQuestion = {
+		index: 0,
+		type: "puzzle" as const,
+		selection: "single" as const,
+		slider: null,
+		text: "Coloque estes rios do maior para o menor",
+		image: null,
+		choices: [
+			{ id: "choice-3", shapeIndex: 0, text: "Yangtzé" },
+			{ id: "choice-4", shapeIndex: 1, text: "Mississipi" },
+			{ id: "choice-1", shapeIndex: 2, text: "Nilo" },
+			{ id: "choice-2", shapeIndex: 3, text: "Amazonas" },
+		],
+	};
+
+	it("a puzzle result shows the sent and the right order", () => {
+		render(
+			<PlayResult
+				animate={false}
+				questionCount={5}
+				result={{
+					question: puzzleQuestion,
+					chosenIds: ["choice-2", "choice-1", "choice-3", "choice-4"],
+					rightIds: [],
+					typedText: null,
+					sliderValue: null,
+					sliderAnswer: null,
+					rightOrder: ["choice-1", "choice-2", "choice-3", "choice-4"],
+					acceptedAnswers: [],
+					result: "wrong",
+					points: 0,
+				}}
+			/>,
+		);
+
+		const texts = (name: string) =>
+			[
+				...screen
+					.getByRole("list", { name })
+					.querySelectorAll("[data-slot=puzzle-block]"),
+			].map((block) => block.textContent);
+		expect(texts("Sua ordem")).toEqual([
+			"Amazonas",
+			"Nilo",
+			"Yangtzé",
+			"Mississipi",
+		]);
+		expect(
+			screen.getByRole("heading", { name: "A ordem certa é:" }),
+		).toBeInTheDocument();
+		expect(texts("A ordem certa é:")).toEqual([
+			"Nilo",
+			"Amazonas",
+			"Yangtzé",
+			"Mississipi",
+		]);
+	});
+
+	it("without an answer only the right order shows", () => {
+		render(
+			<PlayResult
+				animate={false}
+				questionCount={5}
+				result={{
+					question: puzzleQuestion,
+					chosenIds: [],
+					rightIds: [],
+					typedText: null,
+					sliderValue: null,
+					sliderAnswer: null,
+					rightOrder: ["choice-1", "choice-2", "choice-3", "choice-4"],
+					acceptedAnswers: [],
+					result: "unanswered",
+					points: 0,
+				}}
+			/>,
+		);
+
+		expect(screen.queryByRole("list", { name: "Sua ordem" })).toBeNull();
+		expect(
+			screen.getByRole("list", { name: "A ordem certa é:" }),
 		).toBeInTheDocument();
 	});
 });

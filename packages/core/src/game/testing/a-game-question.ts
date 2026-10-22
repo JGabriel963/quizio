@@ -28,6 +28,7 @@ export function aGameQuestion(
 		choices: someChoices(["Brasília", "Rio de Janeiro", "Salvador", "Recife"]),
 		acceptedAnswers: [],
 		slider: null,
+		correctOrder: [],
 		image: null,
 		...overrides,
 	};
@@ -62,4 +63,25 @@ export function anAnswer(overrides: Partial<Answer> = {}): Answer {
 		reviewedAt: null,
 		...overrides,
 	};
+}
+
+/**
+ * Test builder: a puzzle of four rivers, copied in the right order (choice-1
+ * to choice-4) and not shuffled yet (spec 033).
+ */
+export function aPuzzleGameQuestion(
+	overrides: Partial<GameQuestion> = {},
+): GameQuestion {
+	const choices = someChoices(
+		["Nilo", "Amazonas", "Yangtzé", "Mississipi"],
+		[0, 1, 2, 3],
+	);
+	return aGameQuestion({
+		type: "puzzle",
+		text: "Coloque estes rios do maior para o menor",
+		timeLimitSeconds: 60,
+		choices,
+		correctOrder: choices.map(({ id }) => id),
+		...overrides,
+	});
 }

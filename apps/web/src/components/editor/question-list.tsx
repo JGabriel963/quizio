@@ -345,6 +345,8 @@ function QuestionListItem({
 						</span>
 						{question.type === "slider" ? (
 							<SliderThumbnail answer={question.answer} />
+						) : question.type === "puzzle" ? (
+							<PuzzleThumbnail />
 						) : (
 							<span
 								aria-hidden="true"
@@ -394,6 +396,25 @@ function SliderThumbnail({ answer }: { answer: number | null }) {
 	);
 }
 
+/** A puzzle's thumbnail: four bars stacked in the middle, one per slot (spec 033, RN-13). */
+function PuzzleThumbnail() {
+	return (
+		<span
+			aria-hidden="true"
+			data-slot="puzzle-thumbnail"
+			className="mx-auto flex w-1/2 flex-col gap-0.5 max-lg:hidden"
+		>
+			{["a", "b", "c", "d"].map((slot) => (
+				<span
+					key={slot}
+					data-slot="answer-bar"
+					className="h-1.5 rounded-sm border border-border bg-card"
+				/>
+			))}
+		</span>
+	);
+}
+
 /** The thumbnail's answer bars, one per answer slot, with a dot on the correct ones (as in Kahoot). */
 function answerBars(
 	question: QuestionData,
@@ -404,7 +425,7 @@ function answerBars(
 			correct: question.correct === value,
 		}));
 	}
-	if (question.type === "slider") {
+	if (question.type === "slider" || question.type === "puzzle") {
 		return [];
 	}
 	if (question.type === "typeAnswer") {

@@ -1,8 +1,9 @@
-import type {
-	Question,
-	QuestionPoints,
-	QuestionType,
-	SelectionMode,
+import {
+	choiceIdAt,
+	type Question,
+	type QuestionPoints,
+	type QuestionType,
+	type SelectionMode,
 } from "../../quiz/domain/question";
 import type { QuestionImage } from "../../quiz/domain/question-image";
 import {
@@ -10,6 +11,7 @@ import {
 	type SliderScale,
 } from "../../shared/domain/slider-scale";
 import type { GameOptions } from "./game-options";
+import { placedInOrder, wrongOrderOf } from "./puzzle";
 
 /** An answer as the game shows it: always filled, at a fixed position. */
 export interface GameChoice {
@@ -54,6 +56,11 @@ export interface GameQuestion {
 	 * margin never reach a device before the results (RN-23).
 	 */
 	slider: GameSlider | null;
+	/**
+	 * A puzzle's answers in the right order, by id (spec 033, RN-16); none for
+	 * the other types. Never sent to a device before the results (RN-17).
+	 */
+	correctOrder: string[];
 	image: QuestionImage | null;
 }
 
@@ -94,6 +101,13 @@ function choicesOf(question: Question): GameChoice[] {
 					correct: question.correct === false,
 				},
 			];
+		case "puzzle":
+			// The filled slots, top to bottom: all right, in the right order (RN-08).
+			return question.items
+				.flatMap((text, slot) =>
+					text === null ? [] : [{ id: choiceIdAt(slot), text, correct: true }],
+				)
+				.map((choice, shapeIndex) => ({ ...choice, shapeIndex }));
 		case "typeAnswer":
 		case "slider":
 			return [];
@@ -111,6 +125,11 @@ function sliderOf(question: Question): GameSlider | null {
 		: { min, max, answer, margin: question.answerMargin, unit: question.unit };
 }
 
+/** A puzzle is copied in the right order, so its answers' order is the right one. */
+function correctOrderOf(question: Question, choices: GameChoice[]): string[] {
+	return question.type === "puzzle" ? choices.map(({ id }) => id) : [];
+}
+
 function acceptedAnswersOf(question: Question): string[] {
 	return question.type === "typeAnswer"
 		? question.acceptedAnswers.filter((answer) => answer !== null)
@@ -122,6 +141,7 @@ export function toGameQuestion(
 	question: Question,
 	index: number,
 ): GameQuestion {
+	const choices = choicesOf(question);
 	return {
 		index,
 		type: question.type,
@@ -129,9 +149,10 @@ export function toGameQuestion(
 		timeLimitSeconds: question.timeLimitSeconds,
 		points: question.points,
 		selection: question.type === "quiz" ? question.selection : "single",
-		choices: choicesOf(question),
+		choices,
 		acceptedAnswers: acceptedAnswersOf(question),
 		slider: sliderOf(question),
+		correctOrder: correctOrderOf(question, choices),
 		image: question.image
 			? {
 					...question.image,
@@ -164,9 +185,30 @@ function withShuffledChoices(
 }
 
 /**
+ * A puzzle's answers renamed after their drawn places. The copy's ids are the
+ * editor's slots, in the right order: sent to the devices as they are, sorting
+ * them would give the answer away (spec 033, RN-17). The right order is mapped
+ * to the new ids and stays on the server.
+ */
+function withDrawnIds(question: GameQuestion): GameQuestion {
+	const drawnId = new Map(
+		question.choices.map(({ id, shapeIndex }) => [id, choiceIdAt(shapeIndex)]),
+	);
+	return {
+		...question,
+		choices: question.choices.map((choice) => ({
+			...choice,
+			id: choiceIdAt(choice.shapeIndex),
+		})),
+		correctOrder: question.correctOrder.map((id) => drawnId.get(id) ?? id),
+	};
+}
+
+/**
  * The questions as the game will play them, in the editor's order or in a
  * drawn one, by the game's options (spec 012, RN-22 to RN-24). It is drawn
- * once, when the game starts; true/false is never shuffled.
+ * once, when the game starts; true/false is never shuffled, and a puzzle
+ * always is, never in a right order (spec 033, RN-14, RN-15).
  */
 export function arrangeGameQuestions(
 	questions: readonly Question[],
@@ -176,6 +218,12 @@ export function arrangeGameQuestions(
 	const ordered = options.randomizeQuestions ? shuffle(questions) : questions;
 	return ordered.map((question, index) => {
 		const copied = toGameQuestion(question, index);
+		if (copied.type === "puzzle") {
+			return withDrawnIds({
+				...copied,
+				choices: placedInOrder(copied, wrongOrderOf(copied, shuffle)),
+			});
+		}
 		return options.randomizeAnswers && copied.type === "quiz"
 			? withShuffledChoices(copied, shuffle)
 			: copied;
@@ -240,6 +288,10 @@ export function parseStoredGameQuestion(raw: unknown): GameQuestion | null {
 		})),
 		acceptedAnswers,
 		slider: parseStoredSlider(stored.slider),
+		// Games stored before spec 033 have no right order.
+		correctOrder: Array.isArray(stored.correctOrder)
+			? stored.correctOrder.filter((id): id is string => typeof id === "string")
+			: [],
 		image: image && typeof image.key === "string" ? image : null,
 	};
 }

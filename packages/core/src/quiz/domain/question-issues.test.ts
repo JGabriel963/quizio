@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTrueFalseQuestion,
@@ -208,5 +209,28 @@ describe("questionIssues of a slider", () => {
 		});
 		expect(sliderScaleOf(aSliderQuestion({ max: 200 }))).toBeNull();
 		expect(sliderScaleOf(aSliderQuestion({ answer: null }))).toBeNull();
+	});
+});
+
+describe("questionIssues of a puzzle", () => {
+	it("a puzzle with two filled slots does not have enough answers", () => {
+		expect(
+			questionIssues(
+				aPuzzleQuestion({ items: ["Nilo", "Amazonas", null, null] }),
+			),
+		).toEqual(["notEnoughPuzzleItems"]);
+		expect(questionIssues(blankQuestion("question-1", "puzzle"))).toEqual([
+			"missingText",
+			"notEnoughPuzzleItems",
+		]);
+	});
+
+	it("three filled slots with an empty one between are enough", () => {
+		expect(
+			questionIssues(
+				aPuzzleQuestion({ items: ["Nilo", "Amazonas", null, "Yangtzé"] }),
+			),
+		).toEqual([]);
+		expect(questionIssues(aPuzzleQuestion())).toEqual([]);
 	});
 });
