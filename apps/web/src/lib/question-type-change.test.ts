@@ -1,3 +1,4 @@
+import { blankQuestion } from "@quizio/core/quiz/domain/question";
 import { applyQuestionChange } from "@quizio/core/quiz/domain/question-change";
 import {
 	aQuestion,
@@ -112,6 +113,25 @@ describe("typeChangeFor", () => {
 			kind: "type",
 			type: "quiz",
 			remembered: null,
+		});
+	});
+
+	it("remembers the puzzle's slots across type changes (spec 033)", () => {
+		const remembered = createRememberedContents();
+		const puzzle = {
+			...blankQuestion("q-3", "puzzle"),
+			items: ["Nilo", null, "Amazonas", null],
+		};
+		const toQuiz = typeChangeFor(remembered, puzzle, "quiz");
+		const asQuiz = applyQuestionChange(
+			puzzle,
+			toQuiz ?? { kind: "text", text: null },
+		).question;
+
+		expect(typeChangeFor(remembered, asQuiz, "puzzle")).toEqual({
+			kind: "type",
+			type: "puzzle",
+			remembered: { type: "puzzle", items: ["Nilo", null, "Amazonas", null] },
 		});
 	});
 

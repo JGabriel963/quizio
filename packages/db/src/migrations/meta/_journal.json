@@ -50,6 +50,13 @@
       "when": 1792616080154,
       "tag": "0006_fine_bloodstorm",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792673207538,
+      "tag": "0007_sour_dazzler",
+      "breakpoints": true
     }
   ]
 }

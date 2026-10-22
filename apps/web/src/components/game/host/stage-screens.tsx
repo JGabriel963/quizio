@@ -12,6 +12,7 @@ import { useCountdown } from "@/lib/use-countdown";
 
 import { Wordmark } from "../game-screen";
 import { AutoCountdown } from "./auto-countdown";
+import { PuzzleAnswering, PuzzleResults } from "./puzzle-results";
 import { SliderAnswering, SliderResults } from "./slider-results";
 import { AnswerBars, StageChoices } from "./stage-choices";
 import { StageImage } from "./stage-image";
@@ -175,7 +176,9 @@ function QuestionStage({
 			<div className="flex min-h-0 flex-1 items-stretch gap-4 px-4 pb-2">
 				{children}
 			</div>
-			{question.type === "typeAnswer" || question.type === "slider" ? (
+			{question.type === "typeAnswer" ||
+			question.type === "slider" ||
+			question.type === "puzzle" ? (
 				footer
 			) : (
 				<StageChoices choices={question.choices} />
@@ -207,7 +210,7 @@ export function Answering({
 		<QuestionStage
 			question={question}
 			footer={
-				question.slider ? (
+				question.type === "puzzle" ? null : question.slider ? (
 					// The scale's ends and a wandering "?" (spec 032, RN-30).
 					<SliderAnswering scale={question.slider} />
 				) : (
@@ -236,6 +239,12 @@ export function Answering({
 			<div className="flex min-w-0 flex-1 items-center justify-center">
 				<StageImage image={question.image} />
 			</div>
+			{question.type === "puzzle" && (
+				// The answers in the drawn order, stacked (spec 033, RN-25).
+				<div className="flex min-w-0 flex-1 items-center justify-center">
+					<PuzzleAnswering choices={question.choices} />
+				</div>
+			)}
 			<p className="flex shrink-0 flex-col items-center justify-center gap-1">
 				<span
 					// Each answer that comes in makes the number jump.
@@ -298,6 +307,20 @@ export function Results({
 						scale={question.slider}
 						results={stage.sliderResults}
 						image={question.image}
+					/>
+				)}
+			</QuestionStage>
+		);
+	}
+	if (question.type === "puzzle") {
+		return (
+			<QuestionStage question={question} action={advanceAction}>
+				{stage.puzzleResults && (
+					<PuzzleResults
+						choices={question.choices}
+						results={stage.puzzleResults}
+						image={question.image}
+						animate={animate}
 					/>
 				)}
 			</QuestionStage>

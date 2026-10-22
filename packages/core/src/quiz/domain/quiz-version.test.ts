@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTrueFalseQuestion,
@@ -158,7 +159,7 @@ describe("parseVersionQuestions", () => {
 		expect(
 			parseVersionQuestions([
 				"junk",
-				{ id: "x", type: "puzzle" },
+				{ id: "x", type: "poll" },
 				{ type: "quiz" },
 				{ id: "c", type: "quiz", text: 42, timeLimitSeconds: 25, points: "x" },
 				{ id: "d", type: "trueFalse", text: "Certo?", correct: "yes" },
@@ -240,5 +241,30 @@ describe("sliders in versions", () => {
 		expect(sameQuestionLists([aSliderQuestion()], [aSliderQuestion()])).toBe(
 			true,
 		);
+	});
+});
+
+describe("puzzles in versions", () => {
+	it("puzzles with the same slots in another order differ", () => {
+		expect(
+			sameQuestionLists(
+				[aPuzzleQuestion()],
+				[
+					aPuzzleQuestion({
+						items: ["Amazonas", "Nilo", "Yangtzé", "Mississipi"],
+					}),
+				],
+			),
+		).toBe(false);
+		expect(sameQuestionLists([aPuzzleQuestion()], [aPuzzleQuestion()])).toBe(
+			true,
+		);
+	});
+
+	it("reads back a stored puzzle with its time", () => {
+		const puzzle = aPuzzleQuestion({ timeLimitSeconds: 90 });
+		const stored = JSON.parse(JSON.stringify([puzzle]));
+
+		expect(parseVersionQuestions(stored)).toEqual([puzzle]);
 	});
 });

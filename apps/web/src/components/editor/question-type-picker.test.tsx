@@ -18,7 +18,7 @@ function renderPicker(unavailableReason: string | null = null) {
 const addButton = () => screen.getByRole("button", { name: "Adicionar" });
 
 describe("QuestionTypePicker", () => {
-	it("lists Quiz, Verdadeiro ou falso, Resposta curta and Controle deslizante under Testar conhecimento", async () => {
+	it("lists Quiz, Verdadeiro ou falso, Resposta curta, Controle deslizante and Puzzle under Testar conhecimento", async () => {
 		const { onPick, user } = renderPicker();
 		expect(screen.queryByRole("menuitem")).not.toBeInTheDocument();
 
@@ -33,6 +33,7 @@ describe("QuestionTypePicker", () => {
 			"Verdadeiro ou falso",
 			"Resposta curta",
 			"Controle deslizante",
+			"Puzzle",
 		]);
 		expect(
 			screen.getByRole("group", { name: "Testar conhecimento" }),
@@ -45,6 +46,7 @@ describe("QuestionTypePicker", () => {
 		["Verdadeiro ou falso", "trueFalse"],
 		["Resposta curta", "typeAnswer"],
 		["Controle deslizante", "slider"],
+		["Puzzle", "puzzle"],
 	])("choosing %s calls back with its type and closes", async (name, type) => {
 		const { onPick, user } = renderPicker();
 		await user.click(addButton());
@@ -118,6 +120,26 @@ describe("QuestionTypePicker", () => {
 		expect(preview).toHaveTextContent("8.849 m");
 		expect(preview).toHaveTextContent(
 			"Deixe os participantes adivinharem o número no controle deslizante.",
+		);
+	});
+});
+
+describe("QuestionTypePicker with Puzzle (spec 033, RN-01)", () => {
+	it("shows Puzzle's preview with the countries example", async () => {
+		const { user } = renderPicker();
+		await user.click(addButton());
+
+		await user.hover(await screen.findByRole("menuitem", { name: "Puzzle" }));
+
+		const preview = await screen.findByRole("region", {
+			name: "Prévia de Puzzle",
+		});
+		expect(preview).toHaveTextContent("Ordene do menos ao mais populoso");
+		for (const country of ["EUA", "Itália", "Egito", "Espanha"]) {
+			expect(preview).toHaveTextContent(country);
+		}
+		expect(preview).toHaveTextContent(
+			"Peça que os participantes coloquem as respostas na ordem certa.",
 		);
 	});
 });

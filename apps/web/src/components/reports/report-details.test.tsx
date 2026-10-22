@@ -32,6 +32,7 @@ const ana: ParticipantDetailData = {
 			typedText: null,
 			sliderValue: null,
 			sliderUnit: null,
+			puzzleOrder: null,
 		},
 		{
 			questionIndex: 1,
@@ -44,6 +45,7 @@ const ana: ParticipantDetailData = {
 			typedText: null,
 			sliderValue: null,
 			sliderUnit: null,
+			puzzleOrder: null,
 		},
 		{
 			questionIndex: 2,
@@ -56,6 +58,7 @@ const ana: ParticipantDetailData = {
 			typedText: null,
 			sliderValue: null,
 			sliderUnit: null,
+			puzzleOrder: null,
 		},
 	],
 };
@@ -129,6 +132,7 @@ describe("ParticipantDetail (spec 015)", () => {
 							typedText: null,
 							sliderValue: null,
 							sliderUnit: null,
+							puzzleOrder: null,
 						},
 					],
 				}}
@@ -170,6 +174,7 @@ const salmo: QuestionDetailData = {
 	averageResponseTimeMs: 4860,
 	typedAnswers: null,
 	sliderAnswers: null,
+	puzzleAnswers: null,
 	choices: [
 		{ id: "a", shapeIndex: 0, text: "Moisés", correct: true, count: 5 },
 		{ id: "b", shapeIndex: 1, text: "Davi", correct: false, count: 12 },
@@ -186,6 +191,7 @@ const salmo: QuestionDetailData = {
 			responseTimeMs: 2600,
 			typedText: null,
 			sliderValue: null,
+			puzzleOrder: null,
 		},
 		{
 			playerId: "p2",
@@ -196,6 +202,7 @@ const salmo: QuestionDetailData = {
 			responseTimeMs: 6100,
 			typedText: null,
 			sliderValue: null,
+			puzzleOrder: null,
 		},
 		{
 			playerId: "p3",
@@ -206,6 +213,7 @@ const salmo: QuestionDetailData = {
 			responseTimeMs: null,
 			typedText: null,
 			sliderValue: null,
+			puzzleOrder: null,
 		},
 	],
 };
@@ -345,6 +353,7 @@ describe("report details of a type answer (spec 031, RN-37)", () => {
 							typedText: "Davi",
 							sliderValue: null,
 							sliderUnit: null,
+							puzzleOrder: null,
 							points: 0,
 							responseTimeMs: 4000,
 						},
@@ -413,6 +422,7 @@ describe("report details of a slider (spec 032, RN-36)", () => {
 							typedText: null,
 							sliderValue: 2000.5,
 							sliderUnit: "anos",
+							puzzleOrder: null,
 							points: 600,
 							responseTimeMs: 4000,
 						},
@@ -425,5 +435,107 @@ describe("report details of a slider (spec 032, RN-36)", () => {
 			"2.000,5 anos",
 		);
 		expect(screen.getByText("Quase correta")).toBeInTheDocument();
+	});
+});
+
+describe("report details of a puzzle (spec 033, RN-31)", () => {
+	const drawn = [
+		{ id: "c4", shapeIndex: 0, text: "Mississipi", correct: true, count: 5 },
+		{ id: "c3", shapeIndex: 1, text: "Yangtzé", correct: true, count: 5 },
+		{ id: "c2", shapeIndex: 2, text: "Amazonas", correct: true, count: 5 },
+		{ id: "c1", shapeIndex: 3, text: "Nilo", correct: true, count: 5 },
+	];
+	const swapped = ["Nilo", "Amazonas", "Mississipi", "Yangtzé"];
+
+	it("a puzzle question lists the sent orders", () => {
+		render(
+			<QuestionDetail
+				detail={{
+					...salmo,
+					type: "puzzle",
+					choices: drawn,
+					puzzleAnswers: {
+						correctOrder: [
+							{ text: "Nilo", shapeIndex: 3 },
+							{ text: "Amazonas", shapeIndex: 2 },
+							{ text: "Yangtzé", shapeIndex: 1 },
+							{ text: "Mississipi", shapeIndex: 0 },
+						],
+						orders: [
+							{
+								texts: ["Nilo", "Amazonas", "Yangtzé", "Mississipi"],
+								count: 3,
+								correct: true,
+							},
+							{ texts: swapped, count: 2, correct: false },
+						],
+					},
+					participants: [
+						{
+							playerId: "p1",
+							nickname: "Davi",
+							result: "wrong",
+							choices: [],
+							points: 0,
+							responseTimeMs: 3000,
+							typedText: null,
+							sliderValue: null,
+							puzzleOrder: swapped,
+						},
+					],
+				}}
+			/>,
+		);
+
+		expect(
+			within(screen.getByRole("list", { name: "Ordem correta" }))
+				.getAllByRole("listitem")
+				.map((item) => item.textContent),
+		).toEqual(["Nilo", "Amazonas", "Yangtzé", "Mississipi"]);
+		const orders = within(
+			screen.getByRole("list", { name: "Ordens enviadas" }),
+		).getAllByRole("listitem");
+		expect(orders[0]).toHaveTextContent(
+			"Nilo → Amazonas → Yangtzé → MississipiCorreta3",
+		);
+		expect(orders[1]).toHaveTextContent(
+			"Nilo → Amazonas → Mississipi → YangtzéIncorreta2",
+		);
+		// The drawn answers are not listed as alternatives.
+		expect(screen.queryByRole("list", { name: "Alternativas" })).toBeNull();
+		expect(
+			screen.getByText("Nilo → Amazonas → Mississipi → Yangtzé", {
+				selector: "[data-slot=puzzle-order]",
+			}),
+		).toBeInTheDocument();
+	});
+
+	it("a participant's puzzle answer shows the order", () => {
+		render(
+			<ParticipantDetail
+				detail={{
+					...ana,
+					answers: [
+						{
+							questionIndex: 0,
+							text: "Coloque estes rios do maior para o menor",
+							type: "puzzle",
+							result: "wrong",
+							choices: [],
+							typedText: null,
+							sliderValue: null,
+							sliderUnit: null,
+							puzzleOrder: swapped,
+							points: 0,
+							responseTimeMs: 4000,
+						},
+					],
+				}}
+			/>,
+		);
+
+		expect(
+			screen.getByText("Nilo → Amazonas → Mississipi → Yangtzé"),
+		).toBeInTheDocument();
 	});
 });

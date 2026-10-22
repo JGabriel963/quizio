@@ -45,6 +45,7 @@ const answering: HostGameData = {
 		typedAnswers: null,
 		reviewOpen: false,
 		sliderResults: null,
+		puzzleResults: null,
 	},
 	final: null,
 };

@@ -19,15 +19,19 @@ export function QuestionTextField({
 	questionId,
 	initialText,
 	hint,
+	tip,
 	onSave,
 }: {
 	questionId: string;
 	initialText: string | null;
 	/** Shows "Nenhuma pergunta foi adicionada." while the field is empty. */
 	hint: boolean;
+	/** What to write, shown below while the field is edited (spec 033, RN-06). */
+	tip?: string;
 	onSave: (text: string | null) => Promise<unknown>;
 }) {
 	const hintId = useId();
+	const tipId = useId();
 	const [focused, setFocused] = useState(false);
 	const { value, setValue, flush } = useDebouncedAutosave({
 		key: `question:${questionId}:text`,
@@ -44,7 +48,11 @@ export function QuestionTextField({
 			<div className="relative w-full">
 				<Input
 					aria-label="Pergunta"
-					aria-describedby={showHint ? hintId : undefined}
+					aria-describedby={
+						[showHint && hintId, tip && focused && tipId]
+							.filter(Boolean)
+							.join(" ") || undefined
+					}
 					placeholder="Comece a digitar a pergunta"
 					value={value}
 					onChange={(event) =>
@@ -66,6 +74,14 @@ export function QuestionTextField({
 					</span>
 				)}
 			</div>
+			{tip && focused && (
+				<p
+					id={tipId}
+					className="absolute top-full left-1/2 z-10 mt-1.5 w-max max-w-sm -translate-x-1/2 rounded-md bg-foreground px-3 py-2 font-semibold text-background text-xs shadow-md"
+				>
+					{tip}
+				</p>
+			)}
 			{showHint && (
 				<EditorHint id={hintId}>{MISSING_QUESTION_TEXT_HINT}</EditorHint>
 			)}

@@ -1,5 +1,6 @@
 import { QuestionImageView } from "@/components/editor/question-image-view";
 import { AnswerButtons } from "@/components/game/player/answer-buttons";
+import { PuzzleAnswerInput } from "@/components/game/player/puzzle-answer-input";
 import { DeviceBackground } from "@/components/game/player/question-on-device";
 import { SliderAnswerInput } from "@/components/game/player/slider-answer-input";
 import { TypedAnswerInput } from "@/components/game/player/typed-answer-input";
@@ -91,6 +92,15 @@ export function PlayQuestion({
 								key={question.index}
 								scale={question.slider}
 								onSubmit={onSlide}
+							/>
+						</div>
+					) : question.type === "puzzle" ? (
+						// Always with the texts: there is no host's screen to follow (RN-28).
+						<div className="flex min-h-0 items-center overflow-y-auto p-2">
+							<PuzzleAnswerInput
+								key={question.index}
+								choices={question.choices}
+								onSubmit={onAnswer}
 							/>
 						</div>
 					) : question.type === "typeAnswer" ? (

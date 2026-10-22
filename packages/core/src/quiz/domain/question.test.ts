@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { asSlider, asTypeAnswer } from "../testing/a-question";
+import { asPuzzle, asSlider, asTypeAnswer } from "../testing/a-question";
 import {
 	AcceptedAnswerTooLongError,
 	blankContent,
@@ -89,15 +89,16 @@ describe("true/false question", () => {
 		});
 	});
 
-	it("offers quiz, true/false, type answer and slider, and rejects an unknown question type", () => {
+	it("offers quiz, true/false, type answer, slider and puzzle, and rejects an unknown question type", () => {
 		expect(QUESTION_TYPES).toEqual([
 			"quiz",
 			"trueFalse",
 			"typeAnswer",
 			"slider",
+			"puzzle",
 		]);
 		expect(parseQuestionType("trueFalse")).toBe("trueFalse");
-		expect(() => parseQuestionType("puzzle")).toThrow(InvalidQuestionTypeError);
+		expect(() => parseQuestionType("poll")).toThrow(InvalidQuestionTypeError);
 	});
 
 	it("toggling the marked answer marks the other one", () => {
@@ -565,5 +566,61 @@ describe("slider question", () => {
 			answerMargin: "high",
 		});
 		expect(questionContent(copy).type).toBe("slider");
+	});
+});
+
+describe("puzzle question", () => {
+	it("a blank puzzle has four empty slots and 60 seconds", () => {
+		expect(blankQuestion("question-1", "puzzle")).toEqual({
+			id: "question-1",
+			type: "puzzle",
+			text: null,
+			timeLimitSeconds: 60,
+			points: "standard",
+			image: null,
+			aiGenerated: false,
+			items: [null, null, null, null],
+		});
+		expect(isBlankQuestion(blankQuestion("question-1", "puzzle"))).toBe(true);
+		expect(
+			isBlankQuestion({
+				...blankQuestion("question-1", "puzzle"),
+				items: [null, "Nilo", null, null],
+			}),
+		).toBe(false);
+	});
+
+	it("puzzle time limits run from 20 seconds to 4 minutes", () => {
+		expect(timeLimitsFor("puzzle")).toEqual([
+			20, 30, 45, 60, 90, 120, 180, 240,
+		]);
+		expect(defaultTimeLimitFor("puzzle")).toBe(60);
+		expect(fitTimeLimit("puzzle", 10)).toBe(20);
+	});
+
+	it("stored puzzle content is completed or cut to four slots", () => {
+		expect(parseStoredContent("puzzle", { items: ["Nilo", 3, "  "] })).toEqual({
+			type: "puzzle",
+			items: ["Nilo", null, null, null],
+		});
+		expect(
+			parseStoredContent("puzzle", { items: ["a", "b", "c", "d", "e"] }),
+		).toEqual({ type: "puzzle", items: ["a", "b", "c", "d"] });
+		expect(parseStoredContent("puzzle", undefined)).toEqual(
+			blankContent("puzzle"),
+		);
+	});
+
+	it("copying a puzzle copies its slots in order", () => {
+		const source = {
+			...blankQuestion("question-1", "puzzle"),
+			items: ["Nilo", "Amazonas", null, "Yangtzé"],
+		};
+		const copy = asPuzzle(copyQuestion(source, "question-2"));
+		expect(copy).toEqual({ ...source, id: "question-2" });
+		expect(copy.items).not.toBe(source.items);
+		expect(storedContent(copy)).toEqual({
+			items: ["Nilo", "Amazonas", null, "Yangtzé"],
+		});
 	});
 });

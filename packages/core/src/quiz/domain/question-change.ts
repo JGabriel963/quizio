@@ -13,6 +13,8 @@ import {
 	InvalidSliderNumberError,
 	MAX_ACCEPTED_ANSWERS,
 	MAX_CHOICE_COUNT,
+	PUZZLE_ITEM_COUNT,
+	type PuzzleQuestion,
 	parseAcceptedAnswer,
 	parseChoiceText,
 	parsePoints,
@@ -60,7 +62,8 @@ export type QuestionContentInput =
 			answer: number | null;
 			unit: string | null;
 			answerMargin: string;
-	  };
+	  }
+	| { type: "puzzle"; items: (string | null)[] };
 
 /**
  * One edit of a question (specs 004, 005). Values arrive raw (from the API or
@@ -90,6 +93,9 @@ export type QuestionChange =
 	  }
 	| { kind: "sliderUnit"; text: string | null }
 	| { kind: "answerMargin"; margin: string }
+	/** Spec 033: a slot's text, and a slot taken to another place (RN-03, RN-05). */
+	| { kind: "puzzleItemText"; index: number; text: string | null }
+	| { kind: "puzzleItemMoved"; from: number; to: number }
 	/** `remembered` is what the question had in that type earlier in the session (RN-17). */
 	| { kind: "type"; type: string; remembered: QuestionContentInput | null }
 	/** A new upload, or null to remove the image with its adjustments (spec 007). */
@@ -138,6 +144,11 @@ export class InvalidAnswerMarginError extends DomainError {
 	readonly code = "QUIZ.INVALID_ANSWER_MARGIN";
 }
 
+/** A puzzle has slots 0 to 3 only (spec 033, RN-03). */
+export class PuzzleItemNotFoundError extends NotFoundError {
+	readonly code = "QUIZ.PUZZLE_ITEM_NOT_FOUND";
+}
+
 /** A time of the editor's list that the question's type does not take (spec 031, RN-06). */
 export class TimeLimitNotAllowedError extends DomainError {
 	readonly code = "QUIZ.TIME_LIMIT_NOT_ALLOWED";
@@ -174,7 +185,21 @@ export function parseQuestionContent(
 				unit: parseSliderUnit(input.unit),
 				answerMargin: parseAnswerMargin(input.answerMargin),
 			};
+		case "puzzle":
+			return { type: input.type, items: parsePuzzleItems(input.items) };
 	}
+}
+
+/** Four slots, each checked as a quiz answer; missing ones are empty. */
+function parsePuzzleItems(items: (string | null)[]): (string | null)[] {
+	if (items.length > PUZZLE_ITEM_COUNT) {
+		throw new PuzzleItemNotFoundError(
+			`A puzzle has ${PUZZLE_ITEM_COUNT} slots`,
+		);
+	}
+	return Array.from({ length: PUZZLE_ITEM_COUNT }, (_, index) =>
+		parseChoiceText(items[index]),
+	);
 }
 
 /** A remembered number: finite, with at most 2 decimals (spec 032, RN-04). */
@@ -279,6 +304,51 @@ function requireSlider(question: Question): SliderQuestion {
 		);
 	}
 	return question;
+}
+
+function requirePuzzle(question: Question): PuzzleQuestion {
+	if (question.type !== "puzzle") {
+		throw new QuestionChangeNotApplicableError(
+			"This change only applies to puzzles",
+		);
+	}
+	return question;
+}
+
+function requirePuzzleSlot(index: number): void {
+	if (!Number.isInteger(index) || index < 0 || index >= PUZZLE_ITEM_COUNT) {
+		throw new PuzzleItemNotFoundError(`Puzzle slot ${index} not found`);
+	}
+}
+
+function setPuzzleItem(
+	question: PuzzleQuestion,
+	index: number,
+	rawText: string | null,
+): QuestionChangeResult {
+	requirePuzzleSlot(index);
+	const text = parseChoiceText(rawText);
+	return unchanged({
+		...question,
+		items: question.items.map((item, i) => (i === index ? text : item)),
+	});
+}
+
+/**
+ * The text of `from` goes to `to`, and the slots between move one place
+ * (spec 033, RN-05): the colors and shapes stay with the positions.
+ */
+function movePuzzleItem(
+	question: PuzzleQuestion,
+	from: number,
+	to: number,
+): QuestionChangeResult {
+	requirePuzzleSlot(from);
+	requirePuzzleSlot(to);
+	const items = [...question.items];
+	const [moved] = items.splice(from, 1);
+	items.splice(to, 0, moved ?? null);
+	return unchanged({ ...question, items });
 }
 
 /** Writes a typed number; the range may change past the answer (spec 032, RN-16). */
@@ -578,6 +648,10 @@ export function applyQuestionChange(
 				...requireSlider(question),
 				answerMargin: parseAnswerMargin(change.margin),
 			});
+		case "puzzleItemText":
+			return setPuzzleItem(requirePuzzle(question), change.index, change.text);
+		case "puzzleItemMoved":
+			return movePuzzleItem(requirePuzzle(question), change.from, change.to);
 		case "type":
 			return changeType(question, change.type, change.remembered);
 		case "image":

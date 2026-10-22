@@ -1,4 +1,5 @@
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTrueFalseQuestion,
@@ -338,6 +339,19 @@ describe("DrizzleQuestionRepository", () => {
 		await questions.saveList("quiz-1", [slider, blank]);
 
 		expect(await questions.listByQuiz("quiz-1")).toEqual([slider, blank]);
+	});
+
+	it("stores a puzzle's slots in order (spec 033)", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const puzzle = aPuzzleQuestion({
+			id: "puzzle",
+			items: ["Yangtzé", null, "Nilo", "Amazonas"],
+			timeLimitSeconds: 90,
+		});
+
+		await questions.saveList("quiz-1", [puzzle]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([puzzle]);
 	});
 
 	it("a stored time outside the type reads as its default (spec 031)", async () => {

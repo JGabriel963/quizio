@@ -10,6 +10,7 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
 	trueFalse: "Verdadeiro ou falso",
 	typeAnswer: "Resposta curta",
 	slider: "Controle deslizante",
+	puzzle: "Puzzle",
 };
 
 export function questionTypeLabel(type: QuestionType): string {

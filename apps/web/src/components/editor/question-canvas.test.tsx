@@ -14,6 +14,7 @@ function renderCanvas(question: QuestionData, showHints = true) {
 		onSaveText: vi.fn(async () => {}),
 		onSaveChoiceText: vi.fn(async () => {}),
 		onSaveAcceptedAnswer: vi.fn(async () => {}),
+		onSavePuzzleItem: vi.fn(async () => {}),
 		onChange: vi.fn(),
 		onUploadImage: vi.fn(),
 	};
@@ -203,5 +204,54 @@ describe("QuestionCanvas", () => {
 			screen.getByRole("textbox", { name: "Outra resposta aceita 1" }),
 		).toHaveValue("Jesus");
 		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
+	});
+});
+
+describe("QuestionCanvas with a puzzle (spec 033)", () => {
+	const puzzle = (): QuestionData => ({
+		...blankQuestion("a", "puzzle"),
+		text: "Coloque estes rios do maior para o menor",
+		items: ["Nilo", "Amazonas", null, null],
+	});
+
+	it("shows the puzzle's four answers in place of the grid", () => {
+		renderCanvas(puzzle());
+
+		expect(screen.getByRole("textbox", { name: "Resposta 1" })).toHaveValue(
+			"Nilo",
+		);
+		expect(screen.getByRole("textbox", { name: "Resposta 4" })).toHaveValue("");
+		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
+	});
+
+	it("saves a slot's text through its own handler", async () => {
+		const { handlers, user } = renderCanvas(puzzle());
+
+		await user.type(
+			screen.getByRole("textbox", { name: "Resposta 3" }),
+			"Yangtzé",
+		);
+		await user.tab();
+
+		expect(handlers.onSavePuzzleItem).toHaveBeenLastCalledWith(2, "Yangtzé");
+	});
+
+	it("the question text tells to add the expected order while it is edited (RN-06)", async () => {
+		const { user } = renderCanvas(puzzle());
+		const tip =
+			'Adicione a ordem esperada para ajudar os participantes a responder corretamente (por exemplo, "do menor ao maior").';
+		expect(screen.queryByText(tip)).toBeNull();
+
+		await user.click(screen.getByRole("textbox", { name: "Pergunta" }));
+
+		expect(screen.getByText(tip)).toBeInTheDocument();
+	});
+
+	it("other types have no such tip", async () => {
+		const { user } = renderCanvas(withChoices(["A", "B", null, null], [0]));
+
+		await user.click(screen.getByRole("textbox", { name: "Pergunta" }));
+
+		expect(screen.queryByText(/ordem esperada/)).toBeNull();
 	});
 });

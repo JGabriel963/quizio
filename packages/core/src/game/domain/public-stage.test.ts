@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { aTrueFalseQuestion } from "../../quiz/testing/a-question";
 import { aPlayingGame } from "../testing/a-game";
-import { aGameQuestion } from "../testing/a-game-question";
+import { aGameQuestion, aPuzzleGameQuestion } from "../testing/a-game-question";
 import { DEFAULT_GAME_OPTIONS } from "./game-options";
 import type { GamePhase } from "./game-progress";
 import { toGameQuestion } from "./game-question";
 import { publicStageOf } from "./public-stage";
+import { placedInOrder } from "./puzzle";
 
 const urlOf = (key: string) => `https://media.test/${key}`;
 
@@ -116,5 +117,38 @@ describe("public stage with the questions on the devices (spec 012)", () => {
 
 			expect(JSON.stringify(stage)).not.toMatch(/correct/);
 		}
+	});
+});
+
+describe("public stage of a puzzle (spec 033)", () => {
+	const drawn = ["choice-3", "choice-4", "choice-1", "choice-2"];
+	const puzzle = (() => {
+		const copied = aPuzzleGameQuestion();
+		return { ...copied, choices: placedInOrder(copied, drawn) };
+	})();
+
+	it("a puzzle sends the drawn choices and never the right order", () => {
+		const stage = publicStageOf(showing("answering"), puzzle, urlOf);
+
+		expect(stage.question?.choices).toEqual([
+			{ id: "choice-3", shapeIndex: 0, label: null, text: "Yangtzé" },
+			{ id: "choice-4", shapeIndex: 1, label: null, text: "Mississipi" },
+			{ id: "choice-1", shapeIndex: 2, label: null, text: "Nilo" },
+			{ id: "choice-2", shapeIndex: 3, label: null, text: "Amazonas" },
+		]);
+		expect(JSON.stringify(stage)).not.toMatch(/correct/i);
+	});
+
+	it("without the questions on the devices the blocks have only shapes", () => {
+		const stage = publicStageOf(aPlayingGame("answering"), puzzle, urlOf);
+
+		expect(
+			stage.question?.choices.map(({ shapeIndex, text }) => [shapeIndex, text]),
+		).toEqual([
+			[0, null],
+			[1, null],
+			[2, null],
+			[3, null],
+		]);
 	});
 });

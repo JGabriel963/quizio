@@ -9,12 +9,13 @@ import {
 } from "../../shared/domain/text-length";
 import { copyImage, type QuestionImage } from "./question-image";
 
-/** The types the editor offers (spec 005, RN-01; spec 031, RN-01; spec 032, RN-01). */
+/** The types the editor offers (spec 005, RN-01; specs 031 to 033, RN-01). */
 export const QUESTION_TYPES = [
 	"quiz",
 	"trueFalse",
 	"typeAnswer",
 	"slider",
+	"puzzle",
 ] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
@@ -25,8 +26,11 @@ export const TIME_LIMITS_SECONDS = [
 export type TimeLimitSeconds = (typeof TIME_LIMITS_SECONDS)[number];
 export const DEFAULT_TIME_LIMIT_SECONDS: TimeLimitSeconds = 20;
 
-/** A type answer takes 20 s to 4 min and starts with 30 s (spec 031, RN-06). */
-const TYPE_ANSWER_TIME_LIMITS = TIME_LIMITS_SECONDS.filter(
+/**
+ * A type answer takes 20 s to 4 min and starts with 30 s (spec 031, RN-06); a
+ * puzzle, 20 s to 4 min starting with 1 min (spec 033, RN-10).
+ */
+const FROM_20_TIME_LIMITS = TIME_LIMITS_SECONDS.filter(
 	(seconds) => seconds >= 20,
 );
 
@@ -42,7 +46,8 @@ export function timeLimitsFor(type: QuestionType): readonly TimeLimitSeconds[] {
 		case "trueFalse":
 			return TIME_LIMITS_SECONDS;
 		case "typeAnswer":
-			return TYPE_ANSWER_TIME_LIMITS;
+		case "puzzle":
+			return FROM_20_TIME_LIMITS;
 		case "slider":
 			return SLIDER_TIME_LIMITS;
 	}
@@ -57,6 +62,8 @@ export function defaultTimeLimitFor(type: QuestionType): TimeLimitSeconds {
 			return DEFAULT_TIME_LIMIT_SECONDS;
 		case "typeAnswer":
 			return 30;
+		case "puzzle":
+			return 60;
 	}
 }
 
@@ -97,6 +104,9 @@ export const MAX_ACCEPTED_ANSWERS = 4;
 export const SLIDER_NUMBER_MAX_LENGTH = 10;
 /** The unit under a slider's number (spec 032, RN-05). */
 export const SLIDER_UNIT_MAX_LENGTH = 20;
+/** A puzzle's slots, and how many must be filled (spec 033, RN-03, RN-07). */
+export const PUZZLE_ITEM_COUNT = 4;
+export const MIN_PUZZLE_ITEMS = 3;
 
 /**
  * An answer slot. Its position is fixed (color and shape), so its id is the
@@ -164,6 +174,18 @@ export interface SliderQuestion extends QuestionBase {
 }
 
 /**
+ * The player puts the answers in the right order (spec 033). Always 4 slots,
+ * top to bottom: the right order is the filled ones in that order (RN-03,
+ * RN-08). A slot has no id: its color and shape are the position's, and
+ * moving one carries its text to another place (RN-04, RN-05).
+ */
+export interface PuzzleQuestion extends QuestionBase {
+	type: "puzzle";
+	/** Up to 75 characters each, as a quiz answer; null is an empty slot. */
+	items: (string | null)[];
+}
+
+/**
  * A question of a quiz. Its position is not an attribute: it is the index in
  * the quiz's ordered question list (spec 003).
  */
@@ -171,7 +193,8 @@ export type Question =
 	| QuizQuestion
 	| TrueFalseQuestion
 	| TypeAnswerQuestion
-	| SliderQuestion;
+	| SliderQuestion
+	| PuzzleQuestion;
 
 /** The part of a question that belongs to its type (ADR 0008). */
 export type QuizContent = Pick<QuizQuestion, "type" | "selection" | "choices">;
@@ -184,11 +207,13 @@ export type SliderContent = Pick<
 	SliderQuestion,
 	"type" | "min" | "max" | "answer" | "unit" | "answerMargin"
 >;
+export type PuzzleContent = Pick<PuzzleQuestion, "type" | "items">;
 export type QuestionContent =
 	| QuizContent
 	| TrueFalseContent
 	| TypeAnswerContent
-	| SliderContent;
+	| SliderContent
+	| PuzzleContent;
 
 export class InvalidQuestionTypeError extends DomainError {
 	readonly code = "QUIZ.INVALID_TYPE";
@@ -260,6 +285,8 @@ export function blankContent(type: QuestionType): QuestionContent {
 				unit: null,
 				answerMargin: "medium",
 			};
+		case "puzzle":
+			return { type, items: Array(PUZZLE_ITEM_COUNT).fill(null) };
 	}
 }
 
@@ -271,6 +298,7 @@ export function blankQuestion(
 	type: "typeAnswer",
 ): TypeAnswerQuestion;
 export function blankQuestion(id: string, type: "slider"): SliderQuestion;
+export function blankQuestion(id: string, type: "puzzle"): PuzzleQuestion;
 export function blankQuestion(id: string, type: QuestionType): Question;
 export function blankQuestion(
 	id: string,
@@ -304,6 +332,8 @@ export function isBlankQuestion(question: Question): boolean {
 			return question.acceptedAnswers.every((answer) => answer === null);
 		case "slider":
 			return question.answer === null && question.unit === null;
+		case "puzzle":
+			return question.items.every((item) => item === null);
 	}
 }
 
@@ -557,6 +587,18 @@ function parseStoredSlider(raw: unknown): SliderContent {
 	};
 }
 
+/** Reads a stored puzzle tolerantly: 4 slots, and anything that is not text is empty. */
+function parseStoredPuzzleItems(raw: unknown): (string | null)[] {
+	const { items } = asRecord(raw);
+	const stored = Array.isArray(items) ? items : [];
+	return Array.from({ length: PUZZLE_ITEM_COUNT }, (_, index) => {
+		const item: unknown = stored[index];
+		return typeof item === "string" && item.trim() !== ""
+			? truncateCharacters(item.trim(), CHOICE_TEXT_MAX_LENGTH)
+			: null;
+	});
+}
+
 /** Reads the stored content of a question of `type`, as tolerantly as `parseQuizContent`. */
 export function parseStoredContent(
 	type: QuestionType,
@@ -573,6 +615,8 @@ export function parseStoredContent(
 			return { type, acceptedAnswers: parseStoredAcceptedAnswers(raw) };
 		case "slider":
 			return parseStoredSlider(raw);
+		case "puzzle":
+			return { type, items: parseStoredPuzzleItems(raw) };
 	}
 }
 
@@ -601,6 +645,8 @@ export function questionContent(question: Question): QuestionContent {
 				unit: question.unit,
 				answerMargin: question.answerMargin,
 			};
+		case "puzzle":
+			return { type: question.type, items: [...question.items] };
 	}
 }
 

@@ -108,6 +108,7 @@ describe("PlayResult (spec 030, RN-11)", () => {
 		typedText: null,
 		sliderValue: null,
 		sliderAnswer: null,
+		rightOrder: [],
 		acceptedAnswers: [],
 		result: "correct" as const,
 		points: 950,
@@ -199,5 +200,40 @@ describe("PlayQuestion of a slider (spec 032, RN-33)", () => {
 		await user.click(screen.getByRole("button", { name: "Enviar" }));
 
 		expect(props.onSlide).toHaveBeenCalledExactlyOnceWith(26);
+	});
+});
+
+describe("PlayQuestion with a puzzle (spec 033, RN-28)", () => {
+	const puzzleQuestion = {
+		index: 0,
+		type: "puzzle" as const,
+		selection: "single" as const,
+		slider: null,
+		text: "Coloque estes rios do maior para o menor",
+		image: null,
+		choices: [
+			{ id: "choice-3", shapeIndex: 0, text: "Yangtzé" },
+			{ id: "choice-4", shapeIndex: 1, text: "Mississipi" },
+			{ id: "choice-1", shapeIndex: 2, text: "Nilo" },
+			{ id: "choice-2", shapeIndex: 3, text: "Amazonas" },
+		],
+	};
+
+	it("a puzzle shows the blocks with their texts and sends the order", async () => {
+		const { props, user } = renderQuestion({ question: puzzleQuestion });
+
+		expect(
+			[...document.querySelectorAll("[data-slot=puzzle-block]")].map(
+				(block) => block.textContent,
+			),
+		).toEqual(["Yangtzé", "Mississipi", "Nilo", "Amazonas"]);
+		await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+		expect(props.onAnswer).toHaveBeenCalledExactlyOnceWith([
+			"choice-3",
+			"choice-4",
+			"choice-1",
+			"choice-2",
+		]);
 	});
 });

@@ -10,6 +10,7 @@ import { aGame, aPlayer, aPlayingGame } from "@quizio/core/game/testing/a-game";
 import {
 	aGameQuestion,
 	anAnswer,
+	aPuzzleGameQuestion,
 	aSliderGameQuestion,
 } from "@quizio/core/game/testing/a-game-question";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
@@ -428,6 +429,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				choices: aGameQuestion().choices,
 				acceptedAnswers: [],
 				slider: null,
+				correctOrder: [],
 			},
 		]);
 		expect(game?.answers).toEqual([
@@ -505,6 +507,29 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 		expect(game?.questions[0]?.slider).toMatchObject({ answer: 600 });
 		expect(game?.answers[0]).toMatchObject({ value: 640, choiceIds: [] });
 		expect((await query.tallies(headers))[0]?.correctAnswers).toBe(1);
+	});
+
+	it("reads a puzzle's right order and sent orders (spec 033)", async () => {
+		await seedPlayed(finished({ questionCount: 1 }), [
+			aPuzzleGameQuestion({ index: 0 }),
+		]);
+		const sent = ["choice-2", "choice-1", "choice-3", "choice-4"];
+		await answers.add(
+			anAnswer({
+				playerId: "p1",
+				choiceIds: sent,
+				correctness: "wrong",
+				points: 0,
+			}),
+		);
+
+		const game = await query.findGame("game-1", now);
+
+		expect(game?.questions[0]).toMatchObject({
+			type: "puzzle",
+			correctOrder: ["choice-1", "choice-2", "choice-3", "choice-4"],
+		});
+		expect(game?.answers[0]?.choiceIds).toEqual(sent);
 	});
 
 	it("leaves out the question that was on the screen when the game ended", async () => {

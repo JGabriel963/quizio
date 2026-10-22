@@ -8,6 +8,7 @@ import {
 	firstProgress,
 	type ParticipantProgress,
 } from "./participant-progress";
+import { wrongOrderOf } from "./puzzle";
 
 /**
  * An anonymous participant of one game, known by a nickname. The id is public;
@@ -66,7 +67,8 @@ export function newPlayer(input: {
  * Who joins an assignment (spec 030, RN-05 to RN-07): all the questions are
  * theirs, they start where `firstProgress` says, and with "Ordem aleatória de
  * respostas" every Quiz question gets an order drawn once, for them alone;
- * true/false keeps its order (spec 012).
+ * true/false keeps its order (spec 012). A puzzle always gets one of its own,
+ * never a right one (spec 033, RN-28).
  */
 export function newAssignmentParticipant(input: {
 	id: string;
@@ -78,12 +80,20 @@ export function newAssignmentParticipant(input: {
 	shuffle: <T>(items: readonly T[]) => T[];
 	now: Date;
 }): Player {
-	const choiceOrder = input.game.options.randomizeAnswers
-		? input.questions.map((question) => {
-				const ids = question.choices.map(({ id }) => id);
-				return question.type === "quiz" ? input.shuffle(ids) : ids;
-			})
-		: null;
+	const { randomizeAnswers } = input.game.options;
+	const choiceOrder =
+		randomizeAnswers ||
+		input.questions.some((question) => question.type === "puzzle")
+			? input.questions.map((question) => {
+					if (question.type === "puzzle") {
+						return wrongOrderOf(question, input.shuffle);
+					}
+					const ids = question.choices.map(({ id }) => id);
+					return randomizeAnswers && question.type === "quiz"
+						? input.shuffle(ids)
+						: ids;
+				})
+			: null;
 	return {
 		...newPlayer({
 			id: input.id,

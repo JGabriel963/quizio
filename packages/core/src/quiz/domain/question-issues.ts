@@ -1,11 +1,16 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import type { SliderScale } from "../../shared/domain/slider-scale";
 import { normalizeTypedAnswer } from "../../shared/domain/typed-answer";
-import type { Question, QuizQuestion, SliderQuestion } from "./question";
+import {
+	MIN_PUZZLE_ITEMS,
+	type Question,
+	type QuizQuestion,
+	type SliderQuestion,
+} from "./question";
 
 /**
  * Why a question is incomplete (spec 004, RN-14; spec 005, RN-11; spec 031,
- * RN-09; spec 032, RN-16).
+ * RN-09; spec 032, RN-16; spec 033, RN-07).
  */
 export type QuestionIssue =
 	| "missingText"
@@ -15,7 +20,8 @@ export type QuestionIssue =
 	| "noAcceptedAnswer"
 	| "noSliderAnswer"
 	| "invalidSliderRange"
-	| "sliderAnswerOutOfRange";
+	| "sliderAnswerOutOfRange"
+	| "notEnoughPuzzleItems";
 
 export const MIN_ANSWERS = 2;
 
@@ -91,6 +97,14 @@ export function questionIssues(question: Question): QuestionIssue[] {
 			}
 			break;
 		}
+		case "puzzle":
+			// Empty slots between filled ones do not count (spec 033, RN-07, RN-08).
+			if (
+				question.items.filter((item) => item !== null).length < MIN_PUZZLE_ITEMS
+			) {
+				issues.push("notEnoughPuzzleItems");
+			}
+			break;
 	}
 	return issues;
 }

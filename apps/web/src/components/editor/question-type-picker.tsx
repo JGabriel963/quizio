@@ -127,6 +127,8 @@ function TypePreview({ type }: { type: QuestionType }) {
 				<div className="h-12 w-24 rounded-sm bg-primary/15" />
 				{type === "slider" ? (
 					<SliderPreview value={preview.answers[0] ?? ""} />
+				) : type === "puzzle" ? (
+					<PuzzlePreview answers={preview.answers} />
 				) : (
 					<div
 						className={
@@ -153,6 +155,25 @@ function TypePreview({ type }: { type: QuestionType }) {
 				<p className="text-muted-foreground text-sm">{preview.description}</p>
 			</div>
 		</section>
+	);
+}
+
+/**
+ * The answers stacked beside an image, the third one as if dragged (spec 033,
+ * RN-01).
+ */
+function PuzzlePreview({ answers }: { answers: readonly string[] }) {
+	return (
+		<div className="flex w-full flex-col gap-1">
+			{answers.map((answer, index) => (
+				<span
+					key={answer}
+					className={`block truncate rounded-sm px-2 py-1 font-bold text-[10px] text-white ${PREVIEW_COLORS[index] ?? ""} ${index === 2 ? "translate-x-2 shadow-md" : ""}`}
+				>
+					{answer}
+				</span>
+			))}
+		</div>
 	);
 }
 

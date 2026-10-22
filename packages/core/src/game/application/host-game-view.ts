@@ -28,6 +28,7 @@ import {
 	type PublicSliderScale,
 	publicSliderScale,
 } from "../domain/public-stage";
+import { type PuzzleResults, puzzleResultsOf } from "../domain/puzzle-results";
 import { type SliderResults, sliderResultsOf } from "../domain/slider-results";
 import {
 	type RankedPlayer,
@@ -133,6 +134,8 @@ export interface HostStageView {
 	reviewOpen: boolean;
 	/** How a slider was answered; only in its results (spec 032, RN-31). */
 	sliderResults: SliderResults | null;
+	/** The right order and who got it; only in a puzzle's results (spec 033, RN-26). */
+	puzzleResults: PuzzleResults | null;
 }
 
 /** The end of a game that played every question (spec 011). */
@@ -322,6 +325,10 @@ async function loadStageView(
 		sliderResults:
 			answers && question?.slider
 				? sliderResultsOf(question.slider, answers)
+				: null,
+		puzzleResults:
+			answers && question?.type === "puzzle"
+				? puzzleResultsOf(question, answers)
 				: null,
 	};
 }

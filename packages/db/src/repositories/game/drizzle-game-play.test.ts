@@ -5,6 +5,7 @@ import { aGame, aPlayer, aPlayingGame } from "@quizio/core/game/testing/a-game";
 import {
 	aGameQuestion,
 	anAnswer,
+	aPuzzleGameQuestion,
 	aSliderGameQuestion,
 } from "@quizio/core/game/testing/a-game-question";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
@@ -294,6 +295,35 @@ describe("game play repositories (spec 009)", () => {
 			await gameQuestions.saveAll("game-1", [slider]);
 
 			expect(await gameQuestions.find("game-1", 0)).toEqual(slider);
+		});
+
+		it("keeps a puzzle's choice ids in the sent order (spec 033)", async () => {
+			const sent = anAnswer({
+				playerId: "p1",
+				choiceIds: ["choice-3", "choice-1", "choice-4", "choice-2"],
+				correctness: "wrong",
+				points: 0,
+			});
+
+			await answers.add(sent);
+
+			expect((await answers.find("game-1", 0, "p1"))?.choiceIds).toEqual([
+				"choice-3",
+				"choice-1",
+				"choice-4",
+				"choice-2",
+			]);
+			expect((await answers.listByQuestion("game-1", 0))[0]?.choiceIds).toEqual(
+				sent.choiceIds,
+			);
+		});
+
+		it("stores a puzzle's right order with the game's questions (spec 033)", async () => {
+			const puzzle = aPuzzleGameQuestion({ index: 0 });
+
+			await gameQuestions.saveAll("game-1", [puzzle]);
+
+			expect(await gameQuestions.find("game-1", 0)).toEqual(puzzle);
 		});
 
 		it("keeps one answer per player and question", async () => {

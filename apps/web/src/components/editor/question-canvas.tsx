@@ -4,13 +4,17 @@ import { questionIssues } from "@quizio/core/quiz/domain/question-issues";
 import type { ReactNode } from "react";
 
 import type { QuestionData } from "@/lib/api-types";
-
+import { PuzzleAnswers } from "./puzzle-answers";
 import { type ImageUploadState, QuestionMedia } from "./question-media";
 import { QuestionTextField } from "./question-text-field";
 import { QuizAnswers } from "./quiz-answers";
 import { SliderAnswers } from "./slider-answers";
 import { TrueFalseAnswers } from "./true-false-answers";
 import { TypeAnswerAnswers } from "./type-answer-answers";
+
+/** Below a puzzle's question while it is edited (spec 033, RN-06). */
+const PUZZLE_QUESTION_TIP =
+	'Adicione a ordem esperada para ajudar os participantes a responder corretamente (por exemplo, "do menor ao maior").';
 
 /** The selected question in the middle of the editor (specs 003 to 005, 007). */
 export function QuestionCanvas({
@@ -21,6 +25,7 @@ export function QuestionCanvas({
 	onSaveText,
 	onSaveChoiceText,
 	onSaveAcceptedAnswer,
+	onSavePuzzleItem,
 	onChange,
 	onUploadImage,
 	titleAside,
@@ -38,6 +43,8 @@ export function QuestionCanvas({
 		index: number,
 		text: string | null,
 	) => Promise<unknown>;
+	/** The autosaved text of a puzzle's slot (spec 033). */
+	onSavePuzzleItem: (index: number, text: string | null) => Promise<unknown>;
 	/** Changes saved at once: corrects and the extra answers. */
 	onChange: (change: QuestionChange) => void;
 	onUploadImage: (file: File) => void;
@@ -55,6 +62,7 @@ export function QuestionCanvas({
 					questionId={question.id}
 					initialText={question.text}
 					hint={showHints}
+					tip={question.type === "puzzle" ? PUZZLE_QUESTION_TIP : undefined}
 					onSave={onSaveText}
 				/>
 				{titleAside}
@@ -115,6 +123,14 @@ export function QuestionCanvas({
 				<SliderAnswers
 					key={question.id}
 					question={question}
+					onChange={onChange}
+				/>
+			)}
+			{question.type === "puzzle" && (
+				<PuzzleAnswers
+					key={question.id}
+					question={question}
+					onSaveItem={onSavePuzzleItem}
 					onChange={onChange}
 				/>
 			)}

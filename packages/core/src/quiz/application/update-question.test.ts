@@ -253,6 +253,29 @@ describe("updateQuestion", () => {
 		});
 	});
 
+	it("writes and moves puzzle slots (spec 033)", async () => {
+		await updateQuestion({
+			...ref,
+			change: { kind: "type", type: "puzzle", remembered: null },
+		});
+		for (const [index, text] of ["Nilo", "Amazonas", "Yangtzé"].entries()) {
+			await updateQuestion({
+				...ref,
+				change: { kind: "puzzleItemText", index, text },
+			});
+		}
+		await updateQuestion({
+			...ref,
+			change: { kind: "puzzleItemMoved", from: 2, to: 0 },
+		});
+
+		expect(questions.listOf("quiz-1")[0]).toMatchObject({
+			type: "puzzle",
+			timeLimitSeconds: 20,
+			items: ["Yangtzé", "Nilo", "Amazonas", null],
+		});
+	});
+
 	it("refuses a time the type does not take (spec 031)", async () => {
 		await updateQuestion({
 			...ref,

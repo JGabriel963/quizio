@@ -80,6 +80,10 @@ export function chosenChoices(
 	question: ReportQuestion,
 	answer: ReportAnswer | undefined,
 ): ChoiceView[] {
+	// A puzzle's answer is its order (`puzzleOrderOf`), not marked answers (spec 033).
+	if (question.type === "puzzle") {
+		return [];
+	}
 	return question.choices
 		.filter((choice) => answer?.choiceIds.includes(choice.id))
 		.map(({ shapeIndex, text, correct }) => ({ shapeIndex, text, correct }));

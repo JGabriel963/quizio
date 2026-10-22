@@ -1,3 +1,8 @@
+import {
+	type PuzzleAnswersView,
+	puzzleAnswersOf,
+	puzzleOrderOf,
+} from "../domain/puzzle-orders";
 import { ReportNotFoundError } from "../domain/report";
 import { participantStats, questionStats } from "../domain/report-stats";
 import { loadReport, type ReportReadDeps } from "./load-report";
@@ -31,6 +36,8 @@ export interface QuestionParticipantView {
 	typedText: string | null;
 	/** What they picked on a slider (spec 032); null otherwise. */
 	sliderValue: number | null;
+	/** The order they sent in a puzzle, by text (spec 033); null otherwise. */
+	puzzleOrder: string[] | null;
 	points: number;
 	responseTimeMs: number | null;
 }
@@ -45,6 +52,8 @@ export interface QuestionDetailView extends QuestionRowView {
 	typedAnswers: TypedAnswerView[] | null;
 	/** A slider's answer, margin, average and values sent (spec 032, RN-36). */
 	sliderAnswers: SliderAnswersView | null;
+	/** A puzzle's right order and the orders sent (spec 033, RN-31). */
+	puzzleAnswers: PuzzleAnswersView | null;
 	/** Who could answer it, by the game's standings. */
 	participants: QuestionParticipantView[];
 }
@@ -92,6 +101,7 @@ export function createGetReportQuestion(
 			})),
 			typedAnswers: typedAnswersOf(question, [...answerOf.values()]),
 			sliderAnswers: sliderAnswersOf(question, [...answerOf.values()]),
+			puzzleAnswers: puzzleAnswersOf(question, [...answerOf.values()]),
 			participants: participantStats(game)
 				.filter(
 					({ playerId }) =>
@@ -107,6 +117,7 @@ export function createGetReportQuestion(
 						choices: chosenChoices(question, answer),
 						typedText: answer?.text ?? null,
 						sliderValue: answer?.value ?? null,
+						puzzleOrder: puzzleOrderOf(question, answer),
 						points: answer?.points ?? 0,
 						responseTimeMs: answer?.responseTimeMs ?? null,
 					};

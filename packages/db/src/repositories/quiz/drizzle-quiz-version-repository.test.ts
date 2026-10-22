@@ -134,7 +134,7 @@ describe("DrizzleQuizVersionRepository", () => {
 		await testDb.db.insert(versionTable).values({
 			quizId: "quiz-1",
 			number: 1,
-			questions: [{ id: "x", type: "puzzle" }, "junk"],
+			questions: [{ id: "x", type: "poll" }, "junk"],
 			createdAt,
 		});
 

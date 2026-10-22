@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTypeAnswerQuestion,
@@ -930,5 +931,62 @@ describe("getPlayerSession with a slider (spec 032)", () => {
 		const view = await createGetPlayerSession(deps)(session);
 
 		expect(view.stage?.outcome?.slider).toBeNull();
+	});
+});
+
+describe("getPlayerSession with a puzzle (spec 033)", () => {
+	const session = { gameId: "game-1", playerId: "p1", secret: "s1" };
+
+	async function ordering() {
+		const game = await createStartedGame({
+			players: ["Ana", "Bia"],
+			questions: [aPuzzleQuestion(), aQuestion({ id: "q2" })],
+			options: { showQuestionsOnDevices: true },
+		});
+		await game.reach("answering");
+		return game;
+	}
+
+	it("a player's stage has the same order and shapes and no right order", async () => {
+		const { deps } = await ordering();
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(
+			view.stage?.question?.choices.map(({ id, shapeIndex, text }) => [
+				id,
+				shapeIndex,
+				text,
+			]),
+		).toEqual([
+			["choice-4", 0, "Mississipi"],
+			["choice-3", 1, "Yangtzé"],
+			["choice-2", 2, "Amazonas"],
+			["choice-1", 3, "Nilo"],
+		]);
+		expect(JSON.stringify(view)).not.toMatch(/correct/i);
+	});
+
+	it("a puzzle reordered and not sent is no answer", async () => {
+		const { deps, reach } = await ordering();
+		await reach("results");
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.outcome).toMatchObject({
+			result: "timeout",
+			points: 0,
+		});
+	});
+
+	it("the right order sent is correct with points", async () => {
+		const { deps, answer, reach } = await ordering();
+		await answer(1, "choice-1", "choice-2", "choice-3", "choice-4");
+		await reach("results");
+
+		const view = await createGetPlayerSession(deps)(session);
+
+		expect(view.stage?.outcome).toMatchObject({ result: "correct" });
+		expect(view.stage?.outcome?.points).toBeGreaterThan(0);
 	});
 });

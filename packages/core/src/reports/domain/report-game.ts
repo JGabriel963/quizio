@@ -24,6 +24,8 @@ export interface ReportQuestion {
 	acceptedAnswers: string[];
 	/** A slider's scale (spec 032); null otherwise. */
 	slider: GameSlider | null;
+	/** A puzzle's answers in the right order, by id (spec 033); none otherwise. */
+	correctOrder: string[];
 }
 
 export interface ReportAnswer {

@@ -43,9 +43,15 @@ const content = z.discriminatedUnion("type", [
 		unit: z.string().max(200).nullable(),
 		answerMargin: z.enum(ANSWER_MARGINS),
 	}),
+	z.object({
+		type: z.literal("puzzle"),
+		items: z.array(z.string().max(300).nullable()).max(4),
+	}),
 ]);
 /** An accepted answer's position; how many there may be is the core's (spec 031). */
 const acceptedAnswerIndex = z.number().int().min(0).max(7);
+/** One of a puzzle's four slots (spec 033, RN-03). */
+const puzzleSlot = z.number().int().min(0).max(3);
 
 const change = z.discriminatedUnion("kind", [
 	z.object({ kind: z.literal("text"), text: z.string().nullable() }),
@@ -84,6 +90,17 @@ const change = z.discriminatedUnion("kind", [
 		text: z.string().max(200).nullable(),
 	}),
 	z.object({ kind: z.literal("answerMargin"), margin: z.enum(ANSWER_MARGINS) }),
+	// A puzzle's slot text, whose 75 characters are the core's, and a move (spec 033).
+	z.object({
+		kind: z.literal("puzzleItemText"),
+		index: puzzleSlot,
+		text: z.string().max(300).nullable(),
+	}),
+	z.object({
+		kind: z.literal("puzzleItemMoved"),
+		from: puzzleSlot,
+		to: puzzleSlot,
+	}),
 	z.object({
 		kind: z.literal("acceptedAnswerRemoved"),
 		index: acceptedAnswerIndex,

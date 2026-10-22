@@ -52,6 +52,7 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.INVALID_SLIDER_NUMBER": `Use um número de até ${SLIDER_NUMBER_MAX_LENGTH} caracteres, com no máximo 2 casas decimais.`,
 	"QUIZ.SLIDER_UNIT_TOO_LONG": `A unidade deve ter no máximo ${SLIDER_UNIT_MAX_LENGTH} caracteres.`,
 	"QUIZ.SLIDER_ANSWER_REQUIRED": "A resposta não pode ficar vazia.",
+	"QUIZ.PUZZLE_ITEM_NOT_FOUND": "Essa resposta do Puzzle não existe.",
 	"QUIZ.INVALID_ANSWER_MARGIN": "Escolha uma margem de resposta da lista.",
 	"QUIZ.INVALID_POINTS": "Escolha uma opção de pontos da lista.",
 	"QUIZ.INVALID_SELECTION": "Escolha uma opção de resposta da lista.",

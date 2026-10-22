@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Question } from "../../quiz/domain/question";
 import {
+	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTypeAnswerQuestion,
@@ -305,6 +306,62 @@ describe("a slider in an assignment (spec 032, RN-33, RN-34)", () => {
 		expect((await slide(640)).screen).toMatchObject({
 			phase: "results",
 			result: { result: "almostCorrect", points: 600 },
+		});
+	});
+});
+
+describe("a puzzle in an assignment (spec 033, RN-28, RN-29)", () => {
+	const right = ["choice-1", "choice-2", "choice-3", "choice-4"];
+
+	it("each participant sees the puzzle in their own order with the shapes of its places", async () => {
+		const { deps, gameId, john } = await playing({}, [aPuzzleQuestion()]);
+
+		const view = await createGetAssignmentPlay(deps)({
+			gameId,
+			playerId: john.playerId,
+			secret: john.secret,
+		});
+
+		// The test shuffler draws backwards, never the right order.
+		expect(view.screen).toMatchObject({
+			phase: "answering",
+			question: {
+				type: "puzzle",
+				choices: [
+					{ id: "choice-4", shapeIndex: 0, text: "Mississipi" },
+					{ id: "choice-3", shapeIndex: 1, text: "Yangtzé" },
+					{ id: "choice-2", shapeIndex: 2, text: "Amazonas" },
+					{ id: "choice-1", shapeIndex: 3, text: "Nilo" },
+				],
+			},
+		});
+		expect(JSON.stringify(view)).not.toMatch(/rightOrder|correct/);
+	});
+
+	it("a puzzle without a timer gives full points", async () => {
+		const { deps, answer } = await playing({ questionTimer: false }, [
+			aPuzzleQuestion(),
+		]);
+		deps.clock.advanceBy(60_000);
+
+		expect((await answer(right)).screen).toMatchObject({
+			phase: "results",
+			result: { result: "correct", points: 1000 },
+		});
+	});
+
+	it("the result of a puzzle has the sent order and the right one", async () => {
+		const { answer } = await playing({}, [aPuzzleQuestion()]);
+		const sent = ["choice-2", "choice-1", "choice-3", "choice-4"];
+
+		expect((await answer(sent)).screen).toMatchObject({
+			phase: "results",
+			result: {
+				result: "wrong",
+				points: 0,
+				chosenIds: sent,
+				rightOrder: right,
+			},
 		});
 	});
 });

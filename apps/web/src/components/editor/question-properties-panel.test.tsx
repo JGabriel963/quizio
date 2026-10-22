@@ -68,6 +68,7 @@ describe("QuestionPropertiesPanel", () => {
 			"Verdadeiro ou falso",
 			"Resposta curta",
 			"Controle deslizante",
+			"Puzzle",
 		]);
 		expect(
 			screen.getByRole("group", { name: "Testar conhecimento" }),
@@ -206,6 +207,28 @@ describe("QuestionPropertiesPanel", () => {
 		});
 
 		expect(select("Limite de tempo")).toHaveTextContent("30 segundos");
+		expect(await optionLabels(user, "Limite de tempo")).toEqual([
+			"20 segundos",
+			"30 segundos",
+			"45 segundos",
+			"1 minuto",
+			"1 minuto 30 segundos",
+			"2 minutos",
+			"3 minutos",
+			"4 minutos",
+		]);
+		expect(
+			screen.queryByRole("combobox", { name: "Opções de resposta" }),
+		).toBeNull();
+	});
+
+	it("puzzle time limits start at 20 seconds, with 1 minuto chosen (spec 033, RN-10)", async () => {
+		const { user } = renderPanel(2, {
+			...blankQuestion("a", "puzzle"),
+			text: "Rios?",
+		});
+
+		expect(select("Limite de tempo")).toHaveTextContent("1 minuto");
 		expect(await optionLabels(user, "Limite de tempo")).toEqual([
 			"20 segundos",
 			"30 segundos",

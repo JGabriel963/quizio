@@ -310,6 +310,25 @@ describe("QuestionList", () => {
 		).toHaveLength(3);
 	});
 
+	it("a puzzle shows N Puzzle and four stacked bars (spec 033, RN-13)", () => {
+		renderList([
+			question("a", "A?"),
+			{
+				...blankQuestion("b", "puzzle"),
+				text: "Rios?",
+				items: ["Nilo", "Amazonas", null, null],
+			},
+		]);
+
+		const [, puzzle] = items();
+		expect(puzzle).toHaveTextContent("2 Puzzle");
+		expect(within(puzzle as HTMLElement).getByText("60")).toBeInTheDocument();
+		const bars = (puzzle as HTMLElement).querySelector(
+			"[data-slot=puzzle-thumbnail]",
+		);
+		expect(bars?.querySelectorAll("[data-slot=answer-bar]")).toHaveLength(4);
+	});
+
 	it("a slider's thumbnail shows the scale with its marker (spec 032, RN-17)", () => {
 		renderList([
 			question("a", "A?"),

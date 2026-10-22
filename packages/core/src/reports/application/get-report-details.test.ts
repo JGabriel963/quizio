@@ -77,6 +77,7 @@ describe("getReportParticipant (spec 015)", () => {
 				typedText: null,
 				sliderValue: null,
 				sliderUnit: null,
+				puzzleOrder: null,
 			},
 			{
 				questionIndex: 1,
@@ -89,6 +90,7 @@ describe("getReportParticipant (spec 015)", () => {
 				typedText: null,
 				sliderValue: null,
 				sliderUnit: null,
+				puzzleOrder: null,
 			},
 		]);
 	});
@@ -107,6 +109,7 @@ describe("getReportParticipant (spec 015)", () => {
 			typedText: null,
 			sliderValue: null,
 			sliderUnit: null,
+			puzzleOrder: null,
 		});
 	});
 
@@ -240,6 +243,7 @@ describe("getReportQuestion (spec 015)", () => {
 				responseTimeMs: 4000,
 				typedText: null,
 				sliderValue: null,
+				puzzleOrder: null,
 			},
 			{
 				playerId: "player-Bia",
@@ -250,6 +254,7 @@ describe("getReportQuestion (spec 015)", () => {
 				responseTimeMs: 6000,
 				typedText: null,
 				sliderValue: null,
+				puzzleOrder: null,
 			},
 			{
 				playerId: "player-Caio",
@@ -260,6 +265,7 @@ describe("getReportQuestion (spec 015)", () => {
 				responseTimeMs: 5000,
 				typedText: null,
 				sliderValue: null,
+				puzzleOrder: null,
 			},
 			{
 				playerId: "player-Dani",
@@ -270,6 +276,7 @@ describe("getReportQuestion (spec 015)", () => {
 				responseTimeMs: null,
 				typedText: null,
 				sliderValue: null,
+				puzzleOrder: null,
 			},
 		]);
 	});
@@ -474,5 +481,95 @@ describe("a slider in the report (spec 032, RN-35, RN-36)", () => {
 		const view = await setup(threeQuestions()).question(0);
 
 		expect(view.sliderAnswers).toBeNull();
+	});
+});
+
+describe("a puzzle in the report (spec 033, RN-30, RN-31)", () => {
+	const right = {
+		choiceIds: ["c1", "c2", "c3", "c4"],
+		correctness: "correct" as const,
+	};
+	const swapped = {
+		choiceIds: ["c1", "c2", "c4", "c3"],
+		correctness: "wrong" as const,
+	};
+	const puzzleGame = () =>
+		aReportGame({
+			questions: [
+				aReportQuestion(0, {
+					type: "puzzle",
+					text: "Coloque estes rios do maior para o menor",
+					choices: [
+						{ id: "c4", shapeIndex: 0, text: "Mississipi", correct: true },
+						{ id: "c3", shapeIndex: 1, text: "Yangtzé", correct: true },
+						{ id: "c2", shapeIndex: 2, text: "Amazonas", correct: true },
+						{ id: "c1", shapeIndex: 3, text: "Nilo", correct: true },
+					],
+					correctOrder: ["c1", "c2", "c3", "c4"],
+				}),
+			],
+			players: ["Ana", "Bia", "Caio", "Davi", "Eva", "Fábio"],
+			answers: {
+				Ana: [right],
+				Bia: [right],
+				Caio: [right],
+				Davi: [swapped],
+				Eva: [swapped],
+				Fábio: [null],
+			},
+		});
+
+	it("a puzzle lists the right order and the sent orders", async () => {
+		const view = await setup(puzzleGame()).question(0);
+
+		expect(view.puzzleAnswers).toEqual({
+			correctOrder: [
+				{ text: "Nilo", shapeIndex: 3 },
+				{ text: "Amazonas", shapeIndex: 2 },
+				{ text: "Yangtzé", shapeIndex: 1 },
+				{ text: "Mississipi", shapeIndex: 0 },
+			],
+			orders: [
+				{
+					texts: ["Nilo", "Amazonas", "Yangtzé", "Mississipi"],
+					count: 3,
+					correct: true,
+				},
+				{
+					texts: ["Nilo", "Amazonas", "Mississipi", "Yangtzé"],
+					count: 2,
+					correct: false,
+				},
+			],
+		});
+		expect(
+			view.participants.find((p) => p.nickname === "Davi")?.puzzleOrder,
+		).toEqual(["Nilo", "Amazonas", "Mississipi", "Yangtzé"]);
+	});
+
+	it("a puzzle counts only right orders", async () => {
+		const view = await setup(puzzleGame()).question(0);
+
+		expect(view.accuracyPercent).toBe(50);
+	});
+
+	it("a participant's puzzle answer shows the sent order", async () => {
+		const view = await setup(puzzleGame()).participant("Davi");
+
+		expect(view.answers).toEqual([
+			expect.objectContaining({
+				type: "puzzle",
+				result: "wrong",
+				choices: [],
+				puzzleOrder: ["Nilo", "Amazonas", "Mississipi", "Yangtzé"],
+			}),
+		]);
+	});
+
+	it("a choice question has no puzzle answers", async () => {
+		const view = await setup(threeQuestions()).question(0);
+
+		expect(view.puzzleAnswers).toBeNull();
+		expect(view.participants[0]?.puzzleOrder).toBeNull();
 	});
 });
