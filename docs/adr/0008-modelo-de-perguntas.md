@@ -52,6 +52,15 @@ O primeiro tipo novo confirmou a decisão: `typeAnswer` é um valor a mais do en
 
 Na partida, a pergunta copiada leva as respostas aceitas (`GameQuestion.acceptedAnswers`, `[]` para os outros tipos e para as cópias gravadas antes) e a resposta grava o texto digitado (`game_answer.text`).
 
+## Atualização — Controle deslizante (spec 032, 2026-10-21)
+
+O segundo tipo seguiu o mesmo caminho: `slider` é um valor a mais de `question_type`, e o `content` guarda `{ min, max, answer, unit, answerMargin }`. Mínimo e máximo podem estar vazios enquanto o criador digita.
+
+- **A escala fica no shared kernel e é calculada em centésimos inteiros.** A etapa, as posições, a margem e a correção (`core/shared/domain/slider-scale.ts`) servem ao editor, à partida e ao relatório. Os números têm no máximo 2 casas e 10 caracteres, então toda a conta é feita em centésimos, que ficam abaixo de 10¹². Assim, "a resposta é uma posição" e "está dentro da margem" são comparações exatas, sem erro de ponto flutuante.
+- **As posições contam a partir da resposta.** A resposta é sempre uma posição, e o celular recebe só a parte pública da escala: as pontas, a etapa, a posição inicial e a unidade (`PublicSliderScale`), nunca a resposta nem a margem.
+- **A resposta do jogador é um número.** Ela fica em `game_answer.value` (`numeric(14,2)`, nula para os outros tipos). A escala viaja na cópia da pergunta (`GameQuestion.slider`, `null` nas cópias gravadas antes).
+- **Um valor novo de correção:** `almostCorrect` (dentro da margem) entra em `answer_correctness` e conta como acerto na sequência e nos relatórios. Os pontos são 80% pela precisão e 20% pela velocidade (`calculateSliderScore`).
+
 ## Alternativas consideradas
 
 - **Só tabelas** (`question` + `choice` + uma tabela por tipo): integridade forte no banco, mas cada tipo novo vira migração e mais joins, e a maioria dos tipos futuros não tem "alternativas".

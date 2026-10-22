@@ -5,6 +5,10 @@ import type {
 	SelectionMode,
 } from "../../quiz/domain/question";
 import type { QuestionImage } from "../../quiz/domain/question-image";
+import {
+	ANSWER_MARGINS,
+	type SliderScale,
+} from "../../shared/domain/slider-scale";
 import type { GameOptions } from "./game-options";
 
 /** An answer as the game shows it: always filled, at a fixed position. */
@@ -14,6 +18,11 @@ export interface GameChoice {
 	shapeIndex: number;
 	text: string;
 	correct: boolean;
+}
+
+/** A slider's scale as the game plays it, with its unit (spec 032). */
+export interface GameSlider extends SliderScale {
+	unit: string | null;
 }
 
 /**
@@ -40,6 +49,11 @@ export interface GameQuestion {
 	 * the results (RN-15).
 	 */
 	acceptedAnswers: string[];
+	/**
+	 * A slider's scale (spec 032); null for the other types. The answer and the
+	 * margin never reach a device before the results (RN-23).
+	 */
+	slider: GameSlider | null;
 	image: QuestionImage | null;
 }
 
@@ -81,8 +95,20 @@ function choicesOf(question: Question): GameChoice[] {
 				},
 			];
 		case "typeAnswer":
+		case "slider":
 			return [];
 	}
+}
+
+/** The playable version only has complete questions, so a slider has its scale. */
+function sliderOf(question: Question): GameSlider | null {
+	if (question.type !== "slider") {
+		return null;
+	}
+	const { min, max, answer } = question;
+	return min === null || max === null || answer === null
+		? null
+		: { min, max, answer, margin: question.answerMargin, unit: question.unit };
 }
 
 function acceptedAnswersOf(question: Question): string[] {
@@ -105,6 +131,7 @@ export function toGameQuestion(
 		selection: question.type === "quiz" ? question.selection : "single",
 		choices: choicesOf(question),
 		acceptedAnswers: acceptedAnswersOf(question),
+		slider: sliderOf(question),
 		image: question.image
 			? {
 					...question.image,
@@ -212,6 +239,30 @@ export function parseStoredGameQuestion(raw: unknown): GameQuestion | null {
 			correct,
 		})),
 		acceptedAnswers,
+		slider: parseStoredSlider(stored.slider),
 		image: image && typeof image.key === "string" ? image : null,
+	};
+}
+
+/** Games stored before spec 032, and the other types, have no scale. */
+function parseStoredSlider(raw: unknown): GameSlider | null {
+	if (typeof raw !== "object" || raw === null) {
+		return null;
+	}
+	const { min, max, answer, margin, unit } = raw as Record<string, unknown>;
+	if (
+		typeof min !== "number" ||
+		typeof max !== "number" ||
+		typeof answer !== "number" ||
+		!(ANSWER_MARGINS as readonly unknown[]).includes(margin)
+	) {
+		return null;
+	}
+	return {
+		min,
+		max,
+		answer,
+		margin: margin as SliderScale["margin"],
+		unit: typeof unit === "string" ? unit : null,
 	};
 }

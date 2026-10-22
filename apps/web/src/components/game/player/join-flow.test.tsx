@@ -225,6 +225,7 @@ class FakeJoinApi implements JoinApi {
 			streak: right ? 1 : 0,
 			rank: right ? 1 : 2,
 			reviewed: false,
+			slider: null,
 			behind: right ? null : { nickname: "Bia", points: 639 },
 		};
 	}
@@ -660,6 +661,7 @@ const stageOf = (
 			: {
 					type: "quiz",
 					selection,
+					slider: null,
 					text: null,
 					image: null,
 					choices: [0, 1, 2, 3].map((shapeIndex) => ({
@@ -1815,5 +1817,44 @@ describe("JoinFlow and assignments (spec 029, RN-20)", () => {
 			),
 		).toBeInTheDocument();
 		expect(flow.onAssignment).not.toHaveBeenCalled();
+	});
+});
+
+describe("JoinFlow: type answers in a row (spec 031, RN-19)", () => {
+	const typeAnswerAt = (questionIndex: number): PublicStage => ({
+		...stageOf("answering", questionIndex),
+		question: {
+			type: "typeAnswer",
+			selection: "single",
+			slider: null,
+			text: null,
+			image: null,
+			choices: [],
+		},
+	});
+	function moveTo(flow: ReturnType<typeof renderFlow>, stage: PublicStage) {
+		flow.api.stage = stage;
+		act(() =>
+			flow.subscriber.emit(gameChannel(GAME), GAME_EVENTS.stageChanged, {
+				status: "playing",
+				stage,
+			}),
+		);
+	}
+
+	it("the next type answer starts with an empty field", async () => {
+		const flow = renderFlow();
+		await joinAs(flow, "ACT");
+		moveTo(flow, typeAnswerAt(0));
+		await flow.user.type(
+			await screen.findByRole("textbox", { name: "Sua resposta" }),
+			"Goku{Enter}",
+		);
+
+		moveTo(flow, typeAnswerAt(1));
+
+		expect(
+			await screen.findByRole("textbox", { name: "Sua resposta" }),
+		).toHaveValue("");
 	});
 });

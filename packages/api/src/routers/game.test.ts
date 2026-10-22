@@ -8,7 +8,10 @@ import { QUESTION_INTRO_MS } from "@quizio/core/game/domain/game-progress";
 import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import { somePlayableQuestions } from "@quizio/core/game/testing/game-deps";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
-import { aTypeAnswerQuestion } from "@quizio/core/quiz/testing/a-question";
+import {
+	aSliderQuestion,
+	aTypeAnswerQuestion,
+} from "@quizio/core/quiz/testing/a-question";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { describe, expect, it } from "vitest";
 
@@ -1546,6 +1549,76 @@ describe("game router: type answer (spec 031)", () => {
 				typedText: "Pedro",
 				acceptedAnswers: ["Pedro"],
 			},
+		});
+	});
+});
+
+describe("game router: slider (spec 032)", () => {
+	async function sliding() {
+		const api = createTestApi();
+		await api.quizzes.save(aPublishedQuiz({ title: "Anos" }));
+		await api.versions.save(
+			newQuizVersion({
+				quizId: "quiz-1",
+				number: 1,
+				questions: [aSliderQuestion(), ...somePlayableQuestions()],
+				now: new Date("2026-02-01T10:00:00.000Z"),
+			}),
+		);
+		const host = api.callerFor("user-1");
+		const visitor = api.callerFor(null);
+		const { gameId } = await host.game.host({ quizId: "quiz-1" });
+		const { playerId, secret } = await visitor.game.join.enter({
+			gameId,
+			nickname: "Ana",
+		});
+		const ana = { gameId, playerId, secret };
+		await host.game.start({ gameId });
+		api.clock.advanceBy(3_000);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "gameIntro" },
+		});
+		api.clock.advanceBy(QUESTION_INTRO_MS);
+		await host.game.advance({
+			gameId,
+			from: { questionIndex: 0, phase: "questionIntro" },
+		});
+		return { api, visitor, gameId, ana };
+	}
+
+	it("the session never carries the slider's answer before the results", async () => {
+		const { visitor, ana } = await sliding();
+
+		const session = await visitor.game.join.session(ana);
+
+		expect(session.stage?.question?.slider).toMatchObject({
+			first: 104,
+			last: 896,
+			step: 8,
+		});
+		expect(JSON.stringify(session)).not.toMatch(/"answer"|margin|600/);
+	});
+
+	it("a player answers a slider with a value", async () => {
+		const { api, visitor, gameId, ana } = await sliding();
+
+		await visitor.game.join.answer({ ...ana, questionIndex: 0, value: 640 });
+
+		expect(await api.answers.find(gameId, 0, ana.playerId)).toMatchObject({
+			value: 640,
+			correctness: "almostCorrect",
+		});
+	});
+
+	it("refuses a value off the scale", async () => {
+		const { visitor, ana } = await sliding();
+
+		await expect(
+			visitor.game.join.answer({ ...ana, questionIndex: 0, value: 601 }),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.INVALID_ANSWER" },
 		});
 	});
 });

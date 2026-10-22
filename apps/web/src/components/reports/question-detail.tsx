@@ -3,6 +3,7 @@ import { CheckIcon, ClockIcon, XIcon } from "lucide-react";
 import type { QuestionDetailData } from "@/lib/api-types";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import { averageTimeLabel, responseTimeLabel } from "@/lib/report-labels";
+import { formatSliderNumber } from "@/lib/slider-format";
 
 import { AccuracyRing } from "./accuracy-ring";
 import { ChoiceChip, pointsLabel, ResultBadge } from "./report-parts";
@@ -50,6 +51,9 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 				<h3 className="font-bold">Respostas</h3>
 				{detail.typedAnswers && (
 					<TypedAnswers answers={detail.typedAnswers} answered={answered} />
+				)}
+				{detail.sliderAnswers && (
+					<SliderAnswers answers={detail.sliderAnswers} answered={answered} />
 				)}
 				{/* A type answer has no alternatives: its list is empty. */}
 				<ul aria-label="Alternativas" className="flex flex-col gap-2">
@@ -129,6 +133,11 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 										“{participant.typedText}”
 									</span>
 								)}
+								{participant.sliderValue !== null && (
+									<span className="font-semibold">
+										{formatSliderNumber(participant.sliderValue)}
+									</span>
+								)}
 								<span className="tabular-nums">
 									{pointsLabel(participant.points)}{" "}
 									{participant.points === 1 ? "ponto" : "pontos"}
@@ -151,6 +160,79 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
  * What was typed in a type answer, grouped as the game grouped it: the correct
  * ones first, the accepted answers nobody sent with 0 (spec 031, RN-37).
  */
+/**
+ * A slider's answers (spec 032, RN-36): the answer with its margin, the
+ * average and each value sent, the nearest first, with how many sent it.
+ */
+function SliderAnswers({
+	answers,
+	answered,
+}: {
+	answers: NonNullable<QuestionDetailData["sliderAnswers"]>;
+	answered: number;
+}) {
+	const withUnit = (value: number, whole = false) => {
+		const number = formatSliderNumber(value, { whole });
+		return answers.unit ? `${number} ${answers.unit}` : number;
+	};
+	return (
+		<div className="flex flex-col gap-3">
+			<dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md bg-muted/60 p-3 text-sm">
+				<dt className="text-muted-foreground">Resposta correta</dt>
+				<dd className="font-bold">{withUnit(answers.answer)}</dd>
+				{answers.low !== answers.high && (
+					<>
+						<dt className="text-muted-foreground">Margem de resposta</dt>
+						<dd className="font-bold">
+							{withUnit(answers.low, true)} a {withUnit(answers.high, true)}
+						</dd>
+					</>
+				)}
+				<dt className="text-muted-foreground">Média das respostas</dt>
+				<dd className="font-bold">
+					{answers.average === null ? "—" : withUnit(answers.average)}
+				</dd>
+			</dl>
+			<ul aria-label="Valores enviados" className="flex flex-col gap-2">
+				{answers.values.map(({ value, count, correctness }) => (
+					<li
+						key={value}
+						className="flex flex-col gap-1 rounded-md p-3 ring-1 ring-foreground/10"
+					>
+						<div className="flex items-center gap-3">
+							<span className="min-w-0 flex-1 font-semibold">
+								{withUnit(value)}
+							</span>
+							<ResultBadge result={correctness} />
+							<span className="shrink-0 font-bold tabular-nums">
+								{count}
+								<span className="sr-only">
+									{count === 1 ? " enviou" : " enviaram"}
+								</span>
+							</span>
+						</div>
+						<div
+							aria-hidden="true"
+							className="h-1.5 overflow-hidden rounded-full bg-muted"
+						>
+							<div
+								className={
+									correctness === "wrong"
+										? "h-full bg-foreground/40"
+										: "h-full bg-success"
+								}
+								style={{
+									width: `${answered > 0 ? (count / answered) * 100 : 0}%`,
+								}}
+							/>
+						</div>
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
 function TypedAnswers({
 	answers,
 	answered,

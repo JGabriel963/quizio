@@ -10,6 +10,7 @@ import { aGame, aPlayer, aPlayingGame } from "@quizio/core/game/testing/a-game";
 import {
 	aGameQuestion,
 	anAnswer,
+	aSliderGameQuestion,
 } from "@quizio/core/game/testing/a-game-question";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { playedQuestionCount } from "@quizio/core/reports/domain/report";
@@ -426,6 +427,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				imageKey: "questions/a.png",
 				choices: aGameQuestion().choices,
 				acceptedAnswers: [],
+				slider: null,
 			},
 		]);
 		expect(game?.answers).toEqual([
@@ -434,6 +436,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				playerId: "p1",
 				choiceIds: ["choice-1"],
 				text: null,
+				value: null,
 				correctness: "correct",
 				points: 900,
 				responseTimeMs: 4_200,
@@ -444,6 +447,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				playerId: "p2",
 				choiceIds: ["choice-2"],
 				text: null,
+				value: null,
 				correctness: "wrong",
 				points: 0,
 				responseTimeMs: 4_200,
@@ -475,6 +479,32 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 
 		expect(game?.questions[0]?.acceptedAnswers).toEqual(["Pedro"]);
 		expect(game?.answers[0]).toMatchObject({ text: "pedra", choiceIds: [] });
+	});
+
+	it("tallies almost correct answers as right and reads values (spec 032)", async () => {
+		await seedPlayed(finished({ questionCount: 1 }), [
+			aSliderGameQuestion({ index: 0 }),
+		]);
+		await answers.add(
+			anAnswer({
+				playerId: "p1",
+				choiceIds: [],
+				value: 640,
+				correctness: "almostCorrect",
+				points: 600,
+			}),
+		);
+
+		const game = await query.findGame("game-1", now);
+		const headers = await query.listHeaders({
+			ownerId: "user-1",
+			section: "reports",
+			now,
+		});
+
+		expect(game?.questions[0]?.slider).toMatchObject({ answer: 600 });
+		expect(game?.answers[0]).toMatchObject({ value: 640, choiceIds: [] });
+		expect((await query.tallies(headers))[0]?.correctAnswers).toBe(1);
 	});
 
 	it("leaves out the question that was on the screen when the game ended", async () => {

@@ -75,6 +75,7 @@ describe("getReportParticipant (spec 015)", () => {
 				points: 893,
 				responseTimeMs: 3200,
 				typedText: null,
+				sliderValue: null,
 			},
 			{
 				questionIndex: 1,
@@ -85,6 +86,7 @@ describe("getReportParticipant (spec 015)", () => {
 				points: 0,
 				responseTimeMs: 2000,
 				typedText: null,
+				sliderValue: null,
 			},
 		]);
 	});
@@ -101,6 +103,7 @@ describe("getReportParticipant (spec 015)", () => {
 			points: 0,
 			responseTimeMs: null,
 			typedText: null,
+			sliderValue: null,
 		});
 	});
 
@@ -233,6 +236,7 @@ describe("getReportQuestion (spec 015)", () => {
 				points: 1000,
 				responseTimeMs: 4000,
 				typedText: null,
+				sliderValue: null,
 			},
 			{
 				playerId: "player-Bia",
@@ -242,6 +246,7 @@ describe("getReportQuestion (spec 015)", () => {
 				points: 0,
 				responseTimeMs: 6000,
 				typedText: null,
+				sliderValue: null,
 			},
 			{
 				playerId: "player-Caio",
@@ -251,6 +256,7 @@ describe("getReportQuestion (spec 015)", () => {
 				points: 0,
 				responseTimeMs: 5000,
 				typedText: null,
+				sliderValue: null,
 			},
 			{
 				playerId: "player-Dani",
@@ -260,6 +266,7 @@ describe("getReportQuestion (spec 015)", () => {
 				points: 0,
 				responseTimeMs: null,
 				typedText: null,
+				sliderValue: null,
 			},
 		]);
 	});
@@ -381,5 +388,87 @@ describe("a type answer in the report (spec 031, RN-36, RN-37)", () => {
 		const view = await setup(threeQuestions()).question(0);
 
 		expect(view.typedAnswers).toBeNull();
+	});
+});
+
+describe("a slider in the report (spec 032, RN-35, RN-36)", () => {
+	const slid = (
+		value: number,
+		correctness: "correct" | "almostCorrect" | "wrong",
+	) => ({
+		choiceIds: [],
+		value,
+		correctness,
+		points: correctness === "wrong" ? 0 : 800,
+	});
+
+	const sliderGame = () =>
+		aReportGame({
+			questions: [
+				aReportQuestion(0, {
+					type: "slider",
+					text: "Quantos anos?",
+					choices: [],
+					slider: {
+						min: 100,
+						max: 900,
+						answer: 600,
+						margin: "medium",
+						unit: "anos",
+					},
+				}),
+			],
+			players: ["Ana", "Bia", "Caio", "Davi"],
+			answers: {
+				Ana: [slid(600, "correct")],
+				Bia: [slid(640, "almostCorrect")],
+				Caio: [slid(560, "almostCorrect")],
+				Davi: [slid(104, "wrong")],
+			},
+		});
+
+	it("a slider's detail lists the values sent, nearest first, with the average and the margin", async () => {
+		const view = await setup(sliderGame()).question(0);
+
+		expect(view.sliderAnswers).toEqual({
+			answer: 600,
+			unit: "anos",
+			low: 520,
+			high: 680,
+			average: 476,
+			values: [
+				{ value: 600, count: 1, correctness: "correct" },
+				{ value: 560, count: 1, correctness: "almostCorrect" },
+				{ value: 640, count: 1, correctness: "almostCorrect" },
+				{ value: 104, count: 1, correctness: "wrong" },
+			],
+		});
+		expect(view.choices).toEqual([]);
+		expect(view.participants.map((p) => p.sliderValue)).toContain(640);
+	});
+
+	it("almost correct answers count as right in a question's accuracy", async () => {
+		const view = await setup(sliderGame()).question(0);
+
+		expect(view.accuracyPercent).toBe(75);
+	});
+
+	it("shows the value a participant sent", async () => {
+		const view = await setup(sliderGame()).participant("Bia");
+
+		expect(view.answers).toEqual([
+			expect.objectContaining({
+				type: "slider",
+				result: "almostCorrect",
+				sliderValue: 640,
+			}),
+		]);
+		expect(view.accuracyPercent).toBe(100);
+	});
+
+	it("a choice question has no slider answers", async () => {
+		const view = await setup(threeQuestions()).question(0);
+
+		expect(view.sliderAnswers).toBeNull();
 	});
 });

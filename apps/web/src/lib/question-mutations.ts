@@ -47,7 +47,9 @@ function changeKey(questionId: string, change: QuestionChange): string {
 			? `choice:${change.choiceId}:${change.kind}`
 			: change.kind === "acceptedAnswerText"
 				? `accepted:${change.index}`
-				: change.kind;
+				: change.kind === "sliderNumber"
+					? `slider:${change.field}`
+					: change.kind;
 	return `question:${questionId}:${field}`;
 }
 
@@ -375,7 +377,7 @@ export function useEditorActions(quizId: string): EditorActions {
 					// Only what a created question is: the server checks it again.
 					// The assistant creates Quiz and true/false only (spec 031, Fora de escopo).
 					questions: questions.flatMap((question) =>
-						question.type === "typeAnswer"
+						question.type === "typeAnswer" || question.type === "slider"
 							? []
 							: question.type === "quiz"
 								? {

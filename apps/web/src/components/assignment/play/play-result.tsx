@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { QuestionResultData } from "@/lib/api-types";
 import { CountUp } from "@/lib/count-up";
 import { usePrefersReducedMotion } from "@/lib/game-motion";
+import { formatSliderNumber } from "@/lib/slider-format";
 
 import {
 	ANSWER_GRID_CLASS,
@@ -22,6 +23,11 @@ const STRIP = {
 	correct: { label: "Correto", className: "bg-answer-correct", right: true },
 	partiallyCorrect: {
 		label: "Parcialmente correto",
+		className: "bg-answer-yellow",
+		right: true,
+	},
+	almostCorrect: {
+		label: "Quase correto",
 		className: "bg-answer-yellow",
 		right: true,
 	},
@@ -57,7 +63,9 @@ export function PlayResult({
 				text={result.question.text}
 				top={<ResultStrip result={result} animate={animate} />}
 				answers={
-					result.question.type === "typeAnswer" ? (
+					result.sliderAnswer ? (
+						<SliderResult result={result} slider={result.sliderAnswer} />
+					) : result.question.type === "typeAnswer" ? (
 						<TypedResult result={result} />
 					) : (
 						<ResultAnswers result={result} />
@@ -181,6 +189,60 @@ function TypedResult({ result }: { result: QuestionResultData }) {
 						</li>
 					))}
 				</ul>
+			</section>
+		</div>
+	);
+}
+
+/** A slider's result: the value sent and the answer with its margin (spec 032, RN-34). */
+function SliderResult({
+	result,
+	slider,
+}: {
+	result: QuestionResultData;
+	slider: NonNullable<QuestionResultData["sliderAnswer"]>;
+}) {
+	const withUnit = (value: number, whole = false) => {
+		const number = formatSliderNumber(value, { whole });
+		return slider.unit ? `${number} ${slider.unit}` : number;
+	};
+	const right =
+		result.result === "correct" || result.result === "almostCorrect";
+	return (
+		<div className="flex min-h-0 flex-col items-center gap-3 overflow-y-auto p-2">
+			{result.sliderValue !== null && (
+				<p
+					data-right={right}
+					className={cn(
+						"flex w-full max-w-md items-center justify-center gap-2 rounded-md px-4 py-4 font-black text-2xl text-white shadow-press",
+						right ? "bg-answer-correct" : "bg-answer-red",
+					)}
+				>
+					{right ? (
+						<CheckIcon aria-hidden="true" className="size-6 stroke-3" />
+					) : (
+						<XIcon aria-hidden="true" className="size-6 stroke-3" />
+					)}
+					<span className="sr-only">Sua resposta:</span>
+					{withUnit(result.sliderValue)}
+				</p>
+			)}
+			<section
+				aria-labelledby="slider-answer"
+				className="flex flex-col items-center gap-1"
+			>
+				<h2 id="slider-answer" className="font-bold">
+					A resposta correta é:
+				</h2>
+				<p className="rounded-md bg-answer-correct px-3 py-1.5 font-black text-white text-xl">
+					{withUnit(slider.answer)}
+				</p>
+				{slider.low !== slider.high && (
+					<p className="font-semibold text-sm">
+						Margem de resposta: {withUnit(slider.low, true)} a{" "}
+						{withUnit(slider.high, true)}
+					</p>
+				)}
 			</section>
 		</div>
 	);

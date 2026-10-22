@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { aTrueFalseQuestion } from "../../quiz/testing/a-question";
-import { aGameQuestion, someChoices } from "../testing/a-game-question";
+import {
+	aGameQuestion,
+	aSliderGameQuestion,
+	someChoices,
+} from "../testing/a-game-question";
 import {
 	answerDistribution,
 	answerPoints,
@@ -166,7 +170,11 @@ describe("typed answers (spec 031)", () => {
 		acceptedAnswers: ["The Colosseum", "Colosseum", "Colosseum in Rome"],
 	});
 	const grade = (text: string, responseTimeMs = 300) =>
-		gradeAnswer(typeAnswer, { choiceIds: [], text }, responseTimeMs);
+		gradeAnswer(
+			typeAnswer,
+			{ choiceIds: [], text, value: null },
+			responseTimeMs,
+		);
 
 	it("a typed answer equal to an accepted one after normalization is correct", () => {
 		expect(grade("  COLOSSEUM! ").correctness).toBe("correct");
@@ -189,10 +197,12 @@ describe("typed answers (spec 031)", () => {
 		});
 
 		expect(
-			gradeAnswer(pizza, { choiceIds: [], text: "🍕" }, 0).correctness,
+			gradeAnswer(pizza, { choiceIds: [], text: "🍕", value: null }, 0)
+				.correctness,
 		).toBe("correct");
 		expect(
-			gradeAnswer(pizza, { choiceIds: [], text: "pizza" }, 0).correctness,
+			gradeAnswer(pizza, { choiceIds: [], text: "pizza", value: null }, 0)
+				.correctness,
 		).toBe("wrong");
 	});
 
@@ -200,6 +210,7 @@ describe("typed answers (spec 031)", () => {
 		expect(parseAnswerResponse(typeAnswer, { text: "  Pedro " })).toEqual({
 			choiceIds: [],
 			text: "Pedro",
+			value: null,
 		});
 		for (const raw of [
 			{},
@@ -219,7 +230,7 @@ describe("typed answers (spec 031)", () => {
 		).toThrow(InvalidAnswerError);
 		expect(
 			parseAnswerResponse(aGameQuestion(), { choiceIds: ["choice-1"] }),
-		).toEqual({ choiceIds: ["choice-1"], text: null });
+		).toEqual({ choiceIds: ["choice-1"], text: null, value: null });
 	});
 
 	it("points of a right typed answer follow the speed formula", () => {
@@ -233,5 +244,51 @@ describe("typed answers (spec 031)", () => {
 		expect(reviewedPoints({ ...typeAnswer, points: "double" }, true, 300)).toBe(
 			2000,
 		);
+	});
+});
+
+describe("slider answers (spec 032)", () => {
+	const slider = aSliderGameQuestion();
+
+	it("a slider takes a value that is a position of the scale", () => {
+		expect(parseAnswerResponse(slider, { value: 600 })).toEqual({
+			choiceIds: [],
+			text: null,
+			value: 600,
+		});
+		expect(parseAnswerResponse(slider, { value: 104 }).value).toBe(104);
+	});
+
+	it("refuses a value off the positions, a value for a choice question and choices for a slider", () => {
+		for (const raw of [
+			{ value: 601 },
+			{ value: 100 },
+			{ value: Number.NaN },
+			{},
+			{ value: 600, choiceIds: ["choice-1"] },
+			{ value: 600, text: "600" },
+		]) {
+			expect(() => parseAnswerResponse(slider, raw)).toThrow(
+				InvalidAnswerError,
+			);
+		}
+		expect(() =>
+			parseAnswerResponse(single, { choiceIds: ["choice-1"], value: 1 }),
+		).toThrow(InvalidAnswerError);
+	});
+
+	it("grades the answer as correct, almost correct or wrong with its points", () => {
+		const grade = (value: number, responseTimeMs = 0) =>
+			gradeAnswer(
+				slider,
+				parseAnswerResponse(slider, { value }),
+				responseTimeMs,
+			);
+
+		expect(grade(600)).toEqual({ correctness: "correct", points: 1000 });
+		expect(grade(600, 20_000)).toEqual({ correctness: "correct", points: 900 });
+		expect(grade(640)).toEqual({ correctness: "almostCorrect", points: 600 });
+		expect(grade(680)).toEqual({ correctness: "almostCorrect", points: 200 });
+		expect(grade(688)).toEqual({ correctness: "wrong", points: 0 });
 	});
 });

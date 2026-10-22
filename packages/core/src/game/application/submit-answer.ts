@@ -28,9 +28,13 @@ export type SubmitAnswer = (input: {
 	secret: string;
 	/** The question the device was showing: a late tap never lands on the next one. */
 	questionIndex: number;
-	/** The marked answers; or, for a type answer, the typed `text` (spec 031). */
+	/**
+	 * The marked answers; or the typed `text` of a type answer (spec 031); or
+	 * the picked `value` of a slider (spec 032).
+	 */
 	choiceIds?: string[];
 	text?: string;
+	value?: number;
 }) => Promise<void>;
 
 /**
@@ -54,6 +58,7 @@ export function createSubmitAnswer(deps: {
 		questionIndex,
 		choiceIds,
 		text,
+		value,
 	}) => {
 		const game = await loadLiveGame(deps, gameId);
 		const player = await deps.players.findById(playerId);
@@ -86,7 +91,11 @@ export function createSubmitAnswer(deps: {
 			throw closed();
 		}
 
-		const response = parseAnswerResponse(question, { choiceIds, text });
+		const response = parseAnswerResponse(question, {
+			choiceIds,
+			text,
+			value,
+		});
 		const responseTimeMs = responseTimeOf(
 			game.progress,
 			question.timeLimitSeconds,
@@ -98,6 +107,7 @@ export function createSubmitAnswer(deps: {
 			playerId: player.id,
 			choiceIds: response.choiceIds,
 			text: response.text,
+			value: response.value,
 			responseTimeMs,
 			...gradeAnswer(question, response, responseTimeMs),
 			receivedAt: now,

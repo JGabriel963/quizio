@@ -1,3 +1,4 @@
+import type { Correctness } from "../../game/domain/answer";
 import { type Accuracy, compareAccuracy, isLowAccuracy } from "./accuracy";
 import { playedQuestionCount, type ReportHeader } from "./report";
 import type {
@@ -11,6 +12,22 @@ import type {
  * they could answer. What came before a late player's arrival is not theirs,
  * neither as a mistake nor as unanswered (spec 015, RN-10).
  */
+
+/**
+ * A right answer for the accuracy: correct, or a slider within its margin
+ * (spec 032, RN-22). A partially correct answer is not a right one (RN-11).
+ */
+export function isRightAnswer(correctness: Correctness): boolean {
+	switch (correctness) {
+		case "correct":
+		case "almostCorrect":
+			return true;
+		case "partiallyCorrect":
+		case "wrong":
+			return false;
+	}
+}
+
 export function questionsOf(
 	participant: Pick<ReportParticipant, "firstQuestionIndex">,
 	played: number,
@@ -67,8 +84,7 @@ export function participantStats(game: ReportGame): ParticipantStats[] {
 				nickname: participant.nickname,
 				total: answers.reduce((sum, answer) => sum + answer.points, 0),
 				accuracy: {
-					// A partially correct answer is not a right one (RN-11).
-					correct: answers.filter((a) => a.correctness === "correct").length,
+					correct: answers.filter((a) => isRightAnswer(a.correctness)).length,
 					total: questions,
 				},
 				unanswered: questions - answers.length,
@@ -156,7 +172,7 @@ export function questionStats(game: ReportGame): QuestionStats[] {
 			return {
 				index: question.index,
 				accuracy: {
-					correct: answers.filter((a) => a.correctness === "correct").length,
+					correct: answers.filter((a) => isRightAnswer(a.correctness)).length,
 					total: eligible,
 				},
 				unanswered: eligible - answers.length,

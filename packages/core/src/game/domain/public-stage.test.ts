@@ -78,6 +78,7 @@ describe("public stage with the questions on the devices (spec 012)", () => {
 				{ id: "choice-3", shapeIndex: 2, label: null, text: "Salvador" },
 				{ id: "choice-4", shapeIndex: 3, label: null, text: "Recife" },
 			],
+			slider: null,
 		});
 	});
 

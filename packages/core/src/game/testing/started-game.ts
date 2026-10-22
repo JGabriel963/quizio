@@ -122,6 +122,18 @@ export async function createStartedGame(
 		});
 	}
 
+	/** Player `number` picks `value` on the current slider (spec 032). */
+	async function slide(number: number, value: number) {
+		const { questionIndex } = await stage();
+		await submitAnswer({
+			gameId: "game-1",
+			playerId: `p${number}`,
+			secret: `s${number}`,
+			questionIndex,
+			value,
+		});
+	}
+
 	/** Someone gets in with the game on (spec 012); the session to ask with. */
 	async function join(nickname: string) {
 		const joined = await createJoinGame(deps)({ gameId: "game-1", nickname });
@@ -144,5 +156,6 @@ export async function createStartedGame(
 		finish,
 		answer,
 		type,
+		slide,
 	};
 }

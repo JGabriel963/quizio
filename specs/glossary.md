@@ -49,9 +49,15 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Limite de perguntas | `QUIZ_MAX_QUESTIONS` | Máximo de 200 perguntas por quiz, configurável (spec 003) | ✅ |
 | Editor | `Creator` (rota `/creator/:id`) | Tela cheia onde o criador monta as perguntas de um quiz (spec 003) | ✅ |
 | Salvamento automático | `Autosave` | Toda alteração no editor é salva sem ação do criador; o cabeçalho mostra "Salvando…", "Salvo" ou a falha (spec 003) | ✅ (`SaveTracker`) |
-| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`, `trueFalse`, `typeAnswer`; demais 📝) |
+| Tipo de pergunta | `QuestionType` | `quiz`, `trueFalse`, `typeAnswer`, `slider`, `pinAnswer`, `puzzle`, `poll`, `scale`, `nps`, `dropPin`, `wordCloud`, `openEnded`, `brainstorm` | ✅ (`quiz`, `trueFalse`, `typeAnswer`, `slider`; demais 📝) |
 | Resposta curta | `typeAnswer`, `TypeAnswerQuestion` | Tipo de pergunta em que o jogador digita a resposta; correta quando, normalizada, é igual a uma das respostas aceitas; pontua pela velocidade como o Quiz (spec 031) | ✅ |
 | Respostas aceitas | `acceptedAnswers` | De 1 a 4 textos de até 20 caracteres que valem como resposta correta numa Resposta curta; a primeira é a principal (spec 031) | ✅ |
+| Controle deslizante | `slider`, `SliderQuestion` | Tipo de pergunta em que o jogador arrasta um marcador numa escala de números para estimar um valor; correta quando igual à resposta, quase correta dentro da margem; pontua 80% pela precisão e 20% pela velocidade (spec 032) | ✅ |
+| Mínimo, máximo e resposta do controle | `min`, `max`, `answer` | Números com até 2 casas decimais, negativos permitidos, de até 10 caracteres; a resposta fica entre o mínimo e o máximo (spec 032) | ✅ |
+| Unidade | `unit` | Texto opcional de até 20 caracteres mostrado abaixo do número no controle deslizante (spec 032) | ✅ |
+| Valor da etapa | `step` | Distância entre posições vizinhas da escala: faixa ÷ 100 arredondada para cima no primeiro algarismo, no mínimo 1; as posições contam a partir da resposta (spec 032) | ✅ |
+| Margem de resposta | `answerMargin` | `none`, `low` (5% da faixa), `medium` (10%), `high` (20%), `maximum` (toda a escala): distância da resposta que ainda vale como quase correta (spec 032) | ✅ |
+| Precisão | `precision` | De 0 a 1: 1 − distância ÷ margem; dá 80% dos pontos do controle deslizante (spec 032) | ✅ |
 | Normalização da resposta | `normalizeTypedAnswer` | Forma usada para comparar respostas digitadas: sem diferença de maiúsculas e acentos, sem a pontuação da lista do Kahoot, com espaços colapsados, e emojis só quando não há outro texto (spec 031) | ✅ |
 | Verdadeiro ou falso | `trueFalse`, `TrueFalseQuestion` | Tipo de pergunta com duas alternativas fixas, "Verdadeiro" (azul, losango) e "Falso" (vermelho, triângulo), e exatamente uma correta; desmarcar a correta marca a outra (spec 005) | ✅ |
 | Seletor de tipo | `QuestionTypePicker` | Escolha do tipo ao adicionar uma pergunta; mostra só os tipos já entregues (spec 005) | ✅ |
@@ -131,7 +137,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Pular o cronômetro | `advanceGame` com `skip` | O anfitrião fecha a fase de respostas antes do tempo (spec 009) | ✅ |
 | Resposta | `Answer` | Envio de um jogador para uma pergunta: uma por pergunta, sem troca, aceita só dentro do prazo (spec 009) | ✅ |
 | Tempo de resposta | `ResponseTime` | Instante do envio − abertura das respostas, medido no servidor | ✅ (`responseTimeMs`) |
-| Correção | `Correctness` | `correct`, `partiallyCorrect` (múltipla escolha: parte das certas, nenhuma errada), `wrong`; sem resposta é `timeout` (`PlayerResult`, spec 009). `almostCorrect` chega com outros tipos | ✅ |
+| Correção | `Correctness` | `correct`, `partiallyCorrect` (múltipla escolha: parte das certas, nenhuma errada), `wrong`; sem resposta é `timeout` (`PlayerResult`, spec 009). `almostCorrect` (controle deslizante: dentro da margem, conta como acerto, spec 032) | ✅ |
 | Pontuação da resposta | `AnswerScore` | Pontos pela fórmula de velocidade; cheia abaixo de 0,5 s; por alternativa correta marcada na múltipla escolha; gravada com a resposta (spec 010) | ✅ (`calculateAnswerScore`, `answerPoints`) |
 | Sequência de acertos | `AnswerStreak` | Perguntas seguidas com resposta correta ou parcialmente correta; zera com erro ou sem resposta; apenas exibida, não dá pontos (spec 010) | ✅ (`streakAfter`) |
 | Total de pontos | `totalScore` | Soma dos pontos das respostas de um jogador na partida; divulgado só a partir da revelação (spec 010) | ✅ |

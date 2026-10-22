@@ -1,6 +1,7 @@
 import type { Correctness } from "../../game/domain/answer";
 import type { QuestionType } from "../../quiz/domain/question";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import { marginRange } from "../../shared/domain/slider-scale";
 import { groupTypedAnswers } from "../../shared/domain/typed-answer";
 import { accuracyPercent, isLowAccuracy } from "../domain/accuracy";
 import {
@@ -176,3 +177,52 @@ export function assignmentPartOf(
 }
 
 export type { ReportGame };
+
+/** A slider's answers in its report (spec 032, RN-36). */
+export interface SliderAnswersView {
+	answer: number;
+	unit: string | null;
+	low: number;
+	high: number;
+	/** Of the values sent, to the hundredth; null when nobody answered. */
+	average: number | null;
+	/** One per value sent, the nearest to the answer first. */
+	values: { value: number; count: number; correctness: Correctness }[];
+}
+
+export function sliderAnswersOf(
+	question: ReportQuestion,
+	answers: readonly ReportAnswer[],
+): SliderAnswersView | null {
+	const { slider } = question;
+	if (slider === null) {
+		return null;
+	}
+	const byValue = new Map<
+		number,
+		{ count: number; correctness: Correctness }
+	>();
+	let sum = 0;
+	let sent = 0;
+	for (const { value, correctness } of answers) {
+		if (value === null) {
+			continue;
+		}
+		sum += value;
+		sent += 1;
+		const entry = byValue.get(value);
+		byValue.set(value, { count: (entry?.count ?? 0) + 1, correctness });
+	}
+	const distance = (value: number) => Math.abs(value - slider.answer);
+	return {
+		answer: slider.answer,
+		unit: slider.unit,
+		...marginRange(slider),
+		average: sent > 0 ? Math.round((sum / sent) * 100) / 100 : null,
+		values: [...byValue]
+			.map(([value, entry]) => ({ value, ...entry }))
+			.sort(
+				(a, b) => distance(a.value) - distance(b.value) || a.value - b.value,
+			),
+	};
+}

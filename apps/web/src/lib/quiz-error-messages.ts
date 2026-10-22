@@ -6,6 +6,8 @@ import {
 	CHOICE_TEXT_MAX_LENGTH,
 	MAX_ACCEPTED_ANSWERS,
 	QUESTION_TEXT_MAX_LENGTH,
+	SLIDER_NUMBER_MAX_LENGTH,
+	SLIDER_UNIT_MAX_LENGTH,
 	TYPE_ANSWER_MAX_LENGTH,
 } from "@quizio/core/quiz/domain/question";
 import { QUIZ_MAX_QUESTIONS } from "@quizio/core/quiz/domain/question-list";
@@ -47,6 +49,10 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.ACCEPTED_ANSWER_TOO_LONG": `A resposta aceita deve ter no máximo ${TYPE_ANSWER_MAX_LENGTH} caracteres.`,
 	"QUIZ.TOO_MANY_ACCEPTED_ANSWERS": `Uma pergunta tem no máximo ${MAX_ACCEPTED_ANSWERS} respostas aceitas.`,
 	"QUIZ.ACCEPTED_ANSWER_NOT_FOUND": "Essa resposta aceita não existe mais.",
+	"QUIZ.INVALID_SLIDER_NUMBER": `Use um número de até ${SLIDER_NUMBER_MAX_LENGTH} caracteres, com no máximo 2 casas decimais.`,
+	"QUIZ.SLIDER_UNIT_TOO_LONG": `A unidade deve ter no máximo ${SLIDER_UNIT_MAX_LENGTH} caracteres.`,
+	"QUIZ.SLIDER_ANSWER_REQUIRED": "A resposta não pode ficar vazia.",
+	"QUIZ.INVALID_ANSWER_MARGIN": "Escolha uma margem de resposta da lista.",
 	"QUIZ.INVALID_POINTS": "Escolha uma opção de pontos da lista.",
 	"QUIZ.INVALID_SELECTION": "Escolha uma opção de resposta da lista.",
 	"QUIZ.INVALID_TYPE": "Escolha um tipo de pergunta da lista.",

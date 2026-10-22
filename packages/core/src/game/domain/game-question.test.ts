@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	aQuestion,
+	aSliderQuestion,
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
 } from "../../quiz/testing/a-question";
@@ -248,6 +249,7 @@ describe("public stage (spec 009)", () => {
 					{ id: "choice-3", shapeIndex: 2, label: null, text: null },
 					{ id: "choice-4", shapeIndex: 3, label: null, text: null },
 				],
+				slider: null,
 			},
 		});
 		expect(JSON.stringify(stage)).not.toMatch(/Brasília|capital|correct/);
@@ -317,5 +319,76 @@ describe("type answer in a game (spec 031)", () => {
 				}),
 			)?.acceptedAnswers,
 		).toEqual(["Pedro"]);
+	});
+});
+
+describe("slider in a game (spec 032)", () => {
+	it("a slider is copied with its scale and unit, without choices", () => {
+		const copied = toGameQuestion(aSliderQuestion({ answerMargin: "high" }), 2);
+
+		expect(copied).toMatchObject({
+			index: 2,
+			type: "slider",
+			selection: "single",
+			choices: [],
+			acceptedAnswers: [],
+			slider: {
+				min: 100,
+				max: 900,
+				answer: 600,
+				margin: "high",
+				unit: "anos",
+			},
+		});
+		expect(toGameQuestion(aQuestion(), 0).slider).toBeNull();
+	});
+
+	it("a stored game question without a scale reads as none", () => {
+		const { slider: _slider, ...stored } = aGameQuestion();
+
+		expect(parseStoredGameQuestion(stored)?.slider).toBeNull();
+		const slider = toGameQuestion(aSliderQuestion(), 0);
+		expect(parseStoredGameQuestion(JSON.parse(JSON.stringify(slider)))).toEqual(
+			slider,
+		);
+	});
+});
+
+describe("public stage of a slider (spec 032)", () => {
+	const slider = toGameQuestion(aSliderQuestion(), 0);
+
+	it("a slider stage carries the public scale from the answers on, with or without questions on devices", () => {
+		const scale = {
+			min: 100,
+			max: 900,
+			first: 104,
+			last: 896,
+			step: 8,
+			start: 496,
+			unit: "anos",
+		};
+		expect(
+			publicStageOf(aPlayingGame("answering"), slider, urlOf).question?.slider,
+		).toEqual(scale);
+		expect(
+			publicStageOf(
+				{
+					...aPlayingGame("answering"),
+					options: { ...DEFAULT_GAME_OPTIONS, showQuestionsOnDevices: true },
+				},
+				slider,
+				urlOf,
+			).question?.slider,
+		).toEqual(scale);
+		expect(
+			publicStageOf(aPlayingGame("questionIntro"), slider, urlOf).question
+				?.slider,
+		).toBeNull();
+	});
+
+	it("the public scale has neither the answer nor the margin", () => {
+		const stage = publicStageOf(aPlayingGame("answering"), slider, urlOf);
+
+		expect(JSON.stringify(stage)).not.toMatch(/"answer"|margin|medium|600/);
 	});
 });

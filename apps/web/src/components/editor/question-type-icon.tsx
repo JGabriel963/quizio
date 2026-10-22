@@ -2,7 +2,10 @@ import type { QuestionType } from "@quizio/core/quiz/domain/question";
 import { cn } from "@quizio/ui/lib/utils";
 
 /** Answer blocks of each type, in the order they appear in the question. */
-const BLOCKS: Record<Exclude<QuestionType, "typeAnswer">, readonly string[]> = {
+const BLOCKS: Record<
+	Exclude<QuestionType, "typeAnswer" | "slider">,
+	readonly string[]
+> = {
 	quiz: [
 		"bg-answer-red",
 		"bg-answer-blue",
@@ -20,6 +23,34 @@ export function QuestionTypeIcon({
 	type: QuestionType;
 	className?: string;
 }) {
+	if (type === "slider") {
+		// A phone with a number over a scale, as in Kahoot's picker (spec 032).
+		return (
+			<span
+				aria-hidden="true"
+				data-slot="question-type-icon"
+				className={cn(
+					"flex h-9 w-7 flex-col items-center gap-0.5 rounded-sm border-2 border-foreground/80 bg-card p-0.5",
+					className,
+				)}
+			>
+				<span className="flex h-3 w-4 items-center justify-center rounded-[1px] bg-answer-blue font-black text-[7px] text-white leading-none before:content-['10']" />
+				<span className="flex w-full flex-1 items-end justify-between px-px">
+					{["a", "b", "c", "d", "e"].map((tick) => (
+						<span
+							key={tick}
+							className={cn(
+								"w-px",
+								tick === "c"
+									? "h-full bg-answer-blue"
+									: "h-3/4 bg-foreground/40",
+							)}
+						/>
+					))}
+				</span>
+			</span>
+		);
+	}
 	if (type === "typeAnswer") {
 		// A phone with a text field and a keyboard, as in Kahoot's picker (spec 031).
 		return (

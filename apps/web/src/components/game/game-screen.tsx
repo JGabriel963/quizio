@@ -14,7 +14,9 @@ export function GameScreen({ className, ...props }: ComponentProps<"div">) {
 			<div
 				data-slot="game-screen"
 				className={cn(
-					"dark min-h-svh bg-linear-to-b from-brand to-brand-strong text-white",
+					// Clipped sideways: what runs to the edges (a slider's results, spec 032)
+					// never makes the page scroll.
+					"dark min-h-svh overflow-x-clip bg-linear-to-b from-brand to-brand-strong text-white",
 					className,
 				)}
 				{...props}

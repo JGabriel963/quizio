@@ -203,14 +203,14 @@ describe("quiz.questions router", () => {
 			ana.quiz.questions.update({
 				quizId,
 				questionId: questions[0]?.id ?? "",
-				change: { kind: "type", type: "slider" as never, remembered: null },
+				change: { kind: "type", type: "puzzle" as never, remembered: null },
 			}),
 		);
 		const added = await failureOf(
 			ana.quiz.questions.add({
 				quizId,
 				afterQuestionId: null,
-				type: "slider" as never,
+				type: "puzzle" as never,
 			}),
 		);
 
@@ -540,6 +540,90 @@ describe("quiz.questions router", () => {
 			expect(questions.map((question) => question.timeLimitSeconds)).toEqual([
 				10, 20,
 			]);
+		});
+	});
+});
+
+describe("quiz.questions: slider (spec 032)", () => {
+	async function withSlider() {
+		const ana = createTestApi().callerFor("user-1");
+		const { id: quizId } = await ana.quiz.create({});
+		const {
+			questions: [first],
+		} = await ana.quiz.editor({ quizId });
+		const added = await ana.quiz.questions.add({
+			quizId,
+			afterQuestionId: first?.id ?? null,
+			type: "slider",
+		});
+		return { ana, quizId, questionId: added.question.id };
+	}
+
+	it("updates a slider's min, answer, unit and margin", async () => {
+		const { ana, quizId, questionId } = await withSlider();
+		const update = (
+			change: Parameters<typeof ana.quiz.questions.update>[0]["change"],
+		) => ana.quiz.questions.update({ quizId, questionId, change });
+
+		await update({ kind: "sliderNumber", field: "answer", value: "600" });
+		await update({ kind: "sliderNumber", field: "min", value: "-100,3" });
+		await update({ kind: "sliderUnit", text: "anos" });
+		await update({ kind: "answerMargin", margin: "high" });
+
+		const { questions } = await ana.quiz.editor({ quizId });
+		expect(questions[1]).toMatchObject({
+			type: "slider",
+			timeLimitSeconds: 20,
+			min: -100.3,
+			max: 630,
+			answer: 600,
+			unit: "anos",
+			answerMargin: "high",
+		});
+	});
+
+	it("refuses an invalid slider number with its domain code", async () => {
+		const { ana, quizId, questionId } = await withSlider();
+
+		const error = await failureOf(
+			ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: { kind: "sliderNumber", field: "max", value: "1,234" },
+			}),
+		);
+
+		expect(error).toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "QUIZ.INVALID_SLIDER_NUMBER" },
+		});
+	});
+
+	it("changes a question to slider with remembered content", async () => {
+		const { ana, quizId } = await withSlider();
+		const { questions } = await ana.quiz.editor({ quizId });
+
+		const result = await ana.quiz.questions.update({
+			quizId,
+			questionId: questions[0]?.id ?? "",
+			change: {
+				kind: "type",
+				type: "slider",
+				remembered: {
+					type: "slider",
+					min: 100,
+					max: 900,
+					answer: 600,
+					unit: null,
+					answerMargin: "low",
+				},
+			},
+		});
+
+		expect(result.question).toMatchObject({
+			type: "slider",
+			answer: 600,
+			answerMargin: "low",
 		});
 	});
 });

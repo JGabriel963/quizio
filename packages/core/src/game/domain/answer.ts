@@ -1,23 +1,38 @@
 import { DomainError } from "../../shared/domain/domain-error";
+import {
+	isSliderPosition,
+	sliderCorrectness,
+	sliderPrecision,
+} from "../../shared/domain/slider-scale";
 import { characterCount } from "../../shared/domain/text-length";
 import { normalizeTypedAnswer } from "../../shared/domain/typed-answer";
 import type { GameQuestion } from "./game-question";
-import { calculateAnswerScore } from "./scoring";
+import { calculateAnswerScore, calculateSliderScore } from "./scoring";
 
 /**
  * How an answer did (spec 009, RN-24). A player without an answer is not
- * graded: the device shows "Tempo esgotado".
+ * graded: the device shows "Tempo esgotado". A slider within its margin is
+ * almost correct, which counts as right (spec 032, RN-19, RN-22).
  */
-export const CORRECTNESS = ["correct", "partiallyCorrect", "wrong"] as const;
+export const CORRECTNESS = [
+	"correct",
+	"partiallyCorrect",
+	"wrong",
+	"almostCorrect",
+] as const;
 export type Correctness = (typeof CORRECTNESS)[number];
 
 /** A typed answer has up to 20 characters, like the accepted ones (spec 031, RN-17). */
 export const TYPED_ANSWER_MAX_LENGTH = 20;
 
-/** What a player sent: the marked answers, or the typed text of a type answer (spec 031). */
+/**
+ * What a player sent: the marked answers, the typed text of a type answer
+ * (spec 031) or the picked number of a slider (spec 032).
+ */
 export interface AnswerResponse {
 	choiceIds: string[];
 	text: string | null;
+	value: number | null;
 }
 
 /** What a player sent for one question: one per question, never changed by the player (RN-17). */
@@ -29,6 +44,8 @@ export interface Answer {
 	choiceIds: string[];
 	/** The typed text of a type answer, trimmed; null for the other types (spec 031). */
 	text: string | null;
+	/** The picked number of a slider; null for the other types (spec 032). */
+	value: number | null;
 	/** Measured by the server, from the answers opening (RN-18). */
 	responseTimeMs: number;
 	correctness: Correctness;
@@ -85,33 +102,60 @@ export function parseAnswerChoices(
 
 /**
  * What a player sent, checked against the question: the typed text of a type
- * answer (1 to 20 characters once trimmed, spec 031, RN-17), the marked
- * answers otherwise; never both.
+ * answer (1 to 20 characters once trimmed, spec 031, RN-17), a position of a
+ * slider's scale (spec 032, RN-23), the marked answers otherwise; never two
+ * of them.
  */
 export function parseAnswerResponse(
 	question: GameQuestion,
-	raw: { choiceIds?: readonly string[]; text?: string | null },
+	raw: {
+		choiceIds?: readonly string[];
+		text?: string | null;
+		value?: number | null;
+	},
 ): AnswerResponse {
-	if (question.type !== "typeAnswer") {
-		if (raw.text !== undefined && raw.text !== null) {
-			throw new InvalidAnswerError("This question takes marked answers");
+	const hasChoices = (raw.choiceIds?.length ?? 0) > 0;
+	const hasText = raw.text !== undefined && raw.text !== null;
+	const hasValue = raw.value !== undefined && raw.value !== null;
+	switch (question.type) {
+		case "typeAnswer": {
+			const text = raw.text?.trim() ?? "";
+			if (
+				hasChoices ||
+				hasValue ||
+				text === "" ||
+				characterCount(text) > TYPED_ANSWER_MAX_LENGTH
+			) {
+				throw new InvalidAnswerError(
+					`A type answer takes 1 to ${TYPED_ANSWER_MAX_LENGTH} typed characters`,
+				);
+			}
+			return { choiceIds: [], text, value: null };
 		}
-		return {
-			choiceIds: parseAnswerChoices(question, raw.choiceIds ?? []),
-			text: null,
-		};
+		case "slider": {
+			const value = raw.value;
+			if (
+				hasChoices ||
+				hasText ||
+				typeof value !== "number" ||
+				question.slider === null ||
+				!isSliderPosition(question.slider, value)
+			) {
+				throw new InvalidAnswerError("A slider takes a position of its scale");
+			}
+			return { choiceIds: [], text: null, value };
+		}
+		case "quiz":
+		case "trueFalse":
+			if (hasText || hasValue) {
+				throw new InvalidAnswerError("This question takes marked answers");
+			}
+			return {
+				choiceIds: parseAnswerChoices(question, raw.choiceIds ?? []),
+				text: null,
+				value: null,
+			};
 	}
-	const text = raw.text?.trim() ?? "";
-	if (
-		(raw.choiceIds?.length ?? 0) > 0 ||
-		text === "" ||
-		characterCount(text) > TYPED_ANSWER_MAX_LENGTH
-	) {
-		throw new InvalidAnswerError(
-			`A type answer takes 1 to ${TYPED_ANSWER_MAX_LENGTH} typed characters`,
-		);
-	}
-	return { choiceIds: [], text };
 }
 
 /** The typed text equals an accepted answer once both are normalized (spec 031, RN-13, RN-14). */
@@ -169,25 +213,56 @@ export function answerPoints(
 
 /**
  * How a response did and what it is worth, measured on receipt: a type answer
- * is right or wrong as a whole (spec 031, RN-14, RN-16), the others go by
- * their answers.
+ * is right or wrong as a whole (spec 031, RN-14, RN-16), a slider goes by how
+ * close it is (spec 032, RN-19 to RN-21), the others by their answers.
  */
 export function gradeAnswer(
 	question: GameQuestion,
 	response: AnswerResponse,
 	responseTimeMs: number,
 ): Pick<Answer, "correctness" | "points"> {
-	if (question.type !== "typeAnswer") {
-		return {
-			correctness: correctnessOf(question, response.choiceIds),
-			points: answerPoints(question, response.choiceIds, responseTimeMs),
-		};
+	switch (question.type) {
+		case "typeAnswer": {
+			const correct =
+				response.text !== null &&
+				matchesAcceptedAnswer(question, response.text);
+			return {
+				correctness: correct ? "correct" : "wrong",
+				points: reviewedPoints(question, correct, responseTimeMs),
+			};
+		}
+		case "slider":
+			return gradeSlider(question, response.value, responseTimeMs);
+		case "quiz":
+		case "trueFalse":
+			return {
+				correctness: correctnessOf(question, response.choiceIds),
+				points: answerPoints(question, response.choiceIds, responseTimeMs),
+			};
 	}
-	const correct =
-		response.text !== null && matchesAcceptedAnswer(question, response.text);
+}
+
+function gradeSlider(
+	question: GameQuestion,
+	value: number | null,
+	responseTimeMs: number,
+): Pick<Answer, "correctness" | "points"> {
+	const scale = question.slider;
+	if (scale === null || value === null) {
+		return { correctness: "wrong", points: 0 };
+	}
+	const correctness = sliderCorrectness(scale, value);
 	return {
-		correctness: correct ? "correct" : "wrong",
-		points: reviewedPoints(question, correct, responseTimeMs),
+		correctness,
+		points:
+			correctness === "wrong"
+				? 0
+				: calculateSliderScore({
+						precision: sliderPrecision(scale, value),
+						responseTimeMs,
+						timeLimitMs: question.timeLimitSeconds * 1000,
+						pointsMultiplier: question.points,
+					}),
 	};
 }
 

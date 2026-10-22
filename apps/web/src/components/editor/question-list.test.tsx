@@ -309,4 +309,31 @@ describe("QuestionList", () => {
 			(second as HTMLElement).querySelectorAll("[data-slot=answer-bar]"),
 		).toHaveLength(3);
 	});
+
+	it("a slider's thumbnail shows the scale with its marker (spec 032, RN-17)", () => {
+		renderList([
+			question("a", "A?"),
+			{ ...blankQuestion("b", "slider"), text: "Quantos?", answer: 25 },
+			{ ...blankQuestion("c", "slider"), text: "Quantos?" },
+		]);
+
+		const [, withAnswer, without] = items();
+		expect(withAnswer).toHaveTextContent("2 Controle deslizante");
+		expect(
+			within(withAnswer as HTMLElement).getByText("20"),
+		).toBeInTheDocument();
+		expect(
+			(withAnswer as HTMLElement).querySelector(
+				"[data-slot=slider-thumbnail-marker]",
+			),
+		).not.toBeNull();
+		expect(
+			(without as HTMLElement).querySelector("[data-slot=slider-thumbnail]"),
+		).not.toBeNull();
+		expect(
+			(without as HTMLElement).querySelector(
+				"[data-slot=slider-thumbnail-marker]",
+			),
+		).toBeNull();
+	});
 });

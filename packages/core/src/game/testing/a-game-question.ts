@@ -27,9 +27,23 @@ export function aGameQuestion(
 		selection: "single",
 		choices: someChoices(["Brasília", "Rio de Janeiro", "Salvador", "Recife"]),
 		acceptedAnswers: [],
+		slider: null,
 		image: null,
 		...overrides,
 	};
+}
+
+/** Test builder: a slider of 20 s, 100 to 900 with 600 "anos" and the medium margin. */
+export function aSliderGameQuestion(
+	overrides: Partial<GameQuestion> = {},
+): GameQuestion {
+	return aGameQuestion({
+		type: "slider",
+		text: "Quantos anos tinha Noé quando o dilúvio acabou?",
+		choices: [],
+		slider: { min: 100, max: 900, answer: 600, margin: "medium", unit: "anos" },
+		...overrides,
+	});
 }
 
 /** Test builder: player-1's right answer to the first question of game-1. */
@@ -40,6 +54,7 @@ export function anAnswer(overrides: Partial<Answer> = {}): Answer {
 		playerId: "player-1",
 		choiceIds: ["choice-1"],
 		text: null,
+		value: null,
 		responseTimeMs: 4_200,
 		correctness: "correct",
 		points: 895,

@@ -343,29 +343,54 @@ function QuestionListItem({
 								</span>
 							)}
 						</span>
-						<span
-							aria-hidden="true"
-							className="grid w-full grid-cols-2 gap-1 max-lg:hidden"
-						>
-							{answerBars(question).map((bar) => (
-								<span
-									key={bar.key}
-									data-slot="answer-bar"
-									className="flex h-2.5 items-center justify-end rounded-sm border border-border bg-card pr-0.5"
-								>
-									{bar.correct && (
-										<span
-											data-slot="answer-bar-correct"
-											className="size-1.5 rounded-full bg-answer-correct"
-										/>
-									)}
-								</span>
-							))}
-						</span>
+						{question.type === "slider" ? (
+							<SliderThumbnail answer={question.answer} />
+						) : (
+							<span
+								aria-hidden="true"
+								className="grid w-full grid-cols-2 gap-1 max-lg:hidden"
+							>
+								{answerBars(question).map((bar) => (
+									<span
+										key={bar.key}
+										data-slot="answer-bar"
+										className="flex h-2.5 items-center justify-end rounded-sm border border-border bg-card pr-0.5"
+									>
+										{bar.correct && (
+											<span
+												data-slot="answer-bar-correct"
+												className="size-1.5 rounded-full bg-answer-correct"
+											/>
+										)}
+									</span>
+								))}
+							</span>
+						)}
 					</button>
 				</div>
 			</div>
 		</li>
+	);
+}
+
+/** A slider's thumbnail: a scale, with the marker once there is an answer (spec 032, RN-17). */
+function SliderThumbnail({ answer }: { answer: number | null }) {
+	return (
+		<span
+			aria-hidden="true"
+			data-slot="slider-thumbnail"
+			className="relative flex h-4 w-full items-end justify-between rounded-sm border border-border bg-card px-1 pb-0.5 max-lg:hidden"
+		>
+			{Array.from({ length: 16 }, (_, index) => (
+				<span key={index} className="h-2 w-px bg-foreground/30" />
+			))}
+			{answer !== null && (
+				<span
+					data-slot="slider-thumbnail-marker"
+					className="absolute top-0 left-1/2 h-2 w-3 -translate-x-1/2 rounded-[1px] bg-foreground/40"
+				/>
+			)}
+		</span>
 	);
 }
 
@@ -378,6 +403,9 @@ function answerBars(
 			key: label,
 			correct: question.correct === value,
 		}));
+	}
+	if (question.type === "slider") {
+		return [];
 	}
 	if (question.type === "typeAnswer") {
 		// One bar per accepted answer, as in Kahoot's list (spec 031, RN-11).

@@ -55,6 +55,7 @@ describe("report labels (spec 015)", () => {
 		expect(RESULT_LABELS).toEqual({
 			correct: "Correta",
 			partiallyCorrect: "Parcialmente correta",
+			almostCorrect: "Quase correta",
 			wrong: "Incorreta",
 			unanswered: "Sem resposta",
 		});

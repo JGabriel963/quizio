@@ -56,6 +56,8 @@ export interface PlayerOutcome {
 	behind: { nickname: string; points: number } | null;
 	/** The host's review changed the answer (spec 031, RN-31). */
 	reviewed: boolean;
+	/** A slider's value sent and its answer, told with the results (spec 032, RN-28). */
+	slider: { sent: number | null; answer: number; unit: string | null } | null;
 }
 
 /**
@@ -162,6 +164,13 @@ export function createGetPlayerSession(deps: {
 			rank: standing?.rank ?? standings.length,
 			behind: standing?.behind ?? null,
 			reviewed: Boolean(answer?.reviewedAt),
+			slider: question?.slider
+				? {
+						sent: answer?.value ?? null,
+						answer: question.slider.answer,
+						unit: question.slider.unit,
+					}
+				: null,
 		};
 	}
 

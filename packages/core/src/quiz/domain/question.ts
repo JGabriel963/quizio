@@ -1,12 +1,21 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import {
+	ANSWER_MARGINS,
+	type AnswerMargin,
+} from "../../shared/domain/slider-scale";
+import {
 	characterCount,
 	truncateCharacters,
 } from "../../shared/domain/text-length";
 import { copyImage, type QuestionImage } from "./question-image";
 
-/** The types the editor offers (spec 005, RN-01; spec 031, RN-01). */
-export const QUESTION_TYPES = ["quiz", "trueFalse", "typeAnswer"] as const;
+/** The types the editor offers (spec 005, RN-01; spec 031, RN-01; spec 032, RN-01). */
+export const QUESTION_TYPES = [
+	"quiz",
+	"trueFalse",
+	"typeAnswer",
+	"slider",
+] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 /** Time limit choices of the editor, in seconds (spec 004, RN-10). */
@@ -21,6 +30,11 @@ const TYPE_ANSWER_TIME_LIMITS = TIME_LIMITS_SECONDS.filter(
 	(seconds) => seconds >= 20,
 );
 
+/** A slider takes 10 s to 4 min and starts with 20 s (spec 032, RN-13). */
+const SLIDER_TIME_LIMITS = TIME_LIMITS_SECONDS.filter(
+	(seconds) => seconds >= 10,
+);
+
 /** The time limits a question of the type may have. */
 export function timeLimitsFor(type: QuestionType): readonly TimeLimitSeconds[] {
 	switch (type) {
@@ -29,6 +43,8 @@ export function timeLimitsFor(type: QuestionType): readonly TimeLimitSeconds[] {
 			return TIME_LIMITS_SECONDS;
 		case "typeAnswer":
 			return TYPE_ANSWER_TIME_LIMITS;
+		case "slider":
+			return SLIDER_TIME_LIMITS;
 	}
 }
 
@@ -37,6 +53,7 @@ export function defaultTimeLimitFor(type: QuestionType): TimeLimitSeconds {
 	switch (type) {
 		case "quiz":
 		case "trueFalse":
+		case "slider":
 			return DEFAULT_TIME_LIMIT_SECONDS;
 		case "typeAnswer":
 			return 30;
@@ -76,6 +93,10 @@ export const MAX_CHOICE_COUNT = 6;
 /** Accepted answers of a type answer: 1 to 4, of up to 20 characters (spec 031, RN-03). */
 export const TYPE_ANSWER_MAX_LENGTH = 20;
 export const MAX_ACCEPTED_ANSWERS = 4;
+/** What a slider's min, max or answer may be typed with (spec 032, RN-04). */
+export const SLIDER_NUMBER_MAX_LENGTH = 10;
+/** The unit under a slider's number (spec 032, RN-05). */
+export const SLIDER_UNIT_MAX_LENGTH = 20;
 
 /**
  * An answer slot. Its position is fixed (color and shape), so its id is the
@@ -129,10 +150,28 @@ export interface TypeAnswerQuestion extends QuestionBase {
 }
 
 /**
+ * The player picks a number on a scale (spec 032). The min and the max may be
+ * empty while the creator types; the answer stays null until "Adicionar
+ * resposta". Numbers have at most 2 decimals (RN-03, RN-04).
+ */
+export interface SliderQuestion extends QuestionBase {
+	type: "slider";
+	min: number | null;
+	max: number | null;
+	answer: number | null;
+	unit: string | null;
+	answerMargin: AnswerMargin;
+}
+
+/**
  * A question of a quiz. Its position is not an attribute: it is the index in
  * the quiz's ordered question list (spec 003).
  */
-export type Question = QuizQuestion | TrueFalseQuestion | TypeAnswerQuestion;
+export type Question =
+	| QuizQuestion
+	| TrueFalseQuestion
+	| TypeAnswerQuestion
+	| SliderQuestion;
 
 /** The part of a question that belongs to its type (ADR 0008). */
 export type QuizContent = Pick<QuizQuestion, "type" | "selection" | "choices">;
@@ -141,10 +180,15 @@ export type TypeAnswerContent = Pick<
 	TypeAnswerQuestion,
 	"type" | "acceptedAnswers"
 >;
+export type SliderContent = Pick<
+	SliderQuestion,
+	"type" | "min" | "max" | "answer" | "unit" | "answerMargin"
+>;
 export type QuestionContent =
 	| QuizContent
 	| TrueFalseContent
-	| TypeAnswerContent;
+	| TypeAnswerContent
+	| SliderContent;
 
 export class InvalidQuestionTypeError extends DomainError {
 	readonly code = "QUIZ.INVALID_TYPE";
@@ -160,6 +204,14 @@ export class ChoiceTextTooLongError extends DomainError {
 
 export class AcceptedAnswerTooLongError extends DomainError {
 	readonly code = "QUIZ.ACCEPTED_ANSWER_TOO_LONG";
+}
+
+export class InvalidSliderNumberError extends DomainError {
+	readonly code = "QUIZ.INVALID_SLIDER_NUMBER";
+}
+
+export class SliderUnitTooLongError extends DomainError {
+	readonly code = "QUIZ.SLIDER_UNIT_TOO_LONG";
 }
 
 export class InvalidTimeLimitError extends DomainError {
@@ -199,6 +251,15 @@ export function blankContent(type: QuestionType): QuestionContent {
 			return { type, correct: null };
 		case "typeAnswer":
 			return { type, acceptedAnswers: [null] };
+		case "slider":
+			return {
+				type,
+				min: 0,
+				max: 50,
+				answer: null,
+				unit: null,
+				answerMargin: "medium",
+			};
 	}
 }
 
@@ -209,6 +270,7 @@ export function blankQuestion(
 	id: string,
 	type: "typeAnswer",
 ): TypeAnswerQuestion;
+export function blankQuestion(id: string, type: "slider"): SliderQuestion;
 export function blankQuestion(id: string, type: QuestionType): Question;
 export function blankQuestion(
 	id: string,
@@ -240,6 +302,8 @@ export function isBlankQuestion(question: Question): boolean {
 			return question.correct === null;
 		case "typeAnswer":
 			return question.acceptedAnswers.every((answer) => answer === null);
+		case "slider":
+			return question.answer === null && question.unit === null;
 	}
 }
 
@@ -305,6 +369,36 @@ export function parseAcceptedAnswer(
 		() =>
 			new AcceptedAnswerTooLongError(
 				`Accepted answers must have at most ${TYPE_ANSWER_MAX_LENGTH} characters`,
+			),
+	);
+}
+
+/** A sign, digits, then at most one separator and 2 decimals. */
+const SLIDER_NUMBER = /^-?\d+(?:[.,]\d{1,2})?$/;
+
+/**
+ * A slider's min, max or answer as the creator typed it (spec 032, RN-04):
+ * negative numbers, a comma or a dot, at most 2 decimals and 10 characters.
+ * The typographic minus counts as "-".
+ */
+export function parseSliderNumber(raw: string): number {
+	const text = raw.trim().replace("\u2212", "-");
+	if (text.length > SLIDER_NUMBER_MAX_LENGTH || !SLIDER_NUMBER.test(text)) {
+		throw new InvalidSliderNumberError(
+			`"${raw}" is not a number with at most 2 decimals and ${SLIDER_NUMBER_MAX_LENGTH} characters`,
+		);
+	}
+	return Number(text.replace(",", "."));
+}
+
+/** The unit of a slider, as other texts are parsed (spec 032, RN-05). */
+export function parseSliderUnit(raw: string | null | undefined): string | null {
+	return parseLimitedText(
+		raw,
+		SLIDER_UNIT_MAX_LENGTH,
+		() =>
+			new SliderUnitTooLongError(
+				`A slider's unit must have at most ${SLIDER_UNIT_MAX_LENGTH} characters`,
 			),
 	);
 }
@@ -425,6 +519,44 @@ function parseStoredAcceptedAnswers(raw: unknown): (string | null)[] {
 		);
 }
 
+/** A stored number of a slider: finite, with at most 2 decimals; anything else is empty. */
+function storedSliderNumber(raw: unknown): number | null {
+	return typeof raw === "number" &&
+		Number.isFinite(raw) &&
+		Math.abs(raw * 100 - Math.round(raw * 100)) < 1e-6
+		? raw
+		: null;
+}
+
+/** Reads a stored slider tolerantly; no content at all is the blank one. */
+function parseStoredSlider(raw: unknown): SliderContent {
+	const blank: SliderContent = {
+		type: "slider",
+		min: 0,
+		max: 50,
+		answer: null,
+		unit: null,
+		answerMargin: "medium",
+	};
+	const stored = asRecord(raw);
+	if (Object.keys(stored).length === 0) {
+		return blank;
+	}
+	return {
+		type: "slider",
+		min: storedSliderNumber(stored.min),
+		max: storedSliderNumber(stored.max),
+		answer: storedSliderNumber(stored.answer),
+		unit:
+			typeof stored.unit === "string" && stored.unit.trim() !== ""
+				? truncateCharacters(stored.unit.trim(), SLIDER_UNIT_MAX_LENGTH)
+				: null,
+		answerMargin: isOneOf(ANSWER_MARGINS, stored.answerMargin)
+			? stored.answerMargin
+			: blank.answerMargin,
+	};
+}
+
 /** Reads the stored content of a question of `type`, as tolerantly as `parseQuizContent`. */
 export function parseStoredContent(
 	type: QuestionType,
@@ -439,6 +571,8 @@ export function parseStoredContent(
 		}
 		case "typeAnswer":
 			return { type, acceptedAnswers: parseStoredAcceptedAnswers(raw) };
+		case "slider":
+			return parseStoredSlider(raw);
 	}
 }
 
@@ -457,6 +591,15 @@ export function questionContent(question: Question): QuestionContent {
 			return {
 				type: question.type,
 				acceptedAnswers: [...question.acceptedAnswers],
+			};
+		case "slider":
+			return {
+				type: question.type,
+				min: question.min,
+				max: question.max,
+				answer: question.answer,
+				unit: question.unit,
+				answerMargin: question.answerMargin,
 			};
 	}
 }

@@ -4,6 +4,7 @@ import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InvalidTimeLimitError } from "../domain/question";
 import {
 	aQuestion,
+	aSliderQuestion,
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
 } from "../testing/a-question";
@@ -86,5 +87,18 @@ describe("applyTimeLimitToAll", () => {
 		expect(
 			questions.listOf("quiz-1").map((question) => question.timeLimitSeconds),
 		).toEqual([10, 20]);
+	});
+
+	it("applying 5 s to all gives sliders 10 s (spec 032, RN-14)", async () => {
+		await questions.saveList("quiz-1", [
+			aQuestion({ id: "a" }),
+			aSliderQuestion({ id: "b" }),
+		]);
+
+		await applyTimeLimitToAll({ ...ref, seconds: 5 });
+
+		expect(
+			questions.listOf("quiz-1").map((question) => question.timeLimitSeconds),
+		).toEqual([5, 10]);
 	});
 });

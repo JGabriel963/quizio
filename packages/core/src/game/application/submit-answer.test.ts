@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { aQuestion, aTypeAnswerQuestion } from "../../quiz/testing/a-question";
+import {
+	aQuestion,
+	aSliderQuestion,
+	aTypeAnswerQuestion,
+} from "../../quiz/testing/a-question";
 import {
 	AlreadyAnsweredError,
 	AnswersClosedError,
@@ -57,6 +61,7 @@ describe("submitAnswer (spec 009)", () => {
 				points: 895,
 				receivedAt: deps.clock.now(),
 				text: null,
+				value: null,
 				reviewedAt: null,
 			},
 		]);
@@ -396,5 +401,44 @@ describe("submitAnswer of a type answer (spec 031)", () => {
 		await type(2, "Roma");
 
 		expect(await stage()).toEqual({ questionIndex: 0, phase: "results" });
+	});
+});
+
+describe("submitAnswer of a slider (spec 032)", () => {
+	async function sliding() {
+		const game = await createStartedGame({
+			players: ["Ana", "Bia"],
+			questions: [aSliderQuestion()],
+		});
+		await game.reach("answering");
+		return game;
+	}
+
+	it("a slider answer is graded on receipt and stores its value", async () => {
+		const { deps, submitAnswer } = await sliding();
+
+		await submitAnswer({ ...fromPlayer(1, []), value: 640 });
+
+		expect(await deps.answers.listByQuestion("game-1", 0)).toMatchObject([
+			{
+				playerId: "p1",
+				choiceIds: [],
+				text: null,
+				value: 640,
+				correctness: "almostCorrect",
+				points: 600,
+			},
+		]);
+	});
+
+	it("refuses a value that is not a position", async () => {
+		const { submitAnswer } = await sliding();
+
+		await expect(
+			submitAnswer({ ...fromPlayer(1, []), value: 601 }),
+		).rejects.toThrow(InvalidAnswerError);
+		await expect(submitAnswer(fromPlayer(1, ["choice-1"]))).rejects.toThrow(
+			InvalidAnswerError,
+		);
 	});
 });

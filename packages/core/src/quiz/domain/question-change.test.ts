@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
 	aQuestion,
+	aSliderQuestion,
 	asQuiz,
+	asSlider,
 	asTrueFalse,
 	asTypeAnswer,
 	aTrueFalseQuestion,
@@ -14,19 +16,23 @@ import {
 	InvalidQuestionPointsError,
 	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
+	InvalidSliderNumberError,
 	InvalidTimeLimitError,
 	type Question,
 	QuestionTextTooLongError,
 	type QuizQuestion,
 	questionContent,
+	SliderUnitTooLongError,
 } from "./question";
 import {
 	AcceptedAnswerNotFoundError,
 	applyQuestionChange,
 	ChoiceNotFoundError,
 	EmptyChoiceCannotBeCorrectError,
+	InvalidAnswerMarginError,
 	type QuestionChange,
 	QuestionChangeNotApplicableError,
+	SliderAnswerRequiredError,
 	TimeLimitNotAllowedError,
 	TooManyAcceptedAnswersError,
 } from "./question-change";
@@ -245,7 +251,7 @@ describe("applyQuestionChange changing the type", () => {
 		expect(() =>
 			applyQuestionChange(written, {
 				kind: "type",
-				type: "slider",
+				type: "puzzle",
 				remembered: null,
 			}),
 		).toThrow(InvalidQuestionTypeError);
@@ -696,6 +702,183 @@ describe("applyQuestionChange on a type answer question", () => {
 			apply(aTypeAnswerQuestion(), {
 				kind: "selection",
 				selection: "multiple",
+			}),
+		).toThrow(QuestionChangeNotApplicableError);
+	});
+});
+
+describe("applyQuestionChange on a slider", () => {
+	const apply = (question: Question, change: QuestionChange) =>
+		asSlider(applyQuestionChange(question, change).question);
+
+	it("writes the min, the max and the answer from typed text", () => {
+		let question = apply(aSliderQuestion(), {
+			kind: "sliderNumber",
+			field: "min",
+			value: "-100,3",
+		});
+		question = apply(question, {
+			kind: "sliderNumber",
+			field: "max",
+			value: "2000.03",
+		});
+		question = apply(question, {
+			kind: "sliderNumber",
+			field: "answer",
+			value: "600",
+		});
+
+		expect(question).toMatchObject({ min: -100.3, max: 2000.03, answer: 600 });
+		expect(() =>
+			apply(question, { kind: "sliderNumber", field: "max", value: "1,234" }),
+		).toThrow(InvalidSliderNumberError);
+	});
+
+	it("changing the range never moves the answer", () => {
+		const changed = apply(aSliderQuestion(), {
+			kind: "sliderNumber",
+			field: "max",
+			value: "200",
+		});
+
+		expect(changed).toMatchObject({ min: 100, max: 200, answer: 600 });
+	});
+
+	it("empties the min or the max, never the answer", () => {
+		expect(
+			apply(aSliderQuestion(), {
+				kind: "sliderNumber",
+				field: "min",
+				value: null,
+			}).min,
+		).toBeNull();
+		expect(() =>
+			apply(aSliderQuestion(), {
+				kind: "sliderNumber",
+				field: "answer",
+				value: null,
+			}),
+		).toThrow(SliderAnswerRequiredError);
+	});
+
+	it("the first answer sets the range around it", () => {
+		const first = (value: string) =>
+			apply(aSliderQuestion({ min: 0, max: 50, answer: null }), {
+				kind: "sliderNumber",
+				field: "answer",
+				value,
+			});
+
+		expect(first("600")).toMatchObject({ min: 580, max: 630, answer: 600 });
+		expect(first("430")).toMatchObject({ min: 420, max: 470, answer: 430 });
+		expect(first("10")).toMatchObject({ min: 0, max: 50, answer: 10 });
+		expect(first("3,14")).toMatchObject({ min: 0, max: 50 });
+		expect(first("-5")).toMatchObject({ min: -20, max: 30 });
+	});
+
+	it("a later answer keeps the range", () => {
+		const changed = apply(aSliderQuestion({ min: 0, max: 50, answer: 10 }), {
+			kind: "sliderNumber",
+			field: "answer",
+			value: "600",
+		});
+
+		expect(changed).toMatchObject({ min: 0, max: 50, answer: 600 });
+	});
+
+	it("writes and clears the unit", () => {
+		expect(
+			apply(aSliderQuestion({ unit: null }), {
+				kind: "sliderUnit",
+				text: " m ",
+			}).unit,
+		).toBe("m");
+		expect(
+			apply(aSliderQuestion(), { kind: "sliderUnit", text: "" }).unit,
+		).toBeNull();
+		expect(() =>
+			apply(aSliderQuestion(), { kind: "sliderUnit", text: "a".repeat(21) }),
+		).toThrow(SliderUnitTooLongError);
+	});
+
+	it("writes the answer margin", () => {
+		expect(
+			apply(aSliderQuestion(), { kind: "answerMargin", margin: "maximum" })
+				.answerMargin,
+		).toBe("maximum");
+		expect(() =>
+			apply(aSliderQuestion(), { kind: "answerMargin", margin: "huge" }),
+		).toThrow(InvalidAnswerMarginError);
+	});
+
+	it("changing to slider starts blank with 10 s from 5 s", () => {
+		const changed = apply(aQuestion({ timeLimitSeconds: 5 }), {
+			kind: "type",
+			type: "slider",
+			remembered: null,
+		});
+
+		expect(changed).toMatchObject({
+			timeLimitSeconds: 10,
+			min: 0,
+			max: 50,
+			answer: null,
+			unit: null,
+			answerMargin: "medium",
+		});
+	});
+
+	it("changing back restores the remembered scale", () => {
+		const slider = aSliderQuestion({ answerMargin: "high" });
+		const quiz = applyQuestionChange(slider, {
+			kind: "type",
+			type: "quiz",
+			remembered: null,
+		}).question;
+
+		const back = apply(quiz, {
+			kind: "type",
+			type: "slider",
+			remembered: questionContent(slider),
+		});
+
+		expect(back).toMatchObject({
+			min: 100,
+			max: 900,
+			answer: 600,
+			unit: "anos",
+			answerMargin: "high",
+		});
+	});
+
+	it("validates a remembered scale like any edit", () => {
+		expect(() =>
+			apply(aQuestion(), {
+				kind: "type",
+				type: "slider",
+				remembered: {
+					type: "slider",
+					min: 0,
+					max: 50,
+					answer: 1.234,
+					unit: null,
+					answerMargin: "medium",
+				},
+			}),
+		).toThrow(InvalidSliderNumberError);
+	});
+
+	it("slider changes do not apply to other types", () => {
+		expect(() =>
+			applyQuestionChange(aQuestion(), {
+				kind: "sliderNumber",
+				field: "answer",
+				value: "1",
+			}),
+		).toThrow(QuestionChangeNotApplicableError);
+		expect(() =>
+			applyQuestionChange(aSliderQuestion(), {
+				kind: "acceptedAnswerAdded",
 			}),
 		).toThrow(QuestionChangeNotApplicableError);
 	});

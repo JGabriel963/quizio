@@ -29,6 +29,7 @@ function capitals(correct: (boolean | null)[]): HostQuestionData {
 	return {
 		type: "quiz",
 		selection: "single",
+		slider: null,
 		text: "Qual é a capital do Brasil?",
 		choices: ["Rio de Janeiro", "Salvador", "Brasília", "Recife"].map(
 			(text, index) => ({
@@ -58,6 +59,7 @@ function stageAt(overrides: Partial<HostStageData>): HostStageData {
 		autoAdvance: null,
 		typedAnswers: null,
 		reviewOpen: false,
+		sliderResults: null,
 		...overrides,
 	};
 }
@@ -555,6 +557,7 @@ describe("HostStage: results (spec 009)", () => {
 			question: {
 				type: "trueFalse",
 				selection: "single",
+				slider: null,
 				text: "A capital do Brasil é o Rio de Janeiro",
 				choices: [
 					{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: false },
@@ -1198,6 +1201,7 @@ describe("HostStage: type answer (spec 031)", () => {
 	const typed: HostQuestionData = {
 		type: "typeAnswer",
 		selection: "single",
+		slider: null,
 		text: "Quem andou sobre as águas?",
 		choices: [],
 		image: null,
@@ -1293,5 +1297,217 @@ describe("HostStage: type answer (spec 031)", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
 
 		expect(review.close).toHaveBeenCalledOnce();
+	});
+});
+
+describe("HostStage: slider (spec 032)", () => {
+	const scale = {
+		min: 100,
+		max: 900,
+		first: 104,
+		last: 896,
+		step: 8,
+		start: 496,
+		unit: "anos",
+	};
+	const slider: HostQuestionData = {
+		type: "slider",
+		selection: "single",
+		slider: scale,
+		text: "Quantos anos tinha Noé?",
+		choices: [],
+		image: null,
+	};
+	const results = (overrides: Partial<HostStageData> = {}) =>
+		stageAt({
+			phase: "results",
+			remainingMs: null,
+			durationMs: null,
+			question: slider,
+			answerCount: 3,
+			sliderResults: {
+				answer: 600,
+				low: 520,
+				high: 680,
+				unit: "anos",
+				counts: [
+					{ value: 104, count: 1 },
+					{ value: 600, count: 2 },
+				],
+			},
+			...overrides,
+		});
+	const tag = () => document.querySelector("[data-slot=slider-tag]");
+
+	it("the host sees the small scale with its ends while players answer", () => {
+		renderStage(stageAt({ question: slider }));
+
+		const answering = document.querySelector("[data-slot=slider-answering]");
+		expect(answering).toHaveTextContent("104");
+		expect(answering).toHaveTextContent("896");
+		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
+	});
+
+	it("opens on the answer with its green tag and count", () => {
+		renderStage(results());
+
+		expect(tag()).toHaveAttribute("data-kind", "answer");
+		expect(tag()).toHaveTextContent("600anos2");
+		expect(
+			screen.getByRole("button", { name: "600 anos: 2 respostas" }),
+		).toHaveAttribute("aria-pressed", "true");
+		expect(document.querySelectorAll("[data-slot=slider-bar]").length).toBe(2);
+	});
+
+	it("choosing a column outside the margin shows a red tag", async () => {
+		const user = userEvent.setup();
+		renderStage(results());
+
+		await user.click(
+			screen.getByRole("button", { name: "104 anos: 1 resposta" }),
+		);
+
+		expect(tag()).toHaveAttribute("data-kind", "outside");
+		expect(tag()).toHaveTextContent("104anos1");
+		// Its bar turns red under the tag, as in Kahoot.
+		expect(
+			screen
+				.getByRole("button", { name: "104 anos: 1 resposta" })
+				.querySelector("[data-slot=slider-bar]"),
+		).toHaveClass("bg-destructive");
+	});
+
+	it("an empty column outside the margin turns red under the tag", async () => {
+		const user = userEvent.setup();
+		renderStage(results());
+		const column = screen.getByRole("button", {
+			name: "112 anos: 0 respostas",
+		});
+
+		await user.click(column);
+
+		expect(column.querySelector("[data-slot=slider-dot]")).toHaveClass(
+			"bg-destructive",
+		);
+	});
+
+	it("shows a number under every tenth position, unclipped at the sides", () => {
+		renderStage(results());
+
+		const marks = [...document.querySelectorAll("[data-slot=slider-mark]")].map(
+			(mark) => mark.textContent,
+		);
+		expect(marks).toContain("520");
+		expect(marks).toContain("680");
+		expect(marks).not.toContain("104");
+		expect(
+			document.querySelector("[data-slot=slider-results-view]"),
+		).not.toHaveClass("overflow-x-clip");
+	});
+
+	it("dragging moves the tag to the column in the middle; letting go is not a click", () => {
+		renderStage(results());
+		const view = document.querySelector(
+			"[data-slot=slider-results-view]",
+		) as HTMLElement;
+
+		fireEvent.pointerDown(view, { clientX: 300, pointerId: 1 });
+		fireEvent.pointerMove(view, { clientX: 300 - 36 * 3, pointerId: 1 });
+		fireEvent.pointerUp(view, { pointerId: 1 });
+		fireEvent.click(
+			screen.getByRole("button", { name: "104 anos: 1 resposta" }),
+		);
+
+		expect(document.querySelector("[data-slot=slider-tag]")).toHaveAttribute(
+			"data-kind",
+			"margin",
+		);
+		expect(document.querySelector("[data-slot=slider-tag]")).toHaveTextContent(
+			"624anos0",
+		);
+	});
+
+	it("the answer's check floats right over its bar", () => {
+		renderStage(results());
+
+		const check = document.querySelector(
+			"[data-slot=slider-answer-check]",
+		) as HTMLElement;
+		// 48 px of foot, the tallest bar's 128 px and 4 px of room.
+		expect(check.style.bottom).toBe("180px");
+	});
+
+	it("Mostrar mídia swaps the chart for the image", async () => {
+		const user = userEvent.setup();
+		renderStage(
+			results({
+				question: {
+					...slider,
+					image: {
+						url: "https://media.test/noe.png",
+						placement: "media",
+						crop: null,
+						altText: "A arca",
+					},
+				},
+			}),
+		);
+
+		await user.click(screen.getByRole("button", { name: "Mostrar mídia" }));
+
+		expect(screen.getByRole("img", { name: "A arca" })).toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", {
+				name: "Respostas no controle deslizante",
+			}),
+		).toBeNull();
+	});
+});
+
+describe("HostStage: slider results, pointing (spec 032, RN-31)", () => {
+	it("pointing at a column shows its number small and keeps the answer's tag", async () => {
+		const user = userEvent.setup();
+		renderStage(
+			stageAt({
+				phase: "results",
+				remainingMs: null,
+				durationMs: null,
+				question: {
+					type: "slider",
+					selection: "single",
+					slider: {
+						min: 100,
+						max: 900,
+						first: 104,
+						last: 896,
+						step: 8,
+						start: 496,
+						unit: "anos",
+					},
+					text: "Quantos anos?",
+					choices: [],
+					image: null,
+				},
+				sliderResults: {
+					answer: 600,
+					low: 520,
+					high: 680,
+					unit: "anos",
+					counts: [{ value: 640, count: 1 }],
+				},
+			}),
+		);
+
+		await user.hover(
+			screen.getByRole("button", { name: "640 anos: 1 resposta" }),
+		);
+
+		expect(
+			document.querySelector("[data-slot=slider-pointed]"),
+		).toHaveTextContent("640");
+		expect(document.querySelector("[data-slot=slider-tag]")).toHaveAttribute(
+			"data-kind",
+			"answer",
+		);
 	});
 });

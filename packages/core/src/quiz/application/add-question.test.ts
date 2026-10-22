@@ -81,7 +81,7 @@ describe("addQuestion", () => {
 
 	it("refuses an unknown type", async () => {
 		await expect(
-			addQuestion({ ...ref, afterQuestionId: "a", type: "slider" }),
+			addQuestion({ ...ref, afterQuestionId: "a", type: "puzzle" }),
 		).rejects.toThrow(InvalidQuestionTypeError);
 		expect(storedIds()).toEqual(["a", "b", "c"]);
 	});

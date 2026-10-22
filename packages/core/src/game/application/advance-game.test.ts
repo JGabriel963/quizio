@@ -71,6 +71,7 @@ describe("advanceGame (spec 009)", () => {
 						{ id: "choice-3", shapeIndex: 2, label: null, text: null },
 						{ id: "choice-4", shapeIndex: 3, label: null, text: null },
 					],
+					slider: null,
 				},
 			},
 		});

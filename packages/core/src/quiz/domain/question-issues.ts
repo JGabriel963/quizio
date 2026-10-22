@@ -1,16 +1,46 @@
 import { DomainError } from "../../shared/domain/domain-error";
+import type { SliderScale } from "../../shared/domain/slider-scale";
 import { normalizeTypedAnswer } from "../../shared/domain/typed-answer";
-import type { Question, QuizQuestion } from "./question";
+import type { Question, QuizQuestion, SliderQuestion } from "./question";
 
-/** Why a question is incomplete (spec 004, RN-14; spec 005, RN-11; spec 031, RN-09). */
+/**
+ * Why a question is incomplete (spec 004, RN-14; spec 005, RN-11; spec 031,
+ * RN-09; spec 032, RN-16).
+ */
 export type QuestionIssue =
 	| "missingText"
 	| "notEnoughAnswers"
 	| "noCorrectAnswer"
 	| "noCorrectTrueFalse"
-	| "noAcceptedAnswer";
+	| "noAcceptedAnswer"
+	| "noSliderAnswer"
+	| "invalidSliderRange"
+	| "sliderAnswerOutOfRange";
 
 export const MIN_ANSWERS = 2;
+
+/** What keeps a slider from having a scale (spec 032, RN-16). */
+function sliderIssue(question: SliderQuestion): QuestionIssue | null {
+	const { min, max, answer } = question;
+	if (min === null || max === null || min >= max) {
+		return "invalidSliderRange";
+	}
+	if (answer === null) {
+		return "noSliderAnswer";
+	}
+	return answer < min || answer > max ? "sliderAnswerOutOfRange" : null;
+}
+
+/** The scale of a slider with nothing missing; null otherwise (spec 032). */
+export function sliderScaleOf(question: SliderQuestion): SliderScale | null {
+	const { min, max, answer } = question;
+	return sliderIssue(question) === null &&
+		min !== null &&
+		max !== null &&
+		answer !== null
+		? { min, max, answer, margin: question.answerMargin }
+		: null;
+}
 
 function answeredCount(question: QuizQuestion): number {
 	return question.choices.filter((choice) => choice.text !== null).length;
@@ -54,6 +84,13 @@ export function questionIssues(question: Question): QuestionIssue[] {
 				issues.push("noAcceptedAnswer");
 			}
 			break;
+		case "slider": {
+			const issue = sliderIssue(question);
+			if (issue !== null) {
+				issues.push(issue);
+			}
+			break;
+		}
 	}
 	return issues;
 }

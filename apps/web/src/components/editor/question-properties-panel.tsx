@@ -6,6 +6,7 @@ import {
 	timeLimitsFor,
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
+import { ANSWER_MARGINS } from "@quizio/core/shared/domain/slider-scale";
 import { Button } from "@quizio/ui/components/button";
 import {
 	Select,
@@ -19,6 +20,7 @@ import {
 import {
 	ClockIcon,
 	CopyIcon,
+	DiffIcon,
 	ListChecksIcon,
 	SquareCheckIcon,
 	Trash2Icon,
@@ -28,6 +30,8 @@ import { type ReactNode, useId } from "react";
 
 import type { QuestionData } from "@/lib/api-types";
 import {
+	ANSWER_MARGIN_DESCRIPTIONS,
+	ANSWER_MARGIN_LABELS,
 	POINTS_LABELS,
 	SELECTION_LABELS,
 	timeLimitLabel,
@@ -151,6 +155,22 @@ export function QuestionPropertiesPanel({
 				/>
 			)}
 
+			{question.type === "slider" && (
+				<PropertySelect
+					label="Margem de resposta"
+					icon={<DiffIcon aria-hidden="true" className="size-4" />}
+					value={question.answerMargin}
+					// Until the answer is there, as the min and the max (spec 032, RN-06).
+					disabled={question.answer === null}
+					options={ANSWER_MARGINS.map((margin) => ({
+						value: margin,
+						label: ANSWER_MARGIN_LABELS[margin],
+						description: ANSWER_MARGIN_DESCRIPTIONS[margin],
+					}))}
+					onChange={(margin) => onChange({ kind: "answerMargin", margin })}
+				/>
+			)}
+
 			<div className="mt-auto flex justify-center gap-2 border-border border-t pt-4">
 				<ActionButton
 					variant="secondary"
@@ -201,13 +221,16 @@ function PropertySelect({
 	icon,
 	value,
 	options,
+	disabled = false,
 	onChange,
 	children,
 }: {
 	label: string;
 	icon: ReactNode;
 	value: string;
-	options: { value: string; label: string }[];
+	disabled?: boolean;
+	/** A description shows under the option's name, as Kahoot's margins do (spec 032, RN-08). */
+	options: { value: string; label: string; description?: string }[];
 	onChange: (value: string) => void;
 	children?: ReactNode;
 }) {
@@ -218,6 +241,7 @@ function PropertySelect({
 					<Select
 						items={options}
 						value={value}
+						disabled={disabled}
 						onValueChange={(next) => onChange(next as string)}
 					>
 						<SelectTrigger aria-labelledby={labelId}>
@@ -226,7 +250,16 @@ function PropertySelect({
 						<SelectContent>
 							{options.map((option) => (
 								<SelectItem key={option.value} value={option.value}>
-									{option.label}
+									{option.description ? (
+										<span className="flex flex-col py-0.5">
+											<span className="font-bold">{option.label}</span>
+											<span className="text-muted-foreground text-xs">
+												{option.description}
+											</span>
+										</span>
+									) : (
+										option.label
+									)}
 								</SelectItem>
 							))}
 						</SelectContent>

@@ -44,7 +44,8 @@ export interface AssignmentPlayApi {
 		input: StoredAssignmentSession & {
 			questionIndex: number;
 			/** The marked answers, or the typed text of a type answer (spec 031). */
-		} & ({ choiceIds: string[] } | { text: string }),
+			/** Or the picked number of a slider (spec 032). */
+		} & ({ choiceIds: string[] } | { text: string } | { value: number }),
 	): Promise<AssignmentPlayData>;
 	advance(
 		input: StoredAssignmentSession & {
@@ -390,6 +391,21 @@ export function AssignmentPlayFlow({
 		);
 	}
 
+	/** An answer of the question on the screen; one that got no reply gives the controls back. */
+	const send = (
+		questionIndex: number,
+		response: { choiceIds: string[] } | { text: string } | { value: number },
+	) =>
+		void act(
+			() => api.answer({ ...session, questionIndex, ...response }),
+			() =>
+				setPlay((current) => ({
+					...current,
+					busy: false,
+					failure: ANSWER_NOT_SENT_MESSAGE,
+				})),
+		);
+
 	if (!view) {
 		return (
 			<AssignmentLanding
@@ -451,38 +467,9 @@ export function AssignmentPlayFlow({
 						durationMs={screen.durationMs}
 						receivedAt={play.receivedAt}
 						failure={play.failure}
-						onType={(text) =>
-							void act(
-								() =>
-									api.answer({
-										...session,
-										questionIndex: screen.question.index,
-										text,
-									}),
-								() =>
-									setPlay((current) => ({
-										...current,
-										busy: false,
-										failure: ANSWER_NOT_SENT_MESSAGE,
-									})),
-							)
-						}
-						onAnswer={(choiceIds) =>
-							void act(
-								() =>
-									api.answer({
-										...session,
-										questionIndex: screen.question.index,
-										choiceIds,
-									}),
-								() =>
-									setPlay((current) => ({
-										...current,
-										busy: false,
-										failure: ANSWER_NOT_SENT_MESSAGE,
-									})),
-							)
-						}
+						onType={(text) => send(screen.question.index, { text })}
+						onSlide={(value) => send(screen.question.index, { value })}
+						onAnswer={(choiceIds) => send(screen.question.index, { choiceIds })}
 					/>
 				</div>
 			) : (

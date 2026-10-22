@@ -23,9 +23,13 @@ export type AnswerAssignmentQuestion = (
 	input: ParticipantReference & {
 		/** The question the device was showing: a late tap never lands on another one. */
 		questionIndex: number;
-		/** The marked answers; or, for a type answer, the typed `text` (spec 031). */
+		/**
+		 * The marked answers; or the typed `text` of a type answer (spec 031); or
+		 * the picked `value` of a slider (spec 032).
+		 */
 		choiceIds?: string[];
 		text?: string;
+		value?: number;
 	},
 ) => Promise<AssignmentPlayView>;
 
@@ -40,7 +44,7 @@ export function createAnswerAssignmentQuestion(
 		answers: Pick<AnswerRepository, "add" | "listByPlayer" | "totalsThrough">;
 	},
 ): AnswerAssignmentQuestion {
-	return async ({ questionIndex, choiceIds, text, ...participant }) => {
+	return async ({ questionIndex, choiceIds, text, value, ...participant }) => {
 		const loaded = await loadParticipant(deps, participant);
 		const { game, player, question } = loaded;
 		if (!isGameOpen(game)) {
@@ -64,7 +68,11 @@ export function createAnswerAssignmentQuestion(
 				"The participant is not answering this question",
 			);
 		}
-		const response = parseAnswerResponse(question, { choiceIds, text });
+		const response = parseAnswerResponse(question, {
+			choiceIds,
+			text,
+			value,
+		});
 		const now = deps.clock.now();
 		const deadline = answerDeadline(game, question, player.progress);
 		if (deadline && now.getTime() >= deadline.getTime()) {
@@ -79,6 +87,7 @@ export function createAnswerAssignmentQuestion(
 			playerId: player.id,
 			choiceIds: response.choiceIds,
 			text: response.text,
+			value: response.value,
 			responseTimeMs,
 			...gradeAnswer(question, response, responseTimeMs),
 			receivedAt: now,

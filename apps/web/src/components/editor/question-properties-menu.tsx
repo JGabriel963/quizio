@@ -6,6 +6,7 @@ import {
 	timeLimitsFor,
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
+import { ANSWER_MARGINS } from "@quizio/core/shared/domain/slider-scale";
 import { Button } from "@quizio/ui/components/button";
 import {
 	Dialog,
@@ -26,6 +27,7 @@ import { cn } from "@quizio/ui/lib/utils";
 import {
 	ClockIcon,
 	CopyIcon,
+	DiffIcon,
 	EllipsisVerticalIcon,
 	ListChecksIcon,
 	SquareCheckIcon,
@@ -36,6 +38,8 @@ import { type ReactNode, useId, useState } from "react";
 
 import type { QuestionData } from "@/lib/api-types";
 import {
+	ANSWER_MARGIN_DESCRIPTIONS,
+	ANSWER_MARGIN_LABELS,
 	POINTS_DESCRIPTIONS,
 	POINTS_LABELS,
 	SELECTION_DESCRIPTIONS,
@@ -48,7 +52,7 @@ import { questionTypeLabel } from "@/lib/quiz-labels";
 import { questionActionReasons } from "./question-actions";
 import { QuestionTypeIcon } from "./question-type-icon";
 
-type Property = "type" | "timeLimit" | "points" | "selection";
+type Property = "type" | "timeLimit" | "points" | "selection" | "margin";
 
 /**
  * The question's properties on compact screens, where there is no right panel:
@@ -113,6 +117,15 @@ export function QuestionPropertiesMenu({
 						<DropdownMenuItem onClick={() => setOpen("selection")}>
 							<SquareCheckIcon />
 							Opções de resposta
+						</DropdownMenuItem>
+					)}
+					{question.type === "slider" && (
+						<DropdownMenuItem
+							disabled={question.answer === null}
+							onClick={() => setOpen("margin")}
+						>
+							<DiffIcon />
+							Margem de resposta
 						</DropdownMenuItem>
 					)}
 					<DropdownMenuItem
@@ -231,6 +244,30 @@ export function QuestionPropertiesMenu({
 							value={selection}
 							label={SELECTION_LABELS[selection]}
 							description={SELECTION_DESCRIPTIONS[selection]}
+						/>
+					))}
+				</ChoiceDialog>
+			)}
+
+			{question.type === "slider" && (
+				<ChoiceDialog
+					open={open === "margin"}
+					title="Margem de resposta"
+					value={question.answerMargin}
+					onClose={close}
+					onDone={(margin) => {
+						if (margin !== question.answerMargin) {
+							onChange({ kind: "answerMargin", margin });
+						}
+					}}
+					layout="list"
+				>
+					{ANSWER_MARGINS.map((margin) => (
+						<Option
+							key={margin}
+							value={margin}
+							label={ANSWER_MARGIN_LABELS[margin]}
+							description={ANSWER_MARGIN_DESCRIPTIONS[margin]}
 						/>
 					))}
 				</ChoiceDialog>

@@ -41,6 +41,7 @@ export function aReportQuestion(
 		text: `Pergunta ${index + 1}`,
 		imageKey: null,
 		acceptedAnswers: [],
+		slider: null,
 		choices: ["a", "b", "c", "d"].map((letter, shapeIndex) => ({
 			id: `q${index}-${letter}`,
 			shapeIndex,
@@ -64,6 +65,7 @@ export type AnswerSpec =
 	| {
 			choiceIds: string[];
 			text?: string;
+			value?: number;
 			correctness: Correctness;
 			points?: number;
 			responseTimeMs?: number;
@@ -85,6 +87,7 @@ function answerOf(
 			...base,
 			choiceIds: spec.choiceIds,
 			text: spec.text ?? null,
+			value: spec.value ?? null,
 			correctness: spec.correctness,
 			points: spec.points ?? (spec.correctness === "correct" ? 1000 : 0),
 			responseTimeMs: spec.responseTimeMs ?? 2000,
@@ -98,6 +101,7 @@ function answerOf(
 		...base,
 		choiceIds: choice ? [choice.id] : [],
 		text: null,
+		value: null,
 		correctness:
 			spec === "right"
 				? "correct"
