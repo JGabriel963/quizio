@@ -66,6 +66,7 @@ O segundo tipo seguiu o mesmo caminho: `slider` é um valor a mais de `question_
 O terceiro tipo também coube no modelo: `puzzle` é um valor a mais de `question_type`, e o `content` guarda `{ items: (string | null)[] }`, sempre com 4 posições, de cima para baixo. **A ordem das posições é a ordem certa**, e as posições não têm id: a cor e a forma são da posição, e mover uma resposta leva o texto para outro lugar (`puzzleItemMoved`).
 
 - **Na partida, a ordem certa vai na cópia da pergunta.** `toGameQuestion` transforma cada posição preenchida numa alternativa (id da posição, todas `correct`) e guarda os ids na ordem certa em `GameQuestion.correctOrder` (`[]` para os outros tipos e para as cópias gravadas antes). Nenhum dos dois chega ao celular antes da revelação.
+- **Os ids das respostas na partida são os dos lugares sorteados**, não os das posições do editor: estes seguem a ordem certa, e ordená-los entregaria a resposta.
 - **A correção compara os textos**, posição por posição (`isRightOrder`), e não os ids: respostas repetidas valem em qualquer das posições delas, como diz o artigo do Kahoot.
 - **O sorteio nunca sai numa ordem certa.** O Puzzle é sempre embaralhado, com ou sem "Ordem aleatória de respostas". Se o sorteio sair certo, a ordem gira uma casa (`wrongOrderOf`), o que é determinístico e sempre dá uma ordem errada quando os textos não são todos iguais.
 

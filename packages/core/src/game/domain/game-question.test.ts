@@ -448,19 +448,37 @@ describe("puzzle in a game (spec 033)", () => {
 		);
 
 		expect(
-			puzzle?.choices.map(({ id, shapeIndex }) => [id, shapeIndex]),
+			puzzle?.choices.map(({ id, shapeIndex, text }) => [id, shapeIndex, text]),
 		).toEqual([
-			["choice-4", 0],
-			["choice-3", 1],
-			["choice-2", 2],
-			["choice-1", 3],
+			["choice-1", 0, "Mississipi"],
+			["choice-2", 1, "Yangtzé"],
+			["choice-3", 2, "Amazonas"],
+			["choice-4", 3, "Nilo"],
 		]);
 		expect(puzzle?.correctOrder).toEqual([
-			"choice-1",
-			"choice-2",
-			"choice-3",
 			"choice-4",
+			"choice-3",
+			"choice-2",
+			"choice-1",
 		]);
+	});
+
+	it("a puzzle's ids follow the drawn places, so they never tell the right order", () => {
+		for (const shuffle of [
+			backwards,
+			<T>(items: readonly T[]) => [...items.slice(1), ...items.slice(0, 1)],
+		]) {
+			const [puzzle] = arrangeGameQuestions(
+				[aPuzzleQuestion()],
+				DEFAULT_GAME_OPTIONS,
+				shuffle,
+			);
+			const ids = puzzle?.choices.map(({ id }) => id) ?? [];
+
+			// In the order the devices show them, the ids are just 1, 2, 3, 4.
+			expect(ids).toEqual(["choice-1", "choice-2", "choice-3", "choice-4"]);
+			expect([...ids].sort()).not.toEqual(puzzle?.correctOrder);
+		}
 	});
 
 	it("a draw that comes out right is turned by one place", () => {

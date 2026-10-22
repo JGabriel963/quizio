@@ -1660,7 +1660,7 @@ describe("game router: puzzle (spec 033)", () => {
 
 	it("a player answers a puzzle with the ids in order", async () => {
 		const { api, visitor, gameId, ana } = await ordering();
-		const right = ["choice-1", "choice-2", "choice-3", "choice-4"];
+		const right = ["choice-4", "choice-3", "choice-2", "choice-1"];
 
 		await visitor.game.join.answer({
 			...ana,
@@ -1681,7 +1681,7 @@ describe("game router: puzzle (spec 033)", () => {
 			visitor.game.join.answer({
 				...ana,
 				questionIndex: 0,
-				choiceIds: ["choice-1", "choice-2"],
+				choiceIds: ["choice-4", "choice-3"],
 			}),
 		).rejects.toMatchObject({
 			code: "BAD_REQUEST",

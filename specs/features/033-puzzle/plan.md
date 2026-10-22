@@ -314,6 +314,7 @@ Além disso: `parseAnswerResponse` recusa uma lista com um id a menos, a mais ou
 - **Relatório:** `chosenChoices` devolve `[]` num Puzzle (as alternativas marcadas repetiriam todas, fora de ordem); a ordem do participante é `puzzleOrder`. A tela não lista as alternativas de um Puzzle.
 - **Editor:** um movimento aparece na hora a partir de `applyQuestionChange` sobre os textos da tela, até o cache do editor trazer a pergunta nova; o `DragOverlay` não tem animação de soltar, porque o campo para onde ela voltaria foi substituído pelo movimento. O celular também usa um `DragOverlay`, para o bloco arrastado passar por cima dos outros.
 - **Celular:** a ordem que não chegou ao servidor volta aos blocos por `orderDraft` no `JoinFlow`, como o rascunho da Resposta curta.
+- **Ids das respostas na partida (revisão da PR #17):** os ids copiados do editor (`choice-1`…) seguem as posições, que são a ordem certa; ordená-los entregaria a resposta. No sorteio, `withDrawnIds` (`game-question.ts`) dá a cada resposta o id do lugar sorteado e reescreve `correctOrder` com os ids novos, que ficam só no servidor (RN-17).
 
 ## Riscos e decisões
 

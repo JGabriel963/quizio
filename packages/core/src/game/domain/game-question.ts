@@ -185,6 +185,26 @@ function withShuffledChoices(
 }
 
 /**
+ * A puzzle's answers renamed after their drawn places. The copy's ids are the
+ * editor's slots, in the right order: sent to the devices as they are, sorting
+ * them would give the answer away (spec 033, RN-17). The right order is mapped
+ * to the new ids and stays on the server.
+ */
+function withDrawnIds(question: GameQuestion): GameQuestion {
+	const drawnId = new Map(
+		question.choices.map(({ id, shapeIndex }) => [id, choiceIdAt(shapeIndex)]),
+	);
+	return {
+		...question,
+		choices: question.choices.map((choice) => ({
+			...choice,
+			id: choiceIdAt(choice.shapeIndex),
+		})),
+		correctOrder: question.correctOrder.map((id) => drawnId.get(id) ?? id),
+	};
+}
+
+/**
  * The questions as the game will play them, in the editor's order or in a
  * drawn one, by the game's options (spec 012, RN-22 to RN-24). It is drawn
  * once, when the game starts; true/false is never shuffled, and a puzzle
@@ -199,10 +219,10 @@ export function arrangeGameQuestions(
 	return ordered.map((question, index) => {
 		const copied = toGameQuestion(question, index);
 		if (copied.type === "puzzle") {
-			return {
+			return withDrawnIds({
 				...copied,
 				choices: placedInOrder(copied, wrongOrderOf(copied, shuffle)),
-			};
+			});
 		}
 		return options.randomizeAnswers && copied.type === "quiz"
 			? withShuffledChoices(copied, shuffle)

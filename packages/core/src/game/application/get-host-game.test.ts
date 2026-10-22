@@ -882,8 +882,8 @@ describe("getHostGame with a puzzle (spec 033)", () => {
 		await game.reach("answering");
 		return game;
 	}
-	const right = ["choice-1", "choice-2", "choice-3", "choice-4"];
-	const swapped = ["choice-1", "choice-2", "choice-4", "choice-3"];
+	const right = ["choice-4", "choice-3", "choice-2", "choice-1"];
+	const swapped = ["choice-4", "choice-3", "choice-1", "choice-2"];
 
 	it("the host gets the puzzle's choices in the drawn order with their shapes", async () => {
 		const { deps } = await ordering();
@@ -898,10 +898,10 @@ describe("getHostGame with a puzzle (spec 033)", () => {
 				text,
 			]),
 		).toEqual([
-			["choice-4", 0, "Mississipi"],
-			["choice-3", 1, "Yangtzé"],
-			["choice-2", 2, "Amazonas"],
-			["choice-1", 3, "Nilo"],
+			["choice-1", 0, "Mississipi"],
+			["choice-2", 1, "Yangtzé"],
+			["choice-3", 2, "Amazonas"],
+			["choice-4", 3, "Nilo"],
 		]);
 		expect(view.stage?.puzzleResults).toBeNull();
 	});

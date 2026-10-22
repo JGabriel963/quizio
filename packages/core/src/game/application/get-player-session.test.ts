@@ -959,10 +959,10 @@ describe("getPlayerSession with a puzzle (spec 033)", () => {
 				text,
 			]),
 		).toEqual([
-			["choice-4", 0, "Mississipi"],
-			["choice-3", 1, "Yangtzé"],
-			["choice-2", 2, "Amazonas"],
-			["choice-1", 3, "Nilo"],
+			["choice-1", 0, "Mississipi"],
+			["choice-2", 1, "Yangtzé"],
+			["choice-3", 2, "Amazonas"],
+			["choice-4", 3, "Nilo"],
 		]);
 		expect(JSON.stringify(view)).not.toMatch(/correct/i);
 	});
@@ -981,7 +981,7 @@ describe("getPlayerSession with a puzzle (spec 033)", () => {
 
 	it("the right order sent is correct with points", async () => {
 		const { deps, answer, reach } = await ordering();
-		await answer(1, "choice-1", "choice-2", "choice-3", "choice-4");
+		await answer(1, "choice-4", "choice-3", "choice-2", "choice-1");
 		await reach("results");
 
 		const view = await createGetPlayerSession(deps)(session);

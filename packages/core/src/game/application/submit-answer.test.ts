@@ -451,7 +451,7 @@ describe("submitAnswer of a puzzle (spec 033)", () => {
 			questions: [aPuzzleQuestion()],
 		});
 		await reach("answering");
-		const sent = ["choice-3", "choice-1", "choice-4", "choice-2"];
+		const sent = ["choice-2", "choice-4", "choice-1", "choice-3"];
 
 		await submitAnswer(fromPlayer(1, sent));
 
@@ -468,7 +468,7 @@ describe("submitAnswer of a puzzle (spec 033)", () => {
 		await reach("answering");
 
 		await expect(
-			submitAnswer(fromPlayer(1, ["choice-1", "choice-2", "choice-3"])),
+			submitAnswer(fromPlayer(1, ["choice-4", "choice-3", "choice-2"])),
 		).rejects.toThrow(InvalidAnswerError);
 	});
 });
