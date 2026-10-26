@@ -29,6 +29,7 @@ import {
 } from "@quizio/ui/components/dialog";
 import { Input } from "@quizio/ui/components/input";
 import { Label } from "@quizio/ui/components/label";
+import { Progress } from "@quizio/ui/components/progress";
 import { RadioGroup, RadioGroupItem } from "@quizio/ui/components/radio-group";
 import {
 	Sheet,
@@ -271,6 +272,13 @@ function DesignSystemPage() {
 					<span className="font-bold text-answer-foreground">
 						Checkbox variant="answer"
 					</span>
+				</div>
+			</Section>
+
+			<Section title="Progresso">
+				<div className="flex max-w-sm flex-col gap-3">
+					<Progress value={40} aria-label="Enviando o arquivo" />
+					<Progress value={100} aria-label="Enviado" />
 				</div>
 			</Section>
 

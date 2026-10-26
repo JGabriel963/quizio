@@ -20,6 +20,7 @@ import { createDrizzleGroupMemberRepository } from "@quizio/db/repositories/grou
 import { createDrizzleGroupPostRepository } from "@quizio/db/repositories/groups/drizzle-group-post-repository";
 import { createDrizzleGroupReads } from "@quizio/db/repositories/groups/drizzle-group-reads";
 import { createDrizzleGroupRepository } from "@quizio/db/repositories/groups/drizzle-group-repository";
+import { createDrizzleGroupUploadRepository } from "@quizio/db/repositories/groups/drizzle-group-upload-repository";
 import { createDrizzleGroupVisitRepository } from "@quizio/db/repositories/groups/drizzle-group-visit-repository";
 import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
 import { createDrizzleSourceUploadRepository } from "@quizio/db/repositories/media/drizzle-source-upload-repository";
@@ -119,6 +120,7 @@ export function createAdaptersFromEnv(): Adapters {
 		inviteCodes: createRandomInviteCodeGenerator(),
 		groupPosts: createDrizzleGroupPostRepository(db),
 		groupFeed: createDrizzleGroupFeedQuery(db),
+		groupUploads: createDrizzleGroupUploadRepository(db),
 		groupAssignmentQuery: createDrizzleGroupAssignmentQuery(db),
 		reportReadGrants: createDrizzleReportReadGrants(db),
 		assignmentSettings: {

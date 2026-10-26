@@ -52,6 +52,7 @@ export function createAssignToGroups(
 				groupId,
 				authorId: userId,
 				kind: "assignment",
+				file: null,
 				message: null,
 				gameId,
 				createdAt: now,

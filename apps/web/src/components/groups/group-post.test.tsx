@@ -11,6 +11,8 @@ import { GroupPost } from "./group-post";
 function aPost(overrides: Partial<GroupPostData> = {}): GroupPostData {
 	return {
 		id: "post-1",
+		headline: "assignment",
+		file: null,
 		author: { userId: "ana", name: "Ana" },
 		createdAt: new Date(2026, 9, 26, 15, 1).toISOString(),
 		message: "Revisem\naté sexta",
@@ -72,7 +74,14 @@ describe("GroupPost (spec 038)", () => {
 	});
 
 	it("an ended one shows compartilhou um arquivo and the removed box, keeping likes", async () => {
-		renderPost(aPost({ attachment: null, likeCount: 1, liked: true }));
+		renderPost(
+			aPost({
+				headline: "file",
+				attachment: null,
+				likeCount: 1,
+				liked: true,
+			}),
+		);
 
 		const post = await screen.findByRole("article");
 		expect(post).toHaveTextContent("Ana compartilhou um arquivo");
@@ -150,6 +159,142 @@ describe("GroupPost (spec 038)", () => {
 		await user.click(within(confirm).getByRole("button", { name: "Excluir" }));
 
 		expect(onDelete).toHaveBeenCalled();
+	});
+});
+
+/** A message post of spec 036, by Bruno. */
+function aMessage(overrides: Partial<GroupPostData> = {}): GroupPostData {
+	return aPost({
+		headline: "message",
+		author: { userId: "bruno", name: "Bruno" },
+		message: "Prova na sexta\nTragam lápis",
+		gameId: null,
+		attachment: null,
+		canSeeReport: false,
+		...overrides,
+	});
+}
+
+describe("GroupPost with a message (spec 036)", () => {
+	it("a message post: compartilhou uma mensagem, the text with line breaks, likes", async () => {
+		renderPost(aMessage());
+
+		const post = await screen.findByRole("article");
+		expect(post).toHaveTextContent("Bruno compartilhou uma mensagem");
+		expect(within(post).getByText(/Prova na sexta/).textContent).toBe(
+			"Prova na sexta\nTragam lápis",
+		);
+		expect(post).not.toHaveTextContent("excluiu o anexo");
+		expect(post).toHaveTextContent("0 curtidas");
+		expect(within(post).getByRole("button", { name: "Curtir" })).toBeVisible();
+	});
+
+	it("links open in a new tab; markup shows as typed", async () => {
+		renderPost(
+			aMessage({
+				message: "Veja https://exemplo.com/aula, e <b>oi</b>",
+			}),
+		);
+
+		const post = await screen.findByRole("article");
+		const link = within(post).getByRole("link", {
+			name: "https://exemplo.com/aula",
+		});
+		expect(link).toHaveAttribute("href", "https://exemplo.com/aula");
+		expect(link).toHaveAttribute("target", "_blank");
+		expect(link).toHaveAttribute("rel", "noopener noreferrer nofollow");
+		expect(post).toHaveTextContent(", e <b>oi</b>");
+		expect(post.querySelector("b")).toBeNull();
+	});
+
+	it("an image post opens enlarged and closes with Esc", async () => {
+		const { user } = renderPost(
+			aMessage({
+				headline: "image",
+				message: null,
+				file: {
+					type: "image",
+					url: "https://media.test/groups/g/quadro.png",
+					name: "quadro.png",
+					sizeBytes: 2048,
+				},
+			}),
+		);
+
+		const post = await screen.findByRole("article");
+		expect(post).toHaveTextContent("Bruno compartilhou uma imagem");
+		const image = within(post).getByRole("img", {
+			name: "Imagem publicada por Bruno",
+		});
+		expect(image).toHaveAttribute(
+			"src",
+			"https://media.test/groups/g/quadro.png",
+		);
+		await user.click(
+			within(post).getByRole("button", { name: "Ampliar a imagem" }),
+		);
+		const viewer = await screen.findByRole("dialog", {
+			name: "Imagem publicada por Bruno",
+		});
+		expect(within(viewer).getByRole("img")).toHaveAttribute(
+			"src",
+			"https://media.test/groups/g/quadro.png",
+		);
+		await user.keyboard("{Escape}");
+		expect(screen.queryByRole("dialog")).toBeNull();
+	});
+
+	it("a PDF post: compartilhou um arquivo, name, 2,4 MB, link in a new tab", async () => {
+		renderPost(
+			aMessage({
+				headline: "file",
+				message: "Leiam até o cap. 3",
+				file: {
+					type: "pdf",
+					url: "https://media.test/groups/g/a.pdf",
+					name: "apostila.pdf",
+					sizeBytes: 2.4 * 1024 * 1024,
+				},
+			}),
+		);
+
+		const post = await screen.findByRole("article");
+		expect(post).toHaveTextContent("Bruno compartilhou um arquivo");
+		expect(post).not.toHaveTextContent("excluiu o anexo");
+		const card = within(post).getByRole("link", { name: /apostila\.pdf/ });
+		expect(card).toHaveTextContent("2,4 MB");
+		expect(card).toHaveAttribute("href", "https://media.test/groups/g/a.pdf");
+		expect(card).toHaveAttribute("target", "_blank");
+	});
+
+	it("the menu of a message has only Excluir publicação, with the file wording", async () => {
+		const { user } = renderPost(
+			aMessage({
+				headline: "file",
+				file: {
+					type: "pdf",
+					url: "https://media.test/groups/g/a.pdf",
+					name: "apostila.pdf",
+					sizeBytes: 10,
+				},
+			}),
+		);
+
+		await user.click(
+			await screen.findByRole("button", { name: "Opções da publicação" }),
+		);
+		const menu = await screen.findByRole("menu");
+		expect(
+			within(menu)
+				.getAllByRole("menuitem")
+				.map((item) => item.textContent),
+		).toEqual(["Excluir publicação"]);
+		await user.click(
+			within(menu).getByRole("menuitem", { name: "Excluir publicação" }),
+		);
+		expect(
+			await screen.findByRole("alertdialog", { name: "Excluir a publicação?" }),
+		).toHaveTextContent("Ela some do mural para todos, com o arquivo.");
 	});
 });
 

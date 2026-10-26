@@ -15,6 +15,7 @@ function aPost(overrides: Partial<GroupPost> = {}): GroupPost {
 		kind: "assignment",
 		message: null,
 		gameId: "game-1",
+		file: null,
 		createdAt: at(1),
 		...overrides,
 	};

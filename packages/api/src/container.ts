@@ -147,6 +147,10 @@ import {
 	createCreateGroup,
 } from "@quizio/core/groups/application/create-group";
 import {
+	type CreateGroupPost,
+	createCreateGroupPost,
+} from "@quizio/core/groups/application/create-group-post";
+import {
 	createDeleteGroup,
 	type DeleteGroup,
 } from "@quizio/core/groups/application/delete-group";
@@ -154,6 +158,10 @@ import {
 	createDeleteGroupPost,
 	type DeleteGroupPost,
 } from "@quizio/core/groups/application/delete-group-post";
+import {
+	createDiscardGroupUpload,
+	type DiscardGroupUpload,
+} from "@quizio/core/groups/application/discard-group-upload";
 import {
 	createDismissGroupSetup,
 	type DismissGroupSetup,
@@ -208,12 +216,17 @@ import type { GroupMemberRepository } from "@quizio/core/groups/application/port
 import type { GroupPostRepository } from "@quizio/core/groups/application/ports/group-post-repository";
 import type { GroupReads } from "@quizio/core/groups/application/ports/group-reads";
 import type { GroupRepository } from "@quizio/core/groups/application/ports/group-repository";
+import type { GroupUploadRepository } from "@quizio/core/groups/application/ports/group-upload-repository";
 import type { GroupVisitRepository } from "@quizio/core/groups/application/ports/group-visit-repository";
 import type { InviteCodeGenerator } from "@quizio/core/groups/application/ports/invite-code-generator";
 import {
 	createRemoveGroupMember,
 	type RemoveGroupMember,
 } from "@quizio/core/groups/application/remove-group-member";
+import {
+	createRequestGroupUpload,
+	type RequestGroupUpload,
+} from "@quizio/core/groups/application/request-group-upload";
 import {
 	createResetGroupInvite,
 	type ResetGroupInvite,
@@ -446,6 +459,8 @@ export interface Adapters {
 	groupPosts: GroupPostRepository;
 	groupFeed: GroupFeedQuery;
 	groupAssignmentQuery: GroupAssignmentQuery;
+	/** The groups' files nobody posted yet (spec 036; ADR 0017). */
+	groupUploads: GroupUploadRepository;
 	/** Who else may read a report: a group's admin (spec 038, RN-20a). */
 	reportReadGrants: ReportReadGrants;
 }
@@ -537,6 +552,9 @@ export interface Container extends Adapters {
 		listGroupAssignments: ListGroupAssignments;
 		listGroupFeed: ListGroupFeed;
 		setPostLike: SetPostLike;
+		createGroupPost: CreateGroupPost;
+		requestGroupUpload: RequestGroupUpload;
+		discardGroupUpload: DiscardGroupUpload;
 		getGroupSettings: GetGroupSettings;
 		setGroupPermission: SetGroupPermission;
 		updateGroupDetails: UpdateGroupDetails;
@@ -666,6 +684,9 @@ export function createContainer(adapters: Adapters): Container {
 			listGroupAssignments: createListGroupAssignments(groupDeps),
 			listGroupFeed: createListGroupFeed(groupDeps),
 			setPostLike: createSetPostLike(groupDeps),
+			createGroupPost: createCreateGroupPost(adapters),
+			requestGroupUpload: createRequestGroupUpload(adapters),
+			discardGroupUpload: createDiscardGroupUpload(adapters),
 			getGroupSettings: createGetGroupSettings(adapters),
 			setGroupPermission: createSetGroupPermission(adapters),
 			updateGroupDetails: createUpdateGroupDetails(adapters),

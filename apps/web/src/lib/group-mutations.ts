@@ -118,6 +118,24 @@ export function useGroupMutations() {
 				onError: showError,
 			}),
 		),
+		// "Criar publicação" tells its own refusals (spec 036).
+		post: useMutation(
+			trpc.group.post.mutationOptions({
+				meta: { suppressErrorToast: true },
+				onSuccess: invalidate,
+			}),
+		),
+		requestUpload: useMutation(
+			trpc.group.requestUpload.mutationOptions({
+				meta: { suppressErrorToast: true },
+			}),
+		),
+		// Best effort: a file left behind is swept after 24 hours (RN-21).
+		discardUpload: useMutation(
+			trpc.group.discardUpload.mutationOptions({
+				meta: { suppressErrorToast: true },
+			}),
+		),
 		setLike: useMutation(
 			trpc.group.posts.setLike.mutationOptions({
 				// The button goes back by itself (RN-17).

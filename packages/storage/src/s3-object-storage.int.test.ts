@@ -1,6 +1,7 @@
 import {
 	CreateBucketCommand,
 	HeadBucketCommand,
+	HeadObjectCommand,
 	S3Client,
 } from "@aws-sdk/client-s3";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -22,8 +23,8 @@ const config: S3ObjectStorageConfig = {
 	forcePathStyle: true,
 };
 
-async function ensureBucket() {
-	const client = new S3Client({
+function clientFor() {
+	return new S3Client({
 		endpoint: config.endpoint,
 		region: config.region,
 		forcePathStyle: true,
@@ -32,6 +33,10 @@ async function ensureBucket() {
 			secretAccessKey: config.secretAccessKey,
 		},
 	});
+}
+
+async function ensureBucket() {
+	const client = clientFor();
 	try {
 		await client.send(new HeadBucketCommand({ Bucket: config.bucket }));
 	} catch {
@@ -65,6 +70,32 @@ describe("S3ObjectStorage against a real S3 server", () => {
 
 		await storage.delete(key);
 		expect(await storage.exists(key)).toBe(false);
+	});
+
+	it("an upload with Content-Disposition is served with it (spec 036)", async () => {
+		const key = `groups/int-test/${crypto.randomUUID()}.pdf`;
+		const body = new Uint8Array(64).fill(1);
+		const disposition = "inline; filename*=UTF-8''apostila%20A.pdf";
+		const upload = await storage.createPresignedUpload({
+			key,
+			contentType: "application/pdf",
+			contentLength: body.byteLength,
+			expiresInSeconds: 60,
+			contentDisposition: disposition,
+		});
+
+		const response = await fetch(upload.url, {
+			method: upload.method,
+			headers: upload.headers,
+			body,
+		});
+
+		expect(response.status).toBe(200);
+		const head = await clientFor().send(
+			new HeadObjectCommand({ Bucket: config.bucket, Key: key }),
+		);
+		expect(head.ContentDisposition).toBe(disposition);
+		await storage.delete(key);
 	});
 
 	it("copies an object so deleting the copy keeps the original", async () => {

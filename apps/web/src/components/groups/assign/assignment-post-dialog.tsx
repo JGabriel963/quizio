@@ -19,6 +19,7 @@ import { groupErrorMessage } from "@/lib/group-error-messages";
 /**
  * "Criar publicação" from "Adicionar mensagem" (spec 038, RN-11, RN-12): the
  * text and the quiz, which X goes back to change. Cancelar closes everything.
+ * The quiz is an attachment, so the text may stay empty (spec 036, RN-15).
  */
 export function AssignmentPostDialog({
 	open,
@@ -39,10 +40,9 @@ export function AssignmentPostDialog({
 }) {
 	const [error, setError] = useState<string | null>(null);
 	const [publishing, setPublishing] = useState(false);
-	const blank = message.trim() === "";
 
 	async function publish() {
-		if (blank || publishing) {
+		if (publishing) {
 			return;
 		}
 		setPublishing(true);
@@ -119,7 +119,7 @@ export function AssignmentPostDialog({
 						Cancelar
 					</Button>
 					<Button
-						disabled={blank || publishing}
+						disabled={publishing}
 						aria-busy={publishing || undefined}
 						onClick={publish}
 					>

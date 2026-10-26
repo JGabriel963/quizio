@@ -117,4 +117,47 @@ describe("AssignmentSettingsDialog (spec 038, RN-07 to RN-10)", () => {
 
 		expect(onClose).toHaveBeenCalled();
 	});
+
+	it("the post variant has Cancelar and Adicionar à publicação (spec 036, RN-12)", async () => {
+		const user = userEvent.setup();
+		const onAddMessage = vi.fn();
+		const onClose = vi.fn();
+		renderWithRouter(
+			<AssignmentSettingsDialog
+				open
+				variant="post"
+				setup={POST_SETUP}
+				now={new Date(2026, 9, 26, 10, 0)}
+				onAddMessage={onAddMessage}
+				onClose={onClose}
+			/>,
+		);
+		const dialog = await screen.findByRole("dialog", {
+			name: "Configurações da atividade atribuída",
+		});
+
+		expect(
+			within(dialog).queryByRole("button", { name: "Atribuir agora" }),
+		).toBeNull();
+		expect(
+			within(dialog).queryByRole("button", { name: "Adicionar mensagem" }),
+		).toBeNull();
+		await user.click(
+			within(dialog).getByRole("button", { name: "Adicionar à publicação" }),
+		);
+		expect(onAddMessage).toHaveBeenCalledWith(
+			expect.objectContaining({ options: POST_SETUP.options }),
+		);
+		await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+		expect(onClose).toHaveBeenCalled();
+	});
 });
+
+const POST_SETUP = {
+	maxDeadlineDays: 28,
+	options: {
+		gameCharacters: false,
+		questionTimer: true,
+		randomizeAnswers: false,
+	},
+};

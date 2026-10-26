@@ -55,6 +55,26 @@ describe("assignInGroup (spec 038)", () => {
 		expect(posts[0]).toMatchObject({ authorId: "ana", kind: "assignment" });
 	});
 
+	it("an empty or blank message posts no message (spec 036, RN-15)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana");
+		const assign = createAssignInGroup(t.deps);
+
+		for (const message of ["", " \n "]) {
+			await assign({
+				userId: "ana",
+				groupId,
+				quizId: "quiz-ana",
+				deadline,
+				options,
+				message,
+			});
+		}
+
+		const posts = await t.store.listPosts(groupId, "ana");
+		expect(posts.map((post) => post.message)).toEqual([null, null]);
+	});
+
 	it("a member without the switch gets GROUP.ASSIGN_NOT_ALLOWED and nothing is created", async () => {
 		const t = groupsTestDeps();
 		const groupId = await t.aGroupOf("ana", ["bruno"]);

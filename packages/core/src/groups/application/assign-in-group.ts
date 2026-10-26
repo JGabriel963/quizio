@@ -2,7 +2,7 @@ import type { AssignmentOptions } from "../../game/domain/assignment";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import { assertCanAssign } from "../domain/group-permissions";
-import { parsePostMessage } from "../domain/group-post";
+import { parseOptionalPostMessage } from "../domain/group-post";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
 import type { GroupAssignments } from "./ports/group-assignments";
 import type { GroupPostRepository } from "./ports/group-post-repository";
@@ -13,7 +13,10 @@ export type AssignInGroup = (input: {
 	quizId: string;
 	deadline: Date;
 	options: AssignmentOptions;
-	/** "Adicionar mensagem"; absent for "Atribuir agora" (RN-10, RN-11). */
+	/**
+	 * "Adicionar mensagem" or "Criar publicação"; absent or blank for no
+	 * message (spec 038, RN-10, RN-11; spec 036, RN-15).
+	 */
 	message?: string;
 }) => Promise<{ postId: string; gameId: string }>;
 
@@ -41,7 +44,7 @@ export function createAssignInGroup(
 		const { group, membership } = await requireMembership(deps, input);
 		assertCanAssign(group, membership);
 		const message =
-			rawMessage === undefined ? null : parsePostMessage(rawMessage);
+			rawMessage === undefined ? null : parseOptionalPostMessage(rawMessage);
 		const { gameId } = await deps.groupAssignments.create({
 			ownerId: input.userId,
 			quizId,
@@ -56,6 +59,7 @@ export function createAssignInGroup(
 			kind: "assignment",
 			message,
 			gameId,
+			file: null,
 			createdAt: deps.clock.now(),
 		});
 		return { postId, gameId };

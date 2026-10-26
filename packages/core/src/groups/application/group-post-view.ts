@@ -4,8 +4,10 @@ import {
 	attachmentOf,
 	type GroupAssignmentRecord,
 } from "../domain/group-assignment";
+import type { GroupFileType } from "../domain/group-file";
 import type { GroupMember } from "../domain/group-member";
 import { canManagePost } from "../domain/group-permissions";
+import { type GroupPostHeadline, postHeadlineOf } from "../domain/group-post";
 import type { GroupAssignmentQuery } from "./ports/group-assignments";
 import type { GroupPostRecord } from "./ports/group-feed-query";
 
@@ -19,9 +21,19 @@ export interface GroupAssignmentCard {
 	remainingMs: number;
 }
 
-/** A post of the feed (spec 038, RN-13 to RN-20). */
+/** An image or a PDF as the feed shows it (spec 036, RN-10, RN-11). */
+export interface GroupPostFileView {
+	type: GroupFileType;
+	url: string;
+	name: string;
+	sizeBytes: number;
+}
+
+/** A post of the feed (spec 036; spec 038, RN-13 to RN-20). */
 export interface GroupPostView {
 	id: string;
+	/** What the header says was shared (spec 036, RN-17). */
+	headline: GroupPostHeadline;
 	author: { userId: string; name: string };
 	createdAt: Date;
 	message: string | null;
@@ -31,6 +43,8 @@ export interface GroupPostView {
 	liked: boolean;
 	/** Null once the assignment is over or gone (RN-16). */
 	attachment: GroupAssignmentCard | null;
+	/** The image or PDF of a message (spec 036). */
+	file: GroupPostFileView | null;
 	/** "Ver relatório": who posted and the admin, while the report exists (RN-20). */
 	canSeeReport: boolean;
 	/** "Excluir publicação": who posted and the admin (RN-20, RN-31). */
@@ -67,6 +81,7 @@ export async function postViewsOf(
 		const manages = canManagePost(post, viewer);
 		return {
 			id: post.id,
+			headline: postHeadlineOf(post, attachment !== null),
 			author: { userId: post.authorId, name: post.authorName },
 			createdAt: post.createdAt,
 			message: post.message,
@@ -82,6 +97,12 @@ export async function postViewsOf(
 					: null,
 				ownerName: attachment.ownerName,
 				remainingMs: attachment.remainingMs,
+			},
+			file: post.file && {
+				type: post.file.type,
+				url: deps.storage.getPublicUrl(post.file.key),
+				name: post.file.name,
+				sizeBytes: post.file.sizeBytes,
 			},
 			canSeeReport: manages && record !== null,
 			canDelete: manages,

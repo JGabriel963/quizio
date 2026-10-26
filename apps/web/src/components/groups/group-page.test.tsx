@@ -169,15 +169,54 @@ describe("GroupTabs (spec 034, RN-14, RN-16)", () => {
 	});
 });
 
-describe("GroupActivity (spec 034, RN-15, RN-17; spec 038, RN-02)", () => {
+describe("GroupActivity (spec 034, RN-15, RN-17; spec 036, RN-02, RN-03; spec 038, RN-02)", () => {
 	const activity = {
 		onInvite: noop,
 		onDismissSetup: noop,
 		onAssign: noop,
+		onCreatePost: noop,
 		feed: null,
 	};
 
-	it("Atribuir is active for who may assign; Criar publicação and Compart. stay Em breve", async () => {
+	it("Publicar algo, Criar publicação, the setup step and the empty state open the dialog; Compart. stays em breve", async () => {
+		const user = userEvent.setup();
+		const onCreatePost = vi.fn();
+		render(
+			<GroupActivity
+				isAdmin
+				canAssign
+				setup={{ invited: false, assigned: false, posted: false }}
+				{...activity}
+				onCreatePost={onCreatePost}
+			/>,
+		);
+
+		const composer = screen.getByRole("region", { name: "Publicar algo" });
+		expect(
+			within(composer).getByRole("button", { name: "Compart. (em breve)" }),
+		).toHaveAttribute("aria-disabled", "true");
+		await user.click(
+			within(composer).getByRole("button", { name: "Publicar algo" }),
+		);
+		await user.click(
+			within(composer).getByRole("button", { name: "Criar publicação" }),
+		);
+		await user.click(
+			within(
+				screen.getByRole("region", { name: "Configurar seu grupo" }),
+			).getByRole("button", { name: "Criar publicação" }),
+		);
+		const emptyState = screen
+			.getByText(/Ainda não há nenhuma atividade neste grupo/)
+			.closest("div") as HTMLElement;
+		await user.click(
+			within(emptyState).getByRole("button", { name: "Criar publicação" }),
+		);
+		expect(onCreatePost).toHaveBeenCalledTimes(4);
+		expect(screen.queryByText(/chegam em breve/)).toBeNull();
+	});
+
+	it("Atribuir is active for who may assign", async () => {
 		const user = userEvent.setup();
 		const onAssign = vi.fn();
 		render(
@@ -191,11 +230,6 @@ describe("GroupActivity (spec 034, RN-15, RN-17; spec 038, RN-02)", () => {
 		);
 
 		const composer = screen.getByRole("region", { name: "Publicar algo" });
-		for (const name of ["Criar publicação", "Compart."]) {
-			expect(
-				within(composer).getByRole("button", { name: `${name} (em breve)` }),
-			).toHaveAttribute("aria-disabled", "true");
-		}
 		await user.click(
 			within(composer).getByRole("button", { name: "Atribuir" }),
 		);
@@ -256,6 +290,9 @@ describe("GroupActivity (spec 034, RN-15, RN-17; spec 038, RN-02)", () => {
 		expect(
 			within(composer).queryByRole("button", { name: /Atribuir/ }),
 		).toBeNull();
+		expect(
+			within(composer).getByRole("button", { name: "Criar publicação" }),
+		).toBeVisible();
 	});
 });
 
@@ -266,6 +303,7 @@ describe("GroupSetupCard (spec 034, RN-17; spec 038, RN-29)", () => {
 				setup={{ invited: false, assigned: true, posted: true }}
 				onInvite={noop}
 				onAssign={noop}
+				onCreatePost={noop}
 				onDismiss={noop}
 			/>,
 		);
@@ -273,7 +311,9 @@ describe("GroupSetupCard (spec 034, RN-17; spec 038, RN-29)", () => {
 		expect(
 			screen.getByRole("button", { name: "Atribuir (feito)" }),
 		).toBeVisible();
-		expect(screen.getByText("Criar publicação")).toBeVisible();
+		expect(
+			screen.getByRole("button", { name: "Criar publicação (feito)" }),
+		).toBeVisible();
 		expect(screen.getAllByTestId("setup-done")).toHaveLength(2);
 	});
 
@@ -283,6 +323,7 @@ describe("GroupSetupCard (spec 034, RN-17; spec 038, RN-29)", () => {
 				setup={{ invited: true, assigned: false, posted: false }}
 				onInvite={noop}
 				onAssign={noop}
+				onCreatePost={noop}
 				onDismiss={noop}
 			/>,
 		);
@@ -301,6 +342,7 @@ describe("GroupSetupCard (spec 034, RN-17; spec 038, RN-29)", () => {
 				setup={{ invited: false, assigned: false, posted: false }}
 				onInvite={onInvite}
 				onAssign={noop}
+				onCreatePost={noop}
 				onDismiss={onDismiss}
 			/>,
 		);

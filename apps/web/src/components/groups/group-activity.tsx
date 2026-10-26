@@ -1,3 +1,4 @@
+import { Button } from "@quizio/ui/components/button";
 import {
 	MessageCircleIcon,
 	NewspaperIcon,
@@ -12,10 +13,10 @@ import { ComingSoonAction } from "./coming-soon-action";
 import { GroupSetupCard } from "./group-setup-card";
 
 /**
- * The Atividade tab (spec 034, RN-15, RN-17; spec 038): the composer, with
- * Atribuir for who may assign; the admin's setup card; and the feed, or the
- * empty state without posts. Text posts and sharing come with specs 036 and
- * 037.
+ * The Atividade tab (spec 034, RN-15, RN-17; specs 036 and 038): the
+ * composer, whose "Publicar algo" and Criar publicação open "Criar
+ * publicação", with Atribuir for who may assign; the admin's setup card; and
+ * the feed, or the empty state without posts. Compart. comes with spec 037.
  */
 export function GroupActivity({
 	isAdmin,
@@ -24,6 +25,7 @@ export function GroupActivity({
 	feed,
 	onInvite,
 	onAssign,
+	onCreatePost,
 	onDismissSetup,
 }: {
 	isAdmin: boolean;
@@ -34,6 +36,7 @@ export function GroupActivity({
 	feed: ReactNode | null;
 	onInvite: () => void;
 	onAssign: () => void;
+	onCreatePost: () => void;
 	onDismissSetup: () => void;
 }) {
 	const composerId = useId();
@@ -47,18 +50,22 @@ export function GroupActivity({
 				<h2 id={composerId} className="sr-only">
 					Publicar algo
 				</h2>
-				<div
-					aria-hidden="true"
-					className="rounded-md border border-border px-4 py-2.5 text-muted-foreground"
+				<button
+					type="button"
+					onClick={onCreatePost}
+					className="rounded-md border border-border px-4 py-2.5 text-left text-muted-foreground transition-colors hover:bg-muted/50"
 				>
 					Publicar algo
-				</div>
+				</button>
 				<div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-					<ComingSoonAction
-						label="Criar publicação"
-						icon={<MessageCircleIcon />}
-						showBadge={false}
-					/>
+					<button
+						type="button"
+						onClick={onCreatePost}
+						className="inline-flex items-center gap-1.5 text-sm hover:text-primary [&>svg]:size-4 [&>svg]:text-primary"
+					>
+						<MessageCircleIcon aria-hidden="true" />
+						Criar publicação
+					</button>
 					<ComingSoonAction
 						label="Compart."
 						icon={<ShareIcon />}
@@ -75,9 +82,6 @@ export function GroupActivity({
 						</button>
 					)}
 				</div>
-				<p className="text-center text-muted-foreground text-xs">
-					Publicações e compartilhamento chegam em breve.
-				</p>
 			</section>
 
 			{isAdmin && setup && (
@@ -85,6 +89,7 @@ export function GroupActivity({
 					setup={setup}
 					onInvite={onInvite}
 					onAssign={onAssign}
+					onCreatePost={onCreatePost}
 					onDismiss={onDismissSetup}
 				/>
 			)}
@@ -99,7 +104,7 @@ export function GroupActivity({
 						Ainda não há nenhuma atividade neste grupo. Faça uma publicação para
 						começar.
 					</p>
-					<ComingSoonAction label="Criar publicação" />
+					<Button onClick={onCreatePost}>Criar publicação</Button>
 				</div>
 			)}
 		</div>

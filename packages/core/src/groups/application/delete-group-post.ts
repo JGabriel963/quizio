@@ -1,3 +1,4 @@
+import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import {
 	GroupPostNotFoundError,
 	PostDeleteNotAllowedError,
@@ -13,11 +14,15 @@ export type DeleteGroupPost = (input: {
 }) => Promise<void>;
 
 /**
- * "Excluir publicação": the post and its likes leave the group; the
- * assignment, its report and its link stay (spec 038, RN-20, RN-21).
+ * "Excluir publicação": the post and its likes leave the group, and so does
+ * its file, after the row (spec 036, RN-20). An assignment, its report and
+ * its link stay (spec 038, RN-21).
  */
 export function createDeleteGroupPost(
-	deps: GroupStoreDeps & { groupPosts: GroupPostRepository },
+	deps: GroupStoreDeps & {
+		groupPosts: GroupPostRepository;
+		storage: ObjectStorage;
+	},
 ): DeleteGroupPost {
 	return async ({ postId, ...input }) => {
 		const { membership } = await requireMembership(deps, input);
@@ -28,6 +33,9 @@ export function createDeleteGroupPost(
 		if (!canManagePost(post, membership)) {
 			throw new PostDeleteNotAllowedError();
 		}
-		await deps.groupPosts.deletePost(postId);
+		const deleted = await deps.groupPosts.deletePost(postId);
+		if (deleted?.file) {
+			await deps.storage.delete(deleted.file.key);
+		}
 	};
 }

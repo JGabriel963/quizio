@@ -36,7 +36,7 @@ function Harness({
 }
 
 describe("AssignmentPostDialog (spec 038, RN-11, RN-12)", () => {
-	it("Publicar is disabled while empty; counts down from 500", async () => {
+	it("Publicar is enabled with the quiz and no text (spec 036, RN-15); counts down from 500", async () => {
 		const user = userEvent.setup();
 		const onPublish = vi.fn(async () => {});
 		render(<Harness onPublish={onPublish} />);
@@ -46,17 +46,12 @@ describe("AssignmentPostDialog (spec 038, RN-11, RN-12)", () => {
 		const publish = within(dialog).getByRole("button", { name: "Publicar" });
 
 		expect(within(dialog).getByText("500")).toBeVisible();
-		expect(publish).toBeDisabled();
-		await user.type(
-			within(dialog).getByPlaceholderText("Digite seu texto"),
-			"  ",
-		);
-		expect(publish).toBeDisabled();
+		expect(publish).toBeEnabled();
 		await user.type(
 			within(dialog).getByPlaceholderText("Digite seu texto"),
 			"Oi",
 		);
-		expect(within(dialog).getByText("496")).toBeVisible();
+		expect(within(dialog).getByText("498")).toBeVisible();
 		await user.click(publish);
 
 		expect(onPublish).toHaveBeenCalled();
@@ -101,7 +96,7 @@ describe("AssignmentPostDialog (spec 038, RN-11, RN-12)", () => {
 		await user.click(within(dialog).getByRole("button", { name: "Publicar" }));
 
 		expect(await within(dialog).findByRole("alert")).toHaveTextContent(
-			"A mensagem deve ter de 1 a 500 caracteres.",
+			"A mensagem deve ter até 500 caracteres.",
 		);
 	});
 });

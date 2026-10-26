@@ -10,8 +10,6 @@ import { useId } from "react";
 
 import type { GroupViewData } from "@/lib/api-types";
 
-import { ComingSoonAction } from "./coming-soon-action";
-
 const step =
 	"relative flex min-h-32 flex-1 flex-col items-center justify-center gap-3 rounded-md border border-border bg-card p-4 font-semibold text-sm shadow-sm";
 
@@ -59,18 +57,20 @@ function StepButton({
 
 /**
  * "Configurar seu grupo", only for the admin (spec 034, RN-17): Convidar
- * membros and Atribuir work (spec 038); Criar publicação comes with spec 036,
- * but shows done once the feed has a post (spec 038, RN-29).
+ * membros, Atribuir (spec 038) and Criar publicação (spec 036), each done
+ * once the group has it (spec 038, RN-29).
  */
 export function GroupSetupCard({
 	setup,
 	onInvite,
 	onAssign,
+	onCreatePost,
 	onDismiss,
 }: {
 	setup: NonNullable<GroupViewData["setup"]>;
 	onInvite: () => void;
 	onAssign: () => void;
+	onCreatePost: () => void;
 	onDismiss: () => void;
 }) {
 	const titleId = useId();
@@ -105,19 +105,12 @@ export function GroupSetupCard({
 					done={setup.assigned}
 					onClick={onAssign}
 				/>
-				{setup.posted ? (
-					<div className={cn(step, "bg-muted font-normal")}>
-						<DoneMark />
-						<MegaphoneIcon aria-hidden="true" className="size-8 text-success" />
-						Criar publicação
-					</div>
-				) : (
-					<ComingSoonAction
-						label="Criar publicação"
-						icon={<MegaphoneIcon className="size-8! text-primary" />}
-						className={cn(step, "text-foreground")}
-					/>
-				)}
+				<StepButton
+					label="Criar publicação"
+					icon={MegaphoneIcon}
+					done={setup.posted}
+					onClick={onCreatePost}
+				/>
 			</div>
 		</section>
 	);

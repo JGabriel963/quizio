@@ -48,6 +48,28 @@ describe("createS3ObjectStorage", () => {
 		).toBe(false);
 	});
 
+	it("signs the Content-Disposition and returns it among the headers (spec 036)", async () => {
+		const storage = createS3ObjectStorage(config);
+		const disposition = "inline; filename*=UTF-8''apostila%20A.pdf";
+
+		const upload = await storage.createPresignedUpload({
+			key: "groups/g1/a.pdf",
+			contentType: "application/pdf",
+			contentLength: 1024,
+			expiresInSeconds: 300,
+			contentDisposition: disposition,
+		});
+		const url = new URL(upload.url);
+
+		expect(upload.headers).toEqual({
+			"content-type": "application/pdf",
+			"content-disposition": disposition,
+		});
+		expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe(
+			"content-disposition;content-length;content-type;host",
+		);
+	});
+
 	it("encodes each key segment in the copy source", () => {
 		expect(copySourceFor("quizio", "media/user 1/capa ção.png")).toBe(
 			"quizio/media/user%201/capa%20%C3%A7%C3%A3o.png",

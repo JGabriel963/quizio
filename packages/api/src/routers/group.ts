@@ -1,4 +1,5 @@
 import { GROUP_ASSIGNMENT_SORTS } from "@quizio/core/groups/domain/group-assignment";
+import { GROUP_FILE_TYPES } from "@quizio/core/groups/domain/group-file";
 import { GROUP_PERMISSIONS } from "@quizio/core/groups/domain/group-permissions";
 import { GROUP_SECTIONS } from "@quizio/core/groups/domain/group-section";
 import { z } from "zod";
@@ -14,6 +15,16 @@ const gameId = z.string().min(1).max(100);
 const deadline = z.iso
 	.datetime({ offset: true })
 	.transform((value) => new Date(value));
+
+/** Where the next page of the feed starts, as `group.feed` sent it. */
+const feedCursor = z.object({
+	createdAt: z.iso
+		.datetime({ offset: true })
+		.transform((value) => new Date(value)),
+	id: z.string().min(1).max(100),
+});
+/** A key the server signed under the group; the use cases check it. */
+const uploadKey = z.string().min(1).max(300);
 
 /** The feed's posts: likes and "Excluir publicação" (spec 038). */
 const postsRouter = router({
@@ -216,12 +227,67 @@ export const groupRouter = router({
 			}),
 		),
 
-	feed: protectedProcedure.input(inGroup).query(({ ctx, input }) =>
-		ctx.container.useCases.listGroupFeed({
-			userId: ctx.session.user.id,
-			...input,
+	/** "Mostrar mais publicações" sends back the page's `nextCursor` (spec 036, RN-18). */
+	feed: protectedProcedure
+		.input(z.object({ groupId, cursor: feedCursor.optional() }))
+		.query(async ({ ctx, input }) => {
+			const { posts, nextCursor } = await ctx.container.useCases.listGroupFeed({
+				userId: ctx.session.user.id,
+				...input,
+			});
+			return {
+				posts,
+				nextCursor: nextCursor && {
+					createdAt: nextCursor.createdAt.toISOString(),
+					id: nextCursor.id,
+				},
+			};
 		}),
-	),
+
+	/** "Publicar" of "Criar publicação": text, a file, or both (spec 036). */
+	post: protectedProcedure
+		.input(
+			z.object({
+				groupId,
+				// The length is the domain's rule, counted in characters (RN-05).
+				message: z.string().max(5000),
+				uploadKey: uploadKey.optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.createGroupPost({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** Imagem and PDF: a presigned upload under the group (spec 036; ADR 0017). */
+	requestUpload: protectedProcedure
+		.input(
+			z.object({
+				groupId,
+				type: z.enum(GROUP_FILE_TYPES),
+				contentType: z.string().min(1).max(100),
+				sizeBytes: z.number().int(),
+				fileName: z.string().max(1000),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.requestGroupUpload({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** Cancelar and X: one's own pending file goes (spec 036, RN-08). */
+	discardUpload: protectedProcedure
+		.input(z.object({ groupId, key: uploadKey }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.discardGroupUpload({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
 
 	assignments: protectedProcedure
 		.input(z.object({ groupId, sort: z.enum(GROUP_ASSIGNMENT_SORTS) }))

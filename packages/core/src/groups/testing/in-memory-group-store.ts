@@ -1,4 +1,5 @@
 import type {
+	GroupFeedCursor,
 	GroupFeedQuery,
 	GroupPostRecord,
 } from "../application/ports/group-feed-query";
@@ -10,6 +11,10 @@ import type {
 	GroupReads,
 } from "../application/ports/group-reads";
 import type { GroupRepository } from "../application/ports/group-repository";
+import type {
+	GroupUpload,
+	GroupUploadRepository,
+} from "../application/ports/group-upload-repository";
 import type { GroupVisitRepository } from "../application/ports/group-visit-repository";
 import type { Group } from "../domain/group";
 import type { GroupMember } from "../domain/group-member";
@@ -30,6 +35,12 @@ const copyGroup = (group: Group): Group => ({
 
 const memberKey = (groupId: string, userId: string) => `${groupId}:${userId}`;
 
+type Ordered = { createdAt: Date; id: string };
+/** The feed's order: newest first, then by id (spec 036, RN-18). */
+const newestFirst = (a: Ordered, b: Ordered) =>
+	b.createdAt.getTime() - a.createdAt.getTime() ||
+	(b.id < a.id ? -1 : b.id > a.id ? 1 : 0);
+
 /**
  * Every groups port over the same maps, with the accounts the read model
  * joins: give it the users first (`addUser`). Deleting a group takes its
@@ -42,7 +53,8 @@ export class InMemoryGroupStore
 		GroupVisitRepository,
 		GroupReads,
 		GroupPostRepository,
-		GroupFeedQuery
+		GroupFeedQuery,
+		GroupUploadRepository
 {
 	readonly #groups = new Map<string, Group>();
 	readonly #members = new Map<string, GroupMember>();
@@ -54,6 +66,7 @@ export class InMemoryGroupStore
 	readonly #posts = new Map<string, GroupPost>();
 	/** `postId:userId` of each like. */
 	readonly #likes = new Set<string>();
+	readonly #uploads = new Map<string, GroupUpload>();
 
 	addUser(user: StoredUser): void {
 		this.#users.set(user.id, { ...user });
@@ -136,6 +149,11 @@ export class InMemoryGroupStore
 				await this.deletePost(post.id);
 			}
 		}
+		for (const [key, upload] of this.#uploads) {
+			if (upload.groupId === id) {
+				this.#uploads.delete(key);
+			}
+		}
 	}
 
 	async createPost(post: GroupPost): Promise<"created" | "taken"> {
@@ -152,18 +170,80 @@ export class InMemoryGroupStore
 		return "created";
 	}
 
+	async createMessageFromUpload(
+		post: Omit<GroupPost, "file">,
+		upload: { key: string; uploaderId: string },
+	): Promise<"created" | "missing"> {
+		const pending = this.#uploads.get(upload.key);
+		if (
+			!pending ||
+			pending.uploaderId !== upload.uploaderId ||
+			pending.groupId !== post.groupId
+		) {
+			return "missing";
+		}
+		this.#uploads.delete(upload.key);
+		this.#posts.set(post.id, {
+			...post,
+			file: { ...pending.file, key: pending.key },
+		});
+		return "created";
+	}
+
 	async findPost(groupId: string, postId: string): Promise<GroupPost | null> {
 		const post = this.#posts.get(postId);
 		return post && post.groupId === groupId ? { ...post } : null;
 	}
 
-	async deletePost(postId: string): Promise<void> {
+	async deletePost(postId: string): Promise<GroupPost | null> {
+		const post = this.#posts.get(postId) ?? null;
 		this.#posts.delete(postId);
 		for (const like of [...this.#likes]) {
 			if (like.startsWith(`${postId}:`)) {
 				this.#likes.delete(like);
 			}
 		}
+		return post;
+	}
+
+	async fileKeysOfGroup(groupId: string): Promise<string[]> {
+		return [...this.#posts.values()].flatMap((post) =>
+			post.groupId === groupId && post.file ? [post.file.key] : [],
+		);
+	}
+
+	async addUpload(upload: GroupUpload): Promise<void> {
+		this.#uploads.set(upload.key, { ...upload, file: { ...upload.file } });
+	}
+
+	async removeUpload(key: string, uploaderId: string): Promise<boolean> {
+		if (this.#uploads.get(key)?.uploaderId !== uploaderId) {
+			return false;
+		}
+		return this.#uploads.delete(key);
+	}
+
+	async takeExpiredUploads(before: Date, limit: number): Promise<string[]> {
+		const expired = [...this.#uploads.values()]
+			.filter((upload) => upload.createdAt < before)
+			.slice(0, limit)
+			.map((upload) => upload.key);
+		for (const key of expired) {
+			this.#uploads.delete(key);
+		}
+		return expired;
+	}
+
+	async uploadKeysOfGroup(groupId: string): Promise<string[]> {
+		return [...this.#uploads.values()]
+			.filter((upload) => upload.groupId === groupId)
+			.map((upload) => upload.key);
+	}
+
+	/** Test helper: the pending upload, if any. */
+	async findUpload(key: string): Promise<GroupUpload | null> {
+		const upload = this.#uploads.get(key);
+		return upload ? { ...upload, file: { ...upload.file } } : null;
 	}
 
 	async setLike(
@@ -182,20 +262,22 @@ export class InMemoryGroupStore
 	async listPosts(
 		groupId: string,
 		viewerId: string,
+		page?: { limit: number; after: GroupFeedCursor | null },
 	): Promise<GroupPostRecord[]> {
-		return [...this.#posts.values()]
-			.filter((post) => post.groupId === groupId)
-			.sort(
-				(a, b) =>
-					b.createdAt.getTime() - a.createdAt.getTime() ||
-					b.id.localeCompare(a.id),
+		const after = page?.after ?? null;
+		const posts = [...this.#posts.values()]
+			.filter(
+				(post) =>
+					post.groupId === groupId &&
+					(after === null || newestFirst(after, post) < 0),
 			)
-			.map((post) => ({
-				...post,
-				authorName: this.#users.get(post.authorId)?.name ?? post.authorId,
-				likeCount: this.#likeCountOf(post.id),
-				likedByViewer: this.#likes.has(`${post.id}:${viewerId}`),
-			}));
+			.sort(newestFirst);
+		return (page ? posts.slice(0, page.limit) : posts).map((post) => ({
+			...post,
+			authorName: this.#users.get(post.authorId)?.name ?? post.authorId,
+			likeCount: this.#likeCountOf(post.id),
+			likedByViewer: this.#likes.has(`${post.id}:${viewerId}`),
+		}));
 	}
 
 	async likeCount(postId: string): Promise<number> {

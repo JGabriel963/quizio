@@ -78,7 +78,7 @@ export class MembersHiddenError extends DomainError {
 export class InvalidPostMessageError extends DomainError {
 	readonly code = "GROUP.INVALID_MESSAGE";
 	constructor() {
-		super("A post's message has 1 to 500 characters.");
+		super("A post's message has up to 500 characters.");
 	}
 }
 
@@ -118,5 +118,37 @@ export class AlreadyAssignedToGroupError extends DomainError {
 	readonly code = "GROUP.ALREADY_ASSIGNED";
 	constructor() {
 		super("This assignment is already in that group.");
+	}
+}
+
+/** Neither text nor an attachment (spec 036, RN-06). */
+export class EmptyPostError extends DomainError {
+	readonly code = "GROUP.EMPTY_POST";
+	constructor() {
+		super("A post needs text or an attachment.");
+	}
+}
+
+/** Not an image of the list, or not a PDF (spec 036, RN-09, RN-11). */
+export class UnsupportedGroupFileError extends DomainError {
+	readonly code = "GROUP.UNSUPPORTED_FILE";
+	constructor() {
+		super("Use a JPG, PNG, GIF or WebP image, or a PDF.");
+	}
+}
+
+/** Empty, or over 10 MB (image) or 20 MB (PDF). */
+export class InvalidGroupFileSizeError extends DomainError {
+	readonly code = "GROUP.INVALID_FILE_SIZE";
+	constructor() {
+		super("An image has up to 10 MB and a PDF up to 20 MB.");
+	}
+}
+
+/** Not this member's in this group, already used, gone, or never uploaded. */
+export class GroupUploadNotFoundError extends DomainError {
+	readonly code = "GROUP.UPLOAD_NOT_FOUND";
+	constructor() {
+		super("The file was not found; send it again.");
 	}
 }

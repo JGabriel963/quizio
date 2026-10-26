@@ -193,6 +193,8 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Curtida | `GroupPostLike` | Uma por membro e publicação; "Curtir" / "Curtida" (spec 038) | ✅ |
 | Atribuição do grupo | `GroupAssignment` | Uma atribuição (spec 029) publicada num grupo, no máximo uma vez por grupo; aparece no mural e na aba Atribuições enquanto está aberta (spec 038) | ✅ |
 | Atribuir a grupos | `assignToGroups` | Publicar uma atribuição já criada em um ou mais grupos onde a pessoa pode atribuir, pelo diálogo de compartilhar (spec 038) | ✅ |
+| Criar publicação | `createGroupPost` | O diálogo de publicar no mural: texto de até 500 caracteres e no máximo um anexo; aberto por "Publicar algo" e pelos botões "Criar publicação" (spec 036) | ✅ |
+| Anexo da publicação | `GroupPostAttachment` | O único anexo de uma publicação: imagem (até 10 MB), PDF (até 20 MB) ou atividade atribuída; apagado com a publicação (spec 036) | ✅ |
 | Excluir publicação | `deleteGroupPost` | Tira a publicação, com as curtidas, do mural e da aba; a atribuição continua; de quem atribuiu e do administrador (spec 038) | ✅ |
 | Relatório somente para leitura | `ReportView.readOnly` | O administrador do grupo vê o relatório de uma atribuição publicada ali por outra pessoa, sem nenhuma ação (spec 038) | ✅ |
 

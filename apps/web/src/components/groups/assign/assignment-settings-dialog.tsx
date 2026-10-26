@@ -93,11 +93,14 @@ function allowedDays(now: Date, maxDays: number): Date[] {
  * "Configurações da atividade atribuída" (spec 038, RN-07 to RN-10): the
  * deadline in two lists (a day and a full hour), the options, "Adicionar
  * mensagem", "Atribuir agora" and "Fechar". The rules are the spec 029's.
+ * Opened from "Criar publicação" (`variant="post"`), it has Cancelar and
+ * "Adicionar à publicação" instead, and creates nothing (spec 036, RN-12).
  */
 export function AssignmentSettingsDialog({
 	open,
 	setup,
 	now,
+	variant = "group",
 	onAssignNow,
 	onAddMessage,
 	onClose,
@@ -107,7 +110,9 @@ export function AssignmentSettingsDialog({
 	setup: AssignmentSetupData | undefined;
 	/** When the flow opened: the default and the bounds count from it. */
 	now: Date;
-	onAssignNow: (settings: AssignSettings) => Promise<unknown>;
+	variant?: "group" | "post";
+	onAssignNow?: (settings: AssignSettings) => Promise<unknown>;
+	/** "Adicionar mensagem", or "Adicionar à publicação" in the post. */
 	onAddMessage: (settings: AssignSettings) => void;
 	onClose: () => void;
 }) {
@@ -130,7 +135,7 @@ export function AssignmentSettingsDialog({
 	}, [setup, options]);
 
 	async function assignNow() {
-		if (!options || assigning) {
+		if (!options || assigning || !onAssignNow) {
 			return;
 		}
 		setAssigning(true);
@@ -249,27 +254,41 @@ export function AssignmentSettingsDialog({
 						{failure}
 					</p>
 				)}
-				<DialogFooter className="flex-col items-center gap-2 sm:flex-col">
-					<div className="flex flex-wrap justify-center gap-2">
+				{variant === "post" ? (
+					<DialogFooter className="sm:justify-center">
+						<Button variant="secondary" onClick={onClose}>
+							Cancelar
+						</Button>
 						<Button
-							variant="secondary"
 							disabled={!options}
 							onClick={() => options && onAddMessage({ deadline, options })}
 						>
-							Adicionar mensagem
+							Adicionar à publicação
 						</Button>
-						<Button
-							disabled={!options || assigning}
-							aria-busy={assigning || undefined}
-							onClick={assignNow}
-						>
-							Atribuir agora
+					</DialogFooter>
+				) : (
+					<DialogFooter className="flex-col items-center gap-2 sm:flex-col">
+						<div className="flex flex-wrap justify-center gap-2">
+							<Button
+								variant="secondary"
+								disabled={!options}
+								onClick={() => options && onAddMessage({ deadline, options })}
+							>
+								Adicionar mensagem
+							</Button>
+							<Button
+								disabled={!options || assigning}
+								aria-busy={assigning || undefined}
+								onClick={assignNow}
+							>
+								Atribuir agora
+							</Button>
+						</div>
+						<Button variant="ghost" onClick={onClose}>
+							Fechar
 						</Button>
-					</div>
-					<Button variant="ghost" onClick={onClose}>
-						Fechar
-					</Button>
-				</DialogFooter>
+					</DialogFooter>
+				)}
 			</DialogContent>
 		</Dialog>
 	);

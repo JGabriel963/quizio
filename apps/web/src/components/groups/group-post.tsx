@@ -31,15 +31,22 @@ import { QuizCover } from "@/components/quiz/quiz-cover";
 import type { GroupPostData } from "@/lib/api-types";
 import { assignmentLink } from "@/lib/assignment-link";
 import { formatRelativeTime } from "@/lib/format-relative-time";
-import { likesLabel, postDateLabel } from "@/lib/group-post-labels";
+import {
+	likesLabel,
+	postDateLabel,
+	postHeadlineLabel,
+} from "@/lib/group-post-labels";
 import { questionCountLabel } from "@/lib/quiz-labels";
 
+import { PostFileCard } from "./post/post-file-card";
+import { PostImage } from "./post/post-image";
+import { PostText } from "./post/post-text";
 import { UserAvatar } from "./user-avatar";
 
 /**
- * A post of the feed (spec 038, RN-13 to RN-21): who assigned, the message,
- * the activity's card with Iniciar (or the removed box once it is over), the
- * likes and the ⋮.
+ * A post of the feed: who posted and what (spec 036, RN-17), the text with
+ * its links, the image, the PDF or the activity's card with Iniciar (or the
+ * removed box once it is over, spec 038, RN-16), the likes and the ⋮.
  */
 export function GroupPost({
 	post,
@@ -52,7 +59,8 @@ export function GroupPost({
 	onLike: (liked: boolean) => Promise<unknown>;
 	onDelete: () => Promise<unknown>;
 }) {
-	const { author, attachment } = post;
+	const { author, attachment, file } = post;
+	const isAssignment = post.gameId !== null;
 
 	return (
 		<article className="flex flex-col rounded-lg bg-card shadow-sm">
@@ -60,7 +68,7 @@ export function GroupPost({
 				<UserAvatar userId={author.userId} />
 				<p className="min-w-0 flex-1 text-sm">
 					<span className="font-bold">{author.name}</span>{" "}
-					{attachment ? "atribuiu um kahoot" : "compartilhou um arquivo"}
+					{postHeadlineLabel(post.headline)}
 				</p>
 				<span className="text-muted-foreground text-xs">
 					{postDateLabel(new Date(post.createdAt))}
@@ -69,17 +77,27 @@ export function GroupPost({
 					gameId={post.gameId}
 					canSeeReport={post.canSeeReport}
 					canDelete={post.canDelete}
+					hasFile={file !== null}
 					onDelete={onDelete}
 				/>
 			</header>
 
 			<div className="flex flex-col gap-3 px-4 pt-3 pb-4">
-				{post.message && (
-					<p className="whitespace-pre-line break-words text-sm">
-						{post.message}
-					</p>
+				{post.message && <PostText text={post.message} />}
+				{file?.type === "image" && (
+					<PostImage
+						url={file.url}
+						alt={`Imagem publicada por ${author.name}`}
+					/>
 				)}
-				{attachment ? (
+				{file?.type === "pdf" && (
+					<PostFileCard
+						url={file.url}
+						name={file.name}
+						sizeBytes={file.sizeBytes}
+					/>
+				)}
+				{!isAssignment ? null : attachment ? (
 					<div className="flex items-stretch overflow-hidden rounded-md border border-border bg-card shadow-sm">
 						<div className="relative w-28 shrink-0 sm:w-32">
 							<QuizCover
@@ -182,17 +200,20 @@ function LikeRow({
 /**
  * The ⋮ of a post and of an Atribuições card: "Ver relatório" while the
  * report exists and "Excluir publicação", which asks first (spec 038, RN-20,
- * RN-21). Nothing at all for who may do neither.
+ * RN-21; spec 036, RN-19, RN-20). Nothing at all for who may do neither.
  */
 export function PostMenu({
 	gameId,
 	canSeeReport,
 	canDelete,
+	hasFile = false,
 	onDelete,
 }: {
 	gameId: string | null;
 	canSeeReport: boolean;
 	canDelete: boolean;
+	/** Its image or PDF goes with it. */
+	hasFile?: boolean;
 	onDelete: () => Promise<unknown>;
 }) {
 	const [deleting, setDeleting] = useState(false);
@@ -239,8 +260,11 @@ export function PostMenu({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Excluir a publicação?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Ela some do mural e das atribuições do grupo, mas a atividade
-							continua aberta para quem tem o link, até o prazo.
+							{gameId
+								? "Ela some do mural e das atribuições do grupo, mas a atividade continua aberta para quem tem o link, até o prazo."
+								: hasFile
+									? "Ela some do mural para todos, com o arquivo."
+									: "Ela some do mural para todos."}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

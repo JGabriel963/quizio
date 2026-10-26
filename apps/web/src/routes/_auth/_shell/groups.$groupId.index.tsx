@@ -1,5 +1,5 @@
 import { GROUP_ASSIGNMENT_SORTS } from "@quizio/core/groups/domain/group-assignment";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -28,8 +28,13 @@ import {
 	GROUP_TABS,
 	GroupTabs,
 } from "@/components/groups/group-tabs";
+import {
+	CreatePostFlow,
+	type GroupFileUploader,
+} from "@/components/groups/post/create-post-flow";
 import { isGroupNotFound } from "@/lib/group-error-messages";
 import { useGroupMutations } from "@/lib/group-mutations";
+import { uploadFile } from "@/lib/upload-file";
 import { useOrigin } from "@/lib/use-origin";
 import { useTRPC } from "@/utils/trpc";
 
@@ -43,7 +48,7 @@ export const Route = createFileRoute("/_auth/_shell/groups/$groupId/")({
 	component: GroupPage,
 });
 
-/** A group's page (spec 034, RN-13 to RN-20; spec 038). */
+/** A group's page (spec 034, RN-13 to RN-20; specs 036 and 038). */
 function GroupPage() {
 	const { groupId } = Route.useParams();
 	const { tab, sort } = Route.useSearch();
@@ -57,6 +62,7 @@ function GroupPage() {
 	>(null);
 	// When the assign flow opened: its default deadline counts from then.
 	const [assigningSince, setAssigningSince] = useState<Date | null>(null);
+	const [posting, setPosting] = useState(false);
 	// A group that is gone (left, deleted) is the page's own state, not a toast,
 	// and asking again will not bring it back.
 	const groupQuery = {
@@ -69,8 +75,12 @@ function GroupPage() {
 		...groupQuery,
 	});
 	const isMember = group.isSuccess;
-	const feed = useQuery({
-		...trpc.group.feed.queryOptions({ groupId }),
+	// Pages of 20, "Mostrar mais publicações" asks for the next (spec 036, RN-18).
+	const feed = useInfiniteQuery({
+		...trpc.group.feed.infiniteQueryOptions(
+			{ groupId },
+			{ getNextPageParam: (page) => page.nextCursor ?? undefined },
+		),
 		...groupQuery,
 		enabled: isMember && tab === "activity",
 	});
@@ -79,13 +89,17 @@ function GroupPage() {
 		...groupQuery,
 		enabled: isMember && tab === "assignments",
 	});
+	// "Atribuir" and "Criar publicação" (with Atribuir kahoot) pick a quiz.
+	const picksQuiz =
+		assigningSince !== null ||
+		(posting && group.data?.abilities.assign === true);
 	const quizzes = useQuery({
 		...trpc.library.list.queryOptions({ section: "recent" }),
-		enabled: assigningSince !== null,
+		enabled: picksQuiz,
 	});
 	const assignmentSetup = useQuery({
 		...trpc.game.assignment.setup.queryOptions(),
-		enabled: assigningSince !== null,
+		enabled: picksQuiz,
 	});
 	const { mutate: visit } = mutations.visit;
 
@@ -111,6 +125,19 @@ function GroupPage() {
 	const startAssigning = () => setAssigningSince(new Date());
 	const deletePost = (postId: string) =>
 		mutations.deletePost.mutateAsync({ groupId, postId });
+	const posts = feed.data?.pages.flatMap((page) => page.posts) ?? [];
+	// The browser sends the file straight to storage (ADR 0017).
+	const uploadGroupFile: GroupFileUploader = async (type, file, onProgress) => {
+		const target = await mutations.requestUpload.mutateAsync({
+			groupId,
+			type,
+			contentType: file.type,
+			sizeBytes: file.size,
+			fileName: file.name,
+		});
+		await uploadFile({ file, upload: target, onProgress });
+		return { key: target.key };
+	};
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -132,10 +159,13 @@ function GroupPage() {
 					canAssign={data.abilities.assign}
 					setup={data.setup}
 					feed={
-						feed.data && feed.data.posts.length > 0 ? (
+						posts.length > 0 ? (
 							<GroupFeed
-								posts={feed.data.posts}
+								posts={posts}
 								origin={origin ?? ""}
+								hasMore={feed.hasNextPage}
+								loadingMore={feed.isFetchingNextPage}
+								onLoadMore={() => void feed.fetchNextPage()}
 								onLike={(postId, liked) =>
 									mutations.setLike.mutateAsync({ groupId, postId, liked })
 								}
@@ -145,6 +175,7 @@ function GroupPage() {
 					}
 					onInvite={() => setDialog("invite")}
 					onAssign={startAssigning}
+					onCreatePost={() => setPosting(true)}
 					onDismissSetup={() => mutations.dismissSetup.mutate({ groupId })}
 				/>
 			) : tab === "assignments" ? (
@@ -180,6 +211,27 @@ function GroupPage() {
 					onClose={() => setAssigningSince(null)}
 				/>
 			)}
+
+			<CreatePostFlow
+				open={posting}
+				canAssign={data.abilities.assign}
+				quizzes={quizzes.data}
+				ownerName={session.user.name}
+				setup={assignmentSetup.data}
+				onUpload={uploadGroupFile}
+				onDiscardUpload={(key) =>
+					mutations.discardUpload.mutate({ groupId, key })
+				}
+				onPost={(input) => mutations.post.mutateAsync({ groupId, ...input })}
+				onAssign={({ deadline, ...input }) =>
+					mutations.assign.mutateAsync({
+						groupId,
+						deadline: deadline.toISOString(),
+						...input,
+					})
+				}
+				onClose={() => setPosting(false)}
+			/>
 
 			<GroupInfoDialog
 				group={dialog === "info" ? data : null}

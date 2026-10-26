@@ -156,6 +156,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		inviteCodes: new SequentialInviteCodeGenerator(),
 		groupPosts: groups,
 		groupFeed: groups,
+		groupUploads: groups,
 		// Reads the games above, as the database adapter reads its tables.
 		groupAssignmentQuery: {
 			findAssignments: async (gameIds) => {

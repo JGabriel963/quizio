@@ -20,7 +20,13 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"GROUP.INVITE_NOT_ALLOWED":
 		"O administrador não permite que os membros convidem outras pessoas.",
 	"GROUP.MEMBERS_HIDDEN": "O administrador ocultou a lista de membros.",
-	"GROUP.INVALID_MESSAGE": `A mensagem deve ter de 1 a ${GROUP_POST_MESSAGE_MAX_LENGTH} caracteres.`,
+	"GROUP.INVALID_MESSAGE": `A mensagem deve ter até ${GROUP_POST_MESSAGE_MAX_LENGTH} caracteres.`,
+	"GROUP.EMPTY_POST": "Escreva um texto ou adicione um anexo.",
+	"GROUP.UNSUPPORTED_FILE":
+		"Use uma imagem JPG, PNG, GIF ou WebP, ou um arquivo PDF.",
+	"GROUP.INVALID_FILE_SIZE": "A imagem deve ter até 10 MB, e o PDF, até 20 MB.",
+	"GROUP.UPLOAD_NOT_FOUND":
+		"Não foi possível encontrar o arquivo. Envie-o de novo.",
 	"GROUP.ASSIGN_NOT_ALLOWED":
 		"O administrador não permite que os membros atribuam atividades.",
 	"GROUP.POST_NOT_FOUND": "Esta publicação não existe mais.",

@@ -43,6 +43,7 @@ export function groupsTestDeps() {
 		groupReads: store,
 		groupPosts: store,
 		groupFeed: store,
+		groupUploads: store,
 		groupAssignments: assignments,
 		groupAssignmentQuery: assignments,
 		storage: new InMemoryObjectStorage("https://media.test"),

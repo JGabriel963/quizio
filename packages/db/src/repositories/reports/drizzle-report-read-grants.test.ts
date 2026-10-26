@@ -51,6 +51,7 @@ describe("DrizzleReportReadGrants (spec 038, RN-20a)", () => {
 			kind: "assignment",
 			message: null,
 			gameId: "game-1",
+			file: null,
 			createdAt: at,
 		});
 	});
