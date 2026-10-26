@@ -40,8 +40,10 @@ function GroupsLayout() {
 
 	return (
 		<CreateGroupContext.Provider value={() => setCreating(true)}>
-			<div className="mx-auto flex w-full max-w-7xl gap-8">
-				<div className="hidden lg:block">
+			{/* On a wide screen the column sits against the main sidebar, full
+			    height, as in Kahoot: it takes back the content's padding. */}
+			<div className="flex lg:-mx-4 lg:-my-6 lg:min-h-[calc(100%+3rem)]">
+				<div className="hidden shrink-0 border-border border-r bg-card px-3 py-4 lg:block">
 					<GroupsColumn
 						section={section}
 						recent={recent.data?.items ?? []}
@@ -49,8 +51,10 @@ function GroupsLayout() {
 						onCreate={() => setCreating(true)}
 					/>
 				</div>
-				<div className="min-w-0 flex-1">
-					<Outlet />
+				<div className="min-w-0 flex-1 lg:px-8 lg:py-6">
+					<div className="mx-auto w-full max-w-6xl">
+						<Outlet />
+					</div>
 				</div>
 			</div>
 			<CreateGroupDialog
