@@ -185,6 +185,9 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Excluir grupo | `deleteGroup` | Exclusão definitiva do grupo para todos, só pelo administrador (spec 034) | ✅ |
 | Grupos recentes | `listRecentGroups` / `group_visit` | Os 5 grupos que o usuário abriu por último (spec 034) | ✅ |
 | Configurar seu grupo | `GroupSetup` / `groupSetupOf` | Cartão do administrador com os passos Convidar membros, Atribuir e Criar publicação; some com "Pular configuração" (spec 034) | ✅ |
+| Configurações do grupo | `GroupSettings` | Tela do administrador para mudar o nome, a descrição e as permissões dos membros (spec 035) | ✅ |
+| Descrição do grupo | `Group.description` | Texto opcional de até 500 caracteres, mostrado em "Informações do grupo" (spec 035) | ✅ |
+| Permissões dos membros | `GroupPermissions` (`membersCanInvite`, `membersCanSeeMembers`, `membersCanShare`, `membersCanAssign`) | As quatro chaves do grupo; valem só para os membros; padrão do Kahoot: as três primeiras ligadas e criar atividades desligada (spec 035) | ✅ |
 
 ## Library, Reports, Media
 

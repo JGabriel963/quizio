@@ -1,3 +1,4 @@
+import { GROUP_PERMISSIONS } from "@quizio/core/groups/domain/group-permissions";
 import { GROUP_SECTIONS } from "@quizio/core/groups/domain/group-section";
 import { z } from "zod";
 
@@ -37,6 +38,47 @@ const inviteRouter = router({
 			...input,
 		}),
 	),
+});
+
+/** "Configurações do grupo", the admin's (spec 035). */
+const settingsRouter = router({
+	get: protectedProcedure.input(inGroup).query(({ ctx, input }) =>
+		ctx.container.useCases.getGroupSettings({
+			userId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
+	updateDetails: protectedProcedure
+		// The lengths are the domain's rules, counted in characters (RN-04).
+		.input(
+			z.object({
+				groupId,
+				name: z.string().max(1000),
+				description: z.string().max(5000),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.updateGroupDetails({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	setPermission: protectedProcedure
+		.input(
+			z.object({
+				groupId,
+				permission: z.enum(GROUP_PERMISSIONS),
+				value: z.boolean(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.setGroupPermission({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
 });
 
 /** Groups of who is signed in (spec 034): membership is checked by every use case. */
@@ -119,4 +161,5 @@ export const groupRouter = router({
 	),
 
 	invite: inviteRouter,
+	settings: settingsRouter,
 });

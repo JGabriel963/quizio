@@ -17,6 +17,7 @@ async function renderDialog(
 			onClose={() => {}}
 			origin="https://quizio.app"
 			code={code}
+			canReset
 			onReset={onReset}
 		/>,
 	);
@@ -94,6 +95,7 @@ describe("InviteDialog (spec 034, RN-21, RN-24)", () => {
 				onClose={() => {}}
 				origin="https://quizio.app"
 				code={null}
+				canReset
 				onReset={async () => {}}
 			/>,
 		);
@@ -102,5 +104,26 @@ describe("InviteDialog (spec 034, RN-21, RN-24)", () => {
 		expect(
 			within(dialog).getByRole("button", { name: "Copiar" }),
 		).toBeDisabled();
+	});
+
+	it("no Redefinir link without canReset (spec 035, RN-11)", async () => {
+		renderWithRouter(
+			<InviteDialog
+				open
+				onClose={() => {}}
+				origin="https://quizio.app"
+				code="code-a"
+				canReset={false}
+				onReset={async () => {}}
+			/>,
+		);
+
+		const dialog = await screen.findByRole("dialog");
+		expect(
+			within(dialog).getByLabelText("Compartilhar link de convite"),
+		).toHaveValue("https://quizio.app/invite/code-a");
+		expect(
+			within(dialog).queryByRole("button", { name: "Redefinir link" }),
+		).toBeNull();
 	});
 });

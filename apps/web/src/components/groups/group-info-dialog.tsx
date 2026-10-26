@@ -39,6 +39,14 @@ export function GroupInfoDialog({
 					<dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
 						<dt className="font-semibold">Nome:</dt>
 						<dd className="break-words">{group.name}</dd>
+						{group.description && (
+							<>
+								<dt className="font-semibold">Descrição:</dt>
+								<dd className="whitespace-pre-line break-words">
+									{group.description}
+								</dd>
+							</>
+						)}
 						<dt className="font-semibold">Administrador:</dt>
 						<dd>{group.adminName}</dd>
 						<dt className="font-semibold">Membros:</dt>

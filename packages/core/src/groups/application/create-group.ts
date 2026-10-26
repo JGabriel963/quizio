@@ -1,6 +1,7 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import { type Group, parseGroupName } from "../domain/group";
+import { DEFAULT_GROUP_PERMISSIONS } from "../domain/group-permissions";
 import type { GroupRepository } from "./ports/group-repository";
 import type { InviteCodeGenerator } from "./ports/invite-code-generator";
 
@@ -22,6 +23,8 @@ export function createCreateGroup(deps: {
 		const group: Group = {
 			id: deps.ids.generate(),
 			name,
+			description: "",
+			permissions: { ...DEFAULT_GROUP_PERMISSIONS },
 			adminId: userId,
 			inviteCode: deps.inviteCodes.generate(),
 			createdAt: now,

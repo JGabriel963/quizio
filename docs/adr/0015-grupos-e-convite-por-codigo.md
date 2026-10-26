@@ -26,3 +26,7 @@ A spec 034 traz os **grupos**: um administrador cria o grupo, convida membros po
 - **Convite como tabela própria** (vários links, com prazo e contagem de usos). Mais flexível, mas o Kahoot tem um link por grupo, sem prazo; um código no grupo basta e torna "redefinir" uma troca de coluna.
 - **Administrador só em `group.admin_id`, fora de `group_member`.** Evita uma linha, mas toda regra de "é membro?" e toda contagem teria dois casos.
 - **Copiar nome e e-mail para `group_member` na entrada.** Evita a junção com a conta, mas fica velho quando o usuário muda de nome.
+
+## Permissões dos membros (aceito em 2026-10-26, spec 035)
+
+As quatro chaves de "Configurações do grupo" (convidar, ver membros, compartilhar conteúdo, criar atividades) são **colunas booleanas da tabela `group`**, com o padrão do Kahoot como `DEFAULT` do banco: a migration deu esses valores também aos grupos que já existiam, sem script de preenchimento, e um teste PGlite prende o `DEFAULT` ao `DEFAULT_GROUP_PERMISSIONS` do domínio. Cada chave é gravada sozinha (`savePermission`), e nome e descrição juntos (`saveDetails`), para que duas mudanças ao mesmo tempo fiquem as duas. O que o membro pode fazer sai de funções puras do domínio (`canInvite`, `canSeeMembers`), aplicadas em cada caso de uso; a página do grupo devolve o resultado em `abilities` e não manda a prévia dos membros a quem não pode vê-los. Alternativa considerada: uma tabela `group_setting` chave-valor, mais flexível, mas sem tipos no banco e com uma junção a mais em toda leitura do grupo.

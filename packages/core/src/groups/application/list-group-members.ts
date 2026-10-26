@@ -4,6 +4,7 @@ import {
 	matchesGroupSearch,
 	sortMembers,
 } from "../domain/group-member";
+import { assertCanSeeMembers } from "../domain/group-permissions";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
 import type { GroupReads } from "./ports/group-reads";
 
@@ -27,7 +28,8 @@ export function createListGroupMembers(
 	deps: GroupStoreDeps & { groupReads: GroupReads },
 ): ListGroupMembers {
 	return async ({ search = "", ...input }) => {
-		const { membership } = await requireMembership(deps, input);
+		const { group, membership } = await requireMembership(deps, input);
+		assertCanSeeMembers(group, membership);
 		const showEmail = canSeeMemberEmail(membership.role);
 		const members = await deps.groupReads.members(input.groupId);
 		const items = sortMembers(members)

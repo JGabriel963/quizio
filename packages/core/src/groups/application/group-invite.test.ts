@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	GroupNotFoundError,
 	InvalidGroupInviteError,
+	InviteNotAllowedError,
 	NotGroupAdminError,
 } from "../domain/group-errors";
 import { groupsTestDeps } from "../testing/groups-test-deps";
@@ -24,15 +25,15 @@ describe("the group's invite (spec 034)", () => {
 		).toEqual({ code: "invite-1" });
 	});
 
-	it("a member gets GROUP.NOT_ADMIN; an outsider GROUP.NOT_FOUND", async () => {
+	it("a member reads the code when the admin allows, but cannot reset (spec 035, RN-11)", async () => {
 		const t = groupsTestDeps();
 		const groupId = await t.aGroupOf("ana", ["bruno"]);
 		const read = createGetGroupInvite(t.deps);
 		const reset = createResetGroupInvite(t.deps);
 
-		await expect(read({ userId: "bruno", groupId })).rejects.toThrow(
-			NotGroupAdminError,
-		);
+		expect(await read({ userId: "bruno", groupId })).toEqual({
+			code: "invite-1",
+		});
 		await expect(reset({ userId: "bruno", groupId })).rejects.toThrow(
 			NotGroupAdminError,
 		);
@@ -40,6 +41,24 @@ describe("the group's invite (spec 034)", () => {
 			GroupNotFoundError,
 		);
 		expect((await t.store.findById(groupId))?.inviteCode).toBe("invite-1");
+	});
+
+	it("with inviting off a member gets GROUP.INVITE_NOT_ALLOWED and the link still lets people in (spec 035, RN-12)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno"]);
+		await t.store.savePermission(groupId, "membersCanInvite", false);
+
+		await expect(
+			createGetGroupInvite(t.deps)({ userId: "bruno", groupId }),
+		).rejects.toThrow(InviteNotAllowedError);
+		expect(
+			await createGetGroupInvite(t.deps)({ userId: "ana", groupId }),
+		).toEqual({ code: "invite-1" });
+		await createAcceptGroupInvite(t.deps)({
+			userId: "carla",
+			code: "invite-1",
+		});
+		expect(await t.store.find(groupId, "carla")).not.toBeNull();
 	});
 
 	it("reset gives a new code; the old one is invalid and the members stay", async () => {

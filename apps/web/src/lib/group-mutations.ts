@@ -80,6 +80,20 @@ export function useGroupMutations() {
 				onError: showError,
 			}),
 		),
+		updateDetails: useMutation(
+			trpc.group.settings.updateDetails.mutationOptions({
+				// The dialog tells the failure beside the field (spec 035).
+				meta: { suppressErrorToast: true },
+				onSuccess: invalidate,
+			}),
+		),
+		setPermission: useMutation(
+			trpc.group.settings.setPermission.mutationOptions({
+				// The switch goes back and the panel tells it (spec 035, RN-09).
+				meta: { suppressErrorToast: true },
+				onSuccess: invalidate,
+			}),
+		),
 		remove: useMutation(
 			trpc.group.delete.mutationOptions({
 				onSuccess: () => {

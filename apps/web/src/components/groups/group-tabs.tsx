@@ -12,16 +12,19 @@ export const GROUP_TAB_LABELS: Record<GroupTab, string> = {
 	assignments: "Atribuições",
 };
 
-/** The tabs, with "Adicionar membros" for the admin on the same line (RN-16). */
+/**
+ * The tabs, with "Adicionar membros" on the same line for whoever may invite:
+ * the admin, and members when the admin lets them (spec 034, RN-16; spec 035).
+ */
 export function GroupTabs({
 	groupId,
 	tab,
-	isAdmin,
+	canInvite,
 	onAddMembers,
 }: {
 	groupId: string;
 	tab: GroupTab;
-	isAdmin: boolean;
+	canInvite: boolean;
 	onAddMembers: () => void;
 }) {
 	return (
@@ -43,7 +46,7 @@ export function GroupTabs({
 					</TabNavItem>
 				))}
 			</TabNav>
-			{isAdmin && <Button onClick={onAddMembers}>Adicionar membros</Button>}
+			{canInvite && <Button onClick={onAddMembers}>Adicionar membros</Button>}
 		</div>
 	);
 }

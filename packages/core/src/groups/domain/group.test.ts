@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	GROUP_DESCRIPTION_MAX_LENGTH,
 	GROUP_NAME_MAX_LENGTH,
+	InvalidGroupDescriptionError,
 	InvalidGroupNameError,
+	parseGroupDescription,
 	parseGroupName,
 } from "./group";
 
@@ -24,5 +27,33 @@ describe("group name (spec 034, RN-03)", () => {
 			expect(() => parseGroupName(name)).toThrow(InvalidGroupNameError);
 		}
 		expect(new InvalidGroupNameError().code).toBe("GROUP.INVALID_NAME");
+	});
+});
+
+describe("group description (spec 035, RN-04, RN-05)", () => {
+	it("a description keeps its line breaks and loses the spaces at its ends", () => {
+		expect(parseGroupDescription("  Revisão para a prova\nde quinta \n")).toBe(
+			"Revisão para a prova\nde quinta",
+		);
+	});
+
+	it("only spaces is an empty description", () => {
+		expect(parseGroupDescription(" \n  ")).toBe("");
+		expect(parseGroupDescription("")).toBe("");
+	});
+
+	it("accepts 500 characters, an emoji counting as one", () => {
+		const description = `${"a".repeat(GROUP_DESCRIPTION_MAX_LENGTH - 1)}👩‍🏫`;
+
+		expect(parseGroupDescription(description)).toBe(description);
+	});
+
+	it("refuses 501 with GROUP.INVALID_DESCRIPTION", () => {
+		expect(() => parseGroupDescription("a".repeat(501))).toThrow(
+			InvalidGroupDescriptionError,
+		);
+		expect(new InvalidGroupDescriptionError().code).toBe(
+			"GROUP.INVALID_DESCRIPTION",
+		);
 	});
 });

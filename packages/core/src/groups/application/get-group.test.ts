@@ -56,4 +56,68 @@ describe("getGroup (spec 034)", () => {
 			createGetGroup(t.deps)({ userId: "bruno", groupId }),
 		).rejects.toThrow(GroupNotFoundError);
 	});
+
+	it("tells the description (spec 035, RN-06)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno"]);
+		await t.store.saveDetails(groupId, {
+			name: "Turma 7A",
+			description: "Revisão",
+		});
+
+		const view = await createGetGroup(t.deps)({ userId: "bruno", groupId });
+
+		expect(view.description).toBe("Revisão");
+	});
+
+	it("abilities follow the switches for a member and are all true for the admin (spec 035)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno"]);
+		await t.store.savePermission(groupId, "membersCanInvite", false);
+		const get = createGetGroup(t.deps);
+
+		expect((await get({ userId: "bruno", groupId })).abilities).toEqual({
+			invite: false,
+			seeMembers: true,
+		});
+		expect((await get({ userId: "ana", groupId })).abilities).toEqual({
+			invite: true,
+			seeMembers: true,
+		});
+	});
+
+	it("with the list hidden a member gets no preview, but the total and the admin (spec 035, RN-13, RN-14)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno", "carla"]);
+		await t.store.savePermission(groupId, "membersCanSeeMembers", false);
+
+		const view = await createGetGroup(t.deps)({ userId: "bruno", groupId });
+
+		expect(view).toMatchObject({
+			adminName: "Ana",
+			memberCount: 3,
+			memberPreview: [],
+			abilities: { seeMembers: false },
+		});
+	});
+
+	it("the admin always gets the preview (spec 035, CA-13)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno"]);
+		await t.store.savePermission(groupId, "membersCanSeeMembers", false);
+
+		const view = await createGetGroup(t.deps)({ userId: "ana", groupId });
+
+		expect(view.memberPreview).toHaveLength(2);
+	});
+
+	it("inviting without seeing members (spec 035, RN-15)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno"]);
+		await t.store.savePermission(groupId, "membersCanSeeMembers", false);
+
+		const view = await createGetGroup(t.deps)({ userId: "bruno", groupId });
+
+		expect(view.abilities).toEqual({ invite: true, seeMembers: false });
+	});
 });

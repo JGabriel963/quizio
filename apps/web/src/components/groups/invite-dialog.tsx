@@ -30,14 +30,15 @@ import { groupInviteLink } from "@/lib/group-invite-link";
 const RESET_HELP = "Gera um novo link. O link atual deixa de funcionar.";
 
 /**
- * "Convidar usuários": the invite link, Copiar and Redefinir link, for the
- * admin only (spec 034, RN-21, RN-22, RN-24).
+ * "Convidar usuários": the invite link and Copiar, for whoever may invite, and
+ * Redefinir link for the admin only (spec 034, RN-21, RN-24; spec 035, RN-11).
  */
 export function InviteDialog({
 	open,
 	onClose,
 	origin,
 	code,
+	canReset,
 	onReset,
 }: {
 	open: boolean;
@@ -45,6 +46,8 @@ export function InviteDialog({
 	origin: string;
 	/** Null while it loads. */
 	code: string | null;
+	/** The admin's: resetting drops the link for everybody. */
+	canReset: boolean;
 	onReset: () => Promise<unknown>;
 }) {
 	const fieldId = useId();
@@ -79,30 +82,32 @@ export function InviteDialog({
 							<label htmlFor={fieldId} className="font-semibold text-sm">
 								Compartilhar link de convite
 							</label>
-							<span className="flex items-center gap-1">
-								<button
-									type="button"
-									disabled={!code}
-									onClick={() => setConfirming(true)}
-									className="text-primary text-sm hover:underline disabled:opacity-50"
-								>
-									Redefinir link
-								</button>
-								<Tooltip>
-									<TooltipTrigger
-										render={
-											<button
-												type="button"
-												aria-label={RESET_HELP}
-												className="text-muted-foreground"
-											/>
-										}
+							{canReset && (
+								<span className="flex items-center gap-1">
+									<button
+										type="button"
+										disabled={!code}
+										onClick={() => setConfirming(true)}
+										className="text-primary text-sm hover:underline disabled:opacity-50"
 									>
-										<CircleHelpIcon className="size-4" />
-									</TooltipTrigger>
-									<TooltipContent>{RESET_HELP}</TooltipContent>
-								</Tooltip>
-							</span>
+										Redefinir link
+									</button>
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<button
+													type="button"
+													aria-label={RESET_HELP}
+													className="text-muted-foreground"
+												/>
+											}
+										>
+											<CircleHelpIcon className="size-4" />
+										</TooltipTrigger>
+										<TooltipContent>{RESET_HELP}</TooltipContent>
+									</Tooltip>
+								</span>
+							)}
 						</div>
 						<div className="flex gap-2">
 							<Input

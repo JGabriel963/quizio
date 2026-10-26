@@ -97,3 +97,5 @@ export type GroupViewData = RouterOutputs["group"]["get"];
 export type GroupMemberData =
 	RouterOutputs["group"]["members"]["items"][number];
 export type GroupInvitationData = RouterOutputs["group"]["invite"]["find"];
+/** "Configurações do grupo" (spec 035). */
+export type GroupSettingsData = RouterOutputs["group"]["settings"]["get"];

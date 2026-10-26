@@ -45,3 +45,39 @@ export function GroupSkeleton() {
 		</div>
 	);
 }
+
+function BackToGroup({ groupId }: { groupId: string }) {
+	return (
+		<Button
+			variant="outline"
+			nativeButton={false}
+			render={<Link to="/groups/$groupId" params={{ groupId }} />}
+		>
+			Voltar para o grupo
+		</Button>
+	);
+}
+
+/** A member at the settings' address (spec 035, RN-02). */
+export function GroupAdminOnly({ groupId }: { groupId: string }) {
+	return (
+		<div className={panel}>
+			<p className="font-semibold">
+				Só o administrador do grupo pode mudar as configurações.
+			</p>
+			<BackToGroup groupId={groupId} />
+		</div>
+	);
+}
+
+/** A member at the members' address with the list hidden (spec 035, RN-13). */
+export function MembersHidden({ groupId }: { groupId: string }) {
+	return (
+		<div className={panel}>
+			<p className="font-semibold">
+				O administrador ocultou a lista de membros.
+			</p>
+			<BackToGroup groupId={groupId} />
+		</div>
+	);
+}

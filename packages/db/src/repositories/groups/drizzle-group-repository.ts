@@ -1,13 +1,32 @@
 import type { GroupRepository } from "@quizio/core/groups/application/ports/group-repository";
 import type { Group } from "@quizio/core/groups/domain/group";
+import type { GroupPermission } from "@quizio/core/groups/domain/group-permissions";
 import { eq } from "drizzle-orm";
 
 import { groupMember, groupTable } from "../../schema/groups";
 import type { Database } from "../../types";
 
+/** Each switch's column (spec 035). */
+const PERMISSION_COLUMNS = {
+	membersCanInvite: "membersCanInvite",
+	membersCanSeeMembers: "membersCanSeeMembers",
+	membersCanShare: "membersCanShare",
+	membersCanAssign: "membersCanAssign",
+} as const satisfies Record<
+	GroupPermission,
+	keyof typeof groupTable.$inferSelect
+>;
+
 const toGroup = (row: typeof groupTable.$inferSelect): Group => ({
 	id: row.id,
 	name: row.name,
+	description: row.description,
+	permissions: {
+		membersCanInvite: row.membersCanInvite,
+		membersCanSeeMembers: row.membersCanSeeMembers,
+		membersCanShare: row.membersCanShare,
+		membersCanAssign: row.membersCanAssign,
+	},
 	adminId: row.adminId,
 	inviteCode: row.inviteCode,
 	createdAt: row.createdAt,
@@ -37,7 +56,8 @@ export function createDrizzleGroupRepository(db: Database): GroupRepository {
 		async create(group, admin) {
 			// A group never exists without its admin's membership (RN-01).
 			await db.transaction(async (tx) => {
-				await tx.insert(groupTable).values(group);
+				const { permissions, ...row } = group;
+				await tx.insert(groupTable).values({ ...row, ...permissions });
 				await tx.insert(groupMember).values(admin);
 			});
 		},
@@ -53,6 +73,20 @@ export function createDrizzleGroupRepository(db: Database): GroupRepository {
 			await db
 				.update(groupTable)
 				.set({ setupDismissedAt: at })
+				.where(eq(groupTable.id, id));
+		},
+
+		async saveDetails(id, { name, description }) {
+			await db
+				.update(groupTable)
+				.set({ name, description })
+				.where(eq(groupTable.id, id));
+		},
+
+		async savePermission(id, permission, value) {
+			await db
+				.update(groupTable)
+				.set({ [PERMISSION_COLUMNS[permission]]: value })
 				.where(eq(groupTable.id, id));
 		},
 

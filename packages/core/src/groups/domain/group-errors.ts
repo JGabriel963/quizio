@@ -51,3 +51,26 @@ export class InvalidGroupInviteError extends DomainError {
 		super("This invite is no longer valid.");
 	}
 }
+
+export class InvalidGroupDescriptionError extends DomainError {
+	readonly code = "GROUP.INVALID_DESCRIPTION";
+	constructor() {
+		super("A group's description has up to 500 characters.");
+	}
+}
+
+/** The admin did not let members invite (spec 035, RN-12). */
+export class InviteNotAllowedError extends DomainError {
+	readonly code = "GROUP.INVITE_NOT_ALLOWED";
+	constructor() {
+		super("The group's admin does not let members invite.");
+	}
+}
+
+/** The admin hid the member list from members (spec 035, RN-13). */
+export class MembersHiddenError extends DomainError {
+	readonly code = "GROUP.MEMBERS_HIDDEN";
+	constructor() {
+		super("The group's admin hid the member list.");
+	}
+}

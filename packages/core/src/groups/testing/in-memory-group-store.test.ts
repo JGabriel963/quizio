@@ -79,4 +79,35 @@ describe("InMemoryGroupStore", () => {
 		]);
 		expect(await store.recentForUser("ana", 1)).toHaveLength(1);
 	});
+
+	it("saveDetails changes the name and the description only", async () => {
+		const store = setup();
+		const group = aGroup({ id: "g1", adminId: "ana" });
+		await store.create(group, adminOf(group));
+		await store.savePermission("g1", "membersCanAssign", true);
+
+		await store.saveDetails("g1", { name: "Coral", description: "Ensaio" });
+
+		expect(await store.findById("g1")).toMatchObject({
+			name: "Coral",
+			description: "Ensaio",
+			permissions: { membersCanAssign: true },
+		});
+	});
+
+	it("savePermission changes one switch only", async () => {
+		const store = setup();
+		const group = aGroup({ id: "g1", adminId: "ana" });
+		await store.create(group, adminOf(group));
+
+		await store.savePermission("g1", "membersCanInvite", false);
+		await store.savePermission("g1", "membersCanAssign", true);
+
+		expect((await store.findById("g1"))?.permissions).toEqual({
+			membersCanInvite: false,
+			membersCanSeeMembers: true,
+			membersCanShare: true,
+			membersCanAssign: true,
+		});
+	});
 });

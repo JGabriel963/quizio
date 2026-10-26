@@ -11,12 +11,13 @@ import {
 	GroupLoadError,
 	GroupNotFound,
 	GroupSkeleton,
+	MembersHidden,
 } from "@/components/groups/group-states";
 import { MemberInfoDialog } from "@/components/groups/member-info-dialog";
 import { MembersTable } from "@/components/groups/members-table";
 import { LibrarySearch } from "@/components/library/library-search";
 import type { GroupMemberData } from "@/lib/api-types";
-import { isGroupNotFound } from "@/lib/group-error-messages";
+import { isGroupNotFound, isMembersHidden } from "@/lib/group-error-messages";
 import { useGroupMutations } from "@/lib/group-mutations";
 import { useTRPC } from "@/utils/trpc";
 
@@ -36,8 +37,9 @@ function GroupMembersPage() {
 	const [info, setInfo] = useState<GroupMemberData | null>(null);
 	const [removing, setRemoving] = useState<GroupMemberData | null>(null);
 	const [inviting, setInviting] = useState(false);
+	// A refusal is the page's state, not a failure to try again.
 	const notFoundRetry = (failureCount: number, error: unknown) =>
-		!isGroupNotFound(error) && failureCount < 2;
+		!isGroupNotFound(error) && !isMembersHidden(error) && failureCount < 2;
 	const group = useQuery({
 		...trpc.group.get.queryOptions({ groupId }),
 		retry: notFoundRetry,
@@ -54,6 +56,9 @@ function GroupMembersPage() {
 	if (error) {
 		return isGroupNotFound(error) ? (
 			<GroupNotFound />
+		) : isMembersHidden(error) ? (
+			// The admin hid the list (spec 035, RN-13).
+			<MembersHidden groupId={groupId} />
 		) : (
 			<GroupLoadError
 				onRetry={() => {
@@ -98,7 +103,7 @@ function GroupMembersPage() {
 				<p className="text-sm" aria-live="polite">
 					{items.length} de {total} membros do grupo
 				</p>
-				{isAdmin && (
+				{group.data.abilities.invite && (
 					<Button className="ml-auto" onClick={() => setInviting(true)}>
 						Adicionar membros
 					</Button>
@@ -123,11 +128,12 @@ function GroupMembersPage() {
 					setRemoving(null);
 				}}
 			/>
-			{isAdmin && (
+			{group.data.abilities.invite && (
 				<GroupInviteControl
 					groupId={groupId}
 					open={inviting}
 					onClose={() => setInviting(false)}
+					canReset={isAdmin}
 				/>
 			)}
 		</div>

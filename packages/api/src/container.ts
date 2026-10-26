@@ -159,6 +159,10 @@ import {
 	type GetGroupInvite,
 } from "@quizio/core/groups/application/get-group-invite";
 import {
+	createGetGroupSettings,
+	type GetGroupSettings,
+} from "@quizio/core/groups/application/get-group-settings";
+import {
 	createLeaveGroup,
 	type LeaveGroup,
 } from "@quizio/core/groups/application/leave-group";
@@ -187,6 +191,14 @@ import {
 	createResetGroupInvite,
 	type ResetGroupInvite,
 } from "@quizio/core/groups/application/reset-group-invite";
+import {
+	createSetGroupPermission,
+	type SetGroupPermission,
+} from "@quizio/core/groups/application/set-group-permission";
+import {
+	createUpdateGroupDetails,
+	type UpdateGroupDetails,
+} from "@quizio/core/groups/application/update-group-details";
 import {
 	createVisitGroup,
 	type VisitGroup,
@@ -480,6 +492,9 @@ export interface Container extends Adapters {
 		removeGroupMember: RemoveGroupMember;
 		resetGroupInvite: ResetGroupInvite;
 		visitGroup: VisitGroup;
+		getGroupSettings: GetGroupSettings;
+		setGroupPermission: SetGroupPermission;
+		updateGroupDetails: UpdateGroupDetails;
 	};
 }
 
@@ -588,6 +603,9 @@ export function createContainer(adapters: Adapters): Container {
 			removeGroupMember: createRemoveGroupMember(adapters),
 			resetGroupInvite: createResetGroupInvite(adapters),
 			visitGroup: createVisitGroup(adapters),
+			getGroupSettings: createGetGroupSettings(adapters),
+			setGroupPermission: createSetGroupPermission(adapters),
+			updateGroupDetails: createUpdateGroupDetails(adapters),
 		},
 	};
 }

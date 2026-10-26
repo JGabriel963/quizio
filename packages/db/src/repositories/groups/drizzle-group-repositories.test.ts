@@ -1,3 +1,4 @@
+import { DEFAULT_GROUP_PERMISSIONS } from "@quizio/core/groups/domain/group-permissions";
 import { adminOf, aGroup } from "@quizio/core/groups/testing/a-group";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -132,5 +133,66 @@ describe("Drizzle groups repositories (spec 034)", () => {
 		expect(await testDb.db.select().from(groupVisit)).toEqual([
 			{ userId: "ana", groupId: group.id, visitedAt: at(2) },
 		]);
+	});
+
+	it("a row inserted without the new columns reads the domain's defaults (spec 035, RN-08)", async () => {
+		await testDb.db.insert(groupTable).values({
+			id: "old",
+			name: "Antigo",
+			adminId: "ana",
+			inviteCode: "old-code",
+			createdAt: at(0),
+		});
+
+		expect(await groups.findById("old")).toMatchObject({
+			description: "",
+			permissions: DEFAULT_GROUP_PERMISSIONS,
+		});
+	});
+
+	it("creates and reads description and permissions (spec 035)", async () => {
+		const group = await create({
+			description: "Ensaio\nàs quintas",
+			permissions: {
+				...DEFAULT_GROUP_PERMISSIONS,
+				membersCanSeeMembers: false,
+				membersCanAssign: true,
+			},
+		});
+
+		expect(await groups.findById(group.id)).toEqual(group);
+	});
+
+	it("saveDetails changes name and description only (spec 035, RN-09)", async () => {
+		const group = await create();
+		await groups.savePermission(group.id, "membersCanShare", false);
+
+		await groups.saveDetails(group.id, {
+			name: "Coral",
+			description: "Ensaio",
+		});
+
+		expect(await groups.findById(group.id)).toEqual({
+			...group,
+			name: "Coral",
+			description: "Ensaio",
+			permissions: { ...group.permissions, membersCanShare: false },
+		});
+	});
+
+	it("savePermission changes only its column; two at once keep both (spec 035, CA-08)", async () => {
+		const group = await create();
+
+		await Promise.all([
+			groups.savePermission(group.id, "membersCanInvite", false),
+			groups.savePermission(group.id, "membersCanAssign", true),
+		]);
+
+		expect((await groups.findById(group.id))?.permissions).toEqual({
+			membersCanInvite: false,
+			membersCanSeeMembers: true,
+			membersCanShare: true,
+			membersCanAssign: true,
+		});
 	});
 });

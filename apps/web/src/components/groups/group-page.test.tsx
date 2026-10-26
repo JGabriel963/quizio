@@ -15,7 +15,9 @@ function aGroupView(overrides: Partial<GroupViewData> = {}): GroupViewData {
 	return {
 		id: "g1",
 		name: "Turma 7A",
+		description: "",
 		role: "admin",
+		abilities: { invite: true, seeMembers: true },
 		adminName: "Ana",
 		memberCount: 2,
 		createdAt: new Date(2026, 9, 26, 12).toISOString(),
@@ -40,16 +42,17 @@ async function openOptions() {
 }
 
 describe("GroupHeader (spec 034, RN-13, RN-18)", () => {
-	it("shows settings (Em breve) to the admin, and the admin's menu has Excluir and no Sair", async () => {
+	it("the admin's gear links to the settings, and the admin's menu has Excluir and no Sair (spec 035, RN-01)", async () => {
 		renderWithRouter(<GroupHeader group={aGroupView()} {...headerActions} />);
 
 		expect(
 			await screen.findByRole("heading", { name: "Turma 7A" }),
 		).toBeVisible();
+		// A link styled as a button (the design system's pattern).
 		const settings = screen.getByRole("button", {
-			name: "Configurações do grupo (em breve)",
+			name: "Configurações do grupo",
 		});
-		expect(settings).toHaveAttribute("aria-disabled", "true");
+		expect(settings).toHaveAttribute("href", "/groups/g1/settings");
 		const menu = await openOptions();
 		expect(
 			within(menu)
@@ -67,7 +70,7 @@ describe("GroupHeader (spec 034, RN-13, RN-18)", () => {
 		);
 
 		await screen.findByRole("heading", { name: "Turma 7A" });
-		expect(screen.queryByRole("button", { name: /Configurações/ })).toBeNull();
+		expect(screen.queryByRole("link", { name: /Configurações/ })).toBeNull();
 		const menu = await openOptions();
 		expect(
 			within(menu)
@@ -100,6 +103,29 @@ describe("GroupHeader (spec 034, RN-13, RN-18)", () => {
 		);
 		expect(members).toHaveTextContent("+2");
 	});
+
+	it("a member without seeMembers has no icons nor Ver membros (spec 035, RN-13)", async () => {
+		renderWithRouter(
+			<GroupHeader
+				group={aGroupView({
+					role: "member",
+					setup: null,
+					memberPreview: [],
+					abilities: { invite: true, seeMembers: false },
+				})}
+				{...headerActions}
+			/>,
+		);
+
+		await screen.findByRole("heading", { name: "Turma 7A" });
+		expect(screen.queryByRole("link", { name: /membros/ })).toBeNull();
+		const menu = await openOptions();
+		expect(
+			within(menu)
+				.getAllByRole("menuitem")
+				.map((item) => item.textContent),
+		).toEqual(["Informações do grupo", "Sair do grupo"]);
+	});
 });
 
 describe("GroupTabs (spec 034, RN-14, RN-16)", () => {
@@ -110,7 +136,7 @@ describe("GroupTabs (spec 034, RN-14, RN-16)", () => {
 			<GroupTabs
 				groupId="g1"
 				tab="shared"
-				isAdmin
+				canInvite
 				onAddMembers={onAddMembers}
 			/>,
 		);
@@ -126,12 +152,12 @@ describe("GroupTabs (spec 034, RN-14, RN-16)", () => {
 		expect(onAddMembers).toHaveBeenCalled();
 	});
 
-	it("a member has no Adicionar membros", async () => {
+	it("no Adicionar membros without abilities.invite (spec 035, RN-12)", async () => {
 		renderWithRouter(
 			<GroupTabs
 				groupId="g1"
 				tab="activity"
-				isAdmin={false}
+				canInvite={false}
 				onAddMembers={noop}
 			/>,
 		);
@@ -245,5 +271,22 @@ describe("GroupInfoDialog (spec 034, RN-19)", () => {
 		expect(dialog).toHaveTextContent("Ana");
 		expect(dialog).toHaveTextContent("3 membros");
 		expect(dialog).toHaveTextContent("26 de outubro de 2026");
+	});
+
+	it("shows the description with its line breaks, and no line without one (spec 035, RN-06)", async () => {
+		const { rerender } = render(
+			<GroupInfoDialog
+				group={aGroupView({ description: "Prova\nde quinta" })}
+				onClose={noop}
+			/>,
+		);
+
+		const description = await screen.findByText(/Prova/);
+		expect(description.textContent).toBe("Prova\nde quinta");
+		expect(description.className).toContain("whitespace-pre-line");
+
+		rerender(<GroupInfoDialog group={aGroupView()} onClose={noop} />);
+
+		expect(screen.queryByText("Descrição:")).toBeNull();
 	});
 });

@@ -1,5 +1,6 @@
 import { GROUP_ROLES } from "@quizio/core/groups/domain/group-member";
 import {
+	boolean,
 	index,
 	pgEnum,
 	pgTable,
@@ -19,6 +20,8 @@ export const groupRole = pgEnum("group_role", GROUP_ROLES);
 export const groupTable = pgTable("group", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
+	/** "" when there is none (spec 035, RN-05). */
+	description: text("description").notNull().default(""),
 	adminId: text("admin_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
@@ -26,6 +29,14 @@ export const groupTable = pgTable("group", {
 	inviteCode: text("invite_code").notNull().unique(),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 	setupDismissedAt: timestamp("setup_dismissed_at", { withTimezone: true }),
+	// What members may do (spec 035): the defaults are Kahoot's and repeat
+	// DEFAULT_GROUP_PERMISSIONS, so groups made before get them too (RN-08).
+	membersCanInvite: boolean("members_can_invite").notNull().default(true),
+	membersCanSeeMembers: boolean("members_can_see_members")
+		.notNull()
+		.default(true),
+	membersCanShare: boolean("members_can_share").notNull().default(true),
+	membersCanAssign: boolean("members_can_assign").notNull().default(false),
 });
 
 /** Who belongs to a group; the admin is a row too (RN-01). */

@@ -87,8 +87,18 @@ describe("group router (spec 034)", () => {
 		const { bruno, groupId } = await setup();
 
 		for (const call of [
-			bruno.group.invite.get({ groupId }),
 			bruno.group.invite.reset({ groupId }),
+			bruno.group.settings.get({ groupId }),
+			bruno.group.settings.updateDetails({
+				groupId,
+				name: "Meu",
+				description: "",
+			}),
+			bruno.group.settings.setPermission({
+				groupId,
+				permission: "membersCanInvite",
+				value: false,
+			}),
 			bruno.group.removeMember({ groupId, userId: "ana" }),
 			bruno.group.delete({ groupId }),
 			bruno.group.dismissSetup({ groupId }),
@@ -97,6 +107,84 @@ describe("group router (spec 034)", () => {
 			expect(error).toMatchObject({ code: "BAD_REQUEST" });
 			expect(domainCode(error)).toBe("GROUP.NOT_ADMIN");
 		}
+	});
+
+	it("settings: the admin reads, renames, describes and turns switches (spec 035)", async () => {
+		const { ana, bruno, groupId } = await setup();
+
+		await ana.group.settings.updateDetails({
+			groupId,
+			name: "Turma 7B",
+			description: "Revisão",
+		});
+		await ana.group.settings.setPermission({
+			groupId,
+			permission: "membersCanAssign",
+			value: true,
+		});
+
+		expect(await ana.group.settings.get({ groupId })).toEqual({
+			name: "Turma 7B",
+			description: "Revisão",
+			permissions: {
+				membersCanInvite: true,
+				membersCanSeeMembers: true,
+				membersCanShare: true,
+				membersCanAssign: true,
+			},
+		});
+		expect(await bruno.group.get({ groupId })).toMatchObject({
+			name: "Turma 7B",
+			description: "Revisão",
+			abilities: { invite: true, seeMembers: true },
+		});
+	});
+
+	it("an outsider gets NOT_FOUND on settings (spec 035)", async () => {
+		const { carla, groupId } = await setup();
+
+		const error = await carla.group.settings.get({ groupId }).catch((e) => e);
+
+		expect(error).toMatchObject({ code: "NOT_FOUND" });
+	});
+
+	it("refuses a 501-character description sent directly (spec 035)", async () => {
+		const { ana, groupId } = await setup();
+
+		const error = await ana.group.settings
+			.updateDetails({ groupId, name: "Coral", description: "a".repeat(501) })
+			.catch((e) => e);
+
+		expect(error).toMatchObject({ code: "BAD_REQUEST" });
+		expect(domainCode(error)).toBe("GROUP.INVALID_DESCRIPTION");
+	});
+
+	it("a member gets GROUP.MEMBERS_HIDDEN and GROUP.INVITE_NOT_ALLOWED as the switches say (spec 035)", async () => {
+		const { ana, bruno, groupId } = await setup();
+
+		expect((await bruno.group.invite.get({ groupId })).code).toBeTruthy();
+		await ana.group.settings.setPermission({
+			groupId,
+			permission: "membersCanInvite",
+			value: false,
+		});
+		await ana.group.settings.setPermission({
+			groupId,
+			permission: "membersCanSeeMembers",
+			value: false,
+		});
+
+		const invite = await bruno.group.invite.get({ groupId }).catch((e) => e);
+		const members = await bruno.group.members({ groupId }).catch((e) => e);
+		expect(invite).toMatchObject({ code: "BAD_REQUEST" });
+		expect(domainCode(invite)).toBe("GROUP.INVITE_NOT_ALLOWED");
+		expect(members).toMatchObject({ code: "BAD_REQUEST" });
+		expect(domainCode(members)).toBe("GROUP.MEMBERS_HIDDEN");
+		expect(await bruno.group.get({ groupId })).toMatchObject({
+			memberCount: 2,
+			memberPreview: [],
+			abilities: { invite: false, seeMembers: false },
+		});
 	});
 
 	it("invite.find answers pending, member and invalid; invite.accept joins", async () => {

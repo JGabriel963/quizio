@@ -8,15 +8,18 @@ import { InviteDialog } from "./invite-dialog";
 
 /**
  * The invite dialog wired to the API: the code is read only while it is open,
- * and only the admin opens it (spec 034, RN-22).
+ * by whoever may invite (spec 034, RN-22; spec 035, RN-11).
  */
 export function GroupInviteControl({
 	groupId,
 	open,
 	onClose,
+	canReset,
 }: {
 	groupId: string;
 	open: boolean;
+	/** The admin's only (spec 035, RN-11). */
+	canReset: boolean;
 	onClose: () => void;
 }) {
 	const trpc = useTRPC();
@@ -33,6 +36,7 @@ export function GroupInviteControl({
 			onClose={onClose}
 			origin={origin ?? ""}
 			code={origin ? (invite.data?.code ?? null) : null}
+			canReset={canReset}
 			onReset={() => mutations.resetInvite.mutateAsync({ groupId })}
 		/>
 	);

@@ -8,12 +8,19 @@ import type { GroupRepository } from "../application/ports/group-repository";
 import type { GroupVisitRepository } from "../application/ports/group-visit-repository";
 import type { Group } from "../domain/group";
 import type { GroupMember } from "../domain/group-member";
+import type { GroupPermission } from "../domain/group-permissions";
 
 interface StoredUser {
 	id: string;
 	name: string;
 	email: string;
 }
+
+/** Copies, so a test cannot change what is stored by keeping a reference. */
+const copyGroup = (group: Group): Group => ({
+	...group,
+	permissions: { ...group.permissions },
+});
 
 const memberKey = (groupId: string, userId: string) => `${groupId}:${userId}`;
 
@@ -43,18 +50,18 @@ export class InMemoryGroupStore
 
 	async findById(id: string): Promise<Group | null> {
 		const group = this.#groups.get(id);
-		return group ? { ...group } : null;
+		return group ? copyGroup(group) : null;
 	}
 
 	async findByInviteCode(code: string): Promise<Group | null> {
 		const group = [...this.#groups.values()].find(
 			(candidate) => candidate.inviteCode === code,
 		);
-		return group ? { ...group } : null;
+		return group ? copyGroup(group) : null;
 	}
 
 	async create(group: Group, admin: GroupMember): Promise<void> {
-		this.#groups.set(group.id, { ...group });
+		this.#groups.set(group.id, copyGroup(group));
 		this.#members.set(memberKey(admin.groupId, admin.userId), { ...admin });
 	}
 
@@ -69,6 +76,30 @@ export class InMemoryGroupStore
 		const group = this.#groups.get(id);
 		if (group) {
 			this.#groups.set(id, { ...group, setupDismissedAt: at });
+		}
+	}
+
+	async saveDetails(
+		id: string,
+		details: { name: string; description: string },
+	): Promise<void> {
+		const group = this.#groups.get(id);
+		if (group) {
+			this.#groups.set(id, { ...group, ...details });
+		}
+	}
+
+	async savePermission(
+		id: string,
+		permission: GroupPermission,
+		value: boolean,
+	): Promise<void> {
+		const group = this.#groups.get(id);
+		if (group) {
+			this.#groups.set(id, {
+				...group,
+				permissions: { ...group.permissions, [permission]: value },
+			});
 		}
 	}
 

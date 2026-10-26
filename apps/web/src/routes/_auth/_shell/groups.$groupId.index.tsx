@@ -85,7 +85,7 @@ function GroupPage() {
 			<GroupTabs
 				groupId={groupId}
 				tab={tab}
-				isAdmin={isAdmin}
+				canInvite={data.abilities.invite}
 				onAddMembers={() => setDialog("invite")}
 			/>
 			{tab === "activity" ? (
@@ -103,11 +103,12 @@ function GroupPage() {
 				group={dialog === "info" ? data : null}
 				onClose={close}
 			/>
-			{isAdmin && (
+			{data.abilities.invite && (
 				<GroupInviteControl
 					groupId={groupId}
 					open={dialog === "invite"}
 					onClose={close}
+					canReset={isAdmin}
 				/>
 			)}
 			<LeaveGroupDialog

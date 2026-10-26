@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GroupNotFoundError } from "../domain/group-errors";
+import { GroupNotFoundError, MembersHiddenError } from "../domain/group-errors";
 import { groupsTestDeps } from "../testing/groups-test-deps";
 import { createListGroupMembers } from "./list-group-members";
 
@@ -59,5 +59,28 @@ describe("listGroupMembers (spec 034)", () => {
 		await expect(
 			createListGroupMembers(t.deps)({ userId: "bruno", groupId }),
 		).rejects.toThrow(GroupNotFoundError);
+	});
+
+	it("with the list hidden a member gets GROUP.MEMBERS_HIDDEN (spec 035, RN-13)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno"]);
+		await t.store.savePermission(groupId, "membersCanSeeMembers", false);
+
+		await expect(
+			createListGroupMembers(t.deps)({ userId: "bruno", groupId }),
+		).rejects.toThrow(MembersHiddenError);
+	});
+
+	it("the admin always gets the list (spec 035, CA-13)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno"]);
+		await t.store.savePermission(groupId, "membersCanSeeMembers", false);
+
+		const { total } = await createListGroupMembers(t.deps)({
+			userId: "ana",
+			groupId,
+		});
+
+		expect(total).toBe(2);
 	});
 });

@@ -37,6 +37,8 @@ export function GroupHeader({
 	onDelete: () => void;
 }) {
 	const isAdmin = group.role === "admin";
+	// The admin may hide the list from members (spec 035, RN-13).
+	const seeMembers = group.abilities.seeMembers;
 	const hidden = group.memberCount - group.memberPreview.length;
 
 	return (
@@ -45,42 +47,49 @@ export function GroupHeader({
 				{group.name}
 			</h1>
 			<div className="flex items-center gap-2">
-				<Link
-					to="/groups/$groupId/members"
-					params={{ groupId: group.id }}
-					aria-label={`Ver os ${group.memberCount} membros`}
-					className="flex items-center rounded-full pr-1 hover:bg-muted"
-				>
-					{group.memberPreview.map((member, index) => (
-						<UserAvatar
-							key={member.userId}
-							userId={member.userId}
-							className={index > 0 ? "-ml-2" : undefined}
-						/>
-					))}
-					{hidden > 0 && (
-						<span className="ml-1 font-semibold text-muted-foreground text-sm">
-							+{hidden}
-						</span>
-					)}
-				</Link>
+				{seeMembers && (
+					<Link
+						to="/groups/$groupId/members"
+						params={{ groupId: group.id }}
+						aria-label={`Ver os ${group.memberCount} membros`}
+						className="flex items-center rounded-full pr-1 hover:bg-muted"
+					>
+						{group.memberPreview.map((member, index) => (
+							<UserAvatar
+								key={member.userId}
+								userId={member.userId}
+								className={index > 0 ? "-ml-2" : undefined}
+							/>
+						))}
+						{hidden > 0 && (
+							<span className="ml-1 font-semibold text-muted-foreground text-sm">
+								+{hidden}
+							</span>
+						)}
+					</Link>
+				)}
 				{isAdmin && (
+					// The admin's settings (spec 035, RN-01).
 					<Tooltip>
 						<TooltipTrigger
 							render={
 								<Button
 									variant="ghost"
 									size="icon"
-									aria-disabled="true"
-									aria-label="Configurações do grupo (em breve)"
-									onClick={(event) => event.preventDefault()}
-									className="cursor-not-allowed text-muted-foreground"
+									aria-label="Configurações do grupo"
+									nativeButton={false}
+									render={
+										<Link
+											to="/groups/$groupId/settings"
+											params={{ groupId: group.id }}
+										/>
+									}
 								/>
 							}
 						>
 							<SettingsIcon />
 						</TooltipTrigger>
-						<TooltipContent>Configurações do grupo · Em breve</TooltipContent>
+						<TooltipContent>Configurações do grupo</TooltipContent>
 					</Tooltip>
 				)}
 				<DropdownMenu>
@@ -100,17 +109,19 @@ export function GroupHeader({
 							<InfoIcon />
 							Informações do grupo
 						</DropdownMenuItem>
-						<DropdownMenuItem
-							render={
-								<Link
-									to="/groups/$groupId/members"
-									params={{ groupId: group.id }}
-								/>
-							}
-						>
-							<UsersIcon />
-							Ver membros
-						</DropdownMenuItem>
+						{seeMembers && (
+							<DropdownMenuItem
+								render={
+									<Link
+										to="/groups/$groupId/members"
+										params={{ groupId: group.id }}
+									/>
+								}
+							>
+								<UsersIcon />
+								Ver membros
+							</DropdownMenuItem>
+						)}
 						{isAdmin ? (
 							<DropdownMenuItem variant="destructive" onClick={onDelete}>
 								<Trash2Icon />

@@ -54,9 +54,10 @@ test.describe("grupos (spec 034)", () => {
 		const bruno = await newParticipant(browser);
 		await signUp(bruno, { name: "Bruno" });
 		await acceptInvite(bruno, link, "Turma 7A");
-		// A member: no Adicionar membros (CA-08).
+		// A member: no settings (CA-08). "Adicionar membros" depends on the
+		// group's switch since spec 035, on by default.
 		await expect(
-			bruno.getByRole("button", { name: "Adicionar membros" }),
+			bruno.getByRole("button", { name: "Configurações do grupo" }),
 		).toHaveCount(0);
 
 		await ana.goto(`${groupUrl}/members`);

@@ -43,4 +43,23 @@ describe("createGroup (spec 034)", () => {
 		).rejects.toThrow(InvalidGroupNameError);
 		expect(await store.listForUser("ana")).toEqual([]);
 	});
+
+	it("a new group has no description and Kahoot's defaults (spec 035, RN-08)", async () => {
+		const { deps, store } = groupsTestDeps();
+
+		const { groupId } = await createCreateGroup(deps)({
+			userId: "ana",
+			name: "Coral",
+		});
+
+		expect(await store.findById(groupId)).toMatchObject({
+			description: "",
+			permissions: {
+				membersCanInvite: true,
+				membersCanSeeMembers: true,
+				membersCanShare: true,
+				membersCanAssign: false,
+			},
+		});
+	});
 });
