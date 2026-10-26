@@ -16,6 +16,7 @@ function aRecord(
 		ownerId: "user-1",
 		title: "Bom de Bíblia (Junho)",
 		searchTitle: "bom de biblia (junho)",
+		description: "",
 		coverImageKey: null,
 		visibility: "private",
 		status: "draft",

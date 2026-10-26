@@ -1,4 +1,9 @@
+import type {
+	GroupFeedQuery,
+	GroupPostRecord,
+} from "../application/ports/group-feed-query";
 import type { GroupMemberRepository } from "../application/ports/group-member-repository";
+import type { GroupPostRepository } from "../application/ports/group-post-repository";
 import type {
 	GroupListRecord,
 	GroupMemberRecord,
@@ -9,6 +14,7 @@ import type { GroupVisitRepository } from "../application/ports/group-visit-repo
 import type { Group } from "../domain/group";
 import type { GroupMember } from "../domain/group-member";
 import type { GroupPermission } from "../domain/group-permissions";
+import type { GroupPost } from "../domain/group-post";
 
 interface StoredUser {
 	id: string;
@@ -27,14 +33,16 @@ const memberKey = (groupId: string, userId: string) => `${groupId}:${userId}`;
 /**
  * Every groups port over the same maps, with the accounts the read model
  * joins: give it the users first (`addUser`). Deleting a group takes its
- * members and visits, as the database's cascade does.
+ * members, visits, posts and likes, as the database's cascade does.
  */
 export class InMemoryGroupStore
 	implements
 		GroupRepository,
 		GroupMemberRepository,
 		GroupVisitRepository,
-		GroupReads
+		GroupReads,
+		GroupPostRepository,
+		GroupFeedQuery
 {
 	readonly #groups = new Map<string, Group>();
 	readonly #members = new Map<string, GroupMember>();
@@ -43,9 +51,17 @@ export class InMemoryGroupStore
 		{ userId: string; groupId: string; at: Date }
 	>();
 	readonly #users = new Map<string, StoredUser>();
+	readonly #posts = new Map<string, GroupPost>();
+	/** `postId:userId` of each like. */
+	readonly #likes = new Set<string>();
 
 	addUser(user: StoredUser): void {
 		this.#users.set(user.id, { ...user });
+	}
+
+	/** The account's name, or the id for an account it was not given. */
+	userName(userId: string): string {
+		return this.#users.get(userId)?.name ?? userId;
 	}
 
 	async findById(id: string): Promise<Group | null> {
@@ -115,6 +131,103 @@ export class InMemoryGroupStore
 				this.#visits.delete(key);
 			}
 		}
+		for (const post of [...this.#posts.values()]) {
+			if (post.groupId === id) {
+				await this.deletePost(post.id);
+			}
+		}
+	}
+
+	async createPost(post: GroupPost): Promise<"created" | "taken"> {
+		const taken = [...this.#posts.values()].some(
+			(other) =>
+				post.gameId !== null &&
+				other.groupId === post.groupId &&
+				other.gameId === post.gameId,
+		);
+		if (taken) {
+			return "taken";
+		}
+		this.#posts.set(post.id, { ...post });
+		return "created";
+	}
+
+	async findPost(groupId: string, postId: string): Promise<GroupPost | null> {
+		const post = this.#posts.get(postId);
+		return post && post.groupId === groupId ? { ...post } : null;
+	}
+
+	async deletePost(postId: string): Promise<void> {
+		this.#posts.delete(postId);
+		for (const like of [...this.#likes]) {
+			if (like.startsWith(`${postId}:`)) {
+				this.#likes.delete(like);
+			}
+		}
+	}
+
+	async setLike(
+		postId: string,
+		userId: string,
+		liked: boolean,
+		_at?: Date,
+	): Promise<void> {
+		if (liked && this.#posts.has(postId)) {
+			this.#likes.add(`${postId}:${userId}`);
+		} else {
+			this.#likes.delete(`${postId}:${userId}`);
+		}
+	}
+
+	async listPosts(
+		groupId: string,
+		viewerId: string,
+	): Promise<GroupPostRecord[]> {
+		return [...this.#posts.values()]
+			.filter((post) => post.groupId === groupId)
+			.sort(
+				(a, b) =>
+					b.createdAt.getTime() - a.createdAt.getTime() ||
+					b.id.localeCompare(a.id),
+			)
+			.map((post) => ({
+				...post,
+				authorName: this.#users.get(post.authorId)?.name ?? post.authorId,
+				likeCount: this.#likeCountOf(post.id),
+				likedByViewer: this.#likes.has(`${post.id}:${viewerId}`),
+			}));
+	}
+
+	async likeCount(postId: string): Promise<number> {
+		return this.#likeCountOf(postId);
+	}
+
+	async feedStats(
+		groupId: string,
+	): Promise<{ posts: number; assignments: number }> {
+		const posts = [...this.#posts.values()].filter(
+			(post) => post.groupId === groupId,
+		);
+		return {
+			posts: posts.length,
+			assignments: posts.filter((post) => post.gameId !== null).length,
+		};
+	}
+
+	async groupsWithAssignment(
+		gameId: string,
+		groupIds: readonly string[],
+	): Promise<string[]> {
+		return groupIds.filter((groupId) =>
+			[...this.#posts.values()].some(
+				(post) => post.groupId === groupId && post.gameId === gameId,
+			),
+		);
+	}
+
+	#likeCountOf(postId: string): number {
+		return [...this.#likes].filter((like) => like.startsWith(`${postId}:`))
+			.length;
 	}
 
 	async find(groupId: string, userId: string): Promise<GroupMember | null> {

@@ -1,4 +1,6 @@
 import { GROUP_ROLES } from "@quizio/core/groups/domain/group-member";
+import { GROUP_POST_KINDS } from "@quizio/core/groups/domain/group-post";
+import { isNotNull } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -7,6 +9,7 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -75,4 +78,50 @@ export const groupVisit = pgTable(
 		primaryKey({ columns: [table.userId, table.groupId] }),
 		index("group_visit_recent_idx").on(table.userId, table.visitedAt),
 	],
+);
+
+export const groupPostKind = pgEnum("group_post_kind", GROUP_POST_KINDS);
+
+/**
+ * The group's feed (spec 038; ADR 0016). `game_id` has no foreign key on
+ * purpose: the post outlives a deleted assignment and just loses its card.
+ */
+export const groupPost = pgTable(
+	"group_post",
+	{
+		id: text("id").primaryKey(),
+		groupId: text("group_id")
+			.notNull()
+			.references(() => groupTable.id, { onDelete: "cascade" }),
+		authorId: text("author_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		kind: groupPostKind("kind").notNull(),
+		message: text("message"),
+		gameId: text("game_id"),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [
+		// An assignment at most once in each group (RN-28).
+		uniqueIndex("group_post_assignment_idx")
+			.on(table.groupId, table.gameId)
+			.where(isNotNull(table.gameId)),
+		index("group_post_feed_idx").on(table.groupId, table.createdAt),
+		index("group_post_game_idx").on(table.gameId),
+	],
+);
+
+/** One like per member and post (RN-17). */
+export const groupPostLike = pgTable(
+	"group_post_like",
+	{
+		postId: text("post_id")
+			.notNull()
+			.references(() => groupPost.id, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.postId, table.userId] })],
 );

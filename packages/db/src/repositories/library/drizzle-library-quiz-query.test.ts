@@ -237,6 +237,7 @@ describe("DrizzleLibraryQuizQuery", () => {
 				ownerId: "user-1",
 				title: "Bom de Bíblia (Junho)",
 				searchTitle: "bom de biblia (junho)",
+				description: "Atos 1 a 7",
 				coverImageKey: "media/user-1/cover.png",
 				visibility: "unlisted",
 				status: "draft",
@@ -275,5 +276,13 @@ describe("DrizzleLibraryQuizQuery", () => {
 		const [record] = await list("recent");
 
 		expect(record?.questionCount).toBe(0);
+	});
+
+	it("reads the description (spec 038, RN-04)", async () => {
+		await seed(aQuiz({ id: "quiz-1", description: "Gênesis e Êxodo" }));
+
+		const [record] = await list("recent");
+
+		expect(record?.description).toBe("Gênesis e Êxodo");
 	});
 });

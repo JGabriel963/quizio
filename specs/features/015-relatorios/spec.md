@@ -538,6 +538,7 @@ Decisões tomadas sem consulta prévia; todas podem ser revistas antes do plano:
 
 ## Changelog
 
+- 2026-10-26 — spec 038: o administrador de um grupo abre, somente para leitura, o relatório de uma atribuição publicada ali por outra pessoa (sem renomear, lixeira, "Jogar de novo", compartilhar, prazo nem "Encerrar agora"); continua valendo que um relatório é do seu criador (RN-03).
 - 2026-10-19 — spec 029: uma atribuição é um relatório desde que é criada (altera a RN-01 e a RN-02); a lista mostra primeiro as atribuições abertas, pelo prazo (complementa a RN-23); uma atribuição aberta não vai para a lixeira (complementa a RN-50).
 - 2026-10-06 — spec entregue. Os detalhes do participante e da pergunta (RN-42, RN-44) abrem num painel lateral sobre a aba; "Ver relatório" no pódio é um botão como os outros do fim do jogo.
 - 2026-10-06 — a pedido do usuário, ficou explícito que cada partida do mesmo quiz gera o seu próprio relatório (RN-01, CA-05a).

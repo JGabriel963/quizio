@@ -3,6 +3,8 @@ import {
 	GROUP_NAME_MAX_LENGTH,
 } from "@quizio/core/groups/domain/group";
 
+import { GROUP_POST_MESSAGE_MAX_LENGTH } from "@quizio/core/groups/domain/group-post";
+
 import { domainCodeOf } from "./quiz-error-messages";
 
 const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
@@ -18,6 +20,15 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"GROUP.INVITE_NOT_ALLOWED":
 		"O administrador não permite que os membros convidem outras pessoas.",
 	"GROUP.MEMBERS_HIDDEN": "O administrador ocultou a lista de membros.",
+	"GROUP.INVALID_MESSAGE": `A mensagem deve ter de 1 a ${GROUP_POST_MESSAGE_MAX_LENGTH} caracteres.`,
+	"GROUP.ASSIGN_NOT_ALLOWED":
+		"O administrador não permite que os membros atribuam atividades.",
+	"GROUP.POST_NOT_FOUND": "Esta publicação não existe mais.",
+	"GROUP.POST_DELETE_NOT_ALLOWED":
+		"Só quem publicou e o administrador podem excluir a publicação.",
+	"GROUP.ASSIGNMENT_NOT_SHAREABLE":
+		"Esta atividade não pode mais ser atribuída a grupos.",
+	"GROUP.ALREADY_ASSIGNED": "A atividade já foi atribuída a esse grupo.",
 };
 
 /** Portuguese message for a failed group call, based on its domain code (spec 034). */

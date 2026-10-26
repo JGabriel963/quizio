@@ -46,7 +46,7 @@ export function ReportSummary({
 	const nothingPlayed = summary.accuracyPercent === null;
 	const report = { gameId: header.gameId };
 	const openAssignment =
-		header.assignment?.open && assignmentActions?.origin
+		header.assignment?.open && !header.readOnly && assignmentActions?.origin
 			? {
 					...header.assignment,
 					...assignmentActions,

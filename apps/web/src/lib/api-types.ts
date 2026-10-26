@@ -99,3 +99,9 @@ export type GroupMemberData =
 export type GroupInvitationData = RouterOutputs["group"]["invite"]["find"];
 /** "Configurações do grupo" (spec 035). */
 export type GroupSettingsData = RouterOutputs["group"]["settings"]["get"];
+/** The group's feed and Atribuições tab (spec 038). */
+export type GroupPostData = RouterOutputs["group"]["feed"]["posts"][number];
+export type GroupAssignmentData =
+	RouterOutputs["group"]["assignments"]["items"][number];
+export type AssignableGroupData =
+	RouterOutputs["group"]["assignableGroups"]["groups"][number];

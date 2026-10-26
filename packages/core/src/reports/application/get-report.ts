@@ -42,6 +42,11 @@ export interface ReportHeaderView {
 	/** Null when the quiz cannot be opened (RN-05). */
 	quizId: string | null;
 	canPlayAgain: boolean;
+	/**
+	 * Read by somebody else than its owner (spec 038, RN-20a): no action, no
+	 * quiz link.
+	 */
+	readOnly: boolean;
 	/** Null for a live game (spec 029, RN-31 to RN-33). */
 	assignment: AssignmentPartView | null;
 }
@@ -96,6 +101,11 @@ export function createGetReport(
 		const difficult = difficultQuestions(questions);
 		const [hardest] = difficult;
 		const hardestQuestion = hardest && questionOf.get(hardest.index);
+		// Somebody else's report, read only (spec 038, RN-20a).
+		const readOnly = header.ownerId !== input.ownerId;
+		const quizLinks = readOnly
+			? { quizId: null, canPlayAgain: false }
+			: quizLinksOf(header);
 
 		return {
 			header: {
@@ -109,7 +119,8 @@ export function createGetReport(
 				questionCount: header.questionCount,
 				playedCount: played,
 				participantCount: game.participants.length,
-				...quizLinksOf(header),
+				...quizLinks,
+				readOnly,
 				assignment: assignmentPartOf(header, deps.clock.now()),
 			},
 			summary: {

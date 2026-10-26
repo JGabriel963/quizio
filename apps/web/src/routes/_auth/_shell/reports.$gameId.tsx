@@ -13,6 +13,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { ShareAssignmentDialog } from "@/components/assignment/share-assignment-dialog";
+import { AssignToGroupsControl } from "@/components/groups/assign/assign-to-groups-control";
 import { ChangeDeadlineDialog } from "@/components/reports/change-deadline-dialog";
 import { EndAssignmentDialog } from "@/components/reports/end-assignment-dialog";
 import { ParticipantDetail } from "@/components/reports/participant-detail";
@@ -66,7 +67,7 @@ function ReportPage() {
 	const origin = useOrigin();
 	/** Which dialog of an open assignment is up (spec 029), and since when. */
 	const [assignmentDialog, setAssignmentDialog] = useState<{
-		kind: "share" | "deadline" | "end";
+		kind: "share" | "groups" | "deadline" | "end";
 		openedAt: Date;
 	} | null>(null);
 	const assignmentSetup = useQuery({
@@ -187,46 +188,58 @@ function ReportPage() {
 							}}
 						/>
 					)}
-					{report.data.header.assignment?.open && origin && (
-						<>
-							<ShareAssignmentDialog
-								open={assignmentDialog?.kind === "share"}
-								onOpenChange={(open) => !open && setAssignmentDialog(null)}
-								origin={origin}
-								assignment={{
-									gameId,
-									name: report.data.header.name,
-									pin: report.data.header.assignment.pin ?? "",
-									deadline: report.data.header.assignment.deadline,
-									remainingMs: report.data.header.assignment.remainingMs ?? 0,
-									participantCount: report.data.header.participantCount,
-								}}
-							/>
-							{assignmentDialog?.kind === "deadline" && (
-								<ChangeDeadlineDialog
-									open
+					{report.data.header.assignment?.open &&
+						!report.data.header.readOnly &&
+						origin && (
+							<>
+								<ShareAssignmentDialog
+									open={assignmentDialog?.kind === "share"}
 									onOpenChange={(open) => !open && setAssignmentDialog(null)}
-									deadline={new Date(report.data.header.assignment.deadline)}
-									now={assignmentDialog.openedAt}
-									maxDays={assignmentSetup.data?.maxDeadlineDays ?? 28}
-									onSave={async (deadline) => {
-										await assignmentMutations.changeDeadline.mutateAsync({
-											gameId,
-											deadline: deadline.toISOString(),
-										});
+									origin={origin}
+									assignment={{
+										gameId,
+										name: report.data.header.name,
+										pin: report.data.header.assignment.pin ?? "",
+										deadline: report.data.header.assignment.deadline,
+										remainingMs: report.data.header.assignment.remainingMs ?? 0,
+										participantCount: report.data.header.participantCount,
+									}}
+									onAssignToGroups={() =>
+										setAssignmentDialog({
+											kind: "groups",
+											openedAt: new Date(),
+										})
+									}
+								/>
+								<AssignToGroupsControl
+									gameId={assignmentDialog?.kind === "groups" ? gameId : null}
+									onClose={() => setAssignmentDialog(null)}
+								/>
+								{assignmentDialog?.kind === "deadline" && (
+									<ChangeDeadlineDialog
+										open
+										onOpenChange={(open) => !open && setAssignmentDialog(null)}
+										deadline={new Date(report.data.header.assignment.deadline)}
+										now={assignmentDialog.openedAt}
+										maxDays={assignmentSetup.data?.maxDeadlineDays ?? 28}
+										onSave={async (deadline) => {
+											await assignmentMutations.changeDeadline.mutateAsync({
+												gameId,
+												deadline: deadline.toISOString(),
+											});
+										}}
+									/>
+								)}
+								<EndAssignmentDialog
+									open={assignmentDialog?.kind === "end"}
+									onCancel={() => setAssignmentDialog(null)}
+									onConfirm={() => {
+										setAssignmentDialog(null);
+										assignmentMutations.end.mutate({ gameId });
 									}}
 								/>
-							)}
-							<EndAssignmentDialog
-								open={assignmentDialog?.kind === "end"}
-								onCancel={() => setAssignmentDialog(null)}
-								onConfirm={() => {
-									setAssignmentDialog(null);
-									assignmentMutations.end.mutate({ gameId });
-								}}
-							/>
-						</>
-					)}
+							</>
+						)}
 					{tab === "participants" && (
 						<ParticipantsTable
 							// Another list starts from its first lines.

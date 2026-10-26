@@ -74,3 +74,49 @@ export class MembersHiddenError extends DomainError {
 		super("The group's admin hid the member list.");
 	}
 }
+
+export class InvalidPostMessageError extends DomainError {
+	readonly code = "GROUP.INVALID_MESSAGE";
+	constructor() {
+		super("A post's message has 1 to 500 characters.");
+	}
+}
+
+/** Neither the admin nor a member the admin lets assign (spec 038, RN-01). */
+export class AssignNotAllowedError extends DomainError {
+	readonly code = "GROUP.ASSIGN_NOT_ALLOWED";
+	constructor() {
+		super("Only the admin, or members when allowed, may assign in this group.");
+	}
+}
+
+export class GroupPostNotFoundError extends NotFoundError {
+	readonly code = "GROUP.POST_NOT_FOUND";
+	constructor() {
+		super("Post not found.");
+	}
+}
+
+/** Only who posted and the admin delete a post (spec 038, RN-20). */
+export class PostDeleteNotAllowedError extends DomainError {
+	readonly code = "GROUP.POST_DELETE_NOT_ALLOWED";
+	constructor() {
+		super("Only who posted and the admin may delete this post.");
+	}
+}
+
+/** Somebody else's, over, or gone (spec 038, RN-25). */
+export class AssignmentNotShareableError extends DomainError {
+	readonly code = "GROUP.ASSIGNMENT_NOT_SHAREABLE";
+	constructor() {
+		super("Only an open assignment of yours can go to groups.");
+	}
+}
+
+/** At most once in each group (spec 038, RN-28). */
+export class AlreadyAssignedToGroupError extends DomainError {
+	readonly code = "GROUP.ALREADY_ASSIGNED";
+	constructor() {
+		super("This assignment is already in that group.");
+	}
+}

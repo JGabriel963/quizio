@@ -26,6 +26,7 @@ export function AssignFlow({
 	openAssignments,
 	onCreate,
 	onDone,
+	onAssignToGroups,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -44,6 +45,8 @@ export function AssignFlow({
 		options: AssignmentOptionsData;
 	}) => Promise<{ gameId: string; pin: string }>;
 	onDone: (assignment: { gameId: string }) => void;
+	/** "Atribuir a grupos" over the share dialog (spec 038, RN-25). */
+	onAssignToGroups?: (gameId: string) => void;
 }) {
 	const [created, setCreated] = useState<ShareableAssignment | null>(null);
 	/** "Criar novo" was chosen over the open ones. */
@@ -79,6 +82,9 @@ export function AssignFlow({
 				}}
 				origin={origin}
 				assignment={created}
+				onAssignToGroups={
+					onAssignToGroups && (() => onAssignToGroups(created.gameId))
+				}
 			/>
 		);
 	}

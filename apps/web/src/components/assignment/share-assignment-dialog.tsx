@@ -66,18 +66,22 @@ function useCopied() {
 
 /**
  * "Compartilhe com os participantes" (spec 029, RN-21 to RN-25): the link, the
- * PIN and the networks. Groups and e-mail are "Em breve", without any plan.
+ * PIN and the networks. "Atribuir a grupos" is the creator's while the
+ * assignment is open (spec 038, RN-25); e-mail is "Em breve", without any plan.
  */
 export function ShareAssignmentDialog({
 	open,
 	onOpenChange,
 	origin,
 	assignment,
+	onAssignToGroups,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	origin: string;
 	assignment: ShareableAssignment;
+	/** Opens "Atribuir a grupos"; absent, the item is not offered. */
+	onAssignToGroups?: () => void;
 }) {
 	const link = assignmentLink(origin, assignment.gameId);
 	const message = assignmentShareMessage({
@@ -195,11 +199,12 @@ export function ShareAssignmentDialog({
 								Adicionar participantes
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="center">
-								<DropdownMenuItem disabled>
-									<UsersRoundIcon aria-hidden="true" />
-									Atribuir a grupos
-									<Badge variant="soon">Em breve</Badge>
-								</DropdownMenuItem>
+								{onAssignToGroups && (
+									<DropdownMenuItem onClick={onAssignToGroups}>
+										<UsersRoundIcon aria-hidden="true" />
+										Atribuir a grupos
+									</DropdownMenuItem>
+								)}
 								<DropdownMenuItem disabled>
 									<MailIcon aria-hidden="true" />
 									Atribuir por e-mail

@@ -56,48 +56,57 @@ export function ReportHeader({
 				<div className="flex min-w-0 flex-1 flex-col gap-1">
 					<div className="flex items-center justify-between gap-3">
 						<p className="font-bold text-muted-foreground text-sm">Relatório</p>
-						<DropdownMenu>
-							<DropdownMenuTrigger
-								render={<Button variant="ghost" size="sm" />}
-							>
-								Opções de relatório
-								<EllipsisVerticalIcon data-icon="inline-end" />
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								{header.quizId && (
-									<DropdownMenuItem
-										render={
-											<Link
-												to="/quizzes/$quizId"
-												params={{ quizId: header.quizId }}
-											/>
-										}
-									>
-										Ver quiz
-									</DropdownMenuItem>
-								)}
-								{header.assignment?.open ? (
-									// It is ended first (spec 029, RN-41).
-									<>
-										<DropdownMenuItem disabled>
+						{/* A group admin reading a member's report changes nothing (spec 038, RN-20a). */}
+						{!header.readOnly && (
+							<DropdownMenu>
+								<DropdownMenuTrigger
+									render={<Button variant="ghost" size="sm" />}
+								>
+									Opções de relatório
+									<EllipsisVerticalIcon data-icon="inline-end" />
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									{header.quizId && (
+										<DropdownMenuItem
+											render={
+												<Link
+													to="/quizzes/$quizId"
+													params={{ quizId: header.quizId }}
+												/>
+											}
+										>
+											Ver quiz
+										</DropdownMenuItem>
+									)}
+									{header.assignment?.open ? (
+										// It is ended first (spec 029, RN-41).
+										<>
+											<DropdownMenuItem disabled>
+												Mover para a lixeira
+											</DropdownMenuItem>
+											<p className="max-w-60 px-2 pb-1.5 text-muted-foreground text-xs">
+												{ASSIGNMENT_OPEN_TRASH_HINT}
+											</p>
+										</>
+									) : (
+										<DropdownMenuItem
+											variant="destructive"
+											onClick={onMoveToTrash}
+										>
 											Mover para a lixeira
 										</DropdownMenuItem>
-										<p className="max-w-60 px-2 pb-1.5 text-muted-foreground text-xs">
-											{ASSIGNMENT_OPEN_TRASH_HINT}
-										</p>
-									</>
-								) : (
-									<DropdownMenuItem
-										variant="destructive"
-										onClick={onMoveToTrash}
-									>
-										Mover para a lixeira
-									</DropdownMenuItem>
-								)}
-							</DropdownMenuContent>
-						</DropdownMenu>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						)}
 					</div>
-					<ReportName name={header.name} onRename={onRename} />
+					{header.readOnly ? (
+						<h1 className="min-w-0 break-words font-black text-2xl sm:text-3xl">
+							{header.name}
+						</h1>
+					) : (
+						<ReportName name={header.name} onRename={onRename} />
+					)}
 				</div>
 
 				{header.assignment ? (
@@ -105,7 +114,7 @@ export function ReportHeader({
 						assignment={header.assignment}
 						startedAt={header.startedAt}
 						endedAt={header.endedAt}
-						hostName={hostName}
+						hostName={header.readOnly ? null : hostName}
 					/>
 				) : (
 					<dl className="flex shrink-0 flex-col gap-1 text-sm lg:w-64 lg:border-border lg:border-l lg:pl-4">
@@ -122,10 +131,12 @@ export function ReportHeader({
 							<dt className="sr-only">Iniciada em</dt>
 							<dd>{reportDateLabel(header.startedAt)}</dd>
 						</div>
-						<div>
-							<dt className="sr-only">Anfitrião</dt>
-							<dd>Organizado por {hostName}</dd>
-						</div>
+						{!header.readOnly && (
+							<div>
+								<dt className="sr-only">Anfitrião</dt>
+								<dd>Organizado por {hostName}</dd>
+							</div>
+						)}
 					</dl>
 				)}
 			</div>
@@ -169,7 +180,8 @@ function AssignmentFacts({
 	assignment: NonNullable<ReportHeaderData["assignment"]>;
 	startedAt: string;
 	endedAt: string | null;
-	hostName: string;
+	/** Null when another person's report is read (spec 038, RN-20a). */
+	hostName: string | null;
 }) {
 	return (
 		<dl className="flex shrink-0 flex-col divide-y text-sm lg:w-72 lg:border-border lg:border-l lg:pl-4">
@@ -200,10 +212,12 @@ function AssignmentFacts({
 					Data de término: {reportDateLabel(endedAt ?? assignment.deadline)}
 				</dd>
 			</div>
-			<div className="pt-2">
-				<dt className="sr-only">Anfitrião</dt>
-				<dd>Organizado por {hostName}</dd>
-			</div>
+			{hostName && (
+				<div className="pt-2">
+					<dt className="sr-only">Anfitrião</dt>
+					<dd>Organizado por {hostName}</dd>
+				</div>
+			)}
 		</dl>
 	);
 }

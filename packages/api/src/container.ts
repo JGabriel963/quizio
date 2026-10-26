@@ -135,6 +135,14 @@ import {
 	createAcceptGroupInvite,
 } from "@quizio/core/groups/application/accept-group-invite";
 import {
+	type AssignInGroup,
+	createAssignInGroup,
+} from "@quizio/core/groups/application/assign-in-group";
+import {
+	type AssignToGroups,
+	createAssignToGroups,
+} from "@quizio/core/groups/application/assign-to-groups";
+import {
 	type CreateGroup,
 	createCreateGroup,
 } from "@quizio/core/groups/application/create-group";
@@ -142,6 +150,10 @@ import {
 	createDeleteGroup,
 	type DeleteGroup,
 } from "@quizio/core/groups/application/delete-group";
+import {
+	createDeleteGroupPost,
+	type DeleteGroupPost,
+} from "@quizio/core/groups/application/delete-group-post";
 import {
 	createDismissGroupSetup,
 	type DismissGroupSetup,
@@ -167,6 +179,18 @@ import {
 	type LeaveGroup,
 } from "@quizio/core/groups/application/leave-group";
 import {
+	createListAssignableGroups,
+	type ListAssignableGroups,
+} from "@quizio/core/groups/application/list-assignable-groups";
+import {
+	createListGroupAssignments,
+	type ListGroupAssignments,
+} from "@quizio/core/groups/application/list-group-assignments";
+import {
+	createListGroupFeed,
+	type ListGroupFeed,
+} from "@quizio/core/groups/application/list-group-feed";
+import {
 	createListGroupMembers,
 	type ListGroupMembers,
 } from "@quizio/core/groups/application/list-group-members";
@@ -178,7 +202,10 @@ import {
 	createListRecentGroups,
 	type ListRecentGroups,
 } from "@quizio/core/groups/application/list-recent-groups";
+import type { GroupAssignmentQuery } from "@quizio/core/groups/application/ports/group-assignments";
+import type { GroupFeedQuery } from "@quizio/core/groups/application/ports/group-feed-query";
 import type { GroupMemberRepository } from "@quizio/core/groups/application/ports/group-member-repository";
+import type { GroupPostRepository } from "@quizio/core/groups/application/ports/group-post-repository";
 import type { GroupReads } from "@quizio/core/groups/application/ports/group-reads";
 import type { GroupRepository } from "@quizio/core/groups/application/ports/group-repository";
 import type { GroupVisitRepository } from "@quizio/core/groups/application/ports/group-visit-repository";
@@ -195,6 +222,10 @@ import {
 	createSetGroupPermission,
 	type SetGroupPermission,
 } from "@quizio/core/groups/application/set-group-permission";
+import {
+	createSetPostLike,
+	type SetPostLike,
+} from "@quizio/core/groups/application/set-post-like";
 import {
 	createUpdateGroupDetails,
 	type UpdateGroupDetails,
@@ -338,6 +369,7 @@ import {
 	type MoveReportsToTrash,
 } from "@quizio/core/reports/application/move-reports-to-trash";
 import type { ReportGameQuery } from "@quizio/core/reports/application/ports/report-game-query";
+import type { ReportReadGrants } from "@quizio/core/reports/application/ports/report-read-grants";
 import type { ReportRepository } from "@quizio/core/reports/application/ports/report-repository";
 import {
 	createRenameReport,
@@ -410,6 +442,12 @@ export interface Adapters {
 	/** The groups with the accounts' names and emails. */
 	groupReads: GroupReads;
 	inviteCodes: InviteCodeGenerator;
+	/** The group's feed and the assignments it shows (spec 038). */
+	groupPosts: GroupPostRepository;
+	groupFeed: GroupFeedQuery;
+	groupAssignmentQuery: GroupAssignmentQuery;
+	/** Who else may read a report: a group's admin (spec 038, RN-20a). */
+	reportReadGrants: ReportReadGrants;
 }
 
 export interface Container extends Adapters {
@@ -492,6 +530,13 @@ export interface Container extends Adapters {
 		removeGroupMember: RemoveGroupMember;
 		resetGroupInvite: ResetGroupInvite;
 		visitGroup: VisitGroup;
+		assignInGroup: AssignInGroup;
+		assignToGroups: AssignToGroups;
+		deleteGroupPost: DeleteGroupPost;
+		listAssignableGroups: ListAssignableGroups;
+		listGroupAssignments: ListGroupAssignments;
+		listGroupFeed: ListGroupFeed;
+		setPostLike: SetPostLike;
 		getGroupSettings: GetGroupSettings;
 		setGroupPermission: SetGroupPermission;
 		updateGroupDetails: UpdateGroupDetails;
@@ -508,6 +553,17 @@ export function createContainer(adapters: Adapters): Container {
 	const assignmentDeps = {
 		...adapters,
 		maxDeadlineDays: adapters.assignmentSettings.maxDeadlineDays,
+	};
+	const createAssignment = createCreateAssignment(assignmentDeps);
+	// The groups reach "Criar uma tarefa" through their own port (spec 038).
+	const groupDeps = {
+		...adapters,
+		groupAssignments: {
+			create: async (input: Parameters<typeof createAssignment>[0]) => {
+				const { gameId } = await createAssignment(input);
+				return { gameId };
+			},
+		},
 	};
 	const quizGames = {
 		// The open ones end, assignments too (spec 029, RN-42); the ones that
@@ -569,7 +625,7 @@ export function createContainer(adapters: Adapters): Container {
 			getTypedAnswers: createGetTypedAnswers(adapters),
 			reviewTypedAnswers: createReviewTypedAnswers(adapters),
 			getAssignmentSetup: createGetAssignmentSetup(assignmentDeps),
-			createAssignment: createCreateAssignment(assignmentDeps),
+			createAssignment,
 			changeAssignmentDeadline: createChangeAssignmentDeadline(assignmentDeps),
 			endAssignment: createEndAssignment(adapters),
 			getAssignmentCover: createGetAssignmentCover(adapters),
@@ -603,6 +659,13 @@ export function createContainer(adapters: Adapters): Container {
 			removeGroupMember: createRemoveGroupMember(adapters),
 			resetGroupInvite: createResetGroupInvite(adapters),
 			visitGroup: createVisitGroup(adapters),
+			assignInGroup: createAssignInGroup(groupDeps),
+			assignToGroups: createAssignToGroups(groupDeps),
+			deleteGroupPost: createDeleteGroupPost(groupDeps),
+			listAssignableGroups: createListAssignableGroups(groupDeps),
+			listGroupAssignments: createListGroupAssignments(groupDeps),
+			listGroupFeed: createListGroupFeed(groupDeps),
+			setPostLike: createSetPostLike(groupDeps),
 			getGroupSettings: createGetGroupSettings(adapters),
 			setGroupPermission: createSetGroupPermission(adapters),
 			updateGroupDetails: createUpdateGroupDetails(adapters),

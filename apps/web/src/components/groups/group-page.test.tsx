@@ -111,7 +111,7 @@ describe("GroupHeader (spec 034, RN-13, RN-18)", () => {
 					role: "member",
 					setup: null,
 					memberPreview: [],
-					abilities: { invite: true, seeMembers: false },
+					abilities: { invite: true, seeMembers: false, assign: false },
 				})}
 				{...headerActions}
 			/>,
@@ -169,24 +169,42 @@ describe("GroupTabs (spec 034, RN-14, RN-16)", () => {
 	});
 });
 
-describe("GroupActivity (spec 034, RN-15, RN-17)", () => {
-	const activity = { onInvite: noop, onDismissSetup: noop };
+describe("GroupActivity (spec 034, RN-15, RN-17; spec 038, RN-02)", () => {
+	const activity = {
+		onInvite: noop,
+		onDismissSetup: noop,
+		onAssign: noop,
+		feed: null,
+	};
 
-	it("Publicar algo and its actions are Em breve; Atribuir only for the admin", () => {
+	it("Atribuir is active for who may assign; Criar publicação and Compart. stay Em breve", async () => {
+		const user = userEvent.setup();
+		const onAssign = vi.fn();
 		render(
 			<GroupActivity
 				isAdmin
+				canAssign
 				setup={{ invited: false, assigned: false, posted: false }}
 				{...activity}
+				onAssign={onAssign}
 			/>,
 		);
 
 		const composer = screen.getByRole("region", { name: "Publicar algo" });
-		for (const name of ["Criar publicação", "Compart.", "Atribuir"]) {
+		for (const name of ["Criar publicação", "Compart."]) {
 			expect(
 				within(composer).getByRole("button", { name: `${name} (em breve)` }),
 			).toHaveAttribute("aria-disabled", "true");
 		}
+		await user.click(
+			within(composer).getByRole("button", { name: "Atribuir" }),
+		);
+		await user.click(
+			within(
+				screen.getByRole("region", { name: "Configurar seu grupo" }),
+			).getByRole("button", { name: "Atribuir" }),
+		);
+		expect(onAssign).toHaveBeenCalledTimes(2);
 		expect(
 			screen.getByText(
 				"Ainda não há nenhuma atividade neste grupo. Faça uma publicação para começar.",
@@ -194,10 +212,26 @@ describe("GroupActivity (spec 034, RN-15, RN-17)", () => {
 		).toBeVisible();
 	});
 
-	it("shows the setup card only to the admin", () => {
+	it("shows the feed in place of the empty state", () => {
+		render(
+			<GroupActivity
+				isAdmin={false}
+				canAssign={false}
+				setup={null}
+				{...activity}
+				feed={<p>Mural</p>}
+			/>,
+		);
+
+		expect(screen.getByText("Mural")).toBeVisible();
+		expect(screen.queryByText(/Ainda não há nenhuma atividade/)).toBeNull();
+	});
+
+	it("shows the setup card only to the admin, and Atribuir only to who may assign", () => {
 		const { rerender } = render(
 			<GroupActivity
 				isAdmin
+				canAssign
 				setup={{ invited: false, assigned: false, posted: false }}
 				{...activity}
 			/>,
@@ -206,7 +240,14 @@ describe("GroupActivity (spec 034, RN-15, RN-17)", () => {
 			screen.getByRole("region", { name: "Configurar seu grupo" }),
 		).toBeVisible();
 
-		rerender(<GroupActivity isAdmin={false} setup={null} {...activity} />);
+		rerender(
+			<GroupActivity
+				isAdmin={false}
+				canAssign={false}
+				setup={null}
+				{...activity}
+			/>,
+		);
 
 		expect(
 			screen.queryByRole("region", { name: "Configurar seu grupo" }),
@@ -218,12 +259,30 @@ describe("GroupActivity (spec 034, RN-15, RN-17)", () => {
 	});
 });
 
-describe("GroupSetupCard (spec 034, RN-17)", () => {
+describe("GroupSetupCard (spec 034, RN-17; spec 038, RN-29)", () => {
+	it("marks Atribuir and Criar publicação done after an assignment", () => {
+		render(
+			<GroupSetupCard
+				setup={{ invited: false, assigned: true, posted: true }}
+				onInvite={noop}
+				onAssign={noop}
+				onDismiss={noop}
+			/>,
+		);
+
+		expect(
+			screen.getByRole("button", { name: "Atribuir (feito)" }),
+		).toBeVisible();
+		expect(screen.getByText("Criar publicação")).toBeVisible();
+		expect(screen.getAllByTestId("setup-done")).toHaveLength(2);
+	});
+
 	it("marks Convidar membros done", () => {
 		render(
 			<GroupSetupCard
 				setup={{ invited: true, assigned: false, posted: false }}
 				onInvite={noop}
+				onAssign={noop}
 				onDismiss={noop}
 			/>,
 		);
@@ -241,6 +300,7 @@ describe("GroupSetupCard (spec 034, RN-17)", () => {
 			<GroupSetupCard
 				setup={{ invited: false, assigned: false, posted: false }}
 				onInvite={onInvite}
+				onAssign={noop}
 				onDismiss={onDismiss}
 			/>,
 		);
@@ -252,9 +312,6 @@ describe("GroupSetupCard (spec 034, RN-17)", () => {
 
 		expect(onInvite).toHaveBeenCalled();
 		expect(onDismiss).toHaveBeenCalled();
-		expect(
-			screen.getByRole("button", { name: "Atribuir (em breve)" }),
-		).toHaveAttribute("aria-disabled", "true");
 	});
 });
 

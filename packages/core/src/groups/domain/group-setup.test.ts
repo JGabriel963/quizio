@@ -23,4 +23,16 @@ describe("Configurar seu grupo (spec 034, RN-17)", () => {
 			groupSetupOf({ setupDismissedAt: new Date() }, 1, "admin"),
 		).toBeNull();
 	});
+
+	it("an assignment marks Atribuir and Criar publicação done (spec 038, RN-29)", () => {
+		expect(
+			groupSetupOf(open, 1, "admin", { assignments: 1, posts: 1 }),
+		).toEqual({ invited: false, assigned: true, posted: true });
+	});
+
+	it("the card leaves once every step is done", () => {
+		expect(
+			groupSetupOf(open, 2, "admin", { assignments: 1, posts: 1 }),
+		).toBeNull();
+	});
 });

@@ -94,6 +94,46 @@ export function useGroupMutations() {
 				onSuccess: invalidate,
 			}),
 		),
+		// An assignment is also a report (spec 029): its list changes too.
+		assign: useMutation(
+			trpc.group.assign.mutationOptions({
+				onSuccess: () => {
+					toast.success("Atividade atribuída ao grupo.");
+					return Promise.all([
+						invalidate(),
+						queryClient.invalidateQueries({ queryKey: trpc.report.pathKey() }),
+					]);
+				},
+				onError: showError,
+			}),
+		),
+		assignToGroups: useMutation(
+			trpc.group.assignToGroups.mutationOptions({
+				onSuccess: (data) => {
+					toast.success(
+						`Atividade atribuída a ${data.assigned} ${data.assigned === 1 ? "grupo" : "grupos"}.`,
+					);
+					return invalidate();
+				},
+				onError: showError,
+			}),
+		),
+		setLike: useMutation(
+			trpc.group.posts.setLike.mutationOptions({
+				// The button goes back by itself (RN-17).
+				meta: { suppressErrorToast: true },
+				onError: showError,
+			}),
+		),
+		deletePost: useMutation(
+			trpc.group.posts.delete.mutationOptions({
+				onSuccess: () => {
+					toast.success("Publicação excluída.");
+					return invalidate();
+				},
+				onError: showError,
+			}),
+		),
 		remove: useMutation(
 			trpc.group.delete.mutationOptions({
 				onSuccess: () => {

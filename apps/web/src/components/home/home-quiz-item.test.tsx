@@ -17,6 +17,7 @@ const quiz: HomeQuizView = {
 	questionCount: 0,
 	updatedAt: "2026-04-15T12:00:00.000Z",
 	trashedAt: null,
+	description: "",
 };
 
 describe("HomeQuizItem", () => {

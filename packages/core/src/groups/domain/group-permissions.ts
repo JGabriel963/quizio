@@ -1,5 +1,6 @@
 import {
 	AdminCannotLeaveError,
+	AssignNotAllowedError,
 	CannotRemoveAdminError,
 	InviteNotAllowedError,
 	MembersHiddenError,
@@ -80,4 +81,32 @@ export function assertCanSeeMembers(
 	if (!canSeeMembers(group, membership.role)) {
 		throw new MembersHiddenError();
 	}
+}
+
+/** The admin always; a member when the admin lets them (spec 038, RN-01). */
+export function canAssign(group: WithPermissions, role: GroupRole): boolean {
+	return role === "admin" || group.permissions.membersCanAssign;
+}
+
+export function assertCanAssign(
+	group: WithPermissions,
+	membership: { role: GroupRole },
+): void {
+	if (!canAssign(group, membership.role)) {
+		throw new AssignNotAllowedError();
+	}
+}
+
+/**
+ * "Ver relatório" and "Excluir publicação": who posted while still a member,
+ * and the admin (spec 038, RN-20, RN-31). Null is somebody out of the group.
+ */
+export function canManagePost(
+	post: { authorId: string },
+	viewer: { userId: string; role: GroupRole } | null,
+): boolean {
+	if (!viewer) {
+		return false;
+	}
+	return viewer.role === "admin" || viewer.userId === post.authorId;
 }

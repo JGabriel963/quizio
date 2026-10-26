@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { aGroup } from "../testing/a-group";
 import {
 	AdminCannotLeaveError,
+	AssignNotAllowedError,
 	CannotRemoveAdminError,
 	InviteNotAllowedError,
 	MembersHiddenError,
@@ -10,11 +11,14 @@ import {
 } from "./group-errors";
 import {
 	assertAdmin,
+	assertCanAssign,
 	assertCanInvite,
 	assertCanLeave,
 	assertCanSeeMembers,
 	assertRemovable,
+	canAssign,
 	canInvite,
+	canManagePost,
 	canSeeMembers,
 	DEFAULT_GROUP_PERMISSIONS,
 } from "./group-permissions";
@@ -86,5 +90,37 @@ describe("members' permissions (spec 035, RN-07, RN-08)", () => {
 		);
 		expect(() => assertCanSeeMembers(closed, admin)).not.toThrow();
 		expect(new MembersHiddenError().code).toBe("GROUP.MEMBERS_HIDDEN");
+	});
+});
+
+describe("assigning and managing posts (spec 038)", () => {
+	const withAssign = (membersCanAssign: boolean) =>
+		aGroup({
+			permissions: { ...DEFAULT_GROUP_PERMISSIONS, membersCanAssign },
+		});
+
+	it("canAssign: the admin always, a member with the switch (RN-01)", () => {
+		expect(canAssign(withAssign(false), "admin")).toBe(true);
+		expect(canAssign(withAssign(false), "member")).toBe(false);
+		expect(canAssign(withAssign(true), "member")).toBe(true);
+	});
+
+	it("assertCanAssign refuses with GROUP.ASSIGN_NOT_ALLOWED", () => {
+		expect(() => assertCanAssign(withAssign(false), member)).toThrow(
+			AssignNotAllowedError,
+		);
+		expect(() => assertCanAssign(withAssign(true), member)).not.toThrow();
+		expect(new AssignNotAllowedError().code).toBe("GROUP.ASSIGN_NOT_ALLOWED");
+	});
+
+	it("canManagePost: the author while a member, or the admin (RN-20, RN-31)", () => {
+		const post = { authorId: "bruno" };
+
+		expect(canManagePost(post, { userId: "bruno", role: "member" })).toBe(true);
+		expect(canManagePost(post, { userId: "ana", role: "admin" })).toBe(true);
+		expect(canManagePost(post, { userId: "carla", role: "member" })).toBe(
+			false,
+		);
+		expect(canManagePost(post, null)).toBe(false);
 	});
 });

@@ -14,7 +14,10 @@ import { createDrizzleHostPreferencesRepository } from "@quizio/db/repositories/
 import { createDrizzlePlayableQuizQuery } from "@quizio/db/repositories/game/drizzle-playable-quiz-query";
 import { createDrizzlePlayerRepository } from "@quizio/db/repositories/game/drizzle-player-repository";
 import { createDrizzleReviewResultsWriter } from "@quizio/db/repositories/game/drizzle-review-results-writer";
+import { createDrizzleGroupAssignmentQuery } from "@quizio/db/repositories/groups/drizzle-group-assignment-query";
+import { createDrizzleGroupFeedQuery } from "@quizio/db/repositories/groups/drizzle-group-feed-query";
 import { createDrizzleGroupMemberRepository } from "@quizio/db/repositories/groups/drizzle-group-member-repository";
+import { createDrizzleGroupPostRepository } from "@quizio/db/repositories/groups/drizzle-group-post-repository";
 import { createDrizzleGroupReads } from "@quizio/db/repositories/groups/drizzle-group-reads";
 import { createDrizzleGroupRepository } from "@quizio/db/repositories/groups/drizzle-group-repository";
 import { createDrizzleGroupVisitRepository } from "@quizio/db/repositories/groups/drizzle-group-visit-repository";
@@ -26,6 +29,7 @@ import { createDrizzleQuestionRepository } from "@quizio/db/repositories/quiz/dr
 import { createDrizzleQuizRepository } from "@quizio/db/repositories/quiz/drizzle-quiz-repository";
 import { createDrizzleQuizVersionRepository } from "@quizio/db/repositories/quiz/drizzle-quiz-version-repository";
 import { createDrizzleReportGameQuery } from "@quizio/db/repositories/reports/drizzle-report-game-query";
+import { createDrizzleReportReadGrants } from "@quizio/db/repositories/reports/drizzle-report-read-grants";
 import { createDrizzleReportRepository } from "@quizio/db/repositories/reports/drizzle-report-repository";
 import { createDrizzleAttemptLimiter } from "@quizio/db/repositories/shared/drizzle-attempt-limiter";
 import { env } from "@quizio/env/server";
@@ -113,6 +117,10 @@ export function createAdaptersFromEnv(): Adapters {
 		groupVisits: createDrizzleGroupVisitRepository(db),
 		groupReads: createDrizzleGroupReads(db),
 		inviteCodes: createRandomInviteCodeGenerator(),
+		groupPosts: createDrizzleGroupPostRepository(db),
+		groupFeed: createDrizzleGroupFeedQuery(db),
+		groupAssignmentQuery: createDrizzleGroupAssignmentQuery(db),
+		reportReadGrants: createDrizzleReportReadGrants(db),
 		assignmentSettings: {
 			maxDeadlineDays: env.ASSIGNMENT_MAX_DEADLINE_DAYS,
 		},

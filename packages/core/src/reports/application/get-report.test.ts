@@ -57,6 +57,7 @@ describe("getReport (spec 015)", () => {
 			participantCount: 2,
 			quizId: "quiz-1",
 			canPlayAgain: true,
+			readOnly: false,
 			assignment: null,
 		});
 		expect(report.summary).toMatchObject({

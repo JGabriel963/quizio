@@ -34,3 +34,8 @@ export function timeUntil(remainingMs: number): string {
 export function openFor(remainingMs: number): string {
 	return `Aberto por ${duration(remainingMs)}`;
 }
+
+/** "3 dias": the group's Atribuições tab (spec 038, RN-23). */
+export function timeLeft(remainingMs: number): string {
+	return duration(remainingMs);
+}

@@ -188,6 +188,13 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Configurações do grupo | `GroupSettings` | Tela do administrador para mudar o nome, a descrição e as permissões dos membros (spec 035) | ✅ |
 | Descrição do grupo | `Group.description` | Texto opcional de até 500 caracteres, mostrado em "Informações do grupo" (spec 035) | ✅ |
 | Permissões dos membros | `GroupPermissions` (`membersCanInvite`, `membersCanSeeMembers`, `membersCanShare`, `membersCanAssign`) | As quatro chaves do grupo; valem só para os membros; padrão do Kahoot: as três primeiras ligadas e criar atividades desligada (spec 035) | ✅ |
+| Mural | `GroupFeed` | A aba Atividade do grupo: as publicações, das mais novas para as mais antigas (spec 038; publicações de texto na 036) | ✅ |
+| Publicação | `GroupPost` | Item do mural, de quem o fez; na spec 038, uma atribuição feita no grupo, com uma mensagem opcional de até 500 caracteres; perde o anexo quando a atribuição acaba ("compartilhou um arquivo") | ✅ |
+| Curtida | `GroupPostLike` | Uma por membro e publicação; "Curtir" / "Curtida" (spec 038) | ✅ |
+| Atribuição do grupo | `GroupAssignment` | Uma atribuição (spec 029) publicada num grupo, no máximo uma vez por grupo; aparece no mural e na aba Atribuições enquanto está aberta (spec 038) | ✅ |
+| Atribuir a grupos | `assignToGroups` | Publicar uma atribuição já criada em um ou mais grupos onde a pessoa pode atribuir, pelo diálogo de compartilhar (spec 038) | ✅ |
+| Excluir publicação | `deleteGroupPost` | Tira a publicação, com as curtidas, do mural e da aba; a atribuição continua; de quem atribuiu e do administrador (spec 038) | ✅ |
+| Relatório somente para leitura | `ReportView.readOnly` | O administrador do grupo vê o relatório de uma atribuição publicada ali por outra pessoa, sem nenhuma ação (spec 038) | ✅ |
 
 ## Library, Reports, Media
 

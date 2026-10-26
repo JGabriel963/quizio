@@ -24,6 +24,7 @@ const header = (
 	participantCount: 25,
 	quizId: "quiz-1",
 	canPlayAgain: true,
+	readOnly: false,
 	...overrides,
 });
 
@@ -253,5 +254,18 @@ describe("ReportHeader of an assignment (spec 029, RN-31)", () => {
 
 		expect(item).toHaveAttribute("aria-disabled", "true");
 		expect(onMoveToTrash).not.toHaveBeenCalled();
+	});
+
+	it("read-only hides rename, trash and the creator's name (spec 038, RN-20a)", async () => {
+		renderHeader({ readOnly: true, quizId: null, canPlayAgain: false });
+
+		expect(await heading()).toHaveTextContent("Bom de Bíblia (Geral)");
+		expect(
+			screen.queryByRole("button", { name: "Renomear relatório" }),
+		).toBeNull();
+		expect(
+			screen.queryByRole("button", { name: "Opções de relatório" }),
+		).toBeNull();
+		expect(screen.queryByText(/Organizado por/)).toBeNull();
 	});
 });

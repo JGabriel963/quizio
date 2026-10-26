@@ -2,10 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useCallback, useState } from "react";
 import { toast } from "sonner";
-
+import { AssignToGroupsControl } from "@/components/groups/assign/assign-to-groups-control";
 import { useOrigin } from "@/lib/use-origin";
 import { useTRPC } from "@/utils/trpc";
-
 import { AssignFlow } from "./assign-flow";
 
 /**
@@ -26,6 +25,8 @@ export function useAssignQuiz(): {
 		title: string;
 		openedAt: Date;
 	} | null>(null);
+	// "Atribuir a grupos" of the share dialog (spec 038).
+	const [groupsFor, setGroupsFor] = useState<string | null>(null);
 	const setup = useQuery({
 		...trpc.game.assignment.setup.queryOptions(),
 		enabled: quiz !== null,
@@ -88,6 +89,7 @@ export function useAssignQuiz(): {
 					]);
 					return created;
 				}}
+				onAssignToGroups={setGroupsFor}
 				onDone={({ gameId }) =>
 					toast("Atividade criada", {
 						action: {
@@ -100,5 +102,16 @@ export function useAssignQuiz(): {
 			/>
 		) : null;
 
-	return { assign, dialog };
+	return {
+		assign,
+		dialog: (
+			<>
+				{dialog}
+				<AssignToGroupsControl
+					gameId={groupsFor}
+					onClose={() => setGroupsFor(null)}
+				/>
+			</>
+		),
+	};
 }

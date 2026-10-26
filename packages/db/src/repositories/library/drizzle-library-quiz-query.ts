@@ -75,11 +75,11 @@ export function createDrizzleLibraryQuizQuery(db: Database): LibraryQuizQuery {
 			return rows.map(
 				({
 					createdAt: _createdAt,
-					description: _description,
 					publishedVersion: _publishedVersion,
 					publishedAt: _publishedAt,
+					description,
 					...row
-				}) => row,
+				}) => ({ ...row, description: description ?? "" }),
 			);
 		},
 

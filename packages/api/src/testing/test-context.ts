@@ -72,7 +72,7 @@ function toLibraryRecord(
 	questions: InMemoryQuestionRepository,
 ): LibraryQuizRecord {
 	const {
-		description: _description,
+		description,
 		createdAt: _createdAt,
 		publishedVersion: _publishedVersion,
 		publishedAt: _publishedAt,
@@ -80,6 +80,7 @@ function toLibraryRecord(
 	} = quiz;
 	return {
 		...record,
+		description: description ?? "",
 		searchTitle: quizSearchText(quiz.title),
 		questionCount: questions.listOf(quiz.id).length,
 	};
@@ -153,6 +154,46 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		groupVisits: groups,
 		groupReads: groups,
 		inviteCodes: new SequentialInviteCodeGenerator(),
+		groupPosts: groups,
+		groupFeed: groups,
+		// Reads the games above, as the database adapter reads its tables.
+		groupAssignmentQuery: {
+			findAssignments: async (gameIds) => {
+				const records = await Promise.all(
+					gameIds.map(async (gameId) => {
+						const game = await games.findById(gameId);
+						if (game?.mode !== "assignment") {
+							return [];
+						}
+						const quiz = await quizzes.findById(game.quizId);
+						return [
+							{
+								gameId: game.id,
+								ownerId: game.ownerId,
+								ownerName: groups.userName(game.ownerId),
+								name: game.title,
+								questionCount: game.questionCount,
+								coverImageKey: quiz?.coverImageKey ?? null,
+								expiresAt: game.expiresAt,
+								endedAt: game.endedAt,
+							},
+						];
+					}),
+				);
+				return records.flat();
+			},
+		},
+		// A group's admin reads the reports of the assignments posted there.
+		reportReadGrants: {
+			canRead: async (viewerId, gameId) => {
+				const administered = (await groups.listForUser(viewerId))
+					.filter((group) => group.role === "admin")
+					.map((group) => group.id);
+				return (
+					(await groups.groupsWithAssignment(gameId, administered)).length > 0
+				);
+			},
+		},
 		...overrides,
 	};
 	const container = createContainer(adapters);

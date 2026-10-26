@@ -19,6 +19,7 @@ export function CountedField({
 	onChange,
 	max,
 	multiline = false,
+	labelHidden = false,
 	placeholder,
 	error,
 	autoFocus,
@@ -28,6 +29,8 @@ export function CountedField({
 	onChange: (value: string) => void;
 	max: number;
 	multiline?: boolean;
+	/** Only for screen readers, as Kahoot's "Digite seu texto" (spec 038). */
+	labelHidden?: boolean;
 	placeholder?: string;
 	/** The server's refusal, told beside the field. */
 	error?: string | null;
@@ -49,7 +52,9 @@ export function CountedField({
 
 	return (
 		<div className="grid gap-2">
-			<Label htmlFor={fieldId}>{label}</Label>
+			<Label htmlFor={fieldId} className={labelHidden ? "sr-only" : undefined}>
+				{label}
+			</Label>
 			<div className="relative">
 				{multiline ? (
 					<Textarea {...fieldProps} rows={4} className="min-h-24 pb-6" />

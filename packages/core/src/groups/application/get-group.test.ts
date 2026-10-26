@@ -79,10 +79,12 @@ describe("getGroup (spec 034)", () => {
 		expect((await get({ userId: "bruno", groupId })).abilities).toEqual({
 			invite: false,
 			seeMembers: true,
+			assign: false,
 		});
 		expect((await get({ userId: "ana", groupId })).abilities).toEqual({
 			invite: true,
 			seeMembers: true,
+			assign: true,
 		});
 	});
 
@@ -118,6 +120,10 @@ describe("getGroup (spec 034)", () => {
 
 		const view = await createGetGroup(t.deps)({ userId: "bruno", groupId });
 
-		expect(view.abilities).toEqual({ invite: true, seeMembers: false });
+		expect(view.abilities).toEqual({
+			invite: true,
+			seeMembers: false,
+			assign: false,
+		});
 	});
 });

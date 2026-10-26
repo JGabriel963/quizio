@@ -1,3 +1,4 @@
+import { GROUP_ASSIGNMENT_SORTS } from "@quizio/core/groups/domain/group-assignment";
 import { GROUP_PERMISSIONS } from "@quizio/core/groups/domain/group-permissions";
 import { GROUP_SECTIONS } from "@quizio/core/groups/domain/group-section";
 import { z } from "zod";
@@ -8,6 +9,38 @@ const groupId = z.string().min(1).max(100);
 const search = z.string().max(200).optional();
 const inGroup = z.object({ groupId });
 const code = z.object({ code: z.string().min(1).max(100) });
+const gameId = z.string().min(1).max(100);
+/** An instant with its zone, as the browser's `toISOString()` sends it. */
+const deadline = z.iso
+	.datetime({ offset: true })
+	.transform((value) => new Date(value));
+
+/** The feed's posts: likes and "Excluir publicação" (spec 038). */
+const postsRouter = router({
+	setLike: protectedProcedure
+		.input(
+			z.object({
+				groupId,
+				postId: z.string().min(1).max(100),
+				liked: z.boolean(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.setPostLike({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	delete: protectedProcedure
+		.input(z.object({ groupId, postId: z.string().min(1).max(100) }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.deleteGroupPost({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+});
 
 /** The invite link: the admin's code and the guest's screen (spec 034, RN-21 to RN-29). */
 const inviteRouter = router({
@@ -160,6 +193,65 @@ export const groupRouter = router({
 		}),
 	),
 
+	/** "Atribuir agora" and "Publicar" (spec 038). */
+	assign: protectedProcedure
+		.input(
+			z.object({
+				groupId,
+				quizId: z.string().min(1).max(100),
+				deadline,
+				options: z.object({
+					gameCharacters: z.boolean(),
+					questionTimer: z.boolean(),
+					randomizeAnswers: z.boolean(),
+				}),
+				// The length is the domain's rule, counted in characters (RN-12).
+				message: z.string().max(5000).optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.assignInGroup({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	feed: protectedProcedure.input(inGroup).query(({ ctx, input }) =>
+		ctx.container.useCases.listGroupFeed({
+			userId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
+	assignments: protectedProcedure
+		.input(z.object({ groupId, sort: z.enum(GROUP_ASSIGNMENT_SORTS) }))
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.listGroupAssignments({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** "Atribuir a grupos" (spec 038, RN-25 to RN-28). */
+	assignableGroups: protectedProcedure
+		.input(z.object({ gameId }))
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.listAssignableGroups({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	assignToGroups: protectedProcedure
+		.input(z.object({ gameId, groupIds: z.array(groupId).min(1).max(50) }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.assignToGroups({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	posts: postsRouter,
 	invite: inviteRouter,
 	settings: settingsRouter,
 });

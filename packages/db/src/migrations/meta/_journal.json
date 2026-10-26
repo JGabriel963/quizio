@@ -71,6 +71,13 @@
       "when": 1793034637410,
       "tag": "0009_amazing_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793040907025,
+      "tag": "0010_naive_doctor_spectrum",
+      "breakpoints": true
     }
   ]
 }
