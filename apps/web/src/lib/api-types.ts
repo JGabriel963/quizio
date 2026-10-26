@@ -89,3 +89,11 @@ export type AssignmentScoreboardData = Extract<
 	AssignmentPlayScreenData,
 	{ phase: "scoreboard" }
 >["scoreboard"];
+
+/** Groups (spec 034): the lists, a group's page, its members and the invite screen. */
+export type GroupListItemData = RouterOutputs["group"]["list"]["items"][number];
+export type RecentGroupData = RouterOutputs["group"]["recent"]["items"][number];
+export type GroupViewData = RouterOutputs["group"]["get"];
+export type GroupMemberData =
+	RouterOutputs["group"]["members"]["items"][number];
+export type GroupInvitationData = RouterOutputs["group"]["invite"]["find"];

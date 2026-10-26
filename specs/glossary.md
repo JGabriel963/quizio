@@ -170,6 +170,22 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Pontuações (atribuição) | `assignmentScoreboard` | Classificação dos participantes da atribuição pelo total atual de cada um: os cinco primeiros e a linha de quem vê (spec 030) | ✅ |
 | Tela da atividade | `AssignmentLanding` | O que o participante vê ao abrir o link ou digitar o PIN: de quem é, até quando fica aberta, quantos participantes; ou "Esta atividade foi encerrada" (spec 029) | ✅ |
 
+## Grupos (groups)
+
+| PT | EN (código) | Definição | Status |
+| --- | --- | --- | --- |
+| Grupo | `Group` | Espaço de um administrador e seus membros para reunir publicações, quizzes compartilhados e atividades; visível só para os membros; nome de 1 a 20 caracteres (spec 034) | ✅ |
+| Papel no grupo | `GroupRole` | `admin` (o criador, único por grupo) ou `member` (quem entrou pelo convite) (spec 034) | ✅ |
+| Membro do grupo | `GroupMember` | Usuário com conta que pertence ao grupo; o administrador também conta como membro (spec 034) | ✅ |
+| Link de convite | `Group.inviteCode` / `groupInviteLink` | Link com um código secreto, um válido por grupo, sem prazo e para quantas pessoas o abrirem; só o administrador o vê (spec 034) | ✅ |
+| Redefinir link | `resetGroupInvite` | Troca o código do convite: o link anterior deixa de funcionar e quem já entrou continua (spec 034) | ✅ |
+| Aceitar convite | `acceptGroupInvite` | Torna membro quem abriu um link válido com sessão; repetir não duplica (spec 034) | ✅ |
+| Remover membro | `removeGroupMember` | O administrador tira um membro do grupo; não bloqueia a volta pelo link (spec 034) | ✅ |
+| Sair do grupo | `leaveGroup` | O membro deixa o grupo; o administrador não pode (spec 034) | ✅ |
+| Excluir grupo | `deleteGroup` | Exclusão definitiva do grupo para todos, só pelo administrador (spec 034) | ✅ |
+| Grupos recentes | `listRecentGroups` / `group_visit` | Os 5 grupos que o usuário abriu por último (spec 034) | ✅ |
+| Configurar seu grupo | `GroupSetup` / `groupSetupOf` | Cartão do administrador com os passos Convidar membros, Atribuir e Criar publicação; some com "Pular configuração" (spec 034) | ✅ |
+
 ## Library, Reports, Media
 
 | PT | EN (código) | Definição | Status |

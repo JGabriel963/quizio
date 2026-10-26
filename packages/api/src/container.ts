@@ -131,6 +131,67 @@ import {
 	type SubmitAnswer,
 } from "@quizio/core/game/application/submit-answer";
 import {
+	type AcceptGroupInvite,
+	createAcceptGroupInvite,
+} from "@quizio/core/groups/application/accept-group-invite";
+import {
+	type CreateGroup,
+	createCreateGroup,
+} from "@quizio/core/groups/application/create-group";
+import {
+	createDeleteGroup,
+	type DeleteGroup,
+} from "@quizio/core/groups/application/delete-group";
+import {
+	createDismissGroupSetup,
+	type DismissGroupSetup,
+} from "@quizio/core/groups/application/dismiss-group-setup";
+import {
+	createGetGroup,
+	type GetGroup,
+} from "@quizio/core/groups/application/get-group";
+import {
+	createGetGroupInvitation,
+	type GetGroupInvitation,
+} from "@quizio/core/groups/application/get-group-invitation";
+import {
+	createGetGroupInvite,
+	type GetGroupInvite,
+} from "@quizio/core/groups/application/get-group-invite";
+import {
+	createLeaveGroup,
+	type LeaveGroup,
+} from "@quizio/core/groups/application/leave-group";
+import {
+	createListGroupMembers,
+	type ListGroupMembers,
+} from "@quizio/core/groups/application/list-group-members";
+import {
+	createListGroups,
+	type ListGroups,
+} from "@quizio/core/groups/application/list-groups";
+import {
+	createListRecentGroups,
+	type ListRecentGroups,
+} from "@quizio/core/groups/application/list-recent-groups";
+import type { GroupMemberRepository } from "@quizio/core/groups/application/ports/group-member-repository";
+import type { GroupReads } from "@quizio/core/groups/application/ports/group-reads";
+import type { GroupRepository } from "@quizio/core/groups/application/ports/group-repository";
+import type { GroupVisitRepository } from "@quizio/core/groups/application/ports/group-visit-repository";
+import type { InviteCodeGenerator } from "@quizio/core/groups/application/ports/invite-code-generator";
+import {
+	createRemoveGroupMember,
+	type RemoveGroupMember,
+} from "@quizio/core/groups/application/remove-group-member";
+import {
+	createResetGroupInvite,
+	type ResetGroupInvite,
+} from "@quizio/core/groups/application/reset-group-invite";
+import {
+	createVisitGroup,
+	type VisitGroup,
+} from "@quizio/core/groups/application/visit-group";
+import {
 	createGetHomeOverview,
 	type GetHomeOverview,
 } from "@quizio/core/library/application/get-home-overview";
@@ -330,6 +391,13 @@ export interface Adapters {
 	assistantPreferences: AssistantPreferencesRepository;
 	sourceUploads: SourceUploadRepository;
 	assistantSettings: AssistantSettings;
+	/** Groups and their members (spec 034). */
+	groups: GroupRepository;
+	groupMembers: GroupMemberRepository;
+	groupVisits: GroupVisitRepository;
+	/** The groups with the accounts' names and emails. */
+	groupReads: GroupReads;
+	inviteCodes: InviteCodeGenerator;
 }
 
 export interface Container extends Adapters {
@@ -398,6 +466,20 @@ export interface Container extends Adapters {
 		moveReportsToTrash: MoveReportsToTrash;
 		renameReport: RenameReport;
 		restoreReports: RestoreReports;
+		acceptGroupInvite: AcceptGroupInvite;
+		createGroup: CreateGroup;
+		deleteGroup: DeleteGroup;
+		dismissGroupSetup: DismissGroupSetup;
+		getGroup: GetGroup;
+		getGroupInvitation: GetGroupInvitation;
+		getGroupInvite: GetGroupInvite;
+		leaveGroup: LeaveGroup;
+		listGroupMembers: ListGroupMembers;
+		listGroups: ListGroups;
+		listRecentGroups: ListRecentGroups;
+		removeGroupMember: RemoveGroupMember;
+		resetGroupInvite: ResetGroupInvite;
+		visitGroup: VisitGroup;
 	};
 }
 
@@ -492,6 +574,20 @@ export function createContainer(adapters: Adapters): Container {
 			moveReportsToTrash: createMoveReportsToTrash(adapters),
 			renameReport: createRenameReport(adapters),
 			restoreReports: createRestoreReports(adapters),
+			acceptGroupInvite: createAcceptGroupInvite(adapters),
+			createGroup: createCreateGroup(adapters),
+			deleteGroup: createDeleteGroup(adapters),
+			dismissGroupSetup: createDismissGroupSetup(adapters),
+			getGroup: createGetGroup(adapters),
+			getGroupInvitation: createGetGroupInvitation(adapters),
+			getGroupInvite: createGetGroupInvite(adapters),
+			leaveGroup: createLeaveGroup(adapters),
+			listGroupMembers: createListGroupMembers(adapters),
+			listGroups: createListGroups(adapters),
+			listRecentGroups: createListRecentGroups(adapters),
+			removeGroupMember: createRemoveGroupMember(adapters),
+			resetGroupInvite: createResetGroupInvite(adapters),
+			visitGroup: createVisitGroup(adapters),
 		},
 	};
 }

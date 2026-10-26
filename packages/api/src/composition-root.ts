@@ -14,6 +14,10 @@ import { createDrizzleHostPreferencesRepository } from "@quizio/db/repositories/
 import { createDrizzlePlayableQuizQuery } from "@quizio/db/repositories/game/drizzle-playable-quiz-query";
 import { createDrizzlePlayerRepository } from "@quizio/db/repositories/game/drizzle-player-repository";
 import { createDrizzleReviewResultsWriter } from "@quizio/db/repositories/game/drizzle-review-results-writer";
+import { createDrizzleGroupMemberRepository } from "@quizio/db/repositories/groups/drizzle-group-member-repository";
+import { createDrizzleGroupReads } from "@quizio/db/repositories/groups/drizzle-group-reads";
+import { createDrizzleGroupRepository } from "@quizio/db/repositories/groups/drizzle-group-repository";
+import { createDrizzleGroupVisitRepository } from "@quizio/db/repositories/groups/drizzle-group-visit-repository";
 import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
 import { createDrizzleSourceUploadRepository } from "@quizio/db/repositories/media/drizzle-source-upload-repository";
 import { createDrizzleAssistantPreferencesRepository } from "@quizio/db/repositories/quiz/drizzle-assistant-preferences-repository";
@@ -31,6 +35,7 @@ import { createS3ObjectStorage } from "@quizio/storage/s3-object-storage";
 import { type Adapters, type Container, createContainer } from "./container";
 import { createRandomAssignmentPinGenerator } from "./random-assignment-pin-generator";
 import { createRandomGamePinGenerator } from "./random-game-pin-generator";
+import { createRandomInviteCodeGenerator } from "./random-invite-code-generator";
 import { createRandomShuffler } from "./random-shuffler";
 
 /** A creation taking longer than this fails and gives the use back (spec 027, RN-33). */
@@ -103,6 +108,11 @@ export function createAdaptersFromEnv(): Adapters {
 		assignmentPins: createRandomAssignmentPinGenerator(),
 		assignmentPreferences: createDrizzleAssignmentPreferencesRepository(db),
 		assignmentLanding: createDrizzleAssignmentLandingQuery(db),
+		groups: createDrizzleGroupRepository(db),
+		groupMembers: createDrizzleGroupMemberRepository(db),
+		groupVisits: createDrizzleGroupVisitRepository(db),
+		groupReads: createDrizzleGroupReads(db),
+		inviteCodes: createRandomInviteCodeGenerator(),
 		assignmentSettings: {
 			maxDeadlineDays: env.ASSIGNMENT_MAX_DEADLINE_DAYS,
 		},

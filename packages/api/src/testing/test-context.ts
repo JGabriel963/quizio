@@ -10,6 +10,8 @@ import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-pl
 import { InMemoryReviewResultsWriter } from "@quizio/core/game/testing/in-memory-review-results-writer";
 import { SequentialAssignmentPinGenerator } from "@quizio/core/game/testing/sequential-assignment-pin-generator";
 import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
+import { InMemoryGroupStore } from "@quizio/core/groups/testing/in-memory-group-store";
+import { SequentialInviteCodeGenerator } from "@quizio/core/groups/testing/sequential-invite-code-generator";
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
 import { InMemorySourceUploadRepository } from "@quizio/core/media/testing/in-memory-source-upload-repository";
@@ -61,6 +63,8 @@ export interface TestApi {
 	sourceUploads: InMemorySourceUploadRepository;
 	/** Reads the games above; the reports' and creators' names are set here. */
 	assignmentLanding: InMemoryAssignmentLandingQuery;
+	/** Every groups port; add the accounts the screens name with `addUser`. */
+	groups: InMemoryGroupStore;
 }
 
 function toLibraryRecord(
@@ -96,6 +100,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const generator = new InMemoryQuestionGenerator();
 	const sourceUploads = new InMemorySourceUploadRepository();
 	const assignmentLanding = new InMemoryAssignmentLandingQuery(games, players);
+	const groups = new InMemoryGroupStore();
 	const adapters: Adapters = {
 		storage,
 		realtime,
@@ -143,6 +148,11 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		assistantPreferences: new InMemoryAssistantPreferencesRepository(),
 		sourceUploads,
 		assistantSettings: { generationsPerDay: 20 },
+		groups,
+		groupMembers: groups,
+		groupVisits: groups,
+		groupReads: groups,
+		inviteCodes: new SequentialInviteCodeGenerator(),
 		...overrides,
 	};
 	const container = createContainer(adapters);
@@ -170,5 +180,6 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		generator,
 		sourceUploads,
 		assignmentLanding,
+		groups,
 	};
 }

@@ -81,10 +81,8 @@ test.describe("tela larga", () => {
 		await signUp(page);
 
 		const nav = page.getByRole("navigation", { name: "Navegação principal" });
-		for (const area of ["Descobrir", "Grupos"]) {
-			await expect(nav.getByText(area)).toBeVisible();
-			await expect(nav.getByRole("link", { name: area })).toHaveCount(0);
-		}
+		await expect(nav.getByText("Descobrir")).toBeVisible();
+		await expect(nav.getByRole("link", { name: "Descobrir" })).toHaveCount(0);
 		await expect(page).toHaveURL(/\/$/);
 
 		// Relatórios is built (spec 015, RN-22): it opens its area.
@@ -92,6 +90,13 @@ test.describe("tela larga", () => {
 		await expect(page).toHaveURL(/\/reports/);
 		await expect(
 			page.getByRole("heading", { level: 1, name: "Relatórios" }),
+		).toBeVisible();
+
+		// So is Grupos (spec 034, RN-06).
+		await nav.getByRole("link", { name: "Grupos" }).click();
+		await expect(page).toHaveURL(/\/groups/);
+		await expect(
+			page.getByRole("heading", { level: 1, name: "Grupos que gerencio" }),
 		).toBeVisible();
 	});
 });
