@@ -1,5 +1,8 @@
 import type { NotificationQuery } from "@quizio/core/notifications/application/ports/notification-query";
-import type { NotificationRecord } from "@quizio/core/notifications/domain/notification";
+import type {
+	NotificationCursor,
+	NotificationRecord,
+} from "@quizio/core/notifications/domain/notification";
 import {
 	and,
 	desc,
@@ -7,6 +10,7 @@ import {
 	gt,
 	gte,
 	isNull,
+	lt,
 	max,
 	ne,
 	or,
@@ -25,6 +29,8 @@ interface ListOptions {
 	limit: number;
 	readAllAt: Date | null;
 	keepReadSince: Date;
+	before?: NotificationCursor;
+	unreadOnly?: boolean;
 }
 
 /**
@@ -39,7 +45,29 @@ function kept(
 	const unread = options.readAllAt
 		? and(isNull(readAt), gt(at, options.readAllAt))
 		: isNull(readAt);
-	return or(unread, gte(at, options.keepReadSince));
+	return options.unreadOnly
+		? unread
+		: or(unread, gte(at, options.keepReadSince));
+}
+
+/**
+ * Ids compared byte by byte, as JavaScript compares the merged pages; a
+ * locale collation could order a tie differently and skip or repeat one.
+ */
+const byteOrder = (id: SQL<string>) => sql<string>`(${id}) collate "C"`;
+
+/** After the cursor in the order (at, id), newest first (RN-13). */
+function afterCursor(
+	at: AnyPgColumn,
+	id: SQL<string>,
+	before: NotificationCursor | undefined,
+): SQL | undefined {
+	return before
+		? or(
+				lt(at, before.at),
+				and(eq(at, before.at), lt(byteOrder(id), before.id)),
+			)
+		: undefined;
 }
 
 /**
@@ -158,9 +186,10 @@ export function createDrizzleNotificationQuery(
 						and(
 							ne(groupPost.authorId, userId),
 							kept(groupPost.createdAt, notificationRead.readAt, options),
+							afterCursor(groupPost.createdAt, postId, options.before),
 						),
 					)
-					.orderBy(desc(groupPost.createdAt), desc(groupPost.id))
+					.orderBy(desc(groupPost.createdAt), desc(byteOrder(postId)))
 					.limit(options.limit),
 				joinsOf(userId)
 					.where(
@@ -168,18 +197,20 @@ export function createDrizzleNotificationQuery(
 							eq(joiner.role, "member"),
 							ne(joiner.userId, userId),
 							kept(joiner.joinedAt, notificationRead.readAt, options),
+							afterCursor(joiner.joinedAt, joinId, options.before),
 						),
 					)
-					.orderBy(desc(joiner.joinedAt))
+					.orderBy(desc(joiner.joinedAt), desc(byteOrder(joinId)))
 					.limit(options.limit),
 				noticesOf(userId)
 					.where(
 						and(
 							eq(groupNotice.userId, userId),
 							kept(groupNotice.createdAt, notificationRead.readAt, options),
+							afterCursor(groupNotice.createdAt, noticeId, options.before),
 						),
 					)
-					.orderBy(desc(groupNotice.createdAt))
+					.orderBy(desc(groupNotice.createdAt), desc(byteOrder(noticeId)))
 					.limit(options.limit),
 			]);
 			const records: NotificationRecord[] = [

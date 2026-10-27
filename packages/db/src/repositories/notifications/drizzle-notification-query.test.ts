@@ -199,4 +199,57 @@ describe("DrizzleNotificationQuery (spec 040; ADR 0020)", () => {
 		expect(await query.latestAt("bruno")).toEqual(at(22));
 		expect(await query.latestAt("ana")).toEqual(at(10));
 	});
+
+	it("before pages after the cursor, across posts, joins and notices (Codex review of PR #23)", async () => {
+		await post("p1", "bruno", 20);
+		await post("p2", "bruno", 22);
+		await post("p3", "carla", 22);
+		await testDb.db.insert(groupNotice).values({
+			id: "n1",
+			userId: "ana",
+			kind: "removed",
+			groupName: "OUTRO",
+			createdAt: at(21),
+		});
+		const query = createDrizzleNotificationQuery(testDb.db);
+
+		const all = await query.list("ana", keepAll);
+		expect(all.map((r) => r.id)).toEqual([
+			"post:p3",
+			"post:p2",
+			"notice:n1",
+			"post:p1",
+			`join:g1:carla:${at(10).getTime()}`,
+			`join:g1:bruno:${at(5).getTime()}`,
+		]);
+
+		const pages: string[][] = [];
+		let before: { at: Date; id: string } | undefined;
+		for (let page = 0; page < 3; page++) {
+			const records = await query.list("ana", { ...keepAll, limit: 2, before });
+			pages.push(records.map((r) => r.id));
+			const last = records.at(-1);
+			before = last && { at: last.at, id: last.id };
+		}
+		expect(pages.flat()).toEqual(all.map((r) => r.id));
+	});
+
+	it("unreadOnly keeps only the unread ones, wherever they are", async () => {
+		await post("p1", "bruno", 20);
+		await post("p2", "bruno", 21);
+		const inbox = createDrizzleNotificationInbox(testDb.db);
+		await inbox.markRead("ana", "post:p2", at(30));
+		const query = createDrizzleNotificationQuery(testDb.db);
+
+		expect(
+			(
+				await query.list("ana", {
+					limit: 50,
+					readAllAt: at(15),
+					keepReadSince: new Date(0),
+					unreadOnly: true,
+				})
+			).map((r) => r.id),
+		).toEqual(["post:p1"]);
+	});
 });

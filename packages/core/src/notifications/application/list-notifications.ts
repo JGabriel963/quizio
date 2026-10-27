@@ -8,6 +8,7 @@ import type { ProfilePhotoKeys } from "../../shared/application/ports/profile-ph
 import {
 	isRead,
 	NOTIFICATIONS_PAGE_SIZE,
+	type NotificationCursor,
 	type PostHeadlineKind,
 	postHeadlineKind,
 } from "../domain/notification";
@@ -37,9 +38,17 @@ export interface NotificationView {
 
 export type ListNotifications = (input: {
 	userId: string;
-	/** Grows by 20 as the list scrolls to its end (RN-13). */
-	limit?: number;
-}) => Promise<{ items: NotificationView[]; hasMore: boolean }>;
+	/** The `nextCursor` of the page before; absent for the first (RN-13). */
+	cursor?: NotificationCursor;
+}) => Promise<{
+	items: NotificationView[];
+	nextCursor: NotificationCursor | null;
+	/**
+	 * Anything unread in the whole inbox, not only in this page: what
+	 * "Marcar todas como lidas" acts on (RN-15).
+	 */
+	hasUnread: boolean;
+}>;
 
 export function createListNotifications(deps: {
 	notificationQuery: NotificationQuery;
@@ -49,17 +58,29 @@ export function createListNotifications(deps: {
 	clock: Clock;
 	notificationSettings: NotificationSettings;
 }): ListNotifications {
-	return async ({ userId, limit = NOTIFICATIONS_PAGE_SIZE }) => {
+	return async ({ userId, cursor }) => {
+		const limit = NOTIFICATIONS_PAGE_SIZE;
 		const now = deps.clock.now();
 		const inbox = await deps.notificationInbox.find(userId);
-		const records = await deps.notificationQuery.list(userId, {
-			limit: limit + 1,
-			readAllAt: inbox.readAllAt,
-			keepReadSince: new Date(
-				now.getTime() - deps.notificationSettings.readRetentionDays * DAY_MS,
-			),
-		});
+		const keepReadSince = new Date(
+			now.getTime() - deps.notificationSettings.readRetentionDays * DAY_MS,
+		);
+		const [records, unread] = await Promise.all([
+			deps.notificationQuery.list(userId, {
+				limit: limit + 1,
+				readAllAt: inbox.readAllAt,
+				keepReadSince,
+				before: cursor,
+			}),
+			deps.notificationQuery.list(userId, {
+				limit: 1,
+				readAllAt: inbox.readAllAt,
+				keepReadSince,
+				unreadOnly: true,
+			}),
+		]);
 		const page = records.slice(0, limit);
+		const last = page.at(-1);
 		const photoUrlOf = await loadPhotoUrls(
 			page.flatMap((record) => (record.actor ? [record.actor.userId] : [])),
 			deps,
@@ -80,7 +101,9 @@ export function createListNotifications(deps: {
 				read: isRead(record, inbox.readAllAt),
 				ageMs: Math.max(0, now.getTime() - record.at.getTime()),
 			})),
-			hasMore: records.length > limit,
+			nextCursor:
+				records.length > limit && last ? { at: last.at, id: last.id } : null,
+			hasUnread: unread.length > 0,
 		};
 	};
 }

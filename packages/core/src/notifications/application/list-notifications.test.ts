@@ -98,19 +98,44 @@ describe("listNotifications (spec 040)", () => {
 		]);
 	});
 
-	it("returns 20 and tells there is more", async () => {
+	it("pages by a cursor: 20, then the rest, with no cap (Codex review of PR #23)", async () => {
 		const { query, list } = setup();
-		for (let index = 0; index < 25; index++) {
+		for (let index = 0; index < 250; index++) {
 			query.add("ana", aPost(`p${index}`, ago(index * 60_000)));
 		}
 
-		const first = await list({ userId: "ana" });
-		const all = await list({ userId: "ana", limit: 40 });
+		const ids: string[] = [];
+		let cursor: { at: Date; id: string } | undefined;
+		let pages = 0;
+		do {
+			const page = await list({ userId: "ana", cursor });
+			expect(page.items.length).toBeLessThanOrEqual(20);
+			ids.push(...page.items.map((item) => item.id));
+			cursor = page.nextCursor ?? undefined;
+			pages++;
+		} while (cursor);
 
-		expect(first.items).toHaveLength(20);
-		expect(first.hasMore).toBe(true);
-		expect(all.items).toHaveLength(25);
-		expect(all.hasMore).toBe(false);
+		expect(pages).toBe(13);
+		expect(ids).toHaveLength(250);
+		expect(new Set(ids).size).toBe(250);
+		expect(ids[0]).toBe("post:p0");
+		expect(ids.at(-1)).toBe("post:p249");
+	});
+
+	it("hasUnread is inbox-wide, beyond the page (Codex review of PR #23)", async () => {
+		const { query, inbox, list } = setup();
+		query.add("ana", aPost("old-unread", ago(30 * DAY)));
+		for (let index = 0; index < 20; index++) {
+			query.add("ana", aPost(`read${index}`, ago(index * 60_000)));
+			await inbox.markRead("ana", `post:read${index}`, ago(1000));
+		}
+
+		const page = await list({ userId: "ana" });
+		expect(page.items.every((item) => item.read)).toBe(true);
+		expect(page.hasUnread).toBe(true);
+
+		await inbox.markAllRead("ana", now);
+		expect((await list({ userId: "ana" })).hasUnread).toBe(false);
 	});
 
 	it("drops read ones past the retention", async () => {

@@ -224,3 +224,4 @@ O criador vê no sino, de qualquer tela, o que os outros fizeram nos seus grupos
   - o sino mora ao lado da foto, dentro do menu da conta com sessão; o painel é um `Popover` novo do design system;
   - "Mostrar mais" carrega mais 20 também quando a lista chega ao fim (rolagem);
   - a página da publicação é `/groups/{grupo}/posts/{publicação}`, com o mesmo cartão do mural.
+- 2026-10-27 — correções da revisão do Codex no PR #23: o painel pagina por cursor (o instante e o id da última notificação), sem o teto de 200 que fazia "Mostrar mais" falhar; "Marcar todas como lidas" fica disponível quando há não lidas em qualquer ponto da caixa de entrada, e não só na página carregada (RN-13, RN-15). Uma página que falha ao carregar mantém as que já estavam na tela.

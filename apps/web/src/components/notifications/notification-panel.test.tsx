@@ -56,6 +56,7 @@ function renderPanel(
 			status="ready"
 			items={items}
 			hasMore={false}
+			hasUnread
 			{...actions}
 			{...props}
 		/>,
@@ -124,9 +125,10 @@ describe("NotificationPanel (spec 040, RN-12 to RN-17)", () => {
 		expect(onReadAll).toHaveBeenCalledOnce();
 	});
 
-	it("Marcar todas como lidas is disabled when everything is read", async () => {
+	it("Marcar todas como lidas is disabled when nothing in the inbox is unread", async () => {
 		const { user } = renderPanel({
 			items: items.map((item) => ({ ...item, read: true })),
+			hasUnread: false,
 		});
 
 		await user.click(
@@ -139,12 +141,31 @@ describe("NotificationPanel (spec 040, RN-12 to RN-17)", () => {
 		expect(screen.queryByRole("list", { name: "Novo" })).toBeNull();
 	});
 
+	it("Marcar todas como lidas follows the whole inbox, not the loaded page (Codex review of PR #23)", async () => {
+		const { user, onReadAll } = renderPanel({
+			items: items.map((item) => ({ ...item, read: true })),
+			hasUnread: true,
+		});
+
+		await user.click(
+			screen.getByRole("button", { name: "Opções das notificações" }),
+		);
+		const markAll = await screen.findByRole("menuitem", {
+			name: "Marcar todas como lidas",
+		});
+		expect(markAll).not.toHaveAttribute("aria-disabled", "true");
+		await user.click(markAll);
+
+		expect(onReadAll).toHaveBeenCalledOnce();
+	});
+
 	it("empty, loading and error with Tentar de novo", async () => {
 		const { unmount } = render(
 			<NotificationPanel
 				status="ready"
 				items={[]}
 				hasMore={false}
+				hasUnread={false}
 				onOpen={vi.fn()}
 				onReadAll={vi.fn()}
 				onLoadMore={vi.fn()}
@@ -162,6 +183,7 @@ describe("NotificationPanel (spec 040, RN-12 to RN-17)", () => {
 				status="loading"
 				items={[]}
 				hasMore={false}
+				hasUnread={false}
 				onOpen={vi.fn()}
 				onReadAll={vi.fn()}
 				onLoadMore={vi.fn()}
@@ -177,6 +199,7 @@ describe("NotificationPanel (spec 040, RN-12 to RN-17)", () => {
 				status="error"
 				items={[]}
 				hasMore={false}
+				hasUnread={false}
 				onOpen={vi.fn()}
 				onReadAll={vi.fn()}
 				onLoadMore={vi.fn()}
