@@ -19,7 +19,9 @@ async function renderShell({ creating = false } = {}) {
 	return { createQuiz, user: userEvent.setup() };
 }
 
-const navToggle = () => screen.getByRole("button", { name: "Navegação" });
+// `hidden`: while the sheet is open the page behind it is out of the tree.
+const navToggle = () =>
+	screen.getByRole("button", { name: "Navegação", hidden: true });
 
 describe("AppShell", () => {
 	it("keeps the top bar free of navigation links", async () => {
@@ -45,15 +47,28 @@ describe("AppShell", () => {
 		).toBeInTheDocument();
 	});
 
-	it("toggles the main nav on narrow screens and closes it after navigating", async () => {
+	it("opens the main nav as a sheet on narrow screens and closes it after navigating", async () => {
 		const { user } = await renderShell();
 
 		expect(navToggle()).toHaveAttribute("aria-expanded", "false");
+		expect(screen.queryByRole("dialog")).toBeNull();
 
 		await user.click(navToggle());
+		const sheet = await screen.findByRole("dialog", { name: "Navegação" });
 		expect(navToggle()).toHaveAttribute("aria-expanded", "true");
 
-		await user.click(screen.getByRole("link", { name: "Biblioteca" }));
+		await user.click(within(sheet).getByRole("link", { name: "Biblioteca" }));
+		expect(navToggle()).toHaveAttribute("aria-expanded", "false");
+	});
+
+	it("closes the sheet with its X", async () => {
+		const { user } = await renderShell();
+
+		await user.click(navToggle());
+		await user.click(
+			await screen.findByRole("button", { name: "Fechar navegação" }),
+		);
+
 		expect(navToggle()).toHaveAttribute("aria-expanded", "false");
 	});
 
