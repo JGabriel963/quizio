@@ -42,6 +42,9 @@ const sheetVariants = cva(
 				right:
 					"data-closed:slide-out-to-right data-open:slide-in-from-right inset-y-0 right-0 h-full w-full max-w-md",
 				left: "data-closed:slide-out-to-left data-open:slide-in-from-left inset-y-0 left-0 h-full w-full max-w-md",
+				// Kahoot's quiz drawer: up from the bottom, nearly the whole screen.
+				bottom:
+					"data-closed:slide-out-to-bottom data-open:slide-in-from-bottom inset-x-0 top-4 bottom-0 overflow-hidden rounded-t-xl duration-300 sm:inset-x-6 sm:top-10 lg:inset-x-12",
 			},
 		},
 		defaultVariants: {

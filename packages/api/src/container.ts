@@ -349,6 +349,10 @@ import {
 	type GetQuizEditor,
 } from "@quizio/core/quiz/application/get-quiz-editor";
 import {
+	createGetQuizPreview,
+	type GetQuizPreview,
+} from "@quizio/core/quiz/application/get-quiz-preview";
+import {
 	createMoveQuestion,
 	type MoveQuestion,
 } from "@quizio/core/quiz/application/move-question";
@@ -507,6 +511,7 @@ export interface Container extends Adapters {
 		addGeneratedQuestions: AddGeneratedQuestions;
 		createQuiz: CreateQuiz;
 		getQuizDetails: GetQuizDetails;
+		getQuizPreview: GetQuizPreview;
 		updateQuizDetails: UpdateQuizDetails;
 		duplicateQuiz: DuplicateQuiz;
 		duplicateSharedQuiz: DuplicateSharedQuiz;
@@ -642,6 +647,7 @@ export function createContainer(adapters: Adapters): Container {
 			addGeneratedQuestions: createAddGeneratedQuestions(adapters),
 			createQuiz: createCreateQuiz(adapters),
 			getQuizDetails: createGetQuizDetails(adapters),
+			getQuizPreview: createGetQuizPreview(adapters),
 			updateQuizDetails: createUpdateQuizDetails(adapters),
 			duplicateQuiz: createDuplicateQuiz(adapters),
 			duplicateSharedQuiz: createDuplicateSharedQuiz({

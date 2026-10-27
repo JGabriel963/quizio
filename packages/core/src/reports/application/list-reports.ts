@@ -48,6 +48,8 @@ export interface ListReportsInput {
 	ownerId: string;
 	section: ReportSection;
 	search?: string | null;
+	/** Only the games of this quiz: its page's numbers and activities. */
+	quizId?: string | null;
 	/** How many to list, from the newest (RN-28). */
 	limit: number;
 }
@@ -67,13 +69,11 @@ export function createListReports(deps: {
 	/** Quizzes of others the reader plays again (spec 037); none when absent. */
 	quizShareGrants?: QuizShareGrants;
 }): ListReports {
-	return async ({ ownerId, section, search, limit }) => {
+	return async ({ ownerId, section, search, quizId, limit }) => {
 		const now = deps.clock.now();
-		const headers = await deps.reportGames.listHeaders({
-			ownerId,
-			section,
-			now,
-		});
+		const headers = (
+			await deps.reportGames.listHeaders({ ownerId, section, now })
+		).filter((header) => !quizId || header.quizId === quizId);
 		// A report's name is almost always its game's title, so the search runs
 		// here, over the headers, in place of a stored search column (RN-27).
 		const searchText = normalizeSearchText(search ?? "");

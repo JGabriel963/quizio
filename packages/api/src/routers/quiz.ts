@@ -25,6 +25,14 @@ export const quizRouter = router({
 		}),
 	),
 
+	/** The questions the quiz's page lists, read only (trash included). */
+	preview: protectedProcedure.input(quizReference).query(({ ctx, input }) =>
+		ctx.container.useCases.getQuizPreview({
+			ownerId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
 	/** Everything the editor opens with (spec 003). */
 	editor: protectedProcedure.input(quizReference).query(({ ctx, input }) =>
 		ctx.container.useCases.getQuizEditor({
