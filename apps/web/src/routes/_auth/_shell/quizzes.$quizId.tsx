@@ -11,14 +11,15 @@ export const Route = createFileRoute("/_auth/_shell/quizzes/$quizId")({
 });
 
 // `overflow-clip`, not `hidden`: a box that hides its overflow becomes the
-// scroller its sticky header and side column would stick to. The shell's
-// content scrolls with a 1.5rem padding on top, which the header goes over.
+// scroller its sticky header and side column would stick to. From `md` the
+// shell's content is the scroller, with a 1.5rem padding on top that the
+// header goes over; below it the window scrolls and there is none.
 function QuizDetailsPage() {
 	const { quizId } = Route.useParams();
 	const navigate = Route.useNavigate();
 
 	return (
-		<main className="mx-auto w-full max-w-[110rem] overflow-clip rounded-lg shadow-sm [--quiz-sticky-top:-1.5rem]">
+		<main className="mx-auto w-full max-w-[110rem] overflow-clip rounded-lg shadow-sm md:[--quiz-sticky-top:-1.5rem]">
 			<QuizDetailsPanel
 				quizId={quizId}
 				onDeleted={() =>
