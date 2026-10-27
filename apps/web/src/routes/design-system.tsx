@@ -48,6 +48,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Avatar } from "@/components/game/avatar";
+import { ThemeShowcase } from "@/components/game/theme-showcase";
 import { AVATAR_CATALOG } from "@/lib/avatar-catalog";
 
 export const Route = createFileRoute("/design-system")({
@@ -325,6 +326,15 @@ function DesignSystemPage() {
 
 			<Section title="Calendário">
 				<CalendarExample />
+			</Section>
+
+			<Section title="Temas">
+				<p className="text-muted-foreground text-sm">
+					Os temas prontos das telas de jogo e do editor (spec 042). A cor do
+					texto sobre o fundo é calculada; o número é o pior contraste do texto
+					sobre as cores do fundo.
+				</p>
+				<ThemeShowcase />
 			</Section>
 
 			<Section title="Avatares">

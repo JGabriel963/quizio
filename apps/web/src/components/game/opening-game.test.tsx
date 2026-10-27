@@ -4,6 +4,38 @@ import { describe, expect, it, vi } from "vitest";
 
 import { OpeningGame } from "./opening-game";
 
+describe("OpeningGame theme (spec 042, RN-13)", () => {
+	const shownTheme = () =>
+		document
+			.querySelector('[data-slot="game-screen"]')
+			?.getAttribute("data-theme");
+
+	it("uses the theme it is given", () => {
+		render(
+			<OpeningGame
+				state={{ kind: "opening" }}
+				themeId="red"
+				onRetry={vi.fn()}
+				onCancel={vi.fn()}
+			/>,
+		);
+
+		expect(shownTheme()).toBe("red");
+	});
+
+	it("is standard without one", () => {
+		render(
+			<OpeningGame
+				state={{ kind: "opening" }}
+				onRetry={vi.fn()}
+				onCancel={vi.fn()}
+			/>,
+		);
+
+		expect(shownTheme()).toBe("standard");
+	});
+});
+
 describe("OpeningGame (spec 008, RN-13)", () => {
 	it("shows nothing until a game is being opened", () => {
 		const { container } = render(

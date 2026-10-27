@@ -100,6 +100,16 @@ const section = async (name: RegExp | string) =>
 		) as HTMLElement,
 	);
 
+describe("ReportSummary and themes (spec 042, RN-18)", () => {
+	it("a report of a themed game has no game theme: it stays in the app's light look", async () => {
+		renderSummary();
+
+		await screen.findAllByRole("heading", { level: 2 });
+		expect(document.querySelector("[data-theme]")).toBeNull();
+		expect(document.querySelector('[data-slot="game-screen"]')).toBeNull();
+	});
+});
+
 describe("ReportSummary (spec 015)", () => {
 	it("draws the five cards", async () => {
 		const { start } = renderSummary();

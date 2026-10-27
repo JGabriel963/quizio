@@ -66,6 +66,8 @@ export const game = pgTable(
 		randomizeAnswers: boolean("randomize_answers").notNull().default(false),
 		/** "Personagens dos jogadores" (spec 028). */
 		gameCharacters: boolean("game_characters").notNull().default(true),
+		/** The quiz's theme when the game was created; never changes (spec 042). */
+		themeId: text("theme_id").notNull().default("standard"),
 		/** "Timer da pergunta": always on live; an assignment may turn it off (spec 029). */
 		questionTimer: boolean("question_timer").notNull().default(true),
 		/**

@@ -46,7 +46,7 @@ function QuestionPosition({
 	questionCount: number;
 }) {
 	return (
-		<p className="rounded-full bg-black/50 px-5 py-1.5 font-black text-xl shadow-lg sm:text-2xl">
+		<p className="rounded-full bg-game-chip px-5 py-1.5 font-black text-game-chip-fg text-xl shadow-lg sm:text-2xl">
 			<span className="sr-only">Pergunta </span>
 			<span data-slot="question-position">
 				{position}/{questionCount}
@@ -101,7 +101,7 @@ export function QuestionIntro({
 						initial={{ scale: 0, rotate: -120 }}
 						animate={{ scale: 1, rotate: -14 }}
 						transition={{ type: "spring", stiffness: 260, damping: 16 }}
-						className="z-10 -mb-12 flex size-44 items-center justify-center rounded-full bg-black/40 sm:size-64"
+						className="z-10 -mb-12 flex size-44 items-center justify-center rounded-full bg-game-chip text-game-chip-fg sm:size-64"
 					>
 						<QuestionTypeIcon
 							type={question.type}
@@ -112,14 +112,14 @@ export function QuestionIntro({
 						initial={{ opacity: 0, scaleX: 0.3 }}
 						animate={{ opacity: 1, scaleX: 1 }}
 						transition={{ duration: 0.35, delay: 0.15 }}
-						className="w-full bg-black/40 px-4 pt-14 pb-6 text-center font-black text-6xl sm:text-8xl"
+						className="w-full bg-game-chip px-4 pt-14 pb-6 text-center font-black text-6xl text-game-chip-fg sm:text-8xl"
 					>
 						{typeLabel}
 					</motion.h1>
 				</div>
 			) : (
 				<>
-					<p className="flex size-14 shrink-0 items-center justify-center rounded-full bg-black/40 motion-safe:animate-pop-in sm:size-16">
+					<p className="flex size-14 shrink-0 items-center justify-center rounded-full bg-game-chip text-game-chip-fg motion-safe:animate-pop-in sm:size-16">
 						<QuestionTypeIcon
 							type={question.type}
 							className="border-neutral-900 bg-white"
@@ -231,7 +231,7 @@ export function Answering({
 				<p
 					role="timer"
 					aria-label="Tempo restante"
-					className="flex size-20 items-center justify-center rounded-full bg-brand-strong font-black text-3xl shadow-lg sm:size-28 sm:text-5xl"
+					className="flex size-20 items-center justify-center rounded-full bg-game-accent font-black text-3xl text-game-accent-fg shadow-lg sm:size-28 sm:text-5xl"
 				>
 					<span data-slot="time-left">{seconds}</span>
 				</p>
@@ -250,11 +250,11 @@ export function Answering({
 					// Each answer that comes in makes the number jump.
 					key={stage.answerCount}
 					data-slot="answer-count"
-					className="flex size-16 items-center justify-center rounded-full bg-brand-strong font-black text-3xl shadow-lg motion-safe:animate-pop-in sm:size-20 sm:text-4xl"
+					className="flex size-16 items-center justify-center rounded-full bg-game-accent font-black text-3xl text-game-accent-fg shadow-lg motion-safe:animate-pop-in sm:size-20 sm:text-4xl"
 				>
 					{stage.answerCount}
 				</span>
-				<span className="rounded-full bg-brand-strong px-2.5 py-0.5 font-bold text-sm">
+				<span className="rounded-full bg-game-accent px-2.5 py-0.5 font-bold text-game-accent-fg text-sm">
 					{stage.answerCount === 1 ? "resposta" : "respostas"}
 				</span>
 			</p>

@@ -1,4 +1,5 @@
 import type { AssignmentLandingQuery } from "@quizio/core/game/application/ports/assignment-landing-query";
+import { knownThemeId } from "@quizio/core/shared/domain/theme";
 import { and, count, eq, isNull } from "drizzle-orm";
 
 import { user } from "../../schema/auth";
@@ -25,6 +26,7 @@ export function createDrizzleAssignmentLandingQuery(
 					expiresAt: gameTable.expiresAt,
 					endedAt: gameTable.endedAt,
 					questionCount: gameTable.questionCount,
+					themeId: gameTable.themeId,
 					// Null once the quiz was deleted for good (spec 015).
 					coverImageKey: quizTable.coverImageKey,
 				})
@@ -52,6 +54,7 @@ export function createDrizzleAssignmentLandingQuery(
 				participantCount: players?.total ?? 0,
 				coverImageKey: row.coverImageKey,
 				questionCount: row.questionCount,
+				themeId: knownThemeId(row.themeId),
 			};
 		},
 	};

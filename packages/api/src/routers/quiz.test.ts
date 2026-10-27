@@ -274,6 +274,40 @@ describe("quiz router", () => {
 		});
 	});
 
+	it("setTheme saves the theme, returns the details and needs a session (spec 042)", async () => {
+		const api = createTestApi();
+		const ana = api.callerFor("user-1");
+		const created = await ana.quiz.create({});
+
+		const details = await ana.quiz.setTheme({
+			quizId: created.id,
+			themeId: "light-blue",
+		});
+		const error = await failureOf(
+			api.callerFor(null).quiz.setTheme({ quizId: created.id, themeId: "red" }),
+		);
+
+		expect(details.themeId).toBe("light-blue");
+		expect((await ana.quiz.editor({ quizId: created.id })).quiz.themeId).toBe(
+			"light-blue",
+		);
+		expect(error).toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("setTheme answers QUIZ.UNKNOWN_THEME for an id outside the catalog (spec 042, CA-03)", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		const created = await ana.quiz.create({});
+
+		const error = await failureOf(
+			ana.quiz.setTheme({ quizId: created.id, themeId: "winter-games" }),
+		);
+
+		expect(error).toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "QUIZ.UNKNOWN_THEME" },
+		});
+	});
+
 	it("renames a quiz and refuses visitors", async () => {
 		const api = createTestApi();
 		const ana = api.callerFor("user-1");

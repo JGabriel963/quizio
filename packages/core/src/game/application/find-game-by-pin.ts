@@ -1,5 +1,6 @@
 import type { AttemptLimiter } from "../../shared/application/ports/attempt-limiter";
 import type { Clock } from "../../shared/application/ports/clock";
+import type { ThemeId } from "../../shared/domain/theme";
 import {
 	assertJoinable,
 	type Game,
@@ -20,7 +21,13 @@ export type FindGameByPin = (input: {
 	pin: string;
 	/** Who is trying, for the limit on wrong PINs: the client's network address. */
 	clientKey: string;
-}) => Promise<{ gameId: string; pin: string; mode: GameMode }>;
+}) => Promise<{
+	gameId: string;
+	pin: string;
+	mode: GameMode;
+	/** The screens after the PIN already wear it (spec 042, RN-14). */
+	themeId: ThemeId;
+}>;
 
 /**
  * The first step of joining (spec 008, RN-35 to RN-39). Eight digits are an
@@ -72,6 +79,11 @@ export function createFindGameByPin(deps: {
 		if (game.mode === "live") {
 			assertJoinable(game);
 		}
-		return { gameId: game.id, pin: game.pin, mode: game.mode };
+		return {
+			gameId: game.id,
+			pin: game.pin,
+			mode: game.mode,
+			themeId: game.themeId,
+		};
 	};
 }

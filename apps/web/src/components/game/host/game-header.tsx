@@ -54,7 +54,7 @@ export function GameHeader({
 	const fullscreen = useFullscreen();
 
 	return (
-		<header className="relative grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 bg-black/40 px-2">
+		<header className="relative grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 bg-game-bar px-2 text-white">
 			<div className="flex min-w-0 items-center gap-1">
 				<Button variant="ghost" size="icon" aria-label="Sair" onClick={onExit}>
 					<XIcon />
@@ -62,7 +62,9 @@ export function GameHeader({
 				{join && <JoinInHeader join={join} />}
 			</div>
 			{/* A phone has no room for the name beside the PIN. */}
-			<Wordmark className={cn("text-2xl", join && "max-sm:hidden")} />
+			<Wordmark
+				className={cn("text-2xl text-white", join && "max-sm:hidden")}
+			/>
 			<div className="flex items-center gap-1 justify-self-end">
 				<p className="flex items-center gap-1.5 px-2 font-bold">
 					<UserIcon aria-hidden="true" className="size-4" />

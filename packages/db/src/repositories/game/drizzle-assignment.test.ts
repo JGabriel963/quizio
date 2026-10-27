@@ -30,6 +30,7 @@ function anAssignment(
 		deadline: inDays(3),
 		options: DEFAULT_ASSIGNMENT_OPTIONS,
 		questionCount: 2,
+		themeId: "standard",
 		now,
 		...overrides,
 	});

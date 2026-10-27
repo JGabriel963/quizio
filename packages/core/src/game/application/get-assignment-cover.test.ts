@@ -23,6 +23,22 @@ async function withAssignment() {
 	return { deps, gameId };
 }
 
+describe("getAssignmentCover theme (spec 042, RN-15)", () => {
+	it("the cover carries the assignment's theme, open or ended", async () => {
+		const { deps, gameId } = await withAssignment();
+		const game = await deps.games.findById(gameId);
+		if (!game) {
+			throw new Error("The assignment should exist");
+		}
+		await deps.games.save({ ...game, themeId: "lilac" });
+		const getCover = createGetAssignmentCover(deps);
+
+		expect((await getCover({ gameId })).themeId).toBe("lilac");
+		deps.clock.advanceBy(3 * DAY_MS);
+		expect((await getCover({ gameId })).themeId).toBe("lilac");
+	});
+});
+
 describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () => {
 	it("an open assignment gives its name, its creator, the time left and the participants", async () => {
 		const { deps, gameId } = await withAssignment();
@@ -38,6 +54,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 			participants: ["John"],
 			coverUrl: "https://media.test/media/user-1/cover.png",
 			questionCount: 2,
+			themeId: "standard",
 		});
 	});
 
@@ -48,6 +65,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 		expect(await createGetAssignmentCover(deps)({ gameId })).toEqual({
 			status: "ended",
 			name: "Bom de Bíblia (Junho)",
+			themeId: "standard",
 		});
 		expect((await deps.games.findById(gameId))?.endedAt).toBeNull();
 	});
@@ -59,6 +77,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 		expect(await createGetAssignmentCover(deps)({ gameId })).toEqual({
 			status: "ended",
 			name: "Bom de Bíblia (Junho)",
+			themeId: "standard",
 		});
 	});
 
@@ -85,6 +104,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 			"questionCount",
 			"remainingMs",
 			"status",
+			"themeId",
 		]);
 	});
 

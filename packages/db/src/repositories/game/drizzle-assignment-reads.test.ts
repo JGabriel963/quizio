@@ -92,7 +92,14 @@ describe("assignment reads (spec 029)", () => {
 			deadline: new Date("2026-06-04T12:00:00.000Z"),
 			options: DEFAULT_ASSIGNMENT_OPTIONS,
 			questionCount: 2,
+			themeId: "standard",
 			now,
+		});
+
+		it("gives the assignment's theme (spec 042)", async () => {
+			await games.create({ ...assignment, themeId: "beige" });
+
+			expect((await landing.find("a-1"))?.themeId).toBe("beige");
 		});
 
 		it("gives the game's title and the creator's name", async () => {
@@ -107,6 +114,7 @@ describe("assignment reads (spec 029)", () => {
 				participantCount: 0,
 				coverImageKey: null,
 				questionCount: 2,
+				themeId: "standard",
 			});
 		});
 

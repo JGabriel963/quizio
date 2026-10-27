@@ -1,7 +1,14 @@
 import type { Avatar } from "@quizio/core/game/domain/avatar";
 import { nicknameKeyOf } from "@quizio/core/game/domain/nickname";
 import type { ParticipantPhase } from "@quizio/core/game/domain/participant-progress";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { DEFAULT_THEME_ID } from "@quizio/core/shared/domain/theme";
+import {
+	type ReactNode,
+	useEffect,
+	useEffectEvent,
+	useRef,
+	useState,
+} from "react";
 
 import { AssignmentLanding } from "@/components/assignment/assignment-landing";
 import { GameScreen } from "@/components/game/game-screen";
@@ -16,6 +23,7 @@ import {
 	gameErrorCode,
 	gameErrorMessage,
 } from "@/lib/game-error-messages";
+import { GameThemeProvider } from "@/lib/game-theme";
 
 import {
 	AssignmentCover,
@@ -345,49 +353,61 @@ export function AssignmentPlayFlow({
 		setStep({ kind: "nickname", notice: null });
 	}
 
+	// The assignment's theme, from its cover and then from the game (spec 042, RN-15).
+	const themeId =
+		view?.themeId ??
+		(coverState.kind === "ready" ? coverState.cover.themeId : DEFAULT_THEME_ID);
+	const themed = (screen: ReactNode) => (
+		<GameThemeProvider themeId={themeId}>{screen}</GameThemeProvider>
+	);
+
 	if (step.kind === "confirm") {
-		return (
+		return themed(
 			<ConfirmParticipant
 				nickname={step.nickname}
 				busy={resuming}
 				notice={step.notice}
 				onYes={() => void resume(step.nickname)}
 				onNo={startOver}
-			/>
+			/>,
 		);
 	}
 
 	if (!session) {
 		if (coverState.kind !== "ready") {
-			return (
+			return themed(
 				<AssignmentLanding
 					state={
 						coverState.kind === "error"
 							? { kind: "error", onRetry: () => void loadCover() }
 							: coverState
 					}
-				/>
+				/>,
 			);
 		}
 		const { cover } = coverState;
 		if (cover.status === "ended") {
-			return <AssignmentLanding state={{ kind: "ended", name: cover.name }} />;
+			return themed(
+				<AssignmentLanding state={{ kind: "ended", name: cover.name }} />,
+			);
 		}
-		return step.kind === "nickname" ? (
-			<NicknameStep
-				cover={cover}
-				busy={joining}
-				notice={step.notice}
-				onSubmit={(nickname) => void join(nickname)}
-				onPick={(nickname) =>
-					setStep({ kind: "confirm", nickname, notice: null })
-				}
-			/>
-		) : (
-			<AssignmentCover
-				cover={cover}
-				onStart={() => setStep({ kind: "nickname", notice: null })}
-			/>
+		return themed(
+			step.kind === "nickname" ? (
+				<NicknameStep
+					cover={cover}
+					busy={joining}
+					notice={step.notice}
+					onSubmit={(nickname) => void join(nickname)}
+					onPick={(nickname) =>
+						setStep({ kind: "confirm", nickname, notice: null })
+					}
+				/>
+			) : (
+				<AssignmentCover
+					cover={cover}
+					onStart={() => setStep({ kind: "nickname", notice: null })}
+				/>
+			),
 		);
 	}
 
@@ -407,20 +427,20 @@ export function AssignmentPlayFlow({
 		);
 
 	if (!view) {
-		return (
+		return themed(
 			<AssignmentLanding
 				state={
 					play.lost
 						? { kind: "error", onRetry: () => void load() }
 						: { kind: "loading" }
 				}
-			/>
+			/>,
 		);
 	}
 
 	const { screen } = view;
 	if (screen.phase === "ready") {
-		return (
+		return themed(
 			<ReadyScreen
 				nickname={view.nickname}
 				avatar={view.avatar ?? { character: "fox", accessory: null }}
@@ -437,7 +457,7 @@ export function AssignmentPlayFlow({
 					);
 				}}
 				onStart={() => void act(() => api.start(session))}
-			/>
+			/>,
 		);
 	}
 
@@ -448,12 +468,12 @@ export function AssignmentPlayFlow({
 				? { questionIndex: screen.questionIndex, phase: screen.phase }
 				: null;
 
-	return (
+	return themed(
 		<GameScreen className="flex h-svh flex-col">
 			{play.lost && (
 				<p
 					role="status"
-					className="shrink-0 bg-black/60 px-3 py-2 text-center font-bold"
+					className="shrink-0 bg-game-chip px-3 py-2 text-center font-bold text-game-chip-fg"
 				>
 					Sem conexão. Tentando novamente…
 				</p>
@@ -519,6 +539,6 @@ export function AssignmentPlayFlow({
 					)}
 				</PlayArrows>
 			)}
-		</GameScreen>
+		</GameScreen>,
 	);
 }

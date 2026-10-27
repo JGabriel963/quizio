@@ -55,7 +55,7 @@ export function AnswerButtons({
 			)}
 		>
 			{multiple && (
-				<p className="shrink-0 rounded-md bg-black/40 px-3 py-2 text-center font-bold">
+				<p className="shrink-0 rounded-md bg-game-chip px-3 py-2 text-center font-bold text-game-chip-fg">
 					Selecione uma ou mais respostas!
 				</p>
 			)}

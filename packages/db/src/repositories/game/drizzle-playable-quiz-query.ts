@@ -1,5 +1,6 @@
 import type { PlayableQuizQuery } from "@quizio/core/game/application/ports/playable-quiz-query";
 import { parseVersionQuestions } from "@quizio/core/quiz/domain/quiz-version";
+import { knownThemeId } from "@quizio/core/shared/domain/theme";
 import { and, eq } from "drizzle-orm";
 
 import {
@@ -21,6 +22,7 @@ export function createDrizzlePlayableQuizQuery(
 					title: quizTable.title,
 					version: quizTable.publishedVersion,
 					trashedAt: quizTable.trashedAt,
+					themeId: quizTable.themeId,
 				})
 				.from(quizTable)
 				.where(eq(quizTable.id, quizId))
@@ -28,8 +30,12 @@ export function createDrizzlePlayableQuizQuery(
 			if (!row) {
 				return null;
 			}
-			const { trashedAt, ...quiz } = row;
-			return { ...quiz, trashed: trashedAt !== null };
+			const { trashedAt, themeId, ...quiz } = row;
+			return {
+				...quiz,
+				trashed: trashedAt !== null,
+				themeId: knownThemeId(themeId),
+			};
 		},
 
 		async questions(quizId, version) {

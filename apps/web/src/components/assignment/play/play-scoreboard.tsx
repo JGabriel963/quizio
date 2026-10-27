@@ -57,7 +57,9 @@ function Row({
 			data-viewer={viewer}
 			className={cn(
 				"flex h-14 items-center gap-3 rounded-md px-4 font-black text-lg shadow-lg motion-safe:animate-stage-in sm:text-2xl",
-				viewer ? "bg-white text-neutral-900" : "bg-brand-strong text-white",
+				viewer
+					? "bg-white text-neutral-900"
+					: "bg-game-accent text-game-accent-fg",
 				apart && "mt-4",
 			)}
 		>

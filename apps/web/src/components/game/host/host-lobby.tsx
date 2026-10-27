@@ -189,7 +189,10 @@ function LobbyControls({
 	const tip = locked ? UNLOCK_TIP : LOCK_TIP;
 
 	return (
-		<div className="flex items-center gap-1 justify-self-center rounded-md bg-black/50 p-1 lg:justify-self-end">
+		<div
+			data-slot="lobby-controls"
+			className="flex items-center gap-1 justify-self-center rounded-md bg-game-bar p-1 text-white lg:justify-self-end"
+		>
 			<Tooltip>
 				<TooltipTrigger
 					render={

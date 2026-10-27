@@ -39,6 +39,7 @@ describe("game (spec 008)", () => {
 			title: "Capitais",
 			pin: "265914",
 			options: DEFAULT_GAME_OPTIONS,
+			themeId: "standard",
 			now,
 		});
 
@@ -56,6 +57,22 @@ describe("game (spec 008)", () => {
 		expect(isGameOpen(game)).toBe(true);
 	});
 
+	it("a new game keeps the theme it was given (spec 042)", () => {
+		const game = newGame({
+			id: "game-1",
+			ownerId: "user-1",
+			quizId: "quiz-1",
+			quizVersion: 1,
+			title: "Capitais",
+			pin: "265914",
+			options: DEFAULT_GAME_OPTIONS,
+			themeId: "teal",
+			now,
+		});
+
+		expect(game.themeId).toBe("teal");
+	});
+
 	it("a new game with autoplay counts from its creation (spec 014)", () => {
 		const base = {
 			id: "game-1",
@@ -64,6 +81,7 @@ describe("game (spec 008)", () => {
 			quizVersion: 1,
 			title: "Capitais",
 			pin: "265914",
+			themeId: "standard" as const,
 			now,
 		};
 
@@ -85,6 +103,7 @@ describe("game (spec 008)", () => {
 			title: "Capitais",
 			pin: "265914",
 			options: DEFAULT_GAME_OPTIONS,
+			themeId: "standard",
 			now,
 		});
 
@@ -159,6 +178,7 @@ describe("game (spec 008)", () => {
 			title: "Capitais",
 			pin: "265914",
 			options,
+			themeId: "standard",
 			now,
 		});
 
@@ -232,6 +252,7 @@ describe("game modes (spec 029)", () => {
 			title: "Capitais",
 			pin: "265914",
 			options: DEFAULT_GAME_OPTIONS,
+			themeId: "standard",
 			now,
 		});
 

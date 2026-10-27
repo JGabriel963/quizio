@@ -10,6 +10,7 @@ import { type QuizDetailsActions, QuizDetailsView } from "./quiz-details-view";
 const now = new Date("2026-06-15T12:00:00.000Z");
 
 const quiz: QuizDetailsData = {
+	themeId: "standard",
 	id: "quiz-1",
 	title: "Bom de Bíblia (Junho)",
 	description: "Atos 1 a 7",

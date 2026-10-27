@@ -84,6 +84,7 @@ export function createHostGame(deps: {
 				title: quiz.title ?? "",
 				pin,
 				options,
+				themeId: quiz.themeId,
 				now: deps.clock.now(),
 			});
 			if ((await deps.games.create(game)) === "created") {

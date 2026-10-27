@@ -199,6 +199,16 @@ describe("DrizzleSharedQuizReads (spec 037)", () => {
 		expect(detail).toMatchObject({ games: 1, participants: 2 });
 	});
 
+	it("detail returns the quiz's theme (spec 042)", async () => {
+		await publish("capitais", "Capitais", 2);
+		await quizzes.saveTheme("capitais", { themeId: "red", updatedAt: at(1) });
+		await share("capitais", 1);
+
+		expect((await reads.sharedQuizDetail("g1", "capitais"))?.themeId).toBe(
+			"red",
+		);
+	});
+
 	it("detail returns the version's questions, the description and who shared", async () => {
 		await publish("capitais", "Capitais", 2);
 		await share("capitais", 1);

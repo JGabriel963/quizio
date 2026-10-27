@@ -17,6 +17,7 @@ function setup() {
 		games: 3,
 		participants: 41,
 		description: "Atos",
+		themeId: "teal",
 		questions: [
 			aQuestion({
 				id: "q1",
@@ -53,6 +54,8 @@ describe("getPublicQuiz (spec 039, RN-33)", () => {
 			participants: 41,
 			imageUrls: { "media/ana/q1.png": "https://media.test/media/ana/q1.png" },
 			ownedByViewer: false,
+			// For the screen that opens a game from this page (spec 042, RN-13).
+			themeId: "teal",
 		});
 		expect(view.questions.map((question) => question.id)).toEqual(["q1"]);
 	});

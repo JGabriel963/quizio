@@ -1,4 +1,5 @@
 import type { Question } from "../../../quiz/domain/question";
+import type { ThemeId } from "../../../shared/domain/theme";
 
 /** A creator as the profile reads them (spec 039, RN-27). */
 export interface ProfileCreator {
@@ -25,6 +26,8 @@ export interface PublicQuizDetail extends PublicQuizCard {
 	description: string;
 	/** The playable version's questions, in order (spec 037, RN-17). */
 	questions: Question[];
+	/** For the screen that opens a game from this page (spec 042, RN-13). */
+	themeId: ThemeId;
 }
 
 /** Read model over the account, quiz, version and game tables. */

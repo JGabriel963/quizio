@@ -19,6 +19,7 @@ const cover = {
 	participants: ["John"],
 	coverUrl: "https://media.test/cover.png",
 	questionCount: 5,
+	themeId: "standard" as const,
 };
 
 describe("AssignmentCover (spec 030, RN-01)", () => {

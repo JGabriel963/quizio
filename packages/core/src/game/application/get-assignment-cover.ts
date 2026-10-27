@@ -1,5 +1,6 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ThemeId } from "../../shared/domain/theme";
 import { GameNotFoundError } from "../domain/game";
 import type { AssignmentLandingQuery } from "./ports/assignment-landing-query";
 import type { PlayerRepository } from "./ports/player-repository";
@@ -21,8 +22,10 @@ export type AssignmentCoverView =
 			/** The quiz's cover, or null for the default one (spec 030, RN-01). */
 			coverUrl: string | null;
 			questionCount: number;
+			/** Every screen of the assignment wears it (spec 042, RN-15). */
+			themeId: ThemeId;
 	  }
-	| { status: "ended"; name: string };
+	| { status: "ended"; name: string; themeId: ThemeId };
 
 export type GetAssignmentCover = (input: {
 	gameId: string;
@@ -42,7 +45,7 @@ export function createGetAssignmentCover(deps: {
 		// A read model: past its deadline it is over, whoever stores that later.
 		const remainingMs = record.expiresAt.getTime() - deps.clock.now().getTime();
 		if (record.endedAt !== null || remainingMs <= 0) {
-			return { status: "ended", name: record.name };
+			return { status: "ended", name: record.name, themeId: record.themeId };
 		}
 		const participants = await deps.players.listActive(gameId);
 		return {
@@ -56,6 +59,7 @@ export function createGetAssignmentCover(deps: {
 				? deps.storage.getPublicUrl(record.coverImageKey)
 				: null,
 			questionCount: record.questionCount,
+			themeId: record.themeId,
 		};
 	};
 }

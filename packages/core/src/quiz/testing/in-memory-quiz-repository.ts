@@ -1,3 +1,4 @@
+import type { ThemeId } from "../../shared/domain/theme";
 import type { QuizRepository } from "../application/ports/quiz-repository";
 import type { Quiz } from "../domain/quiz";
 import type { QuizVisibility } from "../domain/quiz-details";
@@ -26,6 +27,16 @@ export class InMemoryQuizRepository implements QuizRepository {
 	async saveVisibility(
 		id: string,
 		change: { visibility: QuizVisibility; updatedAt: Date },
+	): Promise<void> {
+		const quiz = this.#quizzes.get(id);
+		if (quiz) {
+			this.#quizzes.set(id, { ...quiz, ...change });
+		}
+	}
+
+	async saveTheme(
+		id: string,
+		change: { themeId: ThemeId; updatedAt: Date },
 	): Promise<void> {
 		const quiz = this.#quizzes.get(id);
 		if (quiz) {

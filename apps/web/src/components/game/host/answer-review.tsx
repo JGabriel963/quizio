@@ -50,7 +50,7 @@ export function AnswerReview({
 	return (
 		<section
 			aria-label="Revisar respostas"
-			className="absolute inset-0 z-20 flex flex-col gap-4 bg-black/60 p-4 backdrop-blur-sm"
+			className="absolute inset-0 z-20 flex flex-col gap-4 bg-black/60 p-4 text-white backdrop-blur-sm"
 		>
 			<div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[1fr_minmax(0,40rem)_1fr]">
 				<h1 className="rounded-md bg-white px-4 py-3 text-center font-bold text-2xl text-neutral-900 shadow-lg sm:col-start-2">

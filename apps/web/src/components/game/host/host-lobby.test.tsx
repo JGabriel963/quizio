@@ -25,6 +25,7 @@ const empty: HostGameData = {
 		autoplay: false,
 		gameCharacters: true,
 	},
+	themeId: "standard",
 	players: [],
 	questionCount: 0,
 	autoStart: null,
@@ -74,6 +75,30 @@ function renderLobby(lobby: HostGameData = empty) {
 
 const playerCount = () =>
 	document.querySelector('[data-slot="player-count"]')?.textContent;
+
+describe("HostLobby theme (spec 042)", () => {
+	it("nickname cards use the theme's accent", () => {
+		renderLobby({ ...empty, players: [act] });
+
+		const [card] = within(
+			screen.getByRole("list", { name: "Participantes" }),
+		).getAllByRole("button");
+		expect(card).toHaveClass("bg-game-accent", "text-game-accent-fg");
+	});
+
+	it("the waiting strip is a chip on the background, and the lock sits on a bar", () => {
+		renderLobby();
+
+		expect(screen.getByText("Aguardando os participantes")).toHaveClass(
+			"bg-game-chip",
+			"text-game-chip-fg",
+		);
+		expect(document.querySelector('[data-slot="lobby-controls"]')).toHaveClass(
+			"bg-game-bar",
+			"text-white",
+		);
+	});
+});
 
 describe("HostLobby (spec 008)", () => {
 	it("shows the address, the PIN in two groups, and waits for players", () => {

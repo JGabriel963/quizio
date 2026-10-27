@@ -174,6 +174,7 @@ describe("SharedQuizPage (spec 037, RN-16 to RN-21)", () => {
 
 	it("a public quiz opened from the profile has no Compartilhado por (spec 039, RN-33)", async () => {
 		const publicQuiz: PublicQuizPageData = {
+			themeId: "standard",
 			quizId: "capitais",
 			title: "Capitais",
 			description: "",

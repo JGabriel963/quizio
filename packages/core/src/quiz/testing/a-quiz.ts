@@ -14,6 +14,7 @@ export function aQuiz(overrides: Partial<Quiz> = {}): Quiz {
 		publishedVersion: null,
 		publishedAt: null,
 		hasUnpublishedChanges: false,
+		themeId: "standard",
 		createdAt,
 		updatedAt: createdAt,
 		trashedAt: null,

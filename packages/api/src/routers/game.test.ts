@@ -64,6 +64,7 @@ describe("game router: the host (spec 008)", () => {
 				autoplay: false,
 				gameCharacters: true,
 			},
+			themeId: "standard",
 			players: [],
 			questionCount: 0,
 			autoStart: null,
@@ -187,7 +188,7 @@ describe("game router: the player (spec 008)", () => {
 			nickname: "ACT",
 		});
 
-		expect(found).toEqual({ gameId, pin, mode: "live" });
+		expect(found).toEqual({ gameId, pin, mode: "live", themeId: "standard" });
 		expect(
 			await visitor.game.join.session({
 				gameId,
@@ -196,6 +197,7 @@ describe("game router: the player (spec 008)", () => {
 			}),
 		).toEqual({
 			gameId,
+			themeId: "standard",
 			nickname: "ACT",
 			avatar: drawn,
 			canChangeAvatar: true,
@@ -587,6 +589,7 @@ describe("game router: the end of the game (spec 011)", () => {
 		});
 		expect(await visitor.game.join.session(bia)).toEqual({
 			gameId,
+			themeId: "standard",
 			nickname: "Bia",
 			avatar: drawn,
 			canChangeAvatar: false,
@@ -1223,6 +1226,7 @@ describe("game router: assignments (spec 029)", () => {
 				participants: [],
 				coverUrl: null,
 				questionCount: 2,
+				themeId: "standard",
 			},
 		);
 	});
@@ -1241,7 +1245,12 @@ describe("game router: assignments (spec 029)", () => {
 
 		expect(
 			await api.callerFor(null).game.join.find({ pin: "0435 2236" }),
-		).toEqual({ gameId, pin: "04352236", mode: "assignment" });
+		).toEqual({
+			gameId,
+			pin: "04352236",
+			mode: "assignment",
+			themeId: "standard",
+		});
 	});
 
 	it("the host's procedures treat an assignment as missing", async () => {

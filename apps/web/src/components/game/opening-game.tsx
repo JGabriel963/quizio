@@ -1,3 +1,4 @@
+import type { ThemeId } from "@quizio/core/shared/domain/theme";
 import { Button } from "@quizio/ui/components/button";
 import { cn } from "@quizio/ui/lib/utils";
 
@@ -38,10 +39,16 @@ export function PreparingLobby({ address }: { address: string | null }) {
  */
 export function OpeningGame({
 	state,
+	themeId,
 	onRetry,
 	onCancel,
 }: {
 	state: OpeningGameState;
+	/**
+	 * The quiz's theme, when the page knows it; the game does not exist yet
+	 * (spec 042, RN-13). Standard otherwise.
+	 */
+	themeId?: ThemeId;
 	onRetry: () => void;
 	/** "Voltar ao quiz": back to the page underneath. */
 	onCancel: () => void;
@@ -51,7 +58,10 @@ export function OpeningGame({
 	}
 
 	return (
-		<GameScreen className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-y-auto p-4">
+		<GameScreen
+			themeId={themeId}
+			className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-y-auto p-4"
+		>
 			{state.kind === "opening" ? (
 				<PreparingLobby address={joinAddress(window.location.origin)} />
 			) : (

@@ -607,6 +607,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				deadline: at(deadline),
 				options: DEFAULT_ASSIGNMENT_OPTIONS,
 				questionCount: 3,
+				themeId: "standard",
 				now: created,
 			});
 
@@ -720,6 +721,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				deadline: at("2026-06-04T12:00:00.000Z"),
 				options: DEFAULT_ASSIGNMENT_OPTIONS,
 				questionCount: 3,
+				themeId: "standard",
 				now: created,
 			});
 

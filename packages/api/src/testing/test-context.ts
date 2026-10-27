@@ -154,6 +154,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 					title: quiz.title,
 					version: quiz.publishedVersion,
 					trashed: quiz.trashedAt !== null,
+					themeId: quiz.themeId,
 				})),
 			async (quizId, version) =>
 				(await versions.find(quizId, version))?.questions ?? [],

@@ -1,6 +1,7 @@
 import type { QuizRepository } from "@quizio/core/quiz/application/ports/quiz-repository";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
 import { quizSearchText } from "@quizio/core/quiz/domain/quiz-details";
+import { knownThemeId } from "@quizio/core/shared/domain/theme";
 import { eq } from "drizzle-orm";
 
 import { quiz as quizTable } from "../../schema/quiz";
@@ -40,6 +41,13 @@ export function createDrizzleQuizRepository(db: Database): QuizRepository {
 				.where(eq(quizTable.id, id));
 		},
 
+		async saveTheme(id, { themeId, updatedAt }) {
+			await db
+				.update(quizTable)
+				.set({ themeId, updatedAt })
+				.where(eq(quizTable.id, id));
+		},
+
 		async listIdsByOwner(ownerId) {
 			const rows = await db
 				.select({ id: quizTable.id })
@@ -62,5 +70,6 @@ function toQuiz({
 	return {
 		...quiz,
 		visibility: quiz.visibility === "public" ? "public" : "private",
+		themeId: knownThemeId(quiz.themeId),
 	};
 }

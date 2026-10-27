@@ -30,6 +30,19 @@
 
 A classe `.dark` define superfícies roxas para as telas de partida (lobby, pergunta, pódio). O app em si é claro, como o Kahoot.
 
+### Temas das telas de jogo (spec 042)
+
+O fundo das telas de jogo e do centro do editor vem do **tema** do quiz (`lib/theme-catalog.ts`, arte em `apps/web/public/themes`). O `GameScreen` escreve o tema em variáveis CSS, e o que fica **direto sobre o fundo** usa estes tokens, nunca `text-white` ou `bg-brand-strong`:
+
+| Token | Uso |
+| --- | --- |
+| `text-game-fg` | Texto e ícones sobre o fundo (o `GameScreen` já aplica; o `Wordmark` também) |
+| `bg-game-accent` + `text-game-accent-fg` | Cartões de apelido do lobby, blocos do pódio, linhas do placar, contadores |
+| `bg-game-chip` + `text-game-chip-fg` | Faixas e etiquetas sobre o fundo: escuras com texto branco num tema escuro, claras com texto escuro num tema claro |
+| `bg-game-bar` + `text-white` | Barras que ficam escuras em qualquer tema: o cabeçalho do anfitrião, o rodapé do celular |
+
+A cor do texto é **calculada** pelo contraste do WCAG sobre as cores do tema (`lib/contrast.ts`), e um teste exige 4,5:1 em todo o catálogo. Sem tema (sem `GameThemeProvider`), os tokens valem o roxo de sempre. O `.dark` continua em todos os temas: cartões, diálogos e superfícies fixas (o cartão do PIN, o enunciado, as alternativas) não mudam. Overlays sobre imagens continuam `bg-black/…` com `text-white`.
+
 ## Componentes
 
 ### `Button`
@@ -47,6 +60,10 @@ Abas para as seções de uma área (Recentes / Rascunhos / Lixeira na Biblioteca
 ### `Select`
 
 Lista de opções sobre `@base-ui/react/select`, usada no lugar do `<select>` do navegador (painel de propriedades do editor). `SelectTrigger` tem o visual dos campos do Kahoot (borda, `shadow-press-light`) e ocupa a largura do contêiner; `SelectContent` abre abaixo do campo, com a largura dele. Dê nome ao campo com `aria-labelledby` no `SelectTrigger`. `SelectItem` tem `variant="tile"` para cartões com ícone em cima e nome embaixo (lista de tipos de pergunta), dentro de um `SelectGroup` com `SelectLabel`.
+
+### `RadioGroup` + `RadioGroupItem`
+
+`variant="default"`: o botão redondo de formulário. `variant="tile"` (spec 042): um cartão com o conteúdo que receber (a miniatura e o nome de um tema), borda azul quando marcado; as setas do teclado andam pelo grupo inteiro e o leitor de tela anuncia o marcado.
 
 ### `AnswerOption` + `AnswerShape`
 

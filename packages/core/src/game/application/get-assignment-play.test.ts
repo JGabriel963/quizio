@@ -51,6 +51,19 @@ async function playing(options = {}) {
 	return { deps, gameId, john, join, play, moveTo, answer };
 }
 
+describe("getAssignmentPlay theme (spec 042, RN-15)", () => {
+	it("the play view carries the assignment's theme", async () => {
+		const { deps, gameId, play } = await playing();
+		const game = await deps.games.findById(gameId);
+		if (!game) {
+			throw new Error("The assignment should exist");
+		}
+		await deps.games.save({ ...game, themeId: "teal" });
+
+		expect((await play()).themeId).toBe("teal");
+	});
+});
+
 describe("getAssignmentPlay (spec 030)", () => {
 	it("answering gives the public question in the participant's order and the time left, never which answer is right", async () => {
 		const { deps, play } = await playing({ randomizeAnswers: true });

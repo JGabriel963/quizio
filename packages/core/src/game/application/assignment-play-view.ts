@@ -2,6 +2,7 @@ import type { QuestionType, SelectionMode } from "../../quiz/domain/question";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { marginRange } from "../../shared/domain/slider-scale";
+import type { ThemeId } from "../../shared/domain/theme";
 import type { Answer, Correctness } from "../domain/answer";
 import {
 	type AssignmentScoreboard,
@@ -120,6 +121,8 @@ export type AssignmentPlayScreen =
 /** Everything a participant's device draws (spec 030). */
 export interface AssignmentPlayView {
 	nickname: string;
+	/** The assignment's theme (spec 042, RN-15). */
+	themeId: ThemeId;
 	/** Null with "Personagens" off (spec 028). */
 	avatar: Avatar | null;
 	questionCount: number;
@@ -388,6 +391,7 @@ export async function buildAssignmentPlayView(
 
 	return {
 		nickname: player.nickname,
+		themeId: game.themeId,
 		avatar: avatarShown(game, player),
 		questionCount: game.questionCount,
 		activity: {

@@ -93,6 +93,7 @@ export function createCreateAssignment(deps: {
 				deadline,
 				options,
 				questionCount: questions.length,
+				themeId: quiz.themeId,
 				now,
 			});
 			if ((await deps.games.create(game)) === "created") {

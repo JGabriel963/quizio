@@ -25,7 +25,7 @@ export function ProgressSegments({
 					key={`segment-${segment.toString()}`}
 					className={cn(
 						"h-1 flex-1 rounded-full transition-colors duration-500",
-						segment <= index ? "bg-white" : "bg-white/30",
+						segment <= index ? "bg-game-fg" : "bg-game-fg/30",
 					)}
 				/>
 			))}

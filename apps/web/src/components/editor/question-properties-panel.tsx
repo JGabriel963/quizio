@@ -25,6 +25,7 @@ import {
 	SquareCheckIcon,
 	Trash2Icon,
 	TrophyIcon,
+	XIcon,
 } from "lucide-react";
 import { type ReactNode, useId } from "react";
 
@@ -53,6 +54,7 @@ export function QuestionPropertiesPanel({
 	onApplyTimeLimitToAll,
 	onDelete,
 	onDuplicate,
+	onClose,
 }: {
 	question: QuestionData;
 	questionCount: number;
@@ -61,14 +63,26 @@ export function QuestionPropertiesPanel({
 	onApplyTimeLimitToAll: (seconds: QuestionData["timeLimitSeconds"]) => void;
 	onDelete: (questionId: string) => void;
 	onDuplicate: (questionId: string) => void;
+	/** The X: the panel closes and the question gets the width (spec 042, RN-23). */
+	onClose?: () => void;
 }) {
 	const { deleteReason, growReason } = questionActionReasons(questionCount);
 
 	return (
 		<div className="flex h-full flex-col gap-4 p-4">
-			<h2 className="border-border border-b pb-3 font-bold">
-				Propriedades da pergunta
-			</h2>
+			<div className="flex items-center justify-between border-border border-b pb-3">
+				<h2 className="font-bold">Propriedades da pergunta</h2>
+				{onClose && (
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						aria-label="Fechar propriedades"
+						onClick={onClose}
+					>
+						<XIcon aria-hidden="true" />
+					</Button>
+				)}
+			</div>
 
 			<PropertyField
 				label="Tipo de pergunta"

@@ -27,7 +27,7 @@ export function PlayerGrid({
 	return (
 		<>
 			{players.length === 0 ? (
-				<p className="rounded-md bg-brand-strong px-4 py-1.5 text-center text-2xl sm:text-3xl">
+				<p className="rounded-md bg-game-chip px-4 py-1.5 text-center text-2xl text-game-chip-fg sm:text-3xl">
 					Aguardando os participantes
 				</p>
 			) : (
@@ -45,7 +45,7 @@ export function PlayerGrid({
 											type="button"
 											onClick={() => onRemove(player)}
 											className={cn(
-												"flex items-center overflow-hidden rounded-md bg-brand-strong font-bold text-xl shadow-press outline-none hover:line-through focus-visible:line-through focus-visible:ring-3 focus-visible:ring-white/60 sm:text-2xl",
+												"flex items-center overflow-hidden rounded-md bg-game-accent font-bold text-game-accent-fg text-xl shadow-press outline-none hover:line-through focus-visible:line-through focus-visible:ring-3 focus-visible:ring-white/60 sm:text-2xl",
 												player.avatar ? "pr-5" : "px-5 py-3",
 											)}
 										/>

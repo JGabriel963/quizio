@@ -25,6 +25,29 @@ const assign = (overrides = {}) => ({
 	...overrides,
 });
 
+describe("createAssignment theme (spec 042)", () => {
+	it("the assignment takes the quiz's theme (RN-10)", async () => {
+		const deps = createGameDeps({
+			quizzes: [aPlayableQuiz({ themeId: "light-orange" })],
+		});
+
+		const { gameId } = await createCreateAssignment(deps)(assign());
+
+		expect((await deps.games.findById(gameId))?.themeId).toBe("light-orange");
+	});
+
+	it("changing the quiz's theme does not change an open assignment (RN-11)", async () => {
+		const deps = createGameDeps({
+			quizzes: [aPlayableQuiz({ themeId: "blue" })],
+		});
+		const { gameId } = await createCreateAssignment(deps)(assign());
+
+		deps.quizzes[0] = aPlayableQuiz({ themeId: "light" });
+
+		expect((await deps.games.findById(gameId))?.themeId).toBe("blue");
+	});
+});
+
 describe("createAssignment (spec 029)", () => {
 	it("creates an open assignment with an eight-digit PIN and the quiz's current title", async () => {
 		const deps = createGameDeps({

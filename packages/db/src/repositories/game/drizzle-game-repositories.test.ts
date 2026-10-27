@@ -57,6 +57,24 @@ describe("game repositories (spec 008)", () => {
 			expect(await games.findById("missing")).toBeNull();
 		});
 
+		it("a game keeps its theme (spec 042)", async () => {
+			const game = aGame({ themeId: "lilac" });
+
+			await games.create(game);
+
+			expect(await games.findById("game-1")).toEqual(game);
+		});
+
+		it("a stored theme that left the catalog reads standard (spec 042, RN-05)", async () => {
+			await games.create(aGame());
+			await testDb.db
+				.update(gameTable)
+				.set({ themeId: "autumn" })
+				.where(eq(gameTable.id, "game-1"));
+
+			expect((await games.findById("game-1"))?.themeId).toBe("standard");
+		});
+
 		it("refuses a PIN held by a game that was not ended", async () => {
 			await games.create(aGame());
 
@@ -396,6 +414,7 @@ describe("game repositories (spec 008)", () => {
 					id: "quiz-1",
 					title: "Capitais",
 					publishedVersion: 3,
+					themeId: "teal",
 				}),
 			);
 			await quizzes.save(aQuiz({ id: "draft" }));
@@ -412,6 +431,7 @@ describe("game repositories (spec 008)", () => {
 				title: "Capitais",
 				version: 3,
 				trashed: false,
+				themeId: "teal",
 			});
 			expect(await query.find("draft")).toMatchObject({ version: null });
 			expect(await query.find("trashed")).toMatchObject({ trashed: true });

@@ -111,7 +111,7 @@ export function Scoreboard({
 									"flex h-16 items-center gap-4 rounded-md px-5 font-black text-2xl shadow-lg transition-colors duration-500 sm:h-20 sm:text-4xl",
 									index === 0
 										? "bg-white text-neutral-900"
-										: "bg-brand-strong text-white",
+										: "bg-game-accent text-game-accent-fg",
 								)}
 							>
 								<span className="flex min-w-0 flex-1 items-center gap-3">

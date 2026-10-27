@@ -45,7 +45,7 @@ export function ActivityHeader({
 	remainingMs: number | null;
 }) {
 	return (
-		<header className="flex flex-wrap items-center justify-between gap-2 bg-black/30 px-5 py-3 text-sm sm:text-base">
+		<header className="flex flex-wrap items-center justify-between gap-2 bg-game-bar px-5 py-3 text-sm text-white sm:text-base">
 			<p>
 				<strong>Atividade</strong> por {creatorName}
 			</p>
@@ -69,7 +69,7 @@ export function AssignmentCover({
 			<Wordmark className="text-4xl opacity-60" />
 			<div className="relative w-full max-w-sm">
 				<QuizCover url={cover.coverUrl} className="w-full" />
-				<span className="absolute right-2 bottom-2 rounded bg-black/70 px-2 py-0.5 font-semibold text-sm">
+				<span className="absolute right-2 bottom-2 rounded bg-black/70 px-2 py-0.5 font-semibold text-sm text-white">
 					{questionCountLabel(cover.questionCount)}
 				</span>
 			</div>
@@ -116,7 +116,7 @@ export function NicknameStep({
 		>
 			<Wordmark className="text-5xl" />
 			<h1 className="text-center font-black text-2xl">{cover.name}</h1>
-			<p className="inline-flex items-center gap-2 rounded bg-black/40 px-3 py-1 font-semibold">
+			<p className="inline-flex items-center gap-2 rounded bg-game-chip px-3 py-1 font-semibold text-game-chip-fg">
 				<UserRoundIcon aria-hidden="true" className="size-4" />
 				{cover.participantCount}{" "}
 				{cover.participantCount === 1 ? "participante" : "participantes"}
@@ -131,7 +131,7 @@ export function NicknameStep({
 							<button
 								type="button"
 								onClick={() => onPick(nickname)}
-								className="rounded-md bg-black/40 px-4 py-2 font-black text-lg shadow-press-sm outline-none transition-colors hover:bg-black/55 focus-visible:ring-4 focus-visible:ring-white/70"
+								className="rounded-md bg-game-chip px-4 py-2 font-black text-game-chip-fg text-lg shadow-press-sm outline-none transition-opacity hover:opacity-85 focus-visible:ring-4 focus-visible:ring-white/70"
 							>
 								{nickname}
 							</button>
@@ -254,7 +254,7 @@ export function ConfirmParticipant({
 				<Button
 					variant="outline"
 					size="lg"
-					className="w-full border-white bg-transparent text-white hover:bg-white/10"
+					className="w-full border-game-fg bg-transparent text-game-fg hover:bg-game-chip"
 					disabled={busy}
 					onClick={onNo}
 				>

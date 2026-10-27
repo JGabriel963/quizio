@@ -28,6 +28,7 @@ function finalOf(
 }
 
 const game: HostGameData = {
+	themeId: "standard",
 	gameId: "game-1",
 	quizId: "quiz-1",
 	title: "Capitais",
@@ -145,6 +146,16 @@ describe("Podium: the reveal (spec 011)", () => {
 
 		await tick(1_700);
 		expect(steps()).toMatchObject({ 2: "Ana 950", 1: null });
+	});
+
+	it("the steps wear the theme's accent (spec 042)", () => {
+		renderPodium(finalOf(7, 0));
+
+		const blocks = document.querySelectorAll('[data-slot="podium-block"]');
+		expect(blocks).toHaveLength(3);
+		for (const block of blocks) {
+			expect(block).toHaveClass("bg-game-accent", "text-game-accent-fg");
+		}
 	});
 
 	it("leaves the steps without a player empty", () => {

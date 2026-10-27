@@ -163,6 +163,7 @@ describe("assignment participant (spec 030)", () => {
 			deadline: new Date("2026-10-22T15:00:00.000Z"),
 			options: { ...DEFAULT_ASSIGNMENT_OPTIONS, ...options },
 			questionCount: 2,
+			themeId: "standard",
 			now,
 		});
 	const questions = [

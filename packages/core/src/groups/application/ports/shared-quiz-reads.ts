@@ -1,5 +1,6 @@
 import type { Question } from "../../../quiz/domain/question";
 import type { QuizVisibility } from "../../../quiz/domain/quiz-details";
+import type { ThemeId } from "../../../shared/domain/theme";
 import type { SharedQuizSort } from "../../domain/shared-quiz";
 
 /**
@@ -30,6 +31,8 @@ export interface SharedQuizDetail extends SharedQuizCard {
 	participants: number;
 	/** The playable version's questions, in order (RN-17). */
 	questions: Question[];
+	/** The quiz's theme, for the screen that opens a game (spec 042, RN-13). */
+	themeId: ThemeId;
 }
 
 /** Read model over the quiz, game and account tables. */

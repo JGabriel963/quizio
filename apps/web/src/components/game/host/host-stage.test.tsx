@@ -66,6 +66,7 @@ function stageAt(overrides: Partial<HostStageData>): HostStageData {
 }
 
 const game: HostGameData = {
+	themeId: "standard",
 	gameId: "game-1",
 	quizId: "quiz-1",
 	title: "Capitais",

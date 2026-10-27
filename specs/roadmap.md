@@ -28,7 +28,7 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 | 019 | Jogar solo | game | Solo com oponentes virtuais (a atribuição saiu para a 029) | ⬜ | — |
 | 020 | Modo equipe | game | Times, Team Talk, pontuação por média | ⬜ | — |
 | 021 | Produtividade do criador | quiz, library | Importar planilha, banco de perguntas, favoritos, pastas | ⬜ | — |
-| 022 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, Accuracy/Confidence, jogar novamente, temas e pré-visualização no editor, imagem nas alternativas do Quiz, revelação de imagem | ⬜ | — |
+| 022 | Extras | vários | Pin answer, Drop pin, Brainstorm, Flashcards, Aprender, compartilhamento, Discover, Accuracy/Confidence, jogar novamente, pré-visualização no editor, imagem nas alternativas do Quiz, revelação de imagem | ⬜ | — |
 | 023 | Apelidos: gerador e filtro | game | Gerador de apelido (adjetivo + animal, até 3 giros) e filtro de apelidos impróprios | ⬜ | — |
 | 024 | Entrada em duas etapas | game | Depois do PIN, o jogador repete o padrão de 4 blocos da tela do anfitrião, que muda a cada 7 s | ⬜ | — |
 | 025 | Música e efeitos sonoros | game | Música do lobby com volume, sons durante o jogo, liga e desliga no cabeçalho | ⬜ | — |
@@ -48,6 +48,8 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 | 039 | Conta e perfil do criador | identity, quiz, library, media, groups, game, reports | Menu da conta pela foto; Configurações com Seu perfil (foto com recorte e zoom, Nome, e-mail só leitura), Acesso à IA (cota, só leitura), Senha (alterar) e Exclusão de conta (motivo, feedback, tudo do criador apagado); visibilidade Público no lugar de Não listado; perfil com os quizzes públicos e a página do quiz público; Ver perfil nos grupos; Descobrir sai da barra lateral | ✅ | [spec](features/039-conta-e-perfil/spec.md) · [plano](features/039-conta-e-perfil/plan.md) · [tarefas](features/039-conta-e-perfil/tasks.md) |
 | 040 | Notificações | groups, identity | Sino na barra superior com ponto vermelho; painel com Novo e Anteriores; publicações, quizzes compartilhados e atribuições notificam os outros membros, a entrada notifica o administrador, remoção e exclusão do grupo notificam o membro; marcar todas como lidas; página da publicação | ✅ | [spec](features/040-notificacoes/spec.md) · [plano](features/040-notificacoes/plan.md) · [tarefas](features/040-notificacoes/tasks.md) |
 | 041 | Autenticação multifatorial | identity | App autenticador e códigos de recuperação, na seção Senha das Configurações | ⬜ | — |
+| 042 | Temas 1/2 — Temas prontos | quiz, game | Barra Temas/Propriedades no editor (painel deslizante em telas estreitas); 14 temas geométricos próprios em Padrão, Cores e Claros; tema salvo ao escolher, fora da versão jogável, copiado ao duplicar; partida ao vivo e atribuição copiam o tema ao serem criadas; tema em todas as telas de jogo e no celular, com contraste automático | ✅ | [spec](features/042-temas-prontos/spec.md) · [plano](features/042-temas-prontos/plan.md) · [tarefas](features/042-temas-prontos/tasks.md) |
+| 043 | Temas 2/2 — Temas personalizados | quiz, game, media | "Crie seu tema": logotipo, fundo (padrões, imagem enviada ou biblioteca), cor de contraste, prévia em três telas; "Seus temas" | ⬜ | — |
 
 ## Mudanças de ordem
 
@@ -67,6 +69,8 @@ Ordem de entrega baseada na proposta de MVP da [referência do Kahoot](product/k
 - **2026-10-21 — os novos tipos de pergunta passam a ter uma spec por tipo, a partir da 031.** Por decisão do usuário, que quer ver as particularidades de cada tipo com capturas do Kahoot. A Resposta curta saiu da 016 e virou a 031; Puzzle e Controle deslizante (016), os tipos de "Coletar opiniões" (017) e Largar marcador e Brainstorm (022) seguem o mesmo caminho quando forem especificados. Sem renumerar as outras (regra de 2026-10-06).
 
 - **2026-10-26 — Grupos sai da linha 020 da spec 002 e vira as linhas 034 a 038.** Por decisão do usuário, a partir das capturas do módulo de Grupos do Kahoot: começa pelo convite de membros (034) e segue com configurações, atividade, compartilhado e atribuições. O perfil público do usuário ("Ver perfil") fica em Extras (022). Sem renumerar as outras (regra de 2026-10-06).
+
+- **2026-10-27 — os temas saem de Extras (022) e viram as linhas 042 e 043.** Por decisão do usuário, a partir das capturas do painel Temas e do "Crie seu tema" do Kahoot: primeiro os temas prontos, depois os personalizados. A 041 (autenticação multifatorial) já tinha o número, ainda sem spec. Sem renumerar as outras (regra de 2026-10-06).
 
 ## Pendências técnicas fora de features
 

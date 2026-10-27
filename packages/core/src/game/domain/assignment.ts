@@ -1,4 +1,5 @@
 import { DomainError } from "../../shared/domain/domain-error";
+import type { ThemeId } from "../../shared/domain/theme";
 import { assertGameOpen, type Game, requireAssignment } from "./game";
 
 /**
@@ -68,6 +69,7 @@ export function newAssignment(input: {
 	deadline: Date;
 	options: AssignmentOptions;
 	questionCount: number;
+	themeId: ThemeId;
 	now: Date;
 }): Game {
 	return {
@@ -97,6 +99,7 @@ export function newAssignment(input: {
 		questionCount: input.questionCount,
 		progress: null,
 		hostSeenAt: input.now,
+		themeId: input.themeId,
 	};
 }
 

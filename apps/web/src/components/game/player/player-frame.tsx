@@ -58,7 +58,7 @@ export function PlayerFrame({
 				</header>
 			)}
 			{children}
-			<footer className="flex h-12 shrink-0 items-center gap-3 bg-black/40 px-4">
+			<footer className="flex h-12 shrink-0 items-center gap-3 bg-game-bar px-4 text-white">
 				{avatar && <Avatar avatar={avatar} className="size-9" />}
 				<span data-slot="player-nickname" className="truncate font-bold">
 					{nickname}

@@ -113,6 +113,16 @@ describe("duplicateSharedQuiz (spec 037, RN-21)", () => {
 		).rejects.toThrow(QuizNotFoundError);
 	});
 
+	it("a member's copy has the shared quiz's theme (spec 042, RN-08)", async () => {
+		await quizzes.save(
+			aPublishedQuiz({ coverImageKey: COVER, themeId: "lilac" }),
+		);
+
+		const copy = await duplicate({ userId: "carla", quizId: "quiz-1" });
+
+		expect(copy.themeId).toBe("lilac");
+	});
+
 	it("the copy of someone else's quiz is private (spec 039, RN-26)", async () => {
 		await quizzes.save(
 			aPublishedQuiz({ coverImageKey: COVER, visibility: "public" }),

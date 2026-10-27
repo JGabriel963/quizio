@@ -4,6 +4,7 @@ import type {
 } from "@quizio/core/library/application/ports/creator-profile-query";
 import { UNTITLED_QUIZ_TITLE } from "@quizio/core/quiz/domain/quiz-details";
 import { parseVersionQuestions } from "@quizio/core/quiz/domain/quiz-version";
+import { knownThemeId } from "@quizio/core/shared/domain/theme";
 import { and, desc, eq, isNotNull, isNull, type SQL } from "drizzle-orm";
 
 import { user } from "../../schema/auth";
@@ -28,6 +29,7 @@ export function createDrizzleCreatorProfileQuery(
 				description: quizTable.description,
 				coverImageKey: quizTable.coverImageKey,
 				questions: quizVersion.questions,
+				themeId: quizTable.themeId,
 			})
 			.from(quizTable)
 			.innerJoin(
@@ -62,7 +64,12 @@ export function createDrizzleCreatorProfileQuery(
 				games: totals?.games ?? 0,
 				participants: totals?.participants ?? 0,
 			};
-			return { card, description: row.description ?? "", questions };
+			return {
+				card,
+				description: row.description ?? "",
+				questions,
+				themeId: knownThemeId(row.themeId),
+			};
 		});
 	}
 
@@ -92,6 +99,7 @@ export function createDrizzleCreatorProfileQuery(
 						...row.card,
 						description: row.description,
 						questions: row.questions,
+						themeId: row.themeId,
 					}
 				: null;
 		},

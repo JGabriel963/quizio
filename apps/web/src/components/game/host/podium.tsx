@@ -151,8 +151,9 @@ export function Podium({
 										)}
 									</div>
 									<div
+										data-slot="podium-block"
 										className={cn(
-											"flex w-full justify-center rounded-t-md border-white/20 border-t bg-black/35 pt-3 shadow-lg",
+											"flex w-full justify-center rounded-t-md border-white/20 border-t bg-game-accent pt-3 text-game-accent-fg shadow-lg",
 											STEP_HEIGHTS[place],
 											place === 1 &&
 												shown &&

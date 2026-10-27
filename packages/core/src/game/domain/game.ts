@@ -1,5 +1,6 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
+import type { ThemeId } from "../../shared/domain/theme";
 import type { GameOptions } from "./game-options";
 import type { GameProgress } from "./game-progress";
 
@@ -81,6 +82,11 @@ export interface Game {
 	 * written on its own, every few seconds, while the game is open.
 	 */
 	hostSeenAt: Date;
+	/**
+	 * The quiz's theme when the game was created (spec 042, RN-10): later
+	 * changes to the quiz never reach it, and nothing changes it.
+	 */
+	themeId: ThemeId;
 }
 
 export class GameNotFoundError extends NotFoundError {
@@ -140,6 +146,7 @@ export function newGame(input: {
 	pin: string;
 	/** The ones the host saved, or the defaults (spec 012, RN-05, RN-07). */
 	options: GameOptions;
+	themeId: ThemeId;
 	now: Date;
 }): Game {
 	return {
@@ -164,6 +171,7 @@ export function newGame(input: {
 		progress: null,
 		// Whoever creates the game is on its screen.
 		hostSeenAt: input.now,
+		themeId: input.themeId,
 	};
 }
 

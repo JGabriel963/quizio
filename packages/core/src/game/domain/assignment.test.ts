@@ -29,10 +29,17 @@ function anAssignment(
 		deadline: later(3 * DAY_MS),
 		options: DEFAULT_ASSIGNMENT_OPTIONS,
 		questionCount: 5,
+		themeId: "standard",
 		now,
 		...overrides,
 	});
 }
+
+describe("newAssignment", () => {
+	it("keeps the theme it was given (spec 042)", () => {
+		expect(anAssignment({ themeId: "beige" }).themeId).toBe("beige");
+	});
+});
 
 describe("assignment deadline (spec 029, RN-08)", () => {
 	it("accepts a deadline later than now and up to the maximum days", () => {

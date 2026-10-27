@@ -30,6 +30,7 @@ import {
 import { applyLobbyEvent, type LobbyEvent } from "@/lib/game-lobby";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { applyAnswerCount, showsStage } from "@/lib/game-stage";
+import { GameThemeProvider } from "@/lib/game-theme";
 import { useRealtimeEvent } from "@/lib/realtime";
 import { useConnectionWatch } from "@/lib/use-connection-watch";
 import { useHostSignal } from "@/lib/use-host-signal";
@@ -322,7 +323,7 @@ function HostPage() {
 	const connectionLost = <ConnectionLostDialog watch={watch} />;
 	if (game.status === "finished" && game.final) {
 		return (
-			<>
+			<GameThemeProvider themeId={game.themeId}>
 				<Podium
 					game={game}
 					final={game.final}
@@ -337,7 +338,7 @@ function HostPage() {
 					}}
 				/>
 				{connectionLost}
-			</>
+			</GameThemeProvider>
 		);
 	}
 
@@ -375,7 +376,7 @@ function HostPage() {
 
 	if (game.status === "playing" && game.stage) {
 		return (
-			<>
+			<GameThemeProvider themeId={game.themeId}>
 				<HostStage
 					game={game}
 					stage={game.stage}
@@ -385,12 +386,13 @@ function HostPage() {
 					actions={{ advance: advanceFrom, end: endGame, review, ...settings }}
 				/>
 				{connectionLost}
-			</>
+			</GameThemeProvider>
 		);
 	}
 
+	// The game's theme, copied from the quiz when it was created (spec 042).
 	return (
-		<>
+		<GameThemeProvider themeId={game.themeId}>
 			<HostLobby
 				lobby={game}
 				origin={origin}
@@ -405,6 +407,6 @@ function HostPage() {
 				}}
 			/>
 			{connectionLost}
-		</>
+		</GameThemeProvider>
 	);
 }

@@ -114,6 +114,7 @@ export function testSharedQuizReads(deps: {
 				sharedByName: deps.groups.userName(share.sharedById),
 				participants: 0,
 				questions: version?.questions ?? [],
+				themeId: quiz.themeId,
 			};
 		},
 	};

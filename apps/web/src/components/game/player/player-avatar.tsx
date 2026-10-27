@@ -13,7 +13,7 @@ export function AvatarCard() {
 	return (
 		<div
 			data-testid="avatar-card"
-			className="relative rounded-lg bg-black/25 p-4 shadow-lg"
+			className="relative rounded-lg bg-game-chip p-4 shadow-lg"
 		>
 			<Avatar avatar={avatar} animateOnChange className="size-36 sm:size-44" />
 			{onEdit && (
