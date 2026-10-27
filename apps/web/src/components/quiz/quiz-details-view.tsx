@@ -104,7 +104,7 @@ export function QuizDetailsView({
 	// actions sit in the top bar and the session and details in a side column.
 	return (
 		<article className="grid min-h-full grid-cols-1 content-start bg-card lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-x-10 lg:px-10 xl:grid-cols-[minmax(0,1fr)_22rem] xl:px-16">
-			<div className="col-span-full row-start-1 flex items-center justify-between gap-3 border-border border-b bg-card px-4 py-2 max-lg:sticky max-lg:top-0 max-lg:z-10 sm:px-6 lg:-mx-10 xl:-mx-16">
+			<div className="sticky top-(--quiz-sticky-top,0px) z-10 col-span-full row-start-1 flex items-center justify-between gap-3 border-border border-b bg-card px-4 py-2 sm:px-6 lg:-mx-10 xl:-mx-16">
 				<p className="flex min-w-0 items-center gap-2 font-semibold text-sm">
 					{owner && (
 						<>
@@ -178,69 +178,105 @@ export function QuizDetailsView({
 				)}
 			</div>
 
-			<section
-				aria-label="Sessão do quiz"
-				className="flex flex-col gap-2 px-4 pt-6 sm:px-6 lg:col-start-2 lg:row-start-2 lg:px-0"
-			>
-				<h2 className="font-bold text-sm lg:text-base">
-					{inTrash ? "Quiz na lixeira" : "Sessão do quiz"}
-				</h2>
-				{inTrash ? (
-					<div className="flex flex-col gap-2">
-						<Button size="lg" onClick={actions.onRestore}>
-							Restaurar
-						</Button>
-						<Button
-							size="lg"
-							variant="destructive"
-							onClick={actions.onDeletePermanently}
-						>
-							Excluir definitivamente
-						</Button>
-					</div>
-				) : (
-					<div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-						<Button
-							size="lg"
-							className={SESSION_BUTTON}
-							disabled={!playable}
-							aria-describedby={describedBy}
-							onClick={actions.onHost}
-						>
-							<span className={SESSION_LABEL}>
-								<MonitorPlayIcon aria-hidden="true" className="size-6" />
-								Organizar ao vivo
-							</span>
-							<ChevronRightIcon aria-hidden="true" className="max-lg:hidden" />
-						</Button>
-						{/* The same conditions as the live game (spec 029, RN-03). */}
-						<Button
-							size="lg"
-							variant="secondary"
-							className={SESSION_BUTTON}
-							disabled={!playable}
-							aria-describedby={describedBy}
-							onClick={actions.onAssign}
-						>
-							<span className={SESSION_LABEL}>
-								<SendIcon aria-hidden="true" className="size-6" />
-								Atribuir
-							</span>
-							<ChevronRightIcon aria-hidden="true" className="max-lg:hidden" />
-						</Button>
-					</div>
-				)}
-				{!inTrash && hostHint && (
-					<p id={hostHintId} className="text-muted-foreground text-sm">
-						{hostHint}
+			{/* The side column stays in view while the questions scroll, as in
+			    Kahoot. On a phone it is no box (`contents`): the session comes
+			    under the quiz and the details close the page. */}
+			<div className="max-lg:contents lg:sticky lg:top-[calc(var(--quiz-sticky-top,0px)+4.5rem)] lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:self-start">
+				<section
+					aria-label="Sessão do quiz"
+					className="flex flex-col gap-2 px-4 pt-6 sm:px-6 lg:px-0"
+				>
+					<h2 className="font-bold text-sm lg:text-base">
+						{inTrash ? "Quiz na lixeira" : "Sessão do quiz"}
+					</h2>
+					{inTrash ? (
+						<div className="flex flex-col gap-2">
+							<Button size="lg" onClick={actions.onRestore}>
+								Restaurar
+							</Button>
+							<Button
+								size="lg"
+								variant="destructive"
+								onClick={actions.onDeletePermanently}
+							>
+								Excluir definitivamente
+							</Button>
+						</div>
+					) : (
+						<div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+							<Button
+								size="lg"
+								className={SESSION_BUTTON}
+								disabled={!playable}
+								aria-describedby={describedBy}
+								onClick={actions.onHost}
+							>
+								<span className={SESSION_LABEL}>
+									<MonitorPlayIcon aria-hidden="true" className="size-6" />
+									Organizar ao vivo
+								</span>
+								<ChevronRightIcon
+									aria-hidden="true"
+									className="max-lg:hidden"
+								/>
+							</Button>
+							{/* The same conditions as the live game (spec 029, RN-03). */}
+							<Button
+								size="lg"
+								variant="secondary"
+								className={SESSION_BUTTON}
+								disabled={!playable}
+								aria-describedby={describedBy}
+								onClick={actions.onAssign}
+							>
+								<span className={SESSION_LABEL}>
+									<SendIcon aria-hidden="true" className="size-6" />
+									Atribuir
+								</span>
+								<ChevronRightIcon
+									aria-hidden="true"
+									className="max-lg:hidden"
+								/>
+							</Button>
+						</div>
+					)}
+					{!inTrash && hostHint && (
+						<p id={hostHintId} className="text-muted-foreground text-sm">
+							{hostHint}
+						</p>
+					)}
+				</section>
+				<section
+					aria-labelledby="quiz-details"
+					className="flex flex-col gap-1 px-4 py-6 text-muted-foreground text-xs max-lg:order-last sm:px-6 lg:px-0 lg:pt-4 lg:text-center"
+				>
+					<h2
+						id="quiz-details"
+						className="pb-1 font-bold text-base text-foreground lg:sr-only"
+					>
+						Detalhes
+					</h2>
+					{/* Whether there is something to play, and since when (spec 006, RN-31). */}
+					<p>
+						{quiz.publishedAt
+							? `Versão jogável salva ${formatRelativeTime(new Date(quiz.publishedAt), now)}`
+							: "Ainda não foi salvo como jogável"}
 					</p>
-				)}
-			</section>
+					<p>
+						<span>
+							Última modificação:{" "}
+							{formatRelativeTime(new Date(quiz.updatedAt), now)}
+						</span>
+						{" · "}
+						<span>Visibilidade: {VISIBILITY_LABELS[quiz.visibility]}</span>
+					</p>
+				</section>
+			</div>
 
 			{/* Kahoot's Editar, Favorito, Compart. and Opções: in the top bar from
 			    `lg` (laid over it, centered), a row of icons on a phone. */}
 			{!inTrash && (
-				<div className="grid grid-cols-4 gap-1 px-4 pt-5 sm:px-6 lg:relative lg:col-span-full lg:row-start-1 lg:flex lg:self-center lg:justify-self-center lg:p-0">
+				<div className="grid grid-cols-4 gap-1 px-4 pt-5 sm:px-6 lg:sticky lg:top-[calc(var(--quiz-sticky-top,0px)+0.5rem)] lg:z-20 lg:col-span-full lg:row-start-1 lg:flex lg:self-start lg:justify-self-center lg:p-0">
 					{/* The editor holds the questions (spec 003, RN-05). */}
 					<Link
 						to="/creator/$quizId"
@@ -280,32 +316,6 @@ export function QuizDetailsView({
 			<div className="min-w-0 px-4 pt-6 sm:px-6 lg:col-start-1 lg:row-start-3 lg:px-0 lg:pt-8 lg:pb-8">
 				<QuestionsSection quiz={quiz} preview={preview} />
 			</div>
-
-			<section
-				aria-labelledby="quiz-details"
-				className="flex flex-col gap-1 px-4 py-6 text-muted-foreground text-xs sm:px-6 lg:col-start-2 lg:row-start-3 lg:self-start lg:px-0 lg:pt-4 lg:text-center"
-			>
-				<h2
-					id="quiz-details"
-					className="pb-1 font-bold text-base text-foreground lg:sr-only"
-				>
-					Detalhes
-				</h2>
-				{/* Whether there is something to play, and since when (spec 006, RN-31). */}
-				<p>
-					{quiz.publishedAt
-						? `Versão jogável salva ${formatRelativeTime(new Date(quiz.publishedAt), now)}`
-						: "Ainda não foi salvo como jogável"}
-				</p>
-				<p>
-					<span>
-						Última modificação:{" "}
-						{formatRelativeTime(new Date(quiz.updatedAt), now)}
-					</span>
-					{" · "}
-					<span>Visibilidade: {VISIBILITY_LABELS[quiz.visibility]}</span>
-				</p>
-			</section>
 		</article>
 	);
 }
