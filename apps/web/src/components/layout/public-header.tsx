@@ -6,8 +6,8 @@ export function PublicHeader({ showSignIn = true }: { showSignIn?: boolean }) {
 	return (
 		<header className="border-border border-b bg-card">
 			<div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4">
-				<Link to="/" className="font-black text-2xl text-brand tracking-tight">
-					Quizio
+				<Link to="/" aria-label="Quizio" className="shrink-0">
+					<img src="/quizio-logo.svg" alt="Quizio" className="h-9 w-auto" />
 				</Link>
 				{showSignIn ? (
 					<Link
