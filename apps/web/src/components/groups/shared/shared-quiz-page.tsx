@@ -22,9 +22,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { UserAvatar } from "@/components/groups/user-avatar";
+import { UserAvatar } from "@/components/account/user-avatar";
 import { QuizCover } from "@/components/quiz/quiz-cover";
-import type { SharedQuizPageData } from "@/lib/api-types";
+import type { PublicQuizPageData, SharedQuizPageData } from "@/lib/api-types";
 
 import { SharedQuestionList } from "./shared-question-list";
 
@@ -32,7 +32,9 @@ import { SharedQuestionList } from "./shared-question-list";
  * The page of a quiz shared with the group (spec 037, RN-16 to RN-21): the
  * owner with Editar and Duplicar, the quiz, "N jogos" and "N participantes",
  * "Organizar ao vivo" and Atribuir, and the questions with "Mostrar
- * respostas". The route wires the actions.
+ * respostas". The route wires the actions. A public quiz opened from its
+ * owner's profile is the same page, without "Compartilhado por" (spec 039,
+ * RN-33).
  */
 export function SharedQuizPage({
 	quiz,
@@ -41,7 +43,7 @@ export function SharedQuizPage({
 	onAssign,
 	onDuplicate,
 }: {
-	quiz: SharedQuizPageData;
+	quiz: SharedQuizPageData | PublicQuizPageData;
 	duplicating?: boolean;
 	onHost: () => void;
 	onAssign: () => void;
@@ -54,7 +56,11 @@ export function SharedQuizPage({
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-wrap items-center justify-between gap-3 border-border border-b pb-4">
 				<p className="flex items-center gap-2 font-semibold text-sm">
-					<UserAvatar userId={quiz.owner.userId} size="sm" />
+					<UserAvatar
+						userId={quiz.owner.userId}
+						photoUrl={quiz.owner.photoUrl}
+						size="sm"
+					/>
 					{quiz.owner.name}
 				</p>
 				<div className="flex items-center gap-1">
@@ -97,9 +103,11 @@ export function SharedQuizPage({
 								{quiz.participants === 1 ? "participante" : "participantes"}
 							</span>
 						</p>
-						<p className="text-muted-foreground text-xs">
-							Compartilhado por {quiz.sharedBy.name}
-						</p>
+						{"sharedBy" in quiz && (
+							<p className="text-muted-foreground text-xs">
+								Compartilhado por {quiz.sharedBy.name}
+							</p>
+						)}
 					</div>
 				</div>
 				<section

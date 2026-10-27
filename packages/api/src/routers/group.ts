@@ -68,6 +68,16 @@ const sharedRouter = router({
 
 /** The feed's posts: likes and "Excluir publicação" (spec 038). */
 const postsRouter = router({
+	/** One post, for the page a notification opens (spec 040, RN-19). */
+	get: protectedProcedure
+		.input(z.object({ groupId, postId: z.string().min(1).max(100) }))
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.getGroupPost({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
 	setLike: protectedProcedure
 		.input(
 			z.object({

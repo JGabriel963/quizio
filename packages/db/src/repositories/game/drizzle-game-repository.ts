@@ -101,6 +101,15 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 			return rows.map(toGame);
 		},
 
+		async listUnendedByOwner(ownerId) {
+			const rows = await db
+				.select()
+				.from(gameTable)
+				.where(and(eq(gameTable.ownerId, ownerId), isNull(gameTable.endedAt)))
+				.orderBy(asc(gameTable.createdAt), asc(gameTable.id));
+			return rows.map(toGame);
+		},
+
 		async create(game) {
 			// The unique rules a new game can hit are both among unended games:
 			// the PIN, and one live game per quiz (spec 029, RN-05).

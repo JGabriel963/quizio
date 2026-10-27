@@ -12,9 +12,17 @@ import { SequentialAssignmentPinGenerator } from "@quizio/core/game/testing/sequ
 import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
 import { InMemoryGroupStore } from "@quizio/core/groups/testing/in-memory-group-store";
 import { SequentialInviteCodeGenerator } from "@quizio/core/groups/testing/sequential-invite-code-generator";
+import { FakeAccountCredentials } from "@quizio/core/identity/testing/fake-account-credentials";
+import { InMemoryAccountDeletionFeedback } from "@quizio/core/identity/testing/in-memory-account-deletion-feedback";
+import { InMemoryAccountRepository } from "@quizio/core/identity/testing/in-memory-account-repository";
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
+import { InMemoryCreatorProfileQuery } from "@quizio/core/library/testing/in-memory-creator-profile-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
 import { InMemorySourceUploadRepository } from "@quizio/core/media/testing/in-memory-source-upload-repository";
+import { FixedInboxChannels } from "@quizio/core/notifications/testing/fixed-inbox-channels";
+import { InMemoryGroupNoticeRepository } from "@quizio/core/notifications/testing/in-memory-group-notice-repository";
+import { InMemoryNotificationInbox } from "@quizio/core/notifications/testing/in-memory-notification-inbox";
+import { InMemoryNotificationQuery } from "@quizio/core/notifications/testing/in-memory-notification-query";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
 import { quizSearchText } from "@quizio/core/quiz/domain/quiz-details";
 import { FakePdfPages } from "@quizio/core/quiz/testing/fake-pdf-pages";
@@ -29,6 +37,7 @@ import { FixedClock } from "@quizio/core/shared/testing/fixed-clock";
 import { FixedShuffler } from "@quizio/core/shared/testing/fixed-shuffler";
 import { InMemoryAttemptLimiter } from "@quizio/core/shared/testing/in-memory-attempt-limiter";
 import { InMemoryObjectStorage } from "@quizio/core/shared/testing/in-memory-object-storage";
+import { InMemoryProfilePhotoRepository } from "@quizio/core/shared/testing/in-memory-profile-photo-repository";
 import { InMemoryRealtimePublisher } from "@quizio/core/shared/testing/in-memory-realtime-publisher";
 import { SequentialIdGenerator } from "@quizio/core/shared/testing/sequential-id-generator";
 import { type Adapters, createContainer } from "../container";
@@ -68,6 +77,15 @@ export interface TestApi {
 	assignmentLanding: InMemoryAssignmentLandingQuery;
 	/** Every groups port; add the accounts the screens name with `addUser`. */
 	groups: InMemoryGroupStore;
+	/** Accounts of spec 039, apart from the groups' users. */
+	accounts: InMemoryAccountRepository;
+	credentials: FakeAccountCredentials;
+	profilePhotos: InMemoryProfilePhotoRepository;
+	deletionFeedback: InMemoryAccountDeletionFeedback;
+	creatorProfiles: InMemoryCreatorProfileQuery;
+	/** Notifications given by hand (spec 040); the groups' signals go to realtime. */
+	notificationQuery: InMemoryNotificationQuery;
+	notificationInbox: InMemoryNotificationInbox;
 }
 
 function toLibraryRecord(
@@ -105,6 +123,13 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const sourceUploads = new InMemorySourceUploadRepository();
 	const assignmentLanding = new InMemoryAssignmentLandingQuery(games, players);
 	const groups = new InMemoryGroupStore();
+	const accounts = new InMemoryAccountRepository();
+	const credentials = new FakeAccountCredentials();
+	const profilePhotos = new InMemoryProfilePhotoRepository();
+	const deletionFeedback = new InMemoryAccountDeletionFeedback();
+	const creatorProfiles = new InMemoryCreatorProfileQuery();
+	const notificationInbox = new InMemoryNotificationInbox();
+	const notificationQuery = new InMemoryNotificationQuery(notificationInbox);
 	const adapters: Adapters = {
 		storage,
 		realtime,
@@ -189,7 +214,17 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		},
 		groupSharedQuizzes: groups,
 		sharedQuizReads: testSharedQuizReads({ quizzes, versions, groups, games }),
-		quizShareGrants: testQuizShareGrants(groups),
+		quizShareGrants: testQuizShareGrants(groups, quizzes),
+		accounts,
+		accountCredentials: credentials,
+		profilePhotos,
+		deletionFeedback,
+		creatorProfiles,
+		notificationQuery,
+		notificationInbox,
+		groupNotices: new InMemoryGroupNoticeRepository(),
+		inboxChannels: new FixedInboxChannels(),
+		notificationSettings: { readRetentionDays: 90 },
 		// A group's admin reads the reports of the assignments posted there.
 		reportReadGrants: {
 			canRead: async (viewerId, gameId) => {
@@ -229,5 +264,12 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		sourceUploads,
 		assignmentLanding,
 		groups,
+		accounts,
+		credentials,
+		profilePhotos,
+		deletionFeedback,
+		creatorProfiles,
+		notificationQuery,
+		notificationInbox,
 	};
 }

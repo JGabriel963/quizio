@@ -24,6 +24,12 @@ export interface GroupFeedQuery {
 		viewerId: string,
 		page?: { limit: number; after: GroupFeedCursor | null },
 	): Promise<GroupPostRecord[]>;
+	/** One post of the group, for its own page (spec 040, RN-19). */
+	findPostRecord(
+		groupId: string,
+		postId: string,
+		viewerId: string,
+	): Promise<GroupPostRecord | null>;
 	likeCount(postId: string): Promise<number>;
 	/** For "Configurar seu grupo" (spec 038, RN-29). */
 	feedStats(groupId: string): Promise<{ posts: number; assignments: number }>;

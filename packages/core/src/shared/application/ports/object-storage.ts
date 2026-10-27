@@ -17,6 +17,11 @@ export interface ObjectStorage {
 	delete(key: string): Promise<void>;
 	/** Server-side copy, so two owners of the same image can delete independently. */
 	copy(sourceKey: string, destinationKey: string): Promise<void>;
+	/**
+	 * Every object whose key starts with `prefix` (ending in "/"), for
+	 * deleting an account (spec 039, RN-39).
+	 */
+	deletePrefix(prefix: string): Promise<void>;
 }
 
 export interface PresignedUploadRequest {

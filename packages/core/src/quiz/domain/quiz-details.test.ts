@@ -9,6 +9,7 @@ import {
 	InvalidQuizVisibilityError,
 	parseQuizDescription,
 	parseQuizTitle,
+	QUIZ_VISIBILITIES,
 	QuizDescriptionTooLongError,
 	QuizTitleTooLongError,
 	quizSearchText,
@@ -48,10 +49,14 @@ describe("quiz description", () => {
 });
 
 describe("quiz visibility", () => {
-	it("rejects visibilities other than private and unlisted", () => {
+	it("QUIZ_VISIBILITIES is private and public", () => {
+		expect(QUIZ_VISIBILITIES).toEqual(["private", "public"]);
 		expect(assertQuizVisibility("private")).toBe("private");
-		expect(assertQuizVisibility("unlisted")).toBe("unlisted");
-		expect(() => assertQuizVisibility("public")).toThrow(
+		expect(assertQuizVisibility("public")).toBe("public");
+	});
+
+	it("refuses unlisted, which spec 039 took out", () => {
+		expect(() => assertQuizVisibility("unlisted")).toThrow(
 			InvalidQuizVisibilityError,
 		);
 	});

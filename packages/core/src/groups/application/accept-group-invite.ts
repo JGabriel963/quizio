@@ -1,5 +1,6 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import { InvalidGroupInviteError } from "../domain/group-errors";
+import { type InboxSignalDeps, signalUsers } from "./inbox-signals";
 import type { GroupStoreDeps } from "./load-group";
 
 export type AcceptGroupInvite = (input: {
@@ -13,7 +14,7 @@ export type AcceptGroupInvite = (input: {
  * who already belongs just goes in (RN-27).
  */
 export function createAcceptGroupInvite(
-	deps: GroupStoreDeps & { clock: Clock },
+	deps: GroupStoreDeps & Pick<InboxSignalDeps, "groupInbox"> & { clock: Clock },
 ): AcceptGroupInvite {
 	return async ({ userId, code }) => {
 		const group = await deps.groups.findByInviteCode(code);
@@ -28,6 +29,10 @@ export function createAcceptGroupInvite(
 		});
 		if (result === "invalid") {
 			throw new InvalidGroupInviteError();
+		}
+		// Only a new member is news for the admin (RN-05).
+		if (result === "added") {
+			await signalUsers(deps, [group.adminId]);
 		}
 		return { groupId: group.id };
 	};

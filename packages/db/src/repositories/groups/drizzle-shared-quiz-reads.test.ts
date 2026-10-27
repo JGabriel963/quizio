@@ -38,7 +38,7 @@ describe("DrizzleSharedQuizReads (spec 037)", () => {
 				title,
 				description: `Sobre ${title}`,
 				coverImageKey: `media/ana/${id}.png`,
-				visibility: "unlisted",
+				visibility: "public",
 			}),
 		);
 		await versions.save(
@@ -152,7 +152,7 @@ describe("DrizzleSharedQuizReads (spec 037)", () => {
 				title: "Capitais",
 				coverImageKey: "media/ana/capitais.png",
 				questionCount: 3,
-				visibility: "unlisted",
+				visibility: "public",
 				ownerId: "ana",
 				ownerName: "Ana Souza",
 				sharedById: "ana",

@@ -16,7 +16,7 @@ function aCard(
 		title: "Capitais",
 		coverUrl: null,
 		questionCount: 24,
-		visibility: "unlisted",
+		visibility: "public",
 		owner: { userId: "ana", name: "Ana" },
 		sharedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
 		games: 2,
@@ -88,7 +88,7 @@ describe("SharedQuizzesTab (spec 037, RN-14, RN-15)", () => {
 		const row = within(table).getAllByRole("row")[1] as HTMLElement;
 		expect(row).toHaveTextContent("Capitais");
 		expect(row).toHaveTextContent("2 partidas");
-		expect(row).toHaveTextContent("Não listado");
+		expect(row).toHaveTextContent("Público");
 		expect(within(row).getByRole("img", { name: "Ana" })).toBeInTheDocument();
 		expect(window.localStorage.getItem("quizio:groups:shared-view")).toBe(
 			"list",

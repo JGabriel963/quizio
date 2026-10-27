@@ -1,11 +1,13 @@
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
+import { InMemoryProfilePhotoRepository } from "../../shared/testing/in-memory-profile-photo-repository";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { createAcceptGroupInvite } from "../application/accept-group-invite";
 import { createCreateGroup } from "../application/create-group";
 import { InMemoryGroupAssignments } from "./in-memory-group-assignments";
 import { InMemoryGroupStore } from "./in-memory-group-store";
 import { InMemorySharedQuizReads } from "./in-memory-shared-quiz-reads";
+import { RecordingGroupInbox } from "./recording-group-inbox";
 import { SequentialInviteCodeGenerator } from "./sequential-invite-code-generator";
 
 /**
@@ -39,6 +41,7 @@ export function groupsTestDeps() {
 	}
 	// Quizzes the groups may share and read (spec 037).
 	const sharedQuizReads = new InMemorySharedQuizReads(store);
+	const inbox = new RecordingGroupInbox();
 	const deps = {
 		groups: store,
 		groupMembers: store,
@@ -52,6 +55,8 @@ export function groupsTestDeps() {
 		groupAssignments: assignments,
 		groupAssignmentQuery: assignments,
 		storage: new InMemoryObjectStorage("https://media.test"),
+		profilePhotos: new InMemoryProfilePhotoRepository(),
+		groupInbox: inbox,
 		ids: new SequentialIdGenerator("group"),
 		inviteCodes: new SequentialInviteCodeGenerator(),
 		clock,
@@ -74,5 +79,5 @@ export function groupsTestDeps() {
 		return groupId;
 	}
 
-	return { store, clock, deps, aGroupOf, assignments, sharedQuizReads };
+	return { store, clock, deps, aGroupOf, assignments, sharedQuizReads, inbox };
 }

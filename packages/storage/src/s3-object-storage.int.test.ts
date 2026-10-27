@@ -2,6 +2,7 @@ import {
 	CreateBucketCommand,
 	HeadBucketCommand,
 	HeadObjectCommand,
+	PutObjectCommand,
 	S3Client,
 } from "@aws-sdk/client-s3";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -167,5 +168,40 @@ describe("S3ObjectStorage against a real S3 server", () => {
 		expect(
 			await storage.read(`sources/int-test/${crypto.randomUUID()}.pdf`),
 		).toBeNull();
+	});
+
+	it("deletePrefix removes every object under the prefix and nothing else (spec 039)", async () => {
+		const owner = crypto.randomUUID();
+		const client = clientFor();
+		const keys = [
+			`media/${owner}/a.png`,
+			`media/${owner}/b.png`,
+			`media/${owner}/c.png`,
+			`media/${owner}-other/d.png`,
+		];
+		for (const key of keys) {
+			await client.send(
+				new PutObjectCommand({
+					Bucket: config.bucket,
+					Key: key,
+					Body: new Uint8Array([1]),
+				}),
+			);
+		}
+
+		await storage.deletePrefix(`media/${owner}/`);
+
+		expect(await Promise.all(keys.map((key) => storage.exists(key)))).toEqual([
+			false,
+			false,
+			false,
+			true,
+		]);
+		await storage.delete(`media/${owner}-other/d.png`);
+	});
+
+	it("deletePrefix refuses a prefix that is not a folder", async () => {
+		await expect(storage.deletePrefix("")).rejects.toThrow();
+		await expect(storage.deletePrefix("media/abc")).rejects.toThrow();
 	});
 });

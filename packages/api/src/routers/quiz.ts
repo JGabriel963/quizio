@@ -125,6 +125,16 @@ export const quizRouter = router({
 		),
 
 	/** "Duplicar" of a quiz a group shares with the caller (spec 037, RN-21). */
+	/** "Visibilidade" in the library's menu (spec 039, RN-25a). */
+	setVisibility: protectedProcedure
+		.input(quizReference.extend({ visibility: z.enum(QUIZ_VISIBILITIES) }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.setQuizVisibility({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
 	duplicateShared: protectedProcedure
 		.input(quizReference)
 		.mutation(({ ctx, input }) =>

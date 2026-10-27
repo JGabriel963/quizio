@@ -15,7 +15,11 @@ export const QUIZ_DESCRIPTION_MAX_LENGTH = 500;
 export const UNTITLED_QUIZ_TITLE = "Quiz sem título";
 const DUPLICATE_TITLE_SUFFIX = " (cópia)";
 
-export const QUIZ_VISIBILITIES = ["private", "unlisted"] as const;
+/**
+ * Private, or public: shown on the owner's profile (spec 039, RN-25). The
+ * unlisted of spec 001 never had an effect and was taken out.
+ */
+export const QUIZ_VISIBILITIES = ["private", "public"] as const;
 export type QuizVisibility = (typeof QUIZ_VISIBILITIES)[number];
 export const DEFAULT_QUIZ_VISIBILITY: QuizVisibility = "private";
 

@@ -38,7 +38,7 @@ function aQuiz(overrides: Partial<Quiz> = {}): Quiz {
 			details: {
 				title: "Bom de Bíblia",
 				description: "Atos 1 a 7",
-				visibility: "unlisted",
+				visibility: "public",
 			},
 			coverImageKey: "media/user-1/cover.png",
 			now: createdAt,
@@ -279,7 +279,7 @@ describe("copyQuiz", () => {
 			title: "Bom de Bíblia (cópia)",
 			description: "Atos 1 a 7",
 			coverImageKey: "media/user-1/copy.png",
-			visibility: "unlisted",
+			visibility: "public",
 			status: "draft",
 			publishedVersion: null,
 			publishedAt: null,

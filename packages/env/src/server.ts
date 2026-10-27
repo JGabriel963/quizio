@@ -54,6 +54,13 @@ export const env = createEnv({
 			.min(1)
 			.max(365)
 			.default(28),
+		// How long read notifications keep showing (spec 040, RN-21).
+		NOTIFICATION_READ_RETENTION_DAYS: z.coerce
+			.number()
+			.int()
+			.min(1)
+			.max(365)
+			.default(90),
 	},
 	runtimeEnv: process.env,
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

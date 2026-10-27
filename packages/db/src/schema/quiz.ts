@@ -4,7 +4,7 @@ import {
 	QUESTION_TYPES,
 } from "@quizio/core/quiz/domain/question";
 import { QUIZ_STATUSES } from "@quizio/core/quiz/domain/quiz";
-import { QUIZ_VISIBILITIES } from "@quizio/core/quiz/domain/quiz-details";
+import type { QuizVisibility } from "@quizio/core/quiz/domain/quiz-details";
 import {
 	boolean,
 	index,
@@ -19,7 +19,16 @@ import {
 
 import { user } from "./auth";
 
-export const quizVisibility = pgEnum("quiz_visibility", QUIZ_VISIBILITIES);
+/**
+ * Postgres cannot drop an enum value, so "unlisted" (spec 001) stays in the
+ * type; the migration of spec 039 turned those rows private, and the quiz
+ * repository reads anything but "public" as "private".
+ */
+export const quizVisibility = pgEnum("quiz_visibility", [
+	"private",
+	"unlisted",
+	"public",
+]);
 
 export const quizStatus = pgEnum("quiz_status", QUIZ_STATUSES);
 
@@ -33,7 +42,10 @@ export const quiz = pgTable(
 		title: text("title"),
 		description: text("description"),
 		coverImageKey: text("cover_image_key"),
-		visibility: quizVisibility("visibility").notNull().default("private"),
+		visibility: quizVisibility("visibility")
+			.$type<QuizVisibility>()
+			.notNull()
+			.default("private"),
 		status: quizStatus("status").notNull().default("draft"),
 		/** Number of the playable version in force; null in a draft (spec 006). */
 		publishedVersion: integer("published_version"),

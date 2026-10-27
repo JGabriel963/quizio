@@ -10,9 +10,8 @@ import {
 import { Skeleton } from "@quizio/ui/components/skeleton";
 import { LayoutGridIcon, LibraryIcon, ListIcon } from "lucide-react";
 import { useId, useState } from "react";
-
+import { UserAvatar } from "@/components/account/user-avatar";
 import { ViewOption } from "@/components/groups/group-assignments-tab";
-import { UserAvatar } from "@/components/groups/user-avatar";
 import { QuizCover } from "@/components/quiz/quiz-cover";
 import { VISIBILITY_LABELS } from "@/components/quiz/visibility-badge";
 import type { SharedQuizCardData } from "@/lib/api-types";
@@ -286,7 +285,11 @@ function SharedQuizzesTable({
 									title={item.owner.name}
 									className="inline-flex"
 								>
-									<UserAvatar userId={item.owner.userId} size="sm" />
+									<UserAvatar
+										userId={item.owner.userId}
+										photoUrl={item.owner.photoUrl}
+										size="sm"
+									/>
 								</span>
 							</td>
 							<td className="hidden px-4 py-2 sm:table-cell">

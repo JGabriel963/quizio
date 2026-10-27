@@ -1,5 +1,18 @@
-import type { GroupFeedQuery } from "@quizio/core/groups/application/ports/group-feed-query";
-import { and, count, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import type {
+	GroupFeedQuery,
+	GroupPostRecord,
+} from "@quizio/core/groups/application/ports/group-feed-query";
+import {
+	and,
+	count,
+	desc,
+	eq,
+	inArray,
+	isNotNull,
+	or,
+	type SQL,
+	sql,
+} from "drizzle-orm";
 
 import { user } from "../../schema/auth";
 import { groupPost, groupPostLike } from "../../schema/groups";
@@ -8,47 +21,67 @@ import { toGroupPost } from "./drizzle-group-post-repository";
 
 /** The feed with the authors' names and the likes, by pages (specs 036, 038). */
 export function createDrizzleGroupFeedQuery(db: Database): GroupFeedQuery {
+	/** The posts with their authors' names and likes, newest first. */
+	async function records(
+		where: SQL | undefined,
+		viewerId: string,
+		limit?: number,
+	): Promise<GroupPostRecord[]> {
+		const query = db
+			.select({ post: groupPost, authorName: user.name })
+			.from(groupPost)
+			.innerJoin(user, eq(user.id, groupPost.authorId))
+			.where(where)
+			.orderBy(desc(groupPost.createdAt), desc(groupPost.id));
+		const rows = await (limit === undefined ? query : query.limit(limit));
+		if (rows.length === 0) {
+			return [];
+		}
+		const postIds = rows.map((row) => row.post.id);
+		const likes = await db
+			.select({ postId: groupPostLike.postId, userId: groupPostLike.userId })
+			.from(groupPostLike)
+			.where(inArray(groupPostLike.postId, postIds));
+		return rows.map(({ post, authorName }) => {
+			const ofPost = likes.filter((like) => like.postId === post.id);
+			return {
+				...toGroupPost(post),
+				authorName,
+				likeCount: ofPost.length,
+				likedByViewer: ofPost.some((like) => like.userId === viewerId),
+			};
+		});
+	}
+
 	return {
 		async listPosts(groupId, viewerId, page) {
 			const after = page?.after ?? null;
-			const query = db
-				.select({ post: groupPost, authorName: user.name })
-				.from(groupPost)
-				.innerJoin(user, eq(user.id, groupPost.authorId))
-				.where(
-					and(
-						eq(groupPost.groupId, groupId),
-						// Keyset: what comes after (created_at, id) in the feed's order.
-						after
-							? or(
-									sql`${groupPost.createdAt} < ${after.createdAt}`,
-									and(
-										eq(groupPost.createdAt, after.createdAt),
-										sql`${groupPost.id} < ${after.id}`,
-									),
-								)
-							: undefined,
-					),
-				)
-				.orderBy(desc(groupPost.createdAt), desc(groupPost.id));
-			const rows = await (page ? query.limit(page.limit) : query);
-			if (rows.length === 0) {
-				return [];
-			}
-			const postIds = rows.map((row) => row.post.id);
-			const likes = await db
-				.select({ postId: groupPostLike.postId, userId: groupPostLike.userId })
-				.from(groupPostLike)
-				.where(inArray(groupPostLike.postId, postIds));
-			return rows.map(({ post, authorName }) => {
-				const ofPost = likes.filter((like) => like.postId === post.id);
-				return {
-					...toGroupPost(post),
-					authorName,
-					likeCount: ofPost.length,
-					likedByViewer: ofPost.some((like) => like.userId === viewerId),
-				};
-			});
+			return records(
+				and(
+					eq(groupPost.groupId, groupId),
+					// Keyset: what comes after (created_at, id) in the feed's order.
+					after
+						? or(
+								sql`${groupPost.createdAt} < ${after.createdAt}`,
+								and(
+									eq(groupPost.createdAt, after.createdAt),
+									sql`${groupPost.id} < ${after.id}`,
+								),
+							)
+						: undefined,
+				),
+				viewerId,
+				page?.limit,
+			);
+		},
+
+		async findPostRecord(groupId, postId, viewerId) {
+			const [record] = await records(
+				and(eq(groupPost.groupId, groupId), eq(groupPost.id, postId)),
+				viewerId,
+				1,
+			);
+			return record ?? null;
 		},
 
 		async likeCount(postId) {

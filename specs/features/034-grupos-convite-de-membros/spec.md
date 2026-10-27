@@ -379,3 +379,4 @@ O criador cria um grupo, copia o link de convite e o manda para quem quiser; que
 - 2026-10-26 — spec criada.
 - 2026-10-26 — spec aprovada pelo usuário; plano e tarefas aprovados com o ADR 0015.
 - 2026-10-26 — spec entregue (status `done`). Todos os 27 CAs têm teste automatizado verde (core, PGlite, API, componentes e E2E desktop/celular). Escolhas feitas na implementação, dentro das regras: o link de convite é `/invite/{código}`, dentro da área com sessão e fora da barra lateral; o nome do grupo aparece em maiúsculas no cabeçalho e no convite, como nas capturas; ⚙ e "Ver perfil" ficam visíveis e não acionáveis, anunciados "em breve"; quem foi removido e abre a página vê "Grupo não encontrado".
+- 2026-10-27 — as notificações que esta spec deixava para o sino chegaram com a spec 040.

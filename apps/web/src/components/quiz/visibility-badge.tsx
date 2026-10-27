@@ -3,7 +3,13 @@ import { Badge } from "@quizio/ui/components/badge";
 
 export const VISIBILITY_LABELS: Record<QuizVisibility, string> = {
 	private: "Privado",
-	unlisted: "Não listado",
+	public: "Público",
+};
+
+/** What each visibility means, beside its choice (spec 039, RN-25). */
+export const VISIBILITY_DESCRIPTIONS: Record<QuizVisibility, string> = {
+	private: "Visível apenas para você.",
+	public: "Visível para todos no seu perfil.",
 };
 
 export function VisibilityBadge({

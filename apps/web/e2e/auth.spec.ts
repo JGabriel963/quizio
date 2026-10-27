@@ -16,8 +16,13 @@ test("signs in and out, and the library then requires login", async ({
 }) => {
 	const { name, email } = await signUp(page, { email: uniqueEmail() });
 
-	await page.getByRole("button", { name }).click();
-	await page.getByRole("menuitem", { name: "Sair" }).click();
+	// The account menu opens from the photo (spec 039, RN-01); a click before
+	// hydration is lost, so click again until it opens.
+	await expect(async () => {
+		await page.getByRole("banner").getByRole("button", { name }).click();
+		await expect(page.getByRole("menu")).toBeVisible({ timeout: 2_000 });
+	}).toPass({ timeout: 30_000 });
+	await page.getByRole("menuitem", { name: "Encerrar sessão" }).click();
 	await expect(page).toHaveURL(/\/$/);
 	// Signing out goes back to the public landing (spec 002, RN-03).
 	await expect(page.getByRole("link", { name: "Criar conta" })).toBeVisible();

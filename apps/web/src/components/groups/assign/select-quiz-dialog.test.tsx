@@ -25,7 +25,7 @@ function anItem(overrides: Partial<LibraryItemView> = {}): LibraryItemView {
 
 const quizzes = [
 	anItem(),
-	anItem({ id: "quiz-2", title: "Geografia", visibility: "unlisted" }),
+	anItem({ id: "quiz-2", title: "Geografia", visibility: "public" }),
 	anItem({ id: "quiz-3", title: "Rascunho", status: "draft" }),
 ];
 

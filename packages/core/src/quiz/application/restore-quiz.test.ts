@@ -10,7 +10,7 @@ import { createRestoreQuiz, type RestoreQuiz } from "./restore-quiz";
 describe("restoreQuiz", () => {
 	const original = aQuiz({
 		coverImageKey: "media/user-1/cover.png",
-		visibility: "unlisted",
+		visibility: "public",
 	});
 	let quizzes: InMemoryQuizRepository;
 	let restoreQuiz: RestoreQuiz;

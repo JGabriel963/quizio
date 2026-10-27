@@ -27,6 +27,12 @@ class FakeXhr {
 		this.body = body;
 	}
 
+	aborted = false;
+
+	abort() {
+		this.aborted = true;
+	}
+
 	progress(loaded: number, total: number) {
 		this.upload.onprogress?.({
 			lengthComputable: true,
@@ -91,5 +97,21 @@ describe("uploadFile", () => {
 		xhr.onerror?.();
 
 		await expect(done).rejects.toThrow();
+	});
+
+	it("aborts the request with the signal (spec 039, RN-10)", async () => {
+		const xhr = new FakeXhr();
+		const controller = new AbortController();
+		const done = uploadFile({
+			file: new Blob(["png-bytes"], { type: "image/png" }),
+			upload: presigned,
+			signal: controller.signal,
+			createRequest: () => xhr as unknown as XMLHttpRequest,
+		});
+
+		controller.abort();
+
+		await expect(done).rejects.toMatchObject({ name: "AbortError" });
+		expect(xhr.aborted).toBe(true);
 	});
 });

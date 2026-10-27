@@ -65,7 +65,7 @@ describe("assignments in a group (spec 038)", () => {
 		const { posts } = await bruno.group.feed({ groupId });
 		expect(posts).toEqual([
 			expect.objectContaining({
-				author: { userId: "ana", name: "Ana" },
+				author: { userId: "ana", name: "Ana", photoUrl: null },
 				message: "Revisem",
 				attachment: expect.objectContaining({
 					gameId,

@@ -1,8 +1,10 @@
 import {
 	CopyObjectCommand,
 	DeleteObjectCommand,
+	DeleteObjectsCommand,
 	GetObjectCommand,
 	HeadObjectCommand,
+	ListObjectsV2Command,
 	NoSuchKey,
 	NotFound,
 	PutObjectCommand,
@@ -137,6 +139,38 @@ export function createS3ObjectStorage(
 			await client.send(
 				new DeleteObjectCommand({ Bucket: config.bucket, Key: key }),
 			);
+		},
+
+		async deletePrefix(prefix) {
+			// Never the whole bucket by mistake: a prefix is a folder of one owner.
+			if (prefix.length === 0 || !prefix.endsWith("/")) {
+				throw new Error(`Refusing to delete under the prefix "${prefix}"`);
+			}
+			let continuationToken: string | undefined;
+			do {
+				// Up to 1,000 keys a page, which is also DeleteObjects' limit.
+				const page = await client.send(
+					new ListObjectsV2Command({
+						Bucket: config.bucket,
+						Prefix: prefix,
+						ContinuationToken: continuationToken,
+					}),
+				);
+				const keys = (page.Contents ?? []).flatMap((object) =>
+					object.Key ? [{ Key: object.Key }] : [],
+				);
+				if (keys.length > 0) {
+					await client.send(
+						new DeleteObjectsCommand({
+							Bucket: config.bucket,
+							Delete: { Objects: keys, Quiet: true },
+						}),
+					);
+				}
+				continuationToken = page.IsTruncated
+					? page.NextContinuationToken
+					: undefined;
+			} while (continuationToken);
 		},
 
 		async copy(sourceKey, destinationKey) {

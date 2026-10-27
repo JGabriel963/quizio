@@ -1052,8 +1052,10 @@ describe("QuizEditor question image (spec 007)", () => {
 			status: {
 				enabled: true,
 				limit: 20,
+				used: 0,
 				remaining: 20,
 				nextAvailableAt: null,
+				nextFreeInMs: null,
 				options: DEFAULT_GENERATION_OPTIONS,
 			},
 			generate: vi.fn(async () => ({

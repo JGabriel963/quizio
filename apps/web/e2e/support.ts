@@ -261,3 +261,33 @@ export async function enterNickname(player: Page, nickname: string) {
 	await player.getByRole("textbox", { name: "Apelido" }).fill(nickname);
 	await player.getByRole("button", { name: "Ok, vamos lá!" }).click();
 }
+
+/** A saved quiz of one question, the first answer right (spec 006). */
+export async function publishedQuiz(page: Page, title: string, right: string) {
+	await page.goto("/library");
+	// A click before hydration is lost: click again until the editor opens.
+	await expect(async () => {
+		await page.getByRole("button", { name: "Criar", exact: true }).click();
+		await expect(page).toHaveURL(/\/creator\//, { timeout: 3_000 });
+	}).toPass({ timeout: 30_000 });
+	const newQuiz = page.getByRole("dialog", { name: "Criar um novo quiz" });
+	await newQuiz.getByRole("button", { name: /Tela em branco/ }).click();
+	await expect(newQuiz).toBeHidden();
+	await page.getByRole("textbox", { name: "Título do quiz" }).fill(title);
+	await page
+		.getByRole("textbox", { name: "Pergunta" })
+		.fill(`Pergunta de ${title}?`);
+	await page
+		.getByRole("textbox", { name: "Resposta 1", exact: true })
+		.fill(right);
+	await page
+		.getByRole("textbox", { name: "Resposta 2", exact: true })
+		.fill("Outra");
+	await page.getByRole("textbox", { name: "Resposta 2", exact: true }).blur();
+	await page.getByRole("checkbox", { name: "Resposta 1 correta" }).click();
+	await expectSaved(page);
+	await page.getByRole("button", { name: "Salvar", exact: true }).click();
+	await expect(
+		page.getByRole("dialog", { name: "O quiz está pronto" }),
+	).toBeVisible();
+}

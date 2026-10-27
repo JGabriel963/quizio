@@ -51,6 +51,7 @@ As funções rodam em **São Paulo** (`"regions": ["gru1"]` em `apps/web/vercel.
 | `AI_PROVIDER` | `anthropic`, `openai` ou `google`; sem ela, o assistente de criação fica desligado. Nunca `fake` (só para os testes) |
 | `AI_API_KEY` / `AI_MODEL` | a chave e o id do modelo do provedor (ex.: `claude-sonnet-5-5`); obrigatórias com `AI_PROVIDER` |
 | `AI_GENERATIONS_PER_DAY` | criações por criador a cada 24 horas; padrão `20` |
+| `NOTIFICATION_READ_RETENTION_DAYS` | por quantos dias as notificações lidas continuam no sino; padrão `90` (de 1 a 365) |
 
 Não defina `PUSHER_HOST`, `PUSHER_PORT`, `VITE_PUSHER_HOST` nem `VITE_PUSHER_PORT` com o Pusher na nuvem. As `VITE_*` entram no pacote do navegador **no build**: mudou uma delas, faça um novo deploy.
 
@@ -63,6 +64,8 @@ Não defina `PUSHER_HOST`, `PUSHER_PORT`, `VITE_PUSHER_HOST` nem `VITE_PUSHER_PO
 **PDFs do assistente.** O navegador envia o PDF para o mesmo bucket, no prefixo `sources/`, e o app o apaga quando o assistente fecha ou, se ninguém fechar, no próximo envio depois de 24 horas. Como reforço, crie no R2 uma regra de ciclo de vida que apague os objetos de `sources/` com mais de 1 dia. O CORS das imagens já vale para eles.
 
 **Arquivos dos grupos.** Imagens e PDFs publicados nos grupos (spec 036, ADR 0017) vão para o prefixo `groups/` do mesmo bucket e são lidos pelo mesmo domínio público das imagens (no R2, o acesso público vale para o bucket inteiro; no RustFS e em provedores com políticas, o `bucket:setup` libera `groups/*`). Não precisam de regra de ciclo de vida: o app apaga o arquivo com a publicação ou o grupo, e cada novo envio varre os que ninguém publicou em 24 horas. O envio assina o cabeçalho `Content-Disposition`; o CORS (`AllowedHeaders: *`) já o permite.
+
+**Fotos do perfil.** A foto que o criador carrega (spec 039, ADR 0019) vai para o prefixo `profiles/` do mesmo bucket e é lida pelo mesmo domínio público (no R2, o acesso público vale para o bucket inteiro; no RustFS e em provedores com políticas, o `bucket:setup` libera `profiles/*`). Excluir a conta apaga os prefixos `media/`, `sources/` e `profiles/` do usuário.
 
 ### 4. Banco
 

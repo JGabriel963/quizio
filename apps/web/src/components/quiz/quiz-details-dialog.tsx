@@ -25,7 +25,7 @@ import {
 	CoverImageField,
 	type CoverImageFieldProps,
 } from "./cover-image-field";
-import { VISIBILITY_LABELS } from "./visibility-badge";
+import { VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS } from "./visibility-badge";
 
 export type CoverChange =
 	| { type: "keep" }
@@ -210,16 +210,29 @@ function QuizDetailsForm({
 					aria-labelledby={ids.visibility}
 					value={visibility}
 					onValueChange={(value) => setVisibility(value as QuizVisibility)}
-					className="flex flex-wrap gap-4"
+					className="flex flex-col gap-2"
 				>
 					{QUIZ_VISIBILITIES.map((option) => (
-						<Label key={option} className="flex items-center gap-2 font-normal">
+						<Label
+							key={option}
+							className="flex items-start gap-3 rounded-md border border-border p-3 font-normal has-data-checked:border-primary"
+						>
 							<RadioGroupItem
 								value={option}
 								aria-labelledby={`${ids.visibility}-${option}`}
+								aria-describedby={`${ids.visibility}-${option}-description`}
+								className="mt-0.5"
 							/>
-							<span id={`${ids.visibility}-${option}`}>
-								{VISIBILITY_LABELS[option]}
+							<span className="flex flex-col gap-0.5">
+								<span id={`${ids.visibility}-${option}`}>
+									{VISIBILITY_LABELS[option]}
+								</span>
+								<span
+									id={`${ids.visibility}-${option}-description`}
+									className="text-muted-foreground text-sm"
+								>
+									{VISIBILITY_DESCRIPTIONS[option]}
+								</span>
 							</span>
 						</Label>
 					))}

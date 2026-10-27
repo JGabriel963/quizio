@@ -1,19 +1,42 @@
 import type { LibrarySection } from "@quizio/core/library/domain/library-section";
 import { quizPublishState } from "@quizio/core/quiz/domain/quiz";
-import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
+import {
+	displayQuizTitle,
+	QUIZ_VISIBILITIES,
+	type QuizVisibility,
+} from "@quizio/core/quiz/domain/quiz-details";
 import { Button } from "@quizio/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@quizio/ui/components/dropdown-menu";
 import { Link } from "@tanstack/react-router";
-import { EllipsisVerticalIcon } from "lucide-react";
+import {
+	CopyIcon,
+	EllipsisVerticalIcon,
+	EyeIcon,
+	InfoIcon,
+	LayoutGridIcon,
+	PencilIcon,
+	RotateCcwIcon,
+	Trash2Icon,
+	UserPlusIcon,
+} from "lucide-react";
 
 import { QuizCover } from "@/components/quiz/quiz-cover";
 import { QuizStatusBadge } from "@/components/quiz/quiz-status-badge";
-import { VisibilityBadge } from "@/components/quiz/visibility-badge";
+import {
+	VISIBILITY_DESCRIPTIONS,
+	VISIBILITY_LABELS,
+	VisibilityBadge,
+} from "@/components/quiz/visibility-badge";
 import type { LibraryItemView } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
@@ -28,6 +51,8 @@ export interface QuizItemActions {
 	onMoveToTrash: (item: LibraryItemView) => void;
 	onRestore: (item: LibraryItemView) => void;
 	onDeletePermanently: (item: LibraryItemView) => void;
+	/** "Visibilidade" without opening the quiz's settings (spec 039, RN-25a). */
+	onSetVisibility: (item: LibraryItemView, visibility: QuizVisibility) => void;
 }
 
 export function QuizListItem({
@@ -111,12 +136,14 @@ export function QuizListItem({
 					{section === "trash" ? (
 						<>
 							<DropdownMenuItem onClick={() => actions.onRestore(item)}>
+								<RotateCcwIcon />
 								Restaurar
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								variant="destructive"
 								onClick={() => actions.onDeletePermanently(item)}
 							>
+								<Trash2Icon />
 								Excluir definitivamente
 							</DropdownMenuItem>
 						</>
@@ -128,26 +155,62 @@ export function QuizListItem({
 										className="sm:hidden"
 										onClick={() => actions.onAssign(item)}
 									>
+										<UserPlusIcon />
 										Atribuir
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										className="sm:hidden"
 										onClick={() => actions.onHost(item)}
 									>
+										<LayoutGridIcon />
 										Organizar ao vivo
 									</DropdownMenuItem>
 								</>
 							)}
 							<DropdownMenuItem onClick={() => actions.onEdit(item)}>
+								<PencilIcon />
 								Editar dados
 							</DropdownMenuItem>
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<EyeIcon />
+									Visibilidade
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent>
+									<DropdownMenuRadioGroup
+										value={item.visibility}
+										onValueChange={(value) =>
+											actions.onSetVisibility(item, value as QuizVisibility)
+										}
+									>
+										{QUIZ_VISIBILITIES.map((option) => (
+											<DropdownMenuRadioItem
+												key={option}
+												value={option}
+												closeOnClick
+											>
+												{VISIBILITY_LABELS[option]}
+												<InfoIcon
+													role="img"
+													aria-label={VISIBILITY_DESCRIPTIONS[option]}
+													className="ml-auto text-muted-foreground"
+												>
+													<title>{VISIBILITY_DESCRIPTIONS[option]}</title>
+												</InfoIcon>
+											</DropdownMenuRadioItem>
+										))}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
 							<DropdownMenuItem onClick={() => actions.onDuplicate(item)}>
+								<CopyIcon />
 								Duplicar
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								variant="destructive"
 								onClick={() => actions.onMoveToTrash(item)}
 							>
+								<Trash2Icon />
 								Mover para a lixeira
 							</DropdownMenuItem>
 						</>

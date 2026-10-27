@@ -6,16 +6,15 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@quizio/ui/components/dropdown-menu";
+import { Link } from "@tanstack/react-router";
 import {
 	EllipsisVerticalIcon,
 	InfoIcon,
 	UserIcon,
 	UserXIcon,
 } from "lucide-react";
-
+import { UserAvatar } from "@/components/account/user-avatar";
 import type { GroupMemberData } from "@/lib/api-types";
-
-import { UserAvatar } from "./user-avatar";
 
 /** Every member is active: there are no pending invites yet (spec 034, RN-32). */
 export const MEMBER_STATUS_LABEL = "Ativo";
@@ -61,7 +60,10 @@ export function MembersTable({
 						<tr key={member.userId} className="border-border border-t">
 							<td className="px-4 py-2">
 								<div className="flex items-center gap-3">
-									<UserAvatar userId={member.userId} />
+									<UserAvatar
+										userId={member.userId}
+										photoUrl={member.photoUrl}
+									/>
 									<div className="flex min-w-0 flex-col gap-0.5">
 										<span className="flex flex-wrap items-center gap-2">
 											<span className="truncate">{member.name}</span>
@@ -106,14 +108,15 @@ export function MembersTable({
 												Informações do membro
 											</DropdownMenuItem>
 											<DropdownMenuItem
-												disabled
-												aria-label="Ver perfil (em breve)"
+												render={
+													<Link
+														to="/profile/$userId"
+														params={{ userId: member.userId }}
+													/>
+												}
 											>
 												<UserIcon />
 												Ver perfil
-												<Badge variant="soon" className="ml-auto">
-													Em breve
-												</Badge>
 											</DropdownMenuItem>
 											{isAdmin && member.userId !== viewerId && (
 												<DropdownMenuItem

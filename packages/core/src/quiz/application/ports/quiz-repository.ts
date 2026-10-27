@@ -1,4 +1,5 @@
 import type { Quiz } from "../../domain/quiz";
+import type { QuizVisibility } from "../../domain/quiz-details";
 
 export interface QuizRepository {
 	findById(id: string): Promise<Quiz | null>;
@@ -13,5 +14,15 @@ export interface QuizRepository {
 		id: string,
 		change: { updatedAt: Date; hasUnpublishedChanges: boolean },
 	): Promise<void>;
+	/**
+	 * Sets only the visibility, from the library's menu (spec 039, RN-25a), so
+	 * it never overwrites a concurrent change to the rest of the quiz.
+	 */
+	saveVisibility(
+		id: string,
+		change: { visibility: QuizVisibility; updatedAt: Date },
+	): Promise<void>;
+	/** Every quiz of the owner, trashed ones too, for deleting the account (spec 039). */
+	listIdsByOwner(ownerId: string): Promise<string[]>;
 	delete(id: string): Promise<void>;
 }

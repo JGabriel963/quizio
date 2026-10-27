@@ -9,7 +9,14 @@ import {
 	DropdownMenuTrigger,
 } from "@quizio/ui/components/dropdown-menu";
 import { Link } from "@tanstack/react-router";
-import { EllipsisVerticalIcon, UsersIcon } from "lucide-react";
+import {
+	EllipsisVerticalIcon,
+	PencilIcon,
+	PlayIcon,
+	RotateCcwIcon,
+	Trash2Icon,
+	UsersIcon,
+} from "lucide-react";
 
 import { QuizCover } from "@/components/quiz/quiz-cover";
 import type { ReportListItemData } from "@/lib/api-types";
@@ -104,12 +111,14 @@ export function ReportListItem({
 					{inTrash ? (
 						<>
 							<DropdownMenuItem onClick={() => actions.onRestore(item)}>
+								<RotateCcwIcon />
 								Restaurar
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								variant="destructive"
 								onClick={() => actions.onDeletePermanently(item)}
 							>
+								<Trash2Icon />
 								Excluir definitivamente
 							</DropdownMenuItem>
 						</>
@@ -127,16 +136,19 @@ export function ReportListItem({
 							</DropdownMenuItem>
 							{item.canPlayAgain && (
 								<DropdownMenuItem onClick={() => actions.onPlayAgain(item)}>
+									<PlayIcon />
 									Jogar de novo
 								</DropdownMenuItem>
 							)}
 							<DropdownMenuItem onClick={() => actions.onRename(item)}>
+								<PencilIcon />
 								Renomear
 							</DropdownMenuItem>
 							{item.open ? (
 								// It is ended first (spec 029, RN-41).
 								<>
 									<DropdownMenuItem disabled>
+										<Trash2Icon />
 										Mover para a lixeira
 									</DropdownMenuItem>
 									<p className="max-w-60 px-2 pb-1.5 text-muted-foreground text-xs">
@@ -148,6 +160,7 @@ export function ReportListItem({
 									variant="destructive"
 									onClick={() => actions.onMoveToTrash(item)}
 								>
+									<Trash2Icon />
 									Mover para a lixeira
 								</DropdownMenuItem>
 							)}

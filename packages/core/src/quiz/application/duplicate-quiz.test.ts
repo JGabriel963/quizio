@@ -35,7 +35,7 @@ describe("duplicateQuiz", () => {
 	});
 
 	it("creates an independent draft copy with the cover copied to a new key", async () => {
-		const original = aQuiz({ coverImageKey: COVER, visibility: "unlisted" });
+		const original = aQuiz({ coverImageKey: COVER, visibility: "public" });
 		await quizzes.save(original);
 		storage.simulateUpload(COVER);
 
@@ -44,7 +44,7 @@ describe("duplicateQuiz", () => {
 		expect(copy).toMatchObject({
 			title: "Bom de Bíblia (Junho) (cópia)",
 			description: "Atos 1 a 7",
-			visibility: "unlisted",
+			visibility: "public",
 			status: "draft",
 			createdAt: clock.now(),
 			updatedAt: clock.now(),

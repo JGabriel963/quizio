@@ -55,5 +55,13 @@ export function createDrizzleGroupUploadRepository(
 				.where(eq(groupUpload.groupId, groupId));
 			return rows.map(({ key }) => key);
 		},
+
+		async uploadKeysOfUser(userId) {
+			const rows = await db
+				.select({ key: groupUpload.key })
+				.from(groupUpload)
+				.where(eq(groupUpload.uploaderId, userId));
+			return rows.map(({ key }) => key);
+		},
 	};
 }

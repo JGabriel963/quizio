@@ -69,13 +69,13 @@ describe("QuizDetailsDialog", () => {
 		});
 
 		expect(screen.getByLabelText("Título")).toHaveValue("Bom de Bíblia");
-		await user.click(screen.getByRole("radio", { name: "Não listado" }));
+		await user.click(screen.getByRole("radio", { name: "Público" }));
 		await user.click(screen.getByRole("button", { name: "Salvar" }));
 
 		expect(props.onSubmit).toHaveBeenCalledWith({
 			title: "Bom de Bíblia",
 			description: "Atos 1 a 7",
-			visibility: "unlisted",
+			visibility: "public",
 			cover: { type: "keep" },
 		});
 	});
@@ -94,5 +94,15 @@ describe("QuizDetailsDialog", () => {
 			"Não foi possível salvar o quiz.",
 		);
 		expect(props.onOpenChange).not.toHaveBeenCalledWith(false);
+	});
+
+	it("offers only Privado and Público with their descriptions (spec 039, RN-25)", async () => {
+		renderDialog();
+
+		const radios = await screen.findAllByRole("radio");
+		expect(radios).toHaveLength(2);
+		expect(screen.getByRole("radio", { name: /Privado/ })).toBeVisible();
+		expect(screen.getByText("Visível apenas para você.")).toBeVisible();
+		expect(screen.getByText("Visível para todos no seu perfil.")).toBeVisible();
 	});
 });

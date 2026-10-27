@@ -19,10 +19,8 @@ import {
 	Trash2Icon,
 	UsersIcon,
 } from "lucide-react";
-
+import { UserAvatar } from "@/components/account/user-avatar";
 import type { GroupViewData } from "@/lib/api-types";
-
-import { UserAvatar } from "./user-avatar";
 
 /** The group's name, its members, ⚙ and ⋮ (spec 034, RN-13, RN-18). */
 export function GroupHeader({
@@ -58,6 +56,7 @@ export function GroupHeader({
 							<UserAvatar
 								key={member.userId}
 								userId={member.userId}
+								photoUrl={member.photoUrl}
 								className={index > 0 ? "-ml-2" : undefined}
 							/>
 						))}

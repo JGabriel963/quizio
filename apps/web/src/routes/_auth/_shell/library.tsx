@@ -96,6 +96,8 @@ function LibraryPage() {
 		onMoveToTrash: (item) => mutations.moveToTrash.mutate({ quizId: item.id }),
 		onRestore: (item) => mutations.restore.mutate({ quizId: item.id }),
 		onDeletePermanently: (item) => setPendingDeletion(item),
+		onSetVisibility: (item, visibility) =>
+			mutations.setVisibility.mutate({ quizId: item.id, visibility }),
 	};
 
 	return (

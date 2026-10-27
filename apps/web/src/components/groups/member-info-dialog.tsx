@@ -6,11 +6,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@quizio/ui/components/dialog";
-
+import { UserAvatar } from "@/components/account/user-avatar";
 import type { GroupMemberData } from "@/lib/api-types";
-
 import { MEMBER_STATUS_LABEL } from "./members-table";
-import { UserAvatar } from "./user-avatar";
 
 const ROLE_LABELS = { admin: "Administrador", member: "Membro" } as const;
 
@@ -41,7 +39,11 @@ export function MemberInfoDialog({
 				</DialogHeader>
 				{member && (
 					<div className="grid gap-4">
-						<UserAvatar userId={member.userId} size="lg" />
+						<UserAvatar
+							userId={member.userId}
+							photoUrl={member.photoUrl}
+							size="lg"
+						/>
 						<dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
 							<dt className="font-semibold">Nome:</dt>
 							<dd className="break-words">{member.name}</dd>

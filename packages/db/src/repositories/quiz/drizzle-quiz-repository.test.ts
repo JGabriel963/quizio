@@ -28,7 +28,7 @@ describe("DrizzleQuizRepository", () => {
 		const quizzes = createDrizzleQuizRepository(testDb.db);
 		const quiz = aQuiz({
 			coverImageKey: "media/user-1/cover.png",
-			visibility: "unlisted",
+			visibility: "public",
 			updatedAt: new Date("2026-01-05T08:30:15.123Z"),
 			trashedAt: new Date("2026-02-01T10:00:00.000Z"),
 		});
@@ -130,5 +130,35 @@ describe("DrizzleQuizRepository", () => {
 		await testDb.db.delete(user).where(eq(user.id, "user-3"));
 
 		expect(await quizzes.findById("quiz-1")).toBeNull();
+	});
+
+	it("saveVisibility writes only the visibility and the edit time (spec 039)", async () => {
+		const quizzes = createDrizzleQuizRepository(testDb.db);
+		const quiz = aQuiz({ title: "Capitais" });
+		await quizzes.save(quiz);
+		const later = new Date("2026-10-27T12:00:00.000Z");
+
+		await quizzes.saveVisibility(quiz.id, {
+			visibility: "public",
+			updatedAt: later,
+		});
+
+		expect(await quizzes.findById(quiz.id)).toEqual({
+			...quiz,
+			visibility: "public",
+			updatedAt: later,
+		});
+	});
+
+	it("an unlisted row reads as private (spec 039, RN-25)", async () => {
+		const quizzes = createDrizzleQuizRepository(testDb.db);
+		const quiz = aQuiz();
+		await quizzes.save(quiz);
+		await testDb.db
+			.update(quizTable)
+			.set({ visibility: "unlisted" as never })
+			.where(eq(quizTable.id, quiz.id));
+
+		expect((await quizzes.findById(quiz.id))?.visibility).toBe("private");
 	});
 });

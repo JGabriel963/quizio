@@ -22,8 +22,8 @@ function aGroupView(overrides: Partial<GroupViewData> = {}): GroupViewData {
 		memberCount: 2,
 		createdAt: new Date(2026, 9, 26, 12).toISOString(),
 		memberPreview: [
-			{ userId: "ana", name: "Ana" },
-			{ userId: "bruno", name: "Bruno" },
+			{ userId: "ana", name: "Ana", photoUrl: null },
+			{ userId: "bruno", name: "Bruno", photoUrl: null },
 		],
 		setup: { invited: false, assigned: false, posted: false },
 		...overrides,
@@ -85,9 +85,9 @@ describe("GroupHeader (spec 034, RN-13, RN-18)", () => {
 				group={aGroupView({
 					memberCount: 5,
 					memberPreview: [
-						{ userId: "ana", name: "Ana" },
-						{ userId: "bruno", name: "Bruno" },
-						{ userId: "carla", name: "Carla" },
+						{ userId: "ana", name: "Ana", photoUrl: null },
+						{ userId: "bruno", name: "Bruno", photoUrl: null },
+						{ userId: "carla", name: "Carla", photoUrl: null },
 					],
 				})}
 				{...headerActions}

@@ -35,16 +35,22 @@ const uniqueIp = () => `198.51.100.${nextClientIp++}`;
 
 /** Drives the real Better Auth HTTP handler, so hooks and rate limiting take part. */
 function httpClient(auth: ReturnType<typeof createAuth>, ip = uniqueIp()) {
-	const post = async (path: string, body: unknown): Promise<AuthResponse> => {
+	const send = async (
+		method: "GET" | "POST",
+		path: string,
+		body: unknown,
+		cookie?: string,
+	): Promise<AuthResponse> => {
 		const response = await auth.handler(
 			new Request(`${BASE_URL}/api/auth${path}`, {
-				method: "POST",
+				method,
 				headers: {
 					"content-type": "application/json",
 					origin: BASE_URL,
 					"x-forwarded-for": ip,
+					...(cookie ? { cookie } : {}),
 				},
-				body: JSON.stringify(body),
+				body: method === "POST" ? JSON.stringify(body) : undefined,
 			}),
 		);
 		const text = await response.text();
@@ -55,7 +61,12 @@ function httpClient(auth: ReturnType<typeof createAuth>, ip = uniqueIp()) {
 		};
 	};
 
+	const post = (path: string, body: unknown, cookie?: string) =>
+		send("POST", path, body, cookie);
+
 	return {
+		post,
+		get: (path: string, cookie?: string) => send("GET", path, null, cookie),
 		signUp: (body: { name: string; email: string; password: string }) =>
 			post("/sign-up/email", body),
 		signIn: (body: { email: string; password: string }) =>
@@ -70,6 +81,17 @@ function httpClient(auth: ReturnType<typeof createAuth>, ip = uniqueIp()) {
 }
 
 const ana = { name: "Ana", email: "ana@exemplo.com", password: "12345678" };
+
+/** The session cookie a sign-up or sign-in set. */
+function sessionCookie(response: AuthResponse): string {
+	const cookie = response.headers
+		.getSetCookie()
+		.find((each) => each.includes("session_token"));
+	if (!cookie) {
+		throw new Error("No session cookie");
+	}
+	return cookie.split(";")[0] ?? "";
+}
 
 describe("createAuth", () => {
 	let testDb: TestDatabase;
@@ -327,6 +349,97 @@ describe("createAuth", () => {
 			const withGoogle = await closed.signInWithGoogle();
 
 			expect([withPassword.status, withGoogle.status]).toEqual([200, 200]);
+		});
+	});
+
+	describe("account settings (spec 039)", () => {
+		it("update-user normalizes the name and refuses 1 and 51 characters", async () => {
+			const cookie = sessionCookie(await client.signUp(ana));
+
+			const renamed = await client.post(
+				"/update-user",
+				{ name: "  Ana Clara  " },
+				cookie,
+			);
+			const tooShort = await client.post("/update-user", { name: "A" }, cookie);
+			const tooLong = await client.post(
+				"/update-user",
+				{ name: "a".repeat(51) },
+				cookie,
+			);
+
+			expect(renamed.status).toBe(200);
+			expect([tooShort.status, tooLong.status]).toEqual([400, 400]);
+			expect(tooShort.body?.code).toBe("INVALID_NAME");
+			expect((await users())[0]?.name).toBe("Ana Clara");
+		});
+
+		it("update-user refuses an image", async () => {
+			const cookie = sessionCookie(await client.signUp(ana));
+
+			const response = await client.post(
+				"/update-user",
+				{ image: "https://example.com/me.png" },
+				cookie,
+			);
+
+			expect(response.status).toBe(400);
+			expect(response.body?.code).toBe("IMAGE_NOT_ALLOWED");
+			expect((await users())[0]?.image).toBeNull();
+		});
+
+		it("change-password with revokeOtherSessions ends the other session", async () => {
+			const first = sessionCookie(await client.signUp(ana));
+			const second = sessionCookie(await client.signIn(ana));
+
+			const changed = await client.post(
+				"/change-password",
+				{
+					currentPassword: ana.password,
+					newPassword: "novasenha1",
+					revokeOtherSessions: true,
+				},
+				first,
+			);
+			const otherSession = await client.get("/get-session", second);
+			const oldPassword = await client.signIn(ana);
+			const newPassword = await client.signIn({
+				email: ana.email,
+				password: "novasenha1",
+			});
+
+			expect(changed.status).toBe(200);
+			expect(otherSession.body).toBeNull();
+			expect(oldPassword.status).toBe(401);
+			expect(newPassword.status).toBe(200);
+		});
+
+		it("the sixth wrong current password in 60 s is rate limited", async () => {
+			const cookie = sessionCookie(await client.signUp(ana));
+			const attempt = () =>
+				client.post(
+					"/change-password",
+					{ currentPassword: "errada123", newPassword: "novasenha1" },
+					cookie,
+				);
+
+			const statuses: number[] = [];
+			for (let i = 0; i < 6; i++) {
+				statuses.push((await attempt()).status);
+			}
+
+			expect(statuses.slice(0, 5).every((status) => status === 400)).toBe(true);
+			expect(statuses[5]).toBe(429);
+		});
+
+		it("signing up again with a deleted account's email starts empty", async () => {
+			await client.signUp(ana);
+			await testDb.db.delete(user);
+
+			const again = await httpClient(createAuth(options())).signUp(ana);
+
+			expect(again.status).toBe(200);
+			expect(await users()).toHaveLength(1);
 		});
 	});
 });

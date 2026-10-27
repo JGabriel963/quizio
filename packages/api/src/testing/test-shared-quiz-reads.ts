@@ -122,9 +122,19 @@ export function testSharedQuizReads(deps: {
 /** A member of a group that shares the quiz may use it, as the database says. */
 export function testQuizShareGrants(
 	groups: InMemoryGroupStore,
+	quizzes: InMemoryQuizRepository,
 ): QuizShareGrants {
 	return {
 		async canUse(userId, quizId) {
+			// Public, published and out of the trash: anybody (spec 039, RN-33).
+			const quiz = await quizzes.findById(quizId);
+			if (
+				quiz?.visibility === "public" &&
+				quiz.publishedVersion !== null &&
+				quiz.trashedAt === null
+			) {
+				return true;
+			}
 			return (await groups.listForUser(userId)).some((group) =>
 				groups.sharesOf(group.id).some((share) => share.quizId === quizId),
 			);

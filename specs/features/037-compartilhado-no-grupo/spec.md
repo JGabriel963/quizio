@@ -334,3 +334,5 @@ Nenhuma.
   - o Duplicar da página e do ⋮ abre a cópia no editor;
   - o texto de "Excluir a publicação?" de um compartilhamento diz que os kahoots continuam em Compartilhado;
   - na lista, o celular mostra só a capa, o título e o ⋮.
+- 2026-10-27 — alterada pela spec 039 (RN-26): a cópia do quiz de outra pessoa (Duplicar e "Duplique para editar") nasce **Privada**, em vez de copiar a visibilidade (RN-21); os ícones das pessoas mostram a foto do perfil.
+- 2026-10-27 — as notificações que esta spec deixava para o sino chegaram com a spec 040.

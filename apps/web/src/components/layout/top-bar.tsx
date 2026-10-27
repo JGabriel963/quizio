@@ -1,9 +1,9 @@
 import { Button } from "@quizio/ui/components/button";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { MenuIcon, PlusIcon } from "lucide-react";
+import AccountMenu from "@/components/account/account-menu";
 import { useCreateQuiz } from "@/components/layout/create-quiz-context";
 import { GlobalSearch } from "@/components/layout/global-search";
-import UserMenu from "@/components/user-menu";
 
 /**
  * Brand, search, create and account. Navigation lives in the sidebar only
@@ -58,7 +58,7 @@ export function TopBar({
 						<PlusIcon data-icon="inline-start" />
 						Criar
 					</Button>
-					<UserMenu />
+					<AccountMenu />
 				</div>
 			</div>
 		</header>

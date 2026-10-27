@@ -20,6 +20,7 @@ import {
 	CopyIcon,
 	InfoIcon,
 	Link2Icon,
+	LinkIcon,
 	MailIcon,
 	ShareIcon,
 	UserPlusIcon,
@@ -188,6 +189,7 @@ export function ShareAssignmentDialog({
 										</DropdownMenuItem>
 									))}
 									<DropdownMenuItem onClick={() => copy(link, "Link copiado")}>
+										<LinkIcon aria-hidden="true" />
 										Copiar link
 									</DropdownMenuItem>
 								</DropdownMenuContent>

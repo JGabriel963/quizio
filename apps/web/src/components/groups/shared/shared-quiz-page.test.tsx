@@ -3,7 +3,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { SharedQuizPageData } from "@/lib/api-types";
+import type { PublicQuizPageData, SharedQuizPageData } from "@/lib/api-types";
 import { renderWithRouter } from "@/testing/render-with-router";
 
 import { SharedQuizPage } from "./shared-quiz-page";
@@ -170,5 +170,40 @@ describe("SharedQuizPage (spec 037, RN-16 to RN-21)", () => {
 		expect(onHost).toHaveBeenCalled();
 		expect(onAssign).toHaveBeenCalled();
 		expect(onDuplicate).toHaveBeenCalled();
+	});
+
+	it("a public quiz opened from the profile has no Compartilhado por (spec 039, RN-33)", async () => {
+		const publicQuiz: PublicQuizPageData = {
+			quizId: "capitais",
+			title: "Capitais",
+			description: "",
+			coverUrl: null,
+			owner: { userId: "ana", name: "Ana", photoUrl: null },
+			games: 3,
+			participants: 41,
+			questions,
+			imageUrls: {},
+			ownedByViewer: false,
+		};
+		renderWithRouter(
+			<SharedQuizPage
+				quiz={publicQuiz}
+				onHost={vi.fn()}
+				onAssign={vi.fn()}
+				onDuplicate={vi.fn()}
+			/>,
+		);
+
+		expect(
+			await screen.findByRole("heading", { name: "Capitais" }),
+		).toBeVisible();
+		expect(screen.getByText("3 jogos")).toBeVisible();
+		expect(screen.queryByText(/Compartilhado por/)).toBeNull();
+		expect(
+			screen.getByRole("button", { name: "Organizar ao vivo" }),
+		).toBeVisible();
+		expect(
+			screen.getByRole("button", { name: "Mostrar respostas" }),
+		).toBeVisible();
 	});
 });

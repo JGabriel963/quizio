@@ -8,23 +8,20 @@ import { parseVersionQuestions } from "@quizio/core/quiz/domain/quiz-version";
 import {
 	and,
 	asc,
-	count,
-	countDistinct,
 	desc,
 	eq,
 	inArray,
 	isNotNull,
 	isNull,
-	ne,
 	type SQL,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import { user } from "../../schema/auth";
-import { gamePlayer, game as gameTable } from "../../schema/game";
 import { groupSharedQuiz } from "../../schema/groups";
 import { quiz as quizTable, quizVersion } from "../../schema/quiz";
 import type { Database } from "../../types";
+import { quizGameCounts } from "../game/quiz-game-counts";
 
 /** A quiz the group can see: it has a playable version and is out of the trash (RN-23). */
 const alive = and(
@@ -86,41 +83,8 @@ export function createDrizzleSharedQuizReads(db: Database): SharedQuizReads {
 		);
 	}
 
-	/** Games that started (a lobby is not one), of any host, and their players. */
-	async function gameCounts(quizIds: readonly string[]) {
-		const totals = new Map<string, { games: number; participants: number }>();
-		if (quizIds.length === 0) {
-			return totals;
-		}
-		const started = and(
-			inArray(gameTable.quizId, [...new Set(quizIds)]),
-			ne(gameTable.status, "lobby"),
-		);
-		const games = await db
-			.select({ quizId: gameTable.quizId, games: count() })
-			.from(gameTable)
-			.where(started)
-			.groupBy(gameTable.quizId);
-		const players = await db
-			.select({
-				quizId: gameTable.quizId,
-				participants: countDistinct(gamePlayer.id),
-			})
-			.from(gamePlayer)
-			.innerJoin(gameTable, eq(gameTable.id, gamePlayer.gameId))
-			.where(started)
-			.groupBy(gameTable.quizId);
-		for (const row of games) {
-			totals.set(row.quizId, { games: row.games, participants: 0 });
-		}
-		for (const row of players) {
-			const total = totals.get(row.quizId);
-			if (total) {
-				total.participants = row.participants;
-			}
-		}
-		return totals;
-	}
+	const gameCounts = (quizIds: readonly string[]) =>
+		quizGameCounts(db, quizIds);
 
 	const strip = ({
 		questionsJson: _,

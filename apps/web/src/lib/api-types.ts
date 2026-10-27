@@ -109,3 +109,14 @@ export type AssignableGroupData =
 export type SharedQuizCardData =
 	RouterOutputs["group"]["shared"]["list"]["items"][number];
 export type SharedQuizPageData = RouterOutputs["group"]["shared"]["get"];
+
+/** A creator's profile and a public quiz seen from it (spec 039). */
+export type CreatorProfileData = RouterOutputs["account"]["profile"];
+export type PublicQuizPageData = RouterOutputs["account"]["publicQuiz"];
+
+/** The bell and its panel (spec 040). */
+export type InboxSummaryData = RouterOutputs["notification"]["summary"];
+export type NotificationData =
+	RouterOutputs["notification"]["list"]["items"][number];
+/** A post on its own page (spec 040, RN-19). */
+export type GroupPostPageData = RouterOutputs["group"]["posts"]["get"];

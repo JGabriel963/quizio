@@ -1,3 +1,7 @@
+import type {
+	PersonView,
+	PhotoUrlOf,
+} from "../../shared/application/person-view";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { GroupMember } from "../domain/group-member";
 import { canUnshare } from "../domain/group-permissions";
@@ -14,7 +18,7 @@ export interface SharedQuizCardView {
 	coverUrl: string | null;
 	questionCount: number;
 	visibility: SharedQuizCard["visibility"];
-	owner: { userId: string; name: string };
+	owner: PersonView;
 	sharedAt: Date;
 	/** "N partidas" (RN-15). */
 	games: number;
@@ -28,6 +32,7 @@ export function sharedQuizCardViewOf(
 	card: SharedQuizCard,
 	storage: ObjectStorage,
 	viewer: Pick<GroupMember, "userId" | "role">,
+	photoUrlOf: PhotoUrlOf,
 ): SharedQuizCardView {
 	return {
 		sharedQuizId: card.sharedQuizId,
@@ -38,7 +43,11 @@ export function sharedQuizCardViewOf(
 			: null,
 		questionCount: card.questionCount,
 		visibility: card.visibility,
-		owner: { userId: card.ownerId, name: card.ownerName },
+		owner: {
+			userId: card.ownerId,
+			name: card.ownerName,
+			photoUrl: photoUrlOf(card.ownerId),
+		},
 		sharedAt: card.sharedAt,
 		games: card.games,
 		ownedByViewer: card.ownerId === viewer.userId,

@@ -34,7 +34,7 @@ describe("updateQuizDetails", () => {
 		quizId: "quiz-1",
 		title: "Geografia",
 		description: "Capitais do Brasil",
-		visibility: "unlisted",
+		visibility: "public",
 		cover: { type: "keep" },
 		...overrides,
 	});
@@ -60,7 +60,7 @@ describe("updateQuizDetails", () => {
 		expect(view).toMatchObject({
 			title: "Geografia",
 			description: "Capitais do Brasil",
-			visibility: "unlisted",
+			visibility: "public",
 			coverImageUrl: `https://media.test/${OLD_COVER}`,
 			updatedAt: clock.now(),
 		});

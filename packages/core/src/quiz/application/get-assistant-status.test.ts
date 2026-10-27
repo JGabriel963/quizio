@@ -34,8 +34,10 @@ describe("getAssistantStatus", () => {
 		expect(await getStatus({ ownerId: "user-1" })).toEqual({
 			enabled: true,
 			limit: 3,
+			used: 0,
 			remaining: 3,
 			nextAvailableAt: null,
+			nextFreeInMs: null,
 			options: DEFAULT_GENERATION_OPTIONS,
 		});
 	});
@@ -79,6 +81,25 @@ describe("getAssistantStatus", () => {
 		expect(await getStatus({ ownerId: "user-1" })).toMatchObject({
 			remaining: 0,
 			nextAvailableAt: new Date("2026-10-16T12:30:00.000Z"),
+		});
+	});
+
+	it("tells how many were used and when the oldest leaves the window (spec 039, RN-17)", async () => {
+		const { getStatus, generationQuota } = setup({ generationsPerDay: 20 });
+		for (const at of ["2026-10-15T15:00:00.000Z", "2026-10-16T08:00:00.000Z"]) {
+			await generationQuota.reserve(
+				"user-1",
+				20,
+				GENERATION_QUOTA_WINDOW_MS,
+				new Date(at),
+			);
+		}
+
+		expect(await getStatus({ ownerId: "user-1" })).toMatchObject({
+			used: 2,
+			remaining: 18,
+			nextAvailableAt: null,
+			nextFreeInMs: 5 * 60 * 60 * 1000,
 		});
 	});
 });

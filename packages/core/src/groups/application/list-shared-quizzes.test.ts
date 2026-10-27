@@ -47,7 +47,7 @@ describe("listSharedQuizzes (spec 037)", () => {
 		const t = await setup(1);
 		t.sharedQuizReads.updateQuiz("quiz-01", {
 			coverImageKey: "media/ana/capa.png",
-			visibility: "unlisted",
+			visibility: "public",
 			games: 3,
 		});
 
@@ -64,8 +64,8 @@ describe("listSharedQuizzes (spec 037)", () => {
 				title: "Quiz 1",
 				coverUrl: "https://media.test/media/ana/capa.png",
 				questionCount: 0,
-				visibility: "unlisted",
-				owner: { userId: "ana", name: "Ana" },
+				visibility: "public",
+				owner: { userId: "ana", name: "Ana", photoUrl: null },
 				sharedAt: t.clock.now(),
 				games: 3,
 				ownedByViewer: false,

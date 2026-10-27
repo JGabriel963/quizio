@@ -112,4 +112,14 @@ describe("duplicateSharedQuiz (spec 037, RN-21)", () => {
 			duplicate({ userId: "carla", quizId: "quiz-1" }),
 		).rejects.toThrow(QuizNotFoundError);
 	});
+
+	it("the copy of someone else's quiz is private (spec 039, RN-26)", async () => {
+		await quizzes.save(
+			aPublishedQuiz({ coverImageKey: COVER, visibility: "public" }),
+		);
+
+		const copy = await duplicate({ userId: "carla", quizId: "quiz-1" });
+
+		expect(copy.visibility).toBe("private");
+	});
 });

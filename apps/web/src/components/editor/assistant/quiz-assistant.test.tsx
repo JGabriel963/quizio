@@ -34,8 +34,10 @@ const generated = (id: string, text: string): GeneratedQuestionData => ({
 const status: AssistantStatusData = {
 	enabled: true,
 	limit: 20,
+	used: 0,
 	remaining: 20,
 	nextAvailableAt: null,
+	nextFreeInMs: null,
 	options: DEFAULT_GENERATION_OPTIONS,
 };
 
