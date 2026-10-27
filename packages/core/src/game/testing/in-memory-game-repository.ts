@@ -20,12 +20,14 @@ export class InMemoryGameRepository implements GameRepository {
 	async listUnendedByQuiz(
 		quizId: string,
 		modes?: readonly GameMode[],
+		ownerId?: string,
 	): Promise<Game[]> {
 		return this.all().filter(
 			(game) =>
 				game.quizId === quizId &&
 				game.endedAt === null &&
-				(!modes || modes.includes(game.mode)),
+				(!modes || modes.includes(game.mode)) &&
+				(ownerId === undefined || game.ownerId === ownerId),
 		);
 	}
 
@@ -43,7 +45,8 @@ export class InMemoryGameRepository implements GameRepository {
 				(other.pin === game.pin ||
 					(game.mode === "live" &&
 						other.mode === "live" &&
-						other.quizId === game.quizId)),
+						other.quizId === game.quizId &&
+						other.ownerId === game.ownerId)),
 		);
 		if (taken) {
 			return "taken";

@@ -1,5 +1,6 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
+import type { QuizShareGrants } from "../../shared/application/ports/quiz-share-grants";
 import {
 	type AssignmentOptions,
 	assertAssignmentDeadline,
@@ -35,6 +36,7 @@ const PIN_DRAWS = 5;
  */
 export function createCreateAssignment(deps: {
 	playableQuizzes: PlayableQuizQuery;
+	quizShareGrants: QuizShareGrants;
 	games: GameRepository;
 	gameQuestions: GameQuestionRepository;
 	assignmentPins: AssignmentPinGenerator;
@@ -45,7 +47,14 @@ export function createCreateAssignment(deps: {
 }): CreateAssignment {
 	return async ({ ownerId, quizId, deadline, options }) => {
 		const quiz = await deps.playableQuizzes.find(quizId);
-		if (!quiz || quiz.ownerId !== ownerId) {
+		// Somebody else's quiz is theirs to use when a group shares it with
+		// them (spec 037, RN-19, RN-20); otherwise it is as missing as one
+		// that is not there.
+		if (
+			!quiz ||
+			(quiz.ownerId !== ownerId &&
+				!(await deps.quizShareGrants.canUse(ownerId, quiz.id)))
+		) {
 			throw new GameQuizNotFoundError("Quiz not found");
 		}
 		if (quiz.trashed || quiz.version === null) {

@@ -131,6 +131,145 @@ import {
 	type SubmitAnswer,
 } from "@quizio/core/game/application/submit-answer";
 import {
+	type AcceptGroupInvite,
+	createAcceptGroupInvite,
+} from "@quizio/core/groups/application/accept-group-invite";
+import {
+	type AssignInGroup,
+	createAssignInGroup,
+} from "@quizio/core/groups/application/assign-in-group";
+import {
+	type AssignToGroups,
+	createAssignToGroups,
+} from "@quizio/core/groups/application/assign-to-groups";
+import {
+	type CreateGroup,
+	createCreateGroup,
+} from "@quizio/core/groups/application/create-group";
+import {
+	type CreateGroupPost,
+	createCreateGroupPost,
+} from "@quizio/core/groups/application/create-group-post";
+import {
+	createDeleteGroup,
+	type DeleteGroup,
+} from "@quizio/core/groups/application/delete-group";
+import {
+	createDeleteGroupPost,
+	type DeleteGroupPost,
+} from "@quizio/core/groups/application/delete-group-post";
+import {
+	createDiscardGroupUpload,
+	type DiscardGroupUpload,
+} from "@quizio/core/groups/application/discard-group-upload";
+import {
+	createDismissGroupSetup,
+	type DismissGroupSetup,
+} from "@quizio/core/groups/application/dismiss-group-setup";
+import {
+	createGetGroup,
+	type GetGroup,
+} from "@quizio/core/groups/application/get-group";
+import {
+	createGetGroupInvitation,
+	type GetGroupInvitation,
+} from "@quizio/core/groups/application/get-group-invitation";
+import {
+	createGetGroupInvite,
+	type GetGroupInvite,
+} from "@quizio/core/groups/application/get-group-invite";
+import {
+	createGetGroupSettings,
+	type GetGroupSettings,
+} from "@quizio/core/groups/application/get-group-settings";
+import {
+	createGetSharedQuiz,
+	type GetSharedQuiz,
+} from "@quizio/core/groups/application/get-shared-quiz";
+import {
+	createLeaveGroup,
+	type LeaveGroup,
+} from "@quizio/core/groups/application/leave-group";
+import {
+	createListAssignableGroups,
+	type ListAssignableGroups,
+} from "@quizio/core/groups/application/list-assignable-groups";
+import {
+	createListGroupAssignments,
+	type ListGroupAssignments,
+} from "@quizio/core/groups/application/list-group-assignments";
+import {
+	createListGroupFeed,
+	type ListGroupFeed,
+} from "@quizio/core/groups/application/list-group-feed";
+import {
+	createListGroupMembers,
+	type ListGroupMembers,
+} from "@quizio/core/groups/application/list-group-members";
+import {
+	createListGroups,
+	type ListGroups,
+} from "@quizio/core/groups/application/list-groups";
+import {
+	createListRecentGroups,
+	type ListRecentGroups,
+} from "@quizio/core/groups/application/list-recent-groups";
+import {
+	createListSharedQuizIds,
+	type ListSharedQuizIds,
+} from "@quizio/core/groups/application/list-shared-quiz-ids";
+import {
+	createListSharedQuizzes,
+	type ListSharedQuizzes,
+} from "@quizio/core/groups/application/list-shared-quizzes";
+import type { GroupAssignmentQuery } from "@quizio/core/groups/application/ports/group-assignments";
+import type { GroupFeedQuery } from "@quizio/core/groups/application/ports/group-feed-query";
+import type { GroupMemberRepository } from "@quizio/core/groups/application/ports/group-member-repository";
+import type { GroupPostRepository } from "@quizio/core/groups/application/ports/group-post-repository";
+import type { GroupReads } from "@quizio/core/groups/application/ports/group-reads";
+import type { GroupRepository } from "@quizio/core/groups/application/ports/group-repository";
+import type { GroupSharedQuizRepository } from "@quizio/core/groups/application/ports/group-shared-quiz-repository";
+import type { GroupUploadRepository } from "@quizio/core/groups/application/ports/group-upload-repository";
+import type { GroupVisitRepository } from "@quizio/core/groups/application/ports/group-visit-repository";
+import type { InviteCodeGenerator } from "@quizio/core/groups/application/ports/invite-code-generator";
+import type { SharedQuizReads } from "@quizio/core/groups/application/ports/shared-quiz-reads";
+import {
+	createRemoveGroupMember,
+	type RemoveGroupMember,
+} from "@quizio/core/groups/application/remove-group-member";
+import {
+	createRequestGroupUpload,
+	type RequestGroupUpload,
+} from "@quizio/core/groups/application/request-group-upload";
+import {
+	createResetGroupInvite,
+	type ResetGroupInvite,
+} from "@quizio/core/groups/application/reset-group-invite";
+import {
+	createSetGroupPermission,
+	type SetGroupPermission,
+} from "@quizio/core/groups/application/set-group-permission";
+import {
+	createSetPostLike,
+	type SetPostLike,
+} from "@quizio/core/groups/application/set-post-like";
+import {
+	createShareQuizzesInGroup,
+	type ShareQuizzesInGroup,
+} from "@quizio/core/groups/application/share-quizzes-in-group";
+import {
+	createUnshareQuiz,
+	type UnshareQuiz,
+} from "@quizio/core/groups/application/unshare-quiz";
+import {
+	createUpdateGroupDetails,
+	type UpdateGroupDetails,
+} from "@quizio/core/groups/application/update-group-details";
+import {
+	createVisitGroup,
+	type VisitGroup,
+} from "@quizio/core/groups/application/visit-group";
+import {
 	createGetHomeOverview,
 	type GetHomeOverview,
 } from "@quizio/core/library/application/get-home-overview";
@@ -188,6 +327,10 @@ import {
 	createDuplicateQuiz,
 	type DuplicateQuiz,
 } from "@quizio/core/quiz/application/duplicate-quiz";
+import {
+	createDuplicateSharedQuiz,
+	type DuplicateSharedQuiz,
+} from "@quizio/core/quiz/application/duplicate-shared-quiz";
 import {
 	createGenerateQuestions,
 	type GenerateQuestions,
@@ -265,6 +408,7 @@ import {
 	type MoveReportsToTrash,
 } from "@quizio/core/reports/application/move-reports-to-trash";
 import type { ReportGameQuery } from "@quizio/core/reports/application/ports/report-game-query";
+import type { ReportReadGrants } from "@quizio/core/reports/application/ports/report-read-grants";
 import type { ReportRepository } from "@quizio/core/reports/application/ports/report-repository";
 import {
 	createRenameReport,
@@ -278,6 +422,7 @@ import type { AttemptLimiter } from "@quizio/core/shared/application/ports/attem
 import type { Clock } from "@quizio/core/shared/application/ports/clock";
 import type { IdGenerator } from "@quizio/core/shared/application/ports/id-generator";
 import type { ObjectStorage } from "@quizio/core/shared/application/ports/object-storage";
+import type { QuizShareGrants } from "@quizio/core/shared/application/ports/quiz-share-grants";
 import type { RealtimePublisher } from "@quizio/core/shared/application/ports/realtime-publisher";
 import type { Shuffler } from "@quizio/core/shared/application/ports/shuffler";
 
@@ -330,6 +475,26 @@ export interface Adapters {
 	assistantPreferences: AssistantPreferencesRepository;
 	sourceUploads: SourceUploadRepository;
 	assistantSettings: AssistantSettings;
+	/** Groups and their members (spec 034). */
+	groups: GroupRepository;
+	groupMembers: GroupMemberRepository;
+	groupVisits: GroupVisitRepository;
+	/** The groups with the accounts' names and emails. */
+	groupReads: GroupReads;
+	inviteCodes: InviteCodeGenerator;
+	/** The group's feed and the assignments it shows (spec 038). */
+	groupPosts: GroupPostRepository;
+	groupFeed: GroupFeedQuery;
+	groupAssignmentQuery: GroupAssignmentQuery;
+	/** The groups' files nobody posted yet (spec 036; ADR 0017). */
+	groupUploads: GroupUploadRepository;
+	/** Who else may read a report: a group's admin (spec 038, RN-20a). */
+	reportReadGrants: ReportReadGrants;
+	/** Quizzes shared with groups (spec 037; ADR 0018). */
+	groupSharedQuizzes: GroupSharedQuizRepository;
+	sharedQuizReads: SharedQuizReads;
+	/** Who may use a quiz they do not own: a member of a group it is in. */
+	quizShareGrants: QuizShareGrants;
 }
 
 export interface Container extends Adapters {
@@ -344,6 +509,7 @@ export interface Container extends Adapters {
 		getQuizDetails: GetQuizDetails;
 		updateQuizDetails: UpdateQuizDetails;
 		duplicateQuiz: DuplicateQuiz;
+		duplicateSharedQuiz: DuplicateSharedQuiz;
 		moveQuizToTrash: MoveQuizToTrash;
 		restoreQuiz: RestoreQuiz;
 		deleteQuizPermanently: DeleteQuizPermanently;
@@ -398,6 +564,38 @@ export interface Container extends Adapters {
 		moveReportsToTrash: MoveReportsToTrash;
 		renameReport: RenameReport;
 		restoreReports: RestoreReports;
+		acceptGroupInvite: AcceptGroupInvite;
+		createGroup: CreateGroup;
+		deleteGroup: DeleteGroup;
+		dismissGroupSetup: DismissGroupSetup;
+		getGroup: GetGroup;
+		getGroupInvitation: GetGroupInvitation;
+		getGroupInvite: GetGroupInvite;
+		leaveGroup: LeaveGroup;
+		listGroupMembers: ListGroupMembers;
+		listGroups: ListGroups;
+		listRecentGroups: ListRecentGroups;
+		removeGroupMember: RemoveGroupMember;
+		resetGroupInvite: ResetGroupInvite;
+		visitGroup: VisitGroup;
+		assignInGroup: AssignInGroup;
+		assignToGroups: AssignToGroups;
+		deleteGroupPost: DeleteGroupPost;
+		listAssignableGroups: ListAssignableGroups;
+		listGroupAssignments: ListGroupAssignments;
+		listGroupFeed: ListGroupFeed;
+		setPostLike: SetPostLike;
+		createGroupPost: CreateGroupPost;
+		shareQuizzesInGroup: ShareQuizzesInGroup;
+		unshareQuiz: UnshareQuiz;
+		listSharedQuizzes: ListSharedQuizzes;
+		listSharedQuizIds: ListSharedQuizIds;
+		getSharedQuiz: GetSharedQuiz;
+		requestGroupUpload: RequestGroupUpload;
+		discardGroupUpload: DiscardGroupUpload;
+		getGroupSettings: GetGroupSettings;
+		setGroupPermission: SetGroupPermission;
+		updateGroupDetails: UpdateGroupDetails;
 	};
 }
 
@@ -411,6 +609,17 @@ export function createContainer(adapters: Adapters): Container {
 	const assignmentDeps = {
 		...adapters,
 		maxDeadlineDays: adapters.assignmentSettings.maxDeadlineDays,
+	};
+	const createAssignment = createCreateAssignment(assignmentDeps);
+	// The groups reach "Criar uma tarefa" through their own port (spec 038).
+	const groupDeps = {
+		...adapters,
+		groupAssignments: {
+			create: async (input: Parameters<typeof createAssignment>[0]) => {
+				const { gameId } = await createAssignment(input);
+				return { gameId };
+			},
+		},
 	};
 	const quizGames = {
 		// The open ones end, assignments too (spec 029, RN-42); the ones that
@@ -435,6 +644,10 @@ export function createContainer(adapters: Adapters): Container {
 			getQuizDetails: createGetQuizDetails(adapters),
 			updateQuizDetails: createUpdateQuizDetails(adapters),
 			duplicateQuiz: createDuplicateQuiz(adapters),
+			duplicateSharedQuiz: createDuplicateSharedQuiz({
+				...adapters,
+				quizVersions: adapters.versions,
+			}),
 			moveQuizToTrash: createMoveQuizToTrash(adapters),
 			restoreQuiz: createRestoreQuiz(adapters),
 			deleteQuizPermanently: createDeleteQuizPermanently({
@@ -472,7 +685,7 @@ export function createContainer(adapters: Adapters): Container {
 			getTypedAnswers: createGetTypedAnswers(adapters),
 			reviewTypedAnswers: createReviewTypedAnswers(adapters),
 			getAssignmentSetup: createGetAssignmentSetup(assignmentDeps),
-			createAssignment: createCreateAssignment(assignmentDeps),
+			createAssignment,
 			changeAssignmentDeadline: createChangeAssignmentDeadline(assignmentDeps),
 			endAssignment: createEndAssignment(adapters),
 			getAssignmentCover: createGetAssignmentCover(adapters),
@@ -492,6 +705,38 @@ export function createContainer(adapters: Adapters): Container {
 			moveReportsToTrash: createMoveReportsToTrash(adapters),
 			renameReport: createRenameReport(adapters),
 			restoreReports: createRestoreReports(adapters),
+			acceptGroupInvite: createAcceptGroupInvite(adapters),
+			createGroup: createCreateGroup(adapters),
+			deleteGroup: createDeleteGroup(adapters),
+			dismissGroupSetup: createDismissGroupSetup(adapters),
+			getGroup: createGetGroup(adapters),
+			getGroupInvitation: createGetGroupInvitation(adapters),
+			getGroupInvite: createGetGroupInvite(adapters),
+			leaveGroup: createLeaveGroup(adapters),
+			listGroupMembers: createListGroupMembers(adapters),
+			listGroups: createListGroups(adapters),
+			listRecentGroups: createListRecentGroups(adapters),
+			removeGroupMember: createRemoveGroupMember(adapters),
+			resetGroupInvite: createResetGroupInvite(adapters),
+			visitGroup: createVisitGroup(adapters),
+			assignInGroup: createAssignInGroup(groupDeps),
+			assignToGroups: createAssignToGroups(groupDeps),
+			deleteGroupPost: createDeleteGroupPost(groupDeps),
+			listAssignableGroups: createListAssignableGroups(groupDeps),
+			listGroupAssignments: createListGroupAssignments(groupDeps),
+			listGroupFeed: createListGroupFeed(groupDeps),
+			setPostLike: createSetPostLike(groupDeps),
+			createGroupPost: createCreateGroupPost(adapters),
+			shareQuizzesInGroup: createShareQuizzesInGroup(adapters),
+			unshareQuiz: createUnshareQuiz(adapters),
+			listSharedQuizzes: createListSharedQuizzes(adapters),
+			listSharedQuizIds: createListSharedQuizIds(adapters),
+			getSharedQuiz: createGetSharedQuiz(adapters),
+			requestGroupUpload: createRequestGroupUpload(adapters),
+			discardGroupUpload: createDiscardGroupUpload(adapters),
+			getGroupSettings: createGetGroupSettings(adapters),
+			setGroupPermission: createSetGroupPermission(adapters),
+			updateGroupDetails: createUpdateGroupDetails(adapters),
 		},
 	};
 }

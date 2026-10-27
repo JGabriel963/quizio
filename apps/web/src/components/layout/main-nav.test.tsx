@@ -19,6 +19,9 @@ describe("activeMainNavLabel", () => {
 		["/quizzes/quiz-1", "Biblioteca"],
 		["/reports", "Relatórios"],
 		["/reports/game-1", "Relatórios"],
+		["/groups", "Grupos"],
+		["/groups/group-1/members", "Grupos"],
+		["/invite/abc", null],
 		["/login", null],
 	])("marks %s as %s", (pathname, label) => {
 		expect(activeMainNavLabel(pathname)).toBe(label);
@@ -46,9 +49,9 @@ describe("MainNav", () => {
 		await renderNav("/");
 
 		expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(
-			["Início", "Biblioteca", "Relatórios"],
+			["Início", "Biblioteca", "Relatórios", "Grupos"],
 		);
-		for (const label of ["Descobrir", "Grupos"]) {
+		for (const label of ["Descobrir"]) {
 			const item = screen.getByText(label).closest("li") as HTMLElement;
 
 			expect(within(item).getByText("Em breve")).toBeVisible();
@@ -78,6 +81,18 @@ describe("MainNav", () => {
 		expect(reports).toHaveAttribute("aria-current", "page");
 		expect(
 			within(reports.closest("li") as HTMLElement).queryByText("Em breve"),
+		).toBeNull();
+	});
+
+	it("links Grupos to /groups without Em breve, marked on group paths (spec 034)", async () => {
+		await renderNav("/groups/group-1");
+
+		const groups = screen.getByRole("link", { name: "Grupos" });
+
+		expect(groups).toHaveAttribute("href", "/groups?section=managed");
+		expect(groups).toHaveAttribute("aria-current", "page");
+		expect(
+			within(groups.closest("li") as HTMLElement).queryByText("Em breve"),
 		).toBeNull();
 	});
 });

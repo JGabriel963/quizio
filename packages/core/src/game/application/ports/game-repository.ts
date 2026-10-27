@@ -9,10 +9,14 @@ export interface GameRepository {
 	 * deadline: nothing ends a game until someone loads it (ADR 0009).
 	 */
 	findUnendedByPin(pin: string): Promise<Game | null>;
-	/** Of every mode, unless `modes` says which (spec 029, RN-05, RN-42). */
+	/**
+	 * Of every mode and host, unless `modes` and `ownerId` say which (spec 029,
+	 * RN-05, RN-42; spec 037, RN-19).
+	 */
 	listUnendedByQuiz(
 		quizId: string,
 		modes?: readonly GameMode[],
+		ownerId?: string,
 	): Promise<Game[]>;
 	/**
 	 * The newest assignment that had the PIN, ended or not: a PIN is freed when

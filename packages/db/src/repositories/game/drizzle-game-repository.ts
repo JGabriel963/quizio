@@ -85,7 +85,7 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 			return row ? toGame(row) : null;
 		},
 
-		async listUnendedByQuiz(quizId, modes) {
+		async listUnendedByQuiz(quizId, modes, ownerId) {
 			const rows = await db
 				.select()
 				.from(gameTable)
@@ -94,6 +94,7 @@ export function createDrizzleGameRepository(db: Database): GameRepository {
 						eq(gameTable.quizId, quizId),
 						isNull(gameTable.endedAt),
 						...(modes ? [inArray(gameTable.mode, [...modes])] : []),
+						...(ownerId === undefined ? [] : [eq(gameTable.ownerId, ownerId)]),
 					),
 				)
 				.orderBy(asc(gameTable.createdAt), asc(gameTable.id));

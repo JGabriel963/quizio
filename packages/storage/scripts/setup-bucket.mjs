@@ -1,6 +1,7 @@
 // Idempotently prepares the bucket configured in apps/web/.env: creates it,
 // allows browser uploads from the app origin (CORS) and, where the provider
-// supports bucket policies, makes `media/*` publicly readable.
+// supports bucket policies, makes `media/*` and the groups' files
+// (`groups/*`, spec 036, ADR 0017) publicly readable.
 //
 // Local (RustFS): run after `docker compose up`. Cloudflare R2: bucket and CORS
 // work through this script too; public access must be enabled in the R2
@@ -83,13 +84,16 @@ try {
 						Effect: "Allow",
 						Principal: { AWS: ["*"] },
 						Action: ["s3:GetObject"],
-						Resource: [`arn:aws:s3:::${bucket}/media/*`],
+						Resource: [
+							`arn:aws:s3:::${bucket}/media/*`,
+							`arn:aws:s3:::${bucket}/groups/*`,
+						],
 					},
 				],
 			}),
 		}),
 	);
-	console.log("✓ media/* is publicly readable");
+	console.log("✓ media/* and groups/* are publicly readable");
 } catch (error) {
 	console.warn(
 		`! could not set a public-read policy (${error.name}); enable public access in the provider dashboard`,

@@ -31,6 +31,21 @@ export function isSourceKeyOwnedBy(key: string, ownerId: string): boolean {
 	return isFileDirectlyUnder(key, `${SOURCES_ROOT}/${ownerId}/`);
 }
 
+/** A file posted in a group (spec 036, ADR 0017): it belongs to the group. */
+const GROUPS_ROOT = "groups";
+
+export function groupFileKeyFor(
+	groupId: string,
+	id: string,
+	extension: string,
+): string {
+	return `${GROUPS_ROOT}/${groupId}/${id}.${extension}`;
+}
+
+export function isGroupFileKeyOf(key: string, groupId: string): boolean {
+	return isFileDirectlyUnder(key, `${GROUPS_ROOT}/${groupId}/`);
+}
+
 function isFileDirectlyUnder(key: string, prefix: string): boolean {
 	if (!key.startsWith(prefix)) {
 		return false;

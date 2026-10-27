@@ -1,5 +1,6 @@
 import type { GameMode } from "../../game/domain/game";
 import type { Clock } from "../../shared/application/ports/clock";
+import type { QuizShareGrants } from "../../shared/application/ports/quiz-share-grants";
 import { normalizeSearchText } from "../../shared/domain/search-text";
 import { accuracyPercent } from "../domain/accuracy";
 import {
@@ -13,7 +14,8 @@ import {
 	assignmentPartOf,
 	coverUrlOf,
 	type ImageUrlResolver,
-	quizLinksOf,
+	NO_QUIZ_LINKS,
+	quizLinksFor,
 } from "./report-view";
 
 /** One line of the reports' list (spec 015, RN-24). */
@@ -38,6 +40,8 @@ export interface ReportListItem {
 	/** Null when the quiz cannot be opened (RN-05). */
 	quizId: string | null;
 	canPlayAgain: boolean;
+	/** Spec 037, RN-24. */
+	playQuizId: string | null;
 }
 
 export interface ListReportsInput {
@@ -60,6 +64,8 @@ export function createListReports(deps: {
 	reportGames: ReportGameQuery;
 	storage: ImageUrlResolver;
 	clock: Clock;
+	/** Quizzes of others the reader plays again (spec 037); none when absent. */
+	quizShareGrants?: QuizShareGrants;
 }): ListReports {
 	return async ({ ownerId, section, search, limit }) => {
 		const now = deps.clock.now();
@@ -85,9 +91,13 @@ export function createListReports(deps: {
 			]),
 		);
 
+		const links = await Promise.all(
+			page.map((header) => quizLinksFor(deps.quizShareGrants, header, ownerId)),
+		);
+
 		return {
 			total: matching.length,
-			items: page.map((header) => {
+			items: page.map((header, index) => {
 				const tally = tallies.get(header.gameId);
 				const firstQuestions = tally?.participantFirstQuestions ?? [];
 				const assignment = assignmentPartOf(header, now);
@@ -112,7 +122,7 @@ export function createListReports(deps: {
 					endedEarly: endedEarly(header),
 					endedAt: header.endedAt,
 					trashedAt: header.trashedAt,
-					...quizLinksOf(header),
+					...(links[index] ?? NO_QUIZ_LINKS),
 				};
 			}),
 		};

@@ -61,6 +61,7 @@ Regras:
 | **Library** | `core/src/library` | Consultas da biblioteca (seções, pesquisa); depois pastas, favoritos, compartilhamento, descoberta | Biblioteca |
 | **Reports** | `core/src/reports` | Resultados consolidados por partida/jogador/pergunta | Relatórios |
 | **Media** | `core/src/media` | Política de mídia, upload direto ao storage | Imagens/fundos |
+| **Groups** | `core/src/groups` | Grupos, membros e papéis (administrador e membro), convite por link; nomes e e-mails lidos das contas por uma porta de leitura ([ADR 0015](adr/0015-grupos-e-convite-por-codigo.md)) | Grupos |
 | **Identity** | `core/src/identity` (só regras) + Better Auth | Contas e sessões ficam no Better Auth; o core define apenas regras de cadastro (nome, senha, e-mail) e recebe `ownerId` nos demais contextos | Conta |
 
 Contextos se comunicam por **IDs** e por **casos de uso**, nunca importando o comportamento uns dos outros. Ex.: o Game recebe um *snapshot* do quiz no início da partida (a partida não muda se o quiz for editado depois — igual ao Kahoot).

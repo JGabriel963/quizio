@@ -268,6 +268,7 @@ describe("copyQuiz", () => {
 	it("creates a draft copy with the duplicate title and new identity and timestamps", () => {
 		const copy = copyQuiz(aQuiz(), {
 			id: "quiz-2",
+			ownerId: "user-1",
 			coverImageKey: "media/user-1/copy.png",
 			now: twoDaysLater,
 		});
@@ -298,6 +299,7 @@ describe("copyQuiz", () => {
 		expect(
 			copyQuiz(source, {
 				id: "quiz-2",
+				ownerId: "user-1",
 				coverImageKey: null,
 				now: twoDaysLater,
 			}),
@@ -313,10 +315,26 @@ describe("copyQuiz", () => {
 		expect(() =>
 			copyQuiz(trashQuiz(aQuiz(), oneDayLater), {
 				id: "quiz-2",
+				ownerId: "user-1",
 				coverImageKey: null,
 				now: twoDaysLater,
 			}),
 		).toThrow(QuizInTrashError);
+	});
+
+	it("copyQuiz gives the copy the new owner (spec 037, RN-21)", () => {
+		const copy = copyQuiz(publishQuiz(aQuiz(), oneDayLater), {
+			id: "quiz-2",
+			ownerId: "carla",
+			coverImageKey: null,
+			now: twoDaysLater,
+		});
+
+		expect(copy).toMatchObject({
+			ownerId: "carla",
+			title: "Bom de Bíblia (cópia)",
+			status: "draft",
+		});
 	});
 });
 

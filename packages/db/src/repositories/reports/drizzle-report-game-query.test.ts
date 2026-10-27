@@ -137,7 +137,12 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 			ownerId: "user-1",
 			name: "Bom de Bíblia (Junho)",
 			quizId: "quiz-1",
-			quiz: { trashed: false, playable: true, coverImageKey: null },
+			quiz: {
+				ownerId: "user-1",
+				trashed: false,
+				playable: true,
+				coverImageKey: null,
+			},
 			questionCount: 3,
 			status: "finished",
 			stoppedAt: null,
@@ -295,6 +300,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 			aPublishedQuiz({ id: "quiz-1", coverImageKey: "covers/a.png" }),
 		);
 		expect(await quizOf()).toEqual({
+			ownerId: "user-1",
 			trashed: false,
 			playable: true,
 			coverImageKey: "covers/a.png",

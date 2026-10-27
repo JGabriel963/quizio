@@ -24,6 +24,11 @@ export interface PresignedUploadRequest {
 	contentType: string;
 	contentLength: number;
 	expiresInSeconds: number;
+	/**
+	 * Signed with the upload, so the browser must send the same header; the
+	 * object is served with it (spec 036: a PDF keeps its name, ADR 0017).
+	 */
+	contentDisposition?: string;
 }
 
 export interface PresignedUpload {

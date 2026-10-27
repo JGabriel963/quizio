@@ -116,6 +116,16 @@ export const quizRouter = router({
 			}),
 		),
 
+	/** "Duplicar" of a quiz a group shares with the caller (spec 037, RN-21). */
+	duplicateShared: protectedProcedure
+		.input(quizReference)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.duplicateSharedQuiz({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
 	moveToTrash: protectedProcedure
 		.input(quizReference)
 		.mutation(({ ctx, input }) =>

@@ -62,20 +62,35 @@ export function createS3ObjectStorage(
 			contentType,
 			contentLength,
 			expiresInSeconds,
+			contentDisposition,
 		}) {
 			const command = new PutObjectCommand({
 				Bucket: config.bucket,
 				Key: key,
 				ContentType: contentType,
 				ContentLength: contentLength,
+				ContentDisposition: contentDisposition,
 			});
 			const url = await getSignedUrl(client, command, {
 				expiresIn: expiresInSeconds,
 				// Signing content-length makes the provider reject bodies of any other size.
-				signableHeaders: new Set(["content-type", "content-length"]),
+				signableHeaders: new Set([
+					"content-type",
+					"content-length",
+					...(contentDisposition ? ["content-disposition"] : []),
+				]),
 			});
 			// content-length is a forbidden header in browsers; they send it automatically.
-			return { url, method: "PUT", headers: { "content-type": contentType } };
+			return {
+				url,
+				method: "PUT",
+				headers: {
+					"content-type": contentType,
+					...(contentDisposition && {
+						"content-disposition": contentDisposition,
+					}),
+				},
+			};
 		},
 
 		getPublicUrl(key) {

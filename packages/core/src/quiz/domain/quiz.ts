@@ -212,12 +212,18 @@ export function assertPermanentlyDeletable(quiz: Quiz): void {
 
 export function copyQuiz(
 	source: Quiz,
-	copy: { id: string; coverImageKey: string | null; now: Date },
+	copy: {
+		id: string;
+		ownerId: string;
+		coverImageKey: string | null;
+		now: Date;
+	},
 ): Quiz {
 	assertQuizEditable(source);
 	return newQuiz({
 		id: copy.id,
-		ownerId: source.ownerId,
+		// The owner's own copy, or a group member's (spec 037, RN-21).
+		ownerId: copy.ownerId,
 		details: {
 			title: duplicateQuizTitle(source.title),
 			description: source.description,

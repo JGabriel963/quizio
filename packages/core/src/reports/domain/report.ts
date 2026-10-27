@@ -27,6 +27,8 @@ export interface ReportHeader {
 	quizId: string;
 	/** Null once the quiz was deleted for good (RN-05). */
 	quiz: {
+		/** Its owner, who may be somebody else than the game's (spec 037). */
+		ownerId: string;
 		trashed: boolean;
 		/** It has a playable version. */
 		playable: boolean;

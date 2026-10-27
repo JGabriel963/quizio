@@ -122,6 +122,49 @@ describe("hostGame (spec 008)", () => {
 		});
 	});
 
+	it("a member with a grant hosts somebody else's quiz as their own game (spec 037, RN-19)", async () => {
+		const deps = createGameDeps();
+		deps.quizShareGrants.grant("carla", "quiz-1");
+
+		const { gameId } = await createHostGame(deps)({
+			ownerId: "carla",
+			quizId: "quiz-1",
+		});
+
+		expect(await deps.games.findById(gameId)).toMatchObject({
+			ownerId: "carla",
+			quizId: "quiz-1",
+			status: "lobby",
+		});
+	});
+
+	it("hosting ends only the open live game of the same host (spec 037, RN-19)", async () => {
+		const deps = createGameDeps({ pins: ["265914", "569177", "111111"] });
+		deps.quizShareGrants.grant("carla", "quiz-1");
+		const hostGame = createHostGame(deps);
+		const owners = await hostGame(host);
+
+		const carlas = await hostGame({ ownerId: "carla", quizId: "quiz-1" });
+		await hostGame({ ownerId: "carla", quizId: "quiz-1" });
+
+		expect(await deps.games.findById(owners.gameId)).toMatchObject({
+			status: "lobby",
+		});
+		expect(await deps.games.findById(carlas.gameId)).toMatchObject({
+			status: "ended",
+			endReason: "replaced",
+		});
+	});
+
+	it("refuses another's quiz without a grant with GAME.QUIZ_NOT_FOUND (spec 037)", async () => {
+		const deps = createGameDeps();
+		deps.quizShareGrants.grant("carla", "quiz-2");
+
+		await expect(
+			createHostGame(deps)({ ownerId: "carla", quizId: "quiz-1" }),
+		).rejects.toThrow(GameQuizNotFoundError);
+	});
+
 	it("games of different quizzes stay open side by side", async () => {
 		const deps = createGameDeps({
 			quizzes: [aPlayableQuiz(), aPlayableQuiz({ id: "quiz-2" })],

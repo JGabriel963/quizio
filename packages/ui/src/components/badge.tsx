@@ -30,6 +30,8 @@ const badgeVariants = cva(
 				unsaved: "bg-brand/10 text-brand",
 				// Made with the creation assistant (spec 027), like Kahoot's "Kahoot! AI".
 				ai: "border-brand/30 bg-card text-brand",
+				// A role beside a name, as "Administrador" in a group (spec 034).
+				role: "bg-muted font-medium text-foreground/80",
 			},
 		},
 		defaultVariants: {

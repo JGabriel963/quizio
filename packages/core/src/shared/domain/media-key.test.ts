@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	groupFileKeyFor,
+	isGroupFileKeyOf,
 	isMediaKeyOwnedBy,
 	isSourceKeyOwnedBy,
 	mediaKeyExtension,
@@ -57,5 +59,19 @@ describe("source keys", () => {
 		expect(isMediaKeyOwnedBy(sourceKeyFor("user-1", "abc"), "user-1")).toBe(
 			false,
 		);
+	});
+
+	it("groupFileKeyFor and isGroupFileKeyOf: a single file under groups/{groupId}/", () => {
+		const key = groupFileKeyFor("group-1", "abc", "pdf");
+		expect(key).toBe("groups/group-1/abc.pdf");
+		expect(isGroupFileKeyOf(key, "group-1")).toBe(true);
+		for (const other of [
+			"groups/group-10/abc.pdf",
+			"groups/group-1/nested/abc.pdf",
+			"groups/group-1/",
+			"media/group-1/abc.pdf",
+		]) {
+			expect(isGroupFileKeyOf(other, "group-1")).toBe(false);
+		}
 	});
 });

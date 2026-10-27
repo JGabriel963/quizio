@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
+import { InMemoryQuizShareGrants } from "../../shared/testing/in-memory-quiz-share-grants";
 import { type AnswerSpec, aReportGame } from "../testing/a-report-game";
 import { InMemoryReportStore } from "../testing/in-memory-report-store";
 import { createListReports } from "./list-reports";
@@ -12,14 +13,16 @@ const day = (n: number) =>
 function setup(...games: ReturnType<typeof aReportGame>[]) {
 	const reportGames = new InMemoryReportStore(games);
 	const storage = new InMemoryObjectStorage();
+	const quizShareGrants = new InMemoryQuizShareGrants();
 	const listReports = createListReports({
 		reportGames,
 		storage,
 		clock: new FixedClock("2026-06-20T12:00:00.000Z"),
+		quizShareGrants,
 	});
 	const list = (input: Partial<Parameters<typeof listReports>[0]> = {}) =>
 		listReports({ ownerId: "user-1", section: "reports", limit: 20, ...input });
-	return { reportGames, storage, list };
+	return { reportGames, storage, list, quizShareGrants };
 }
 
 const named = (
@@ -66,6 +69,7 @@ describe("listReports (spec 015)", () => {
 					trashedAt: null,
 					quizId: "quiz-1",
 					canPlayAgain: true,
+					playQuizId: "quiz-1",
 				},
 			],
 		});
@@ -214,7 +218,12 @@ describe("listReports (spec 015)", () => {
 	});
 
 	it("play again needs a quiz out of the trash with a playable version", async () => {
-		const quiz = { trashed: false, playable: true, coverImageKey: null };
+		const quiz = {
+			ownerId: "user-1",
+			trashed: false,
+			playable: true,
+			coverImageKey: null,
+		};
 		const { list } = setup(
 			named("game-1", "A", { endedAt: day(14), quiz }),
 			named("game-2", "B", {
@@ -241,11 +250,43 @@ describe("listReports (spec 015)", () => {
 		]);
 	});
 
+	it("playQuizId follows the same rule in the list (spec 037, RN-24)", async () => {
+		const quiz = {
+			ownerId: "ana",
+			trashed: false,
+			playable: true,
+			coverImageKey: null,
+		};
+		const { list, quizShareGrants } = setup(
+			named("game-1", "A", { endedAt: day(14), quiz }),
+			named("game-2", "B", {
+				endedAt: day(13),
+				quiz: { ...quiz, ownerId: "user-1" },
+			}),
+		);
+		quizShareGrants.grant("user-1", "quiz-1");
+
+		expect(
+			(await list()).items.map(({ quizId, playQuizId }) => ({
+				quizId,
+				playQuizId,
+			})),
+		).toEqual([
+			{ quizId: null, playQuizId: "quiz-1" },
+			{ quizId: "quiz-1", playQuizId: "quiz-1" },
+		]);
+	});
+
 	it("the cover is the quiz's while it exists", async () => {
 		const { list, storage } = setup(
 			named("game-1", "A", {
 				endedAt: day(14),
-				quiz: { trashed: false, playable: true, coverImageKey: "covers/a.png" },
+				quiz: {
+					ownerId: "user-1",
+					trashed: false,
+					playable: true,
+					coverImageKey: "covers/a.png",
+				},
 			}),
 			named("game-2", "B", { endedAt: day(13), quiz: null }),
 		);

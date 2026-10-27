@@ -10,6 +10,8 @@ export interface LibraryQuizRecord {
 	id: string;
 	ownerId: string;
 	title: string | null;
+	/** The quiz's description, "" without one (spec 038, RN-04). */
+	description: string;
 	/** Normalized display title, see `normalizeSearchText`. */
 	searchTitle: string;
 	coverImageKey: string | null;

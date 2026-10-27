@@ -89,3 +89,23 @@ export type AssignmentScoreboardData = Extract<
 	AssignmentPlayScreenData,
 	{ phase: "scoreboard" }
 >["scoreboard"];
+
+/** Groups (spec 034): the lists, a group's page, its members and the invite screen. */
+export type GroupListItemData = RouterOutputs["group"]["list"]["items"][number];
+export type RecentGroupData = RouterOutputs["group"]["recent"]["items"][number];
+export type GroupViewData = RouterOutputs["group"]["get"];
+export type GroupMemberData =
+	RouterOutputs["group"]["members"]["items"][number];
+export type GroupInvitationData = RouterOutputs["group"]["invite"]["find"];
+/** "Configurações do grupo" (spec 035). */
+export type GroupSettingsData = RouterOutputs["group"]["settings"]["get"];
+/** The group's feed and Atribuições tab (spec 038). */
+export type GroupPostData = RouterOutputs["group"]["feed"]["posts"][number];
+export type GroupAssignmentData =
+	RouterOutputs["group"]["assignments"]["items"][number];
+export type AssignableGroupData =
+	RouterOutputs["group"]["assignableGroups"]["groups"][number];
+/** A shared quiz's card, row and page (spec 037). */
+export type SharedQuizCardData =
+	RouterOutputs["group"]["shared"]["list"]["items"][number];
+export type SharedQuizPageData = RouterOutputs["group"]["shared"]["get"];

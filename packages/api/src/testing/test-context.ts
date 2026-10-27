@@ -10,6 +10,8 @@ import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-pl
 import { InMemoryReviewResultsWriter } from "@quizio/core/game/testing/in-memory-review-results-writer";
 import { SequentialAssignmentPinGenerator } from "@quizio/core/game/testing/sequential-assignment-pin-generator";
 import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
+import { InMemoryGroupStore } from "@quizio/core/groups/testing/in-memory-group-store";
+import { SequentialInviteCodeGenerator } from "@quizio/core/groups/testing/sequential-invite-code-generator";
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
 import { InMemorySourceUploadRepository } from "@quizio/core/media/testing/in-memory-source-upload-repository";
@@ -29,11 +31,14 @@ import { InMemoryAttemptLimiter } from "@quizio/core/shared/testing/in-memory-at
 import { InMemoryObjectStorage } from "@quizio/core/shared/testing/in-memory-object-storage";
 import { InMemoryRealtimePublisher } from "@quizio/core/shared/testing/in-memory-realtime-publisher";
 import { SequentialIdGenerator } from "@quizio/core/shared/testing/sequential-id-generator";
-
 import { type Adapters, createContainer } from "../container";
 import type { Context } from "../context";
 import { createCallerFactory } from "../index";
 import { appRouter } from "../routers/index";
+import {
+	testQuizShareGrants,
+	testSharedQuizReads,
+} from "./test-shared-quiz-reads";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -61,6 +66,8 @@ export interface TestApi {
 	sourceUploads: InMemorySourceUploadRepository;
 	/** Reads the games above; the reports' and creators' names are set here. */
 	assignmentLanding: InMemoryAssignmentLandingQuery;
+	/** Every groups port; add the accounts the screens name with `addUser`. */
+	groups: InMemoryGroupStore;
 }
 
 function toLibraryRecord(
@@ -68,7 +75,7 @@ function toLibraryRecord(
 	questions: InMemoryQuestionRepository,
 ): LibraryQuizRecord {
 	const {
-		description: _description,
+		description,
 		createdAt: _createdAt,
 		publishedVersion: _publishedVersion,
 		publishedAt: _publishedAt,
@@ -76,6 +83,7 @@ function toLibraryRecord(
 	} = quiz;
 	return {
 		...record,
+		description: description ?? "",
 		searchTitle: quizSearchText(quiz.title),
 		questionCount: questions.listOf(quiz.id).length,
 	};
@@ -96,6 +104,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const generator = new InMemoryQuestionGenerator();
 	const sourceUploads = new InMemorySourceUploadRepository();
 	const assignmentLanding = new InMemoryAssignmentLandingQuery(games, players);
+	const groups = new InMemoryGroupStore();
 	const adapters: Adapters = {
 		storage,
 		realtime,
@@ -143,6 +152,55 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		assistantPreferences: new InMemoryAssistantPreferencesRepository(),
 		sourceUploads,
 		assistantSettings: { generationsPerDay: 20 },
+		groups,
+		groupMembers: groups,
+		groupVisits: groups,
+		groupReads: groups,
+		inviteCodes: new SequentialInviteCodeGenerator(),
+		groupPosts: groups,
+		groupFeed: groups,
+		groupUploads: groups,
+		// Reads the games above, as the database adapter reads its tables.
+		groupAssignmentQuery: {
+			findAssignments: async (gameIds) => {
+				const records = await Promise.all(
+					gameIds.map(async (gameId) => {
+						const game = await games.findById(gameId);
+						if (game?.mode !== "assignment") {
+							return [];
+						}
+						const quiz = await quizzes.findById(game.quizId);
+						return [
+							{
+								gameId: game.id,
+								ownerId: game.ownerId,
+								ownerName: groups.userName(game.ownerId),
+								name: game.title,
+								questionCount: game.questionCount,
+								coverImageKey: quiz?.coverImageKey ?? null,
+								expiresAt: game.expiresAt,
+								endedAt: game.endedAt,
+							},
+						];
+					}),
+				);
+				return records.flat();
+			},
+		},
+		groupSharedQuizzes: groups,
+		sharedQuizReads: testSharedQuizReads({ quizzes, versions, groups, games }),
+		quizShareGrants: testQuizShareGrants(groups),
+		// A group's admin reads the reports of the assignments posted there.
+		reportReadGrants: {
+			canRead: async (viewerId, gameId) => {
+				const administered = (await groups.listForUser(viewerId))
+					.filter((group) => group.role === "admin")
+					.map((group) => group.id);
+				return (
+					(await groups.groupsWithAssignment(gameId, administered)).length > 0
+				);
+			},
+		},
 		...overrides,
 	};
 	const container = createContainer(adapters);
@@ -170,5 +228,6 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		generator,
 		sourceUploads,
 		assignmentLanding,
+		groups,
 	};
 }

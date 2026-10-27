@@ -16,7 +16,7 @@ const assignment = {
 	participantCount: 0,
 };
 
-async function renderDialog() {
+async function renderDialog(onAssignToGroups?: () => void) {
 	const user = userEvent.setup();
 	const onOpenChange = vi.fn();
 	renderWithRouter(
@@ -25,6 +25,7 @@ async function renderDialog() {
 			onOpenChange={onOpenChange}
 			origin="https://quizio.app"
 			assignment={assignment}
+			onAssignToGroups={onAssignToGroups}
 		/>,
 	);
 	const dialog = await screen.findByRole("dialog", {
@@ -131,21 +132,36 @@ describe("ShareAssignmentDialog (spec 029, RN-21 to RN-25)", () => {
 		);
 	});
 
-	it("Adicionar participantes lists groups and e-mail as Em breve, without upgrade", async () => {
+	it("Atribuir a grupos is active for the creator; Atribuir por e-mail stays Em breve, without upgrade (spec 038, RN-25)", async () => {
+		const onAssignToGroups = vi.fn();
+		const { user, dialog } = await renderDialog(onAssignToGroups);
+
+		await user.click(
+			within(dialog).getByRole("button", { name: "Adicionar participantes" }),
+		);
+
+		const email = await screen.findByRole("menuitem", {
+			name: /Atribuir por e-mail/,
+		});
+		expect(email).toHaveAttribute("aria-disabled", "true");
+		expect(email).toHaveTextContent("Em breve");
+		expect(screen.queryByText(/upgrade|premium/i)).toBeNull();
+		const groups = screen.getByRole("menuitem", { name: "Atribuir a grupos" });
+		expect(groups).not.toHaveAttribute("aria-disabled");
+		await user.click(groups);
+		expect(onAssignToGroups).toHaveBeenCalled();
+	});
+
+	it("without the action, Atribuir a grupos is not offered", async () => {
 		const { user, dialog } = await renderDialog();
 
 		await user.click(
 			within(dialog).getByRole("button", { name: "Adicionar participantes" }),
 		);
 
-		const groups = await screen.findByRole("menuitem", {
-			name: /Atribuir a grupos/,
-		});
-		const email = screen.getByRole("menuitem", { name: /Atribuir por e-mail/ });
-		for (const item of [groups, email]) {
-			expect(item).toHaveAttribute("aria-disabled", "true");
-			expect(item).toHaveTextContent("Em breve");
-		}
-		expect(screen.queryByText(/upgrade|premium/i)).toBeNull();
+		await screen.findByRole("menuitem", { name: /Atribuir por e-mail/ });
+		expect(
+			screen.queryByRole("menuitem", { name: /Atribuir a grupos/ }),
+		).toBeNull();
 	});
 });

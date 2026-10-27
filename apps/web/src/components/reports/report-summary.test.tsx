@@ -27,6 +27,8 @@ const header = (
 	participantCount: 25,
 	quizId: "quiz-1",
 	canPlayAgain: true,
+	playQuizId: "quiz-1",
+	readOnly: false,
 	...overrides,
 });
 
@@ -333,6 +335,36 @@ describe("ReportSummary of an assignment (spec 029, RN-32 to RN-35)", () => {
 		expect(
 			screen.getByRole("heading", { name: "Não concluiu (0)" }),
 		).toBeInTheDocument();
+	});
+
+	it("read-only hides share, change deadline and end (spec 038, RN-20a)", async () => {
+		renderSummary({
+			header: {
+				mode: "assignment",
+				endedAt: null,
+				participantCount: 0,
+				readOnly: true,
+				quizId: null,
+				canPlayAgain: false,
+				assignment: {
+					open: true,
+					deadline,
+					remainingMs: 1000,
+					pin: "04352236",
+				},
+			},
+			summary: empty,
+		});
+
+		expect(
+			await screen.findByRole("heading", { name: "Perguntas difíceis (0)" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", { name: "Convidar participantes" }),
+		).toBeNull();
+		expect(screen.queryByRole("button", { name: "Alterar prazo" })).toBeNull();
+		expect(screen.queryByRole("button", { name: /Encerrar/ })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Jogar de novo" })).toBeNull();
 	});
 
 	it("an ended assignment has no invite or control cards", async () => {

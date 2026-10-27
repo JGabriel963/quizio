@@ -17,6 +17,7 @@ type MainNavItem = {
 	| { to: "/"; search?: undefined }
 	| { to: "/library"; search: { section: "recent" } }
 	| { to: "/reports"; search: { section: "reports" } }
+	| { to: "/groups"; search: { section: "managed" } }
 	| { to?: undefined; comingSoon: true }
 );
 
@@ -39,7 +40,12 @@ export const MAIN_NAV_ITEMS: readonly MainNavItem[] = [
 		search: { section: "reports" },
 	},
 	{ label: "Descobrir", icon: CompassIcon, comingSoon: true },
-	{ label: "Grupos", icon: UsersIcon, comingSoon: true },
+	{
+		label: "Grupos",
+		icon: UsersIcon,
+		to: "/groups",
+		search: { section: "managed" },
+	},
 ];
 
 /**
@@ -56,6 +62,10 @@ export function activeMainNavLabel(pathname: string): string | null {
 	// The list and an open report (spec 015, RN-22).
 	if (pathname.startsWith("/reports")) {
 		return "Relatórios";
+	}
+	// The lists, a group and its members (spec 034, RN-06).
+	if (pathname.startsWith("/groups")) {
+		return "Grupos";
 	}
 	return null;
 }

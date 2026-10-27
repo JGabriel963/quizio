@@ -1,5 +1,6 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
+import type { QuizShareGrants } from "../../shared/application/ports/quiz-share-grants";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
 import {
 	GameQuizNotFoundError,
@@ -26,6 +27,7 @@ const PIN_DRAWS = 5;
 /** "Organizar ao vivo": opens the lobby of a new game (spec 008, RN-01 to RN-09). */
 export function createHostGame(deps: {
 	playableQuizzes: PlayableQuizQuery;
+	quizShareGrants: QuizShareGrants;
 	games: GameRepository;
 	preferences: Pick<HostPreferencesRepository, "find">;
 	pins: GamePinGenerator;
@@ -37,7 +39,14 @@ export function createHostGame(deps: {
 
 	return async ({ ownerId, quizId }) => {
 		const quiz = await deps.playableQuizzes.find(quizId);
-		if (!quiz || quiz.ownerId !== ownerId) {
+		// Somebody else's quiz is theirs to use when a group shares it with
+		// them (spec 037, RN-19, RN-20); otherwise it is as missing as one
+		// that is not there.
+		if (
+			!quiz ||
+			(quiz.ownerId !== ownerId &&
+				!(await deps.quizShareGrants.canUse(ownerId, quiz.id)))
+		) {
 			throw new GameQuizNotFoundError("Quiz not found");
 		}
 		if (quiz.trashed || quiz.version === null) {
@@ -46,12 +55,14 @@ export function createHostGame(deps: {
 			);
 		}
 
-		// A quiz has one open live game: the new one replaces it (RN-07). Its
-		// assignments stay open (spec 029, RN-05).
+		// A host has one open live game of a quiz: the new one replaces it
+		// (RN-07); other hosts' games and the assignments stay open (spec 029,
+		// RN-05; spec 037, RN-19).
 		await endGamesOfQuiz({
 			quizId: quiz.id,
 			reason: "replaced",
 			modes: ["live"],
+			ownerId,
 		});
 
 		// The game starts as the host left the settings last time (spec 012, RN-05).
@@ -84,6 +95,7 @@ export function createHostGame(deps: {
 				quizId: quiz.id,
 				reason: "replaced",
 				modes: ["live"],
+				ownerId,
 			});
 		}
 		throw new Error("Could not draw a free game PIN");

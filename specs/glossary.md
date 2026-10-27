@@ -170,6 +170,38 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Pontuações (atribuição) | `assignmentScoreboard` | Classificação dos participantes da atribuição pelo total atual de cada um: os cinco primeiros e a linha de quem vê (spec 030) | ✅ |
 | Tela da atividade | `AssignmentLanding` | O que o participante vê ao abrir o link ou digitar o PIN: de quem é, até quando fica aberta, quantos participantes; ou "Esta atividade foi encerrada" (spec 029) | ✅ |
 
+## Grupos (groups)
+
+| PT | EN (código) | Definição | Status |
+| --- | --- | --- | --- |
+| Grupo | `Group` | Espaço de um administrador e seus membros para reunir publicações, quizzes compartilhados e atividades; visível só para os membros; nome de 1 a 20 caracteres (spec 034) | ✅ |
+| Papel no grupo | `GroupRole` | `admin` (o criador, único por grupo) ou `member` (quem entrou pelo convite) (spec 034) | ✅ |
+| Membro do grupo | `GroupMember` | Usuário com conta que pertence ao grupo; o administrador também conta como membro (spec 034) | ✅ |
+| Link de convite | `Group.inviteCode` / `groupInviteLink` | Link com um código secreto, um válido por grupo, sem prazo e para quantas pessoas o abrirem; só o administrador o vê (spec 034) | ✅ |
+| Redefinir link | `resetGroupInvite` | Troca o código do convite: o link anterior deixa de funcionar e quem já entrou continua (spec 034) | ✅ |
+| Aceitar convite | `acceptGroupInvite` | Torna membro quem abriu um link válido com sessão; repetir não duplica (spec 034) | ✅ |
+| Remover membro | `removeGroupMember` | O administrador tira um membro do grupo; não bloqueia a volta pelo link (spec 034) | ✅ |
+| Sair do grupo | `leaveGroup` | O membro deixa o grupo; o administrador não pode (spec 034) | ✅ |
+| Excluir grupo | `deleteGroup` | Exclusão definitiva do grupo para todos, só pelo administrador (spec 034) | ✅ |
+| Grupos recentes | `listRecentGroups` / `group_visit` | Os 5 grupos que o usuário abriu por último (spec 034) | ✅ |
+| Configurar seu grupo | `GroupSetup` / `groupSetupOf` | Cartão do administrador com os passos Convidar membros, Atribuir e Criar publicação; some com "Pular configuração" (spec 034) | ✅ |
+| Configurações do grupo | `GroupSettings` | Tela do administrador para mudar o nome, a descrição e as permissões dos membros (spec 035) | ✅ |
+| Descrição do grupo | `Group.description` | Texto opcional de até 500 caracteres, mostrado em "Informações do grupo" (spec 035) | ✅ |
+| Permissões dos membros | `GroupPermissions` (`membersCanInvite`, `membersCanSeeMembers`, `membersCanShare`, `membersCanAssign`) | As quatro chaves do grupo; valem só para os membros; padrão do Kahoot: as três primeiras ligadas e criar atividades desligada (spec 035) | ✅ |
+| Mural | `GroupFeed` | A aba Atividade do grupo: as publicações, das mais novas para as mais antigas (spec 038; publicações de texto na 036) | ✅ |
+| Publicação | `GroupPost` | Item do mural, de quem o fez; na spec 038, uma atribuição feita no grupo, com uma mensagem opcional de até 500 caracteres; perde o anexo quando a atribuição acaba ("compartilhou um arquivo") | ✅ |
+| Curtida | `GroupPostLike` | Uma por membro e publicação; "Curtir" / "Curtida" (spec 038) | ✅ |
+| Atribuição do grupo | `GroupAssignment` | Uma atribuição (spec 029) publicada num grupo, no máximo uma vez por grupo; aparece no mural e na aba Atribuições enquanto está aberta (spec 038) | ✅ |
+| Atribuir a grupos | `assignToGroups` | Publicar uma atribuição já criada em um ou mais grupos onde a pessoa pode atribuir, pelo diálogo de compartilhar (spec 038) | ✅ |
+| Criar publicação | `createGroupPost` | O diálogo de publicar no mural: texto de até 500 caracteres e no máximo um anexo; aberto por "Publicar algo" e pelos botões "Criar publicação" (spec 036) | ✅ |
+| Anexo da publicação | `GroupPostAttachment` | O único anexo de uma publicação: imagem (até 10 MB), PDF (até 20 MB) ou atividade atribuída; apagado com a publicação (spec 036) | ✅ |
+| Excluir publicação | `deleteGroupPost` | Tira a publicação, com as curtidas, do mural e da aba; a atribuição continua; de quem atribuiu e do administrador (spec 038) | ✅ |
+| Compartilhar com o grupo | `shareQuizzesInGroup` | Pôr um ou vários quizzes jogáveis da própria pessoa no grupo, cada um uma vez por grupo, sempre com uma publicação ("compartilhou um kahoot" ou "compartilhou múltiplos kahoots"); do administrador, e dos membros com a chave (spec 037) | ✅ |
+| Quiz compartilhado | `SharedQuiz` | Um quiz no grupo, na aba Compartilhado; acompanha a última versão salva pelo dono; os membros veem, jogam, atribuem e duplicam, sem editar (spec 037) | ✅ |
+| Remover do grupo | `unshareQuiz` | Tirar um quiz compartilhado da aba; a publicação "compartilhou um kahoot" fica sem o anexo; de quem compartilhou e do administrador (spec 037) | ✅ |
+| Duplique para editar | `duplicateSharedQuiz` | O Editar de um quiz compartilhado: o membro não edita o original, duplica para a própria biblioteca (spec 037) | ✅ |
+| Relatório somente para leitura | `ReportView.readOnly` | O administrador do grupo vê o relatório de uma atribuição publicada ali por outra pessoa, sem nenhuma ação (spec 038) | ✅ |
+
 ## Library, Reports, Media
 
 | PT | EN (código) | Definição | Status |

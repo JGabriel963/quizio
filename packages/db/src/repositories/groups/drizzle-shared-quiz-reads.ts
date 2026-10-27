@@ -1,0 +1,197 @@
+import type {
+	SharedQuizCard,
+	SharedQuizReads,
+} from "@quizio/core/groups/application/ports/shared-quiz-reads";
+import type { SharedQuizSort } from "@quizio/core/groups/domain/shared-quiz";
+import { UNTITLED_QUIZ_TITLE } from "@quizio/core/quiz/domain/quiz-details";
+import { parseVersionQuestions } from "@quizio/core/quiz/domain/quiz-version";
+import {
+	and,
+	asc,
+	count,
+	countDistinct,
+	desc,
+	eq,
+	inArray,
+	isNotNull,
+	isNull,
+	ne,
+	type SQL,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+
+import { user } from "../../schema/auth";
+import { gamePlayer, game as gameTable } from "../../schema/game";
+import { groupSharedQuiz } from "../../schema/groups";
+import { quiz as quizTable, quizVersion } from "../../schema/quiz";
+import type { Database } from "../../types";
+
+/** A quiz the group can see: it has a playable version and is out of the trash (RN-23). */
+const alive = and(
+	eq(quizTable.status, "published"),
+	isNotNull(quizTable.publishedVersion),
+	isNull(quizTable.trashedAt),
+);
+
+/**
+ * The groups' reading of shared quizzes (spec 037; ADR 0018): the quiz, its
+ * playable version in force, the owner's name and the games started with it.
+ */
+export function createDrizzleSharedQuizReads(db: Database): SharedQuizReads {
+	const owner = alias(user, "owner");
+
+	async function cards(where: SQL | undefined, orderBy: SQL[], limit?: number) {
+		const query = db
+			.select({
+				sharedQuizId: groupSharedQuiz.id,
+				quizId: quizTable.id,
+				title: quizTable.title,
+				searchTitle: quizTable.searchTitle,
+				coverImageKey: quizTable.coverImageKey,
+				visibility: quizTable.visibility,
+				ownerId: quizTable.ownerId,
+				ownerName: owner.name,
+				sharedById: groupSharedQuiz.sharedById,
+				sharedAt: groupSharedQuiz.sharedAt,
+				questions: quizVersion.questions,
+			})
+			.from(groupSharedQuiz)
+			.innerJoin(quizTable, eq(quizTable.id, groupSharedQuiz.quizId))
+			.innerJoin(owner, eq(owner.id, quizTable.ownerId))
+			.innerJoin(
+				quizVersion,
+				and(
+					eq(quizVersion.quizId, quizTable.id),
+					eq(quizVersion.number, quizTable.publishedVersion),
+				),
+			)
+			.where(and(alive, where))
+			.orderBy(...orderBy);
+		const rows = await (limit === undefined ? query : query.limit(limit));
+		const games = await gameCounts(rows.map((row) => row.quizId));
+		return rows.map(
+			({
+				questions,
+				searchTitle: _,
+				...row
+			}): SharedQuizCard & {
+				questionsJson: unknown;
+			} => ({
+				...row,
+				title: row.title ?? UNTITLED_QUIZ_TITLE,
+				questionCount: parseVersionQuestions(questions).length,
+				games: games.get(row.quizId)?.games ?? 0,
+				questionsJson: questions,
+			}),
+		);
+	}
+
+	/** Games that started (a lobby is not one), of any host, and their players. */
+	async function gameCounts(quizIds: readonly string[]) {
+		const totals = new Map<string, { games: number; participants: number }>();
+		if (quizIds.length === 0) {
+			return totals;
+		}
+		const started = and(
+			inArray(gameTable.quizId, [...new Set(quizIds)]),
+			ne(gameTable.status, "lobby"),
+		);
+		const games = await db
+			.select({ quizId: gameTable.quizId, games: count() })
+			.from(gameTable)
+			.where(started)
+			.groupBy(gameTable.quizId);
+		const players = await db
+			.select({
+				quizId: gameTable.quizId,
+				participants: countDistinct(gamePlayer.id),
+			})
+			.from(gamePlayer)
+			.innerJoin(gameTable, eq(gameTable.id, gamePlayer.gameId))
+			.where(started)
+			.groupBy(gameTable.quizId);
+		for (const row of games) {
+			totals.set(row.quizId, { games: row.games, participants: 0 });
+		}
+		for (const row of players) {
+			const total = totals.get(row.quizId);
+			if (total) {
+				total.participants = row.participants;
+			}
+		}
+		return totals;
+	}
+
+	const strip = ({
+		questionsJson: _,
+		...card
+	}: SharedQuizCard & { questionsJson: unknown }): SharedQuizCard => card;
+
+	const orders: Record<SharedQuizSort, SQL[]> = {
+		recent: [desc(groupSharedQuiz.sharedAt), desc(groupSharedQuiz.id)],
+		oldest: [asc(groupSharedQuiz.sharedAt), asc(groupSharedQuiz.id)],
+		// The stored search title has neither accents nor case (spec 001).
+		nameAsc: [asc(quizTable.searchTitle), asc(groupSharedQuiz.id)],
+		nameDesc: [desc(quizTable.searchTitle), desc(groupSharedQuiz.id)],
+	};
+
+	return {
+		async shareableQuizIds(ownerId, quizIds) {
+			if (quizIds.length === 0) {
+				return [];
+			}
+			const rows = await db
+				.select({ id: quizTable.id })
+				.from(quizTable)
+				.where(
+					and(
+						eq(quizTable.ownerId, ownerId),
+						inArray(quizTable.id, [...quizIds]),
+						alive,
+					),
+				);
+			return rows.map((row) => row.id);
+		},
+
+		async listSharedQuizzes(groupId, sort, limit) {
+			return (
+				await cards(eq(groupSharedQuiz.groupId, groupId), orders[sort], limit)
+			).map(strip);
+		},
+
+		async sharedQuizCards(sharedQuizIds) {
+			if (sharedQuizIds.length === 0) {
+				return [];
+			}
+			return (
+				await cards(inArray(groupSharedQuiz.id, [...sharedQuizIds]), [])
+			).map(strip);
+		},
+
+		async sharedQuizDetail(groupId, quizId) {
+			const [card] = await cards(
+				and(
+					eq(groupSharedQuiz.groupId, groupId),
+					eq(groupSharedQuiz.quizId, quizId),
+				),
+				[],
+			);
+			if (!card) {
+				return null;
+			}
+			const [details] = await db
+				.select({ description: quizTable.description, sharedByName: user.name })
+				.from(quizTable)
+				.innerJoin(user, eq(user.id, card.sharedById))
+				.where(eq(quizTable.id, quizId));
+			const totals = await gameCounts([quizId]);
+			return {
+				...strip(card),
+				description: details?.description ?? "",
+				sharedByName: details?.sharedByName ?? "",
+				participants: totals.get(quizId)?.participants ?? 0,
+				questions: parseVersionQuestions(card.questionsJson),
+			};
+		},
+	};
+}

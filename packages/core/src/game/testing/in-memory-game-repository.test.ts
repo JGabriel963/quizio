@@ -177,3 +177,22 @@ describe("InMemoryGameRepository with assignments (spec 029)", () => {
 		});
 	});
 });
+
+describe("one open live game per quiz and host (spec 037, RN-19)", () => {
+	it("two hosts keep their games of the same quiz; listUnendedByQuiz filters by owner", async () => {
+		const games = new InMemoryGameRepository();
+
+		expect(await games.create(aGame({ id: "a", pin: "111111" }))).toBe(
+			"created",
+		);
+		expect(
+			await games.create(aGame({ id: "b", pin: "222222", ownerId: "user-2" })),
+		).toBe("created");
+		expect(await games.create(aGame({ id: "c", pin: "333333" }))).toBe("taken");
+		expect(
+			(await games.listUnendedByQuiz("quiz-1", ["live"], "user-2")).map(
+				({ id }) => id,
+			),
+		).toEqual(["b"]);
+	});
+});

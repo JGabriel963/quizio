@@ -16,6 +16,7 @@ function aRecord(
 		ownerId: "user-1",
 		title: "Bom de Bíblia (Junho)",
 		searchTitle: "bom de biblia (junho)",
+		description: "",
 		coverImageKey: null,
 		visibility: "private",
 		status: "draft",
@@ -123,6 +124,7 @@ describe("listLibrary", () => {
 		expect(item).toEqual({
 			id: "quiz-1",
 			title: "Bom de Bíblia (Junho)",
+			description: "",
 			coverImageUrl: "https://media.test/media/user-1/cover.png",
 			visibility: "private",
 			status: "draft",
@@ -131,5 +133,15 @@ describe("listLibrary", () => {
 			updatedAt: day(1),
 			trashedAt: null,
 		});
+	});
+
+	it("items carry the quiz's description (spec 038, RN-04)", async () => {
+		const listLibrary = listLibraryOver([
+			aRecord({ description: "Gênesis e Êxodo" }),
+		]);
+
+		const items = await listLibrary({ ownerId: "user-1", section: "recent" });
+
+		expect(items[0]?.description).toBe("Gênesis e Êxodo");
 	});
 });
