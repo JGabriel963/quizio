@@ -13,6 +13,7 @@ import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { LogOutIcon, SettingsIcon } from "lucide-react";
 
 import { UserAvatar } from "@/components/account/user-avatar";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { authClient } from "@/lib/auth-client";
 import { useTRPC } from "@/utils/trpc";
 
@@ -124,18 +125,22 @@ function SessionAccountMenu() {
 	}
 
 	return (
-		<AccountMenuView
-			account={account.data}
-			onSignOut={() => {
-				authClient.signOut({
-					fetchOptions: {
-						onSuccess: async () => {
-							await router.invalidate();
-							await navigate({ to: "/" });
+		<>
+			<AccountMenuView
+				account={account.data}
+				onSignOut={() => {
+					authClient.signOut({
+						fetchOptions: {
+							onSuccess: async () => {
+								await router.invalidate();
+								await navigate({ to: "/" });
+							},
 						},
-					},
-				});
-			}}
-		/>
+					});
+				}}
+			/>
+			{/* Right of the photo (spec 040, RN-09). */}
+			<NotificationBell />
+		</>
 	);
 }

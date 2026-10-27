@@ -11,6 +11,7 @@ import {
 	type SharedQuiz,
 	sharedQuizzesPostKind,
 } from "../domain/shared-quiz";
+import { type InboxSignalDeps, signalOtherMembers } from "./inbox-signals";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
 import type { GroupSharedQuizRepository } from "./ports/group-shared-quiz-repository";
 import type { SharedQuizReads } from "./ports/shared-quiz-reads";
@@ -33,7 +34,7 @@ export function createShareQuizzesInGroup(
 		sharedQuizReads: SharedQuizReads;
 		ids: IdGenerator;
 		clock: Clock;
-	},
+	} & InboxSignalDeps,
 ): ShareQuizzesInGroup {
 	return async ({ quizIds, message: rawMessage, ...input }) => {
 		const { group, membership } = await requireMembership(deps, input);
@@ -75,6 +76,7 @@ export function createShareQuizzesInGroup(
 		if (outcome === "alreadyShared") {
 			throw new QuizAlreadySharedError();
 		}
+		await signalOtherMembers(deps, group.id, input.userId);
 		return { postId };
 	};
 }

@@ -1,7 +1,7 @@
 ---
 id: "040"
 title: Notificações
-status: approved # draft | approved | planned | in-progress | done
+status: done # draft | approved | planned | in-progress | done
 contexts: [groups, identity]
 created: 2026-10-27
 ---
@@ -218,3 +218,9 @@ O criador vê no sino, de qualquer tela, o que os outros fizeram nos seus grupos
 ## Changelog
 
 - 2026-10-27 — spec criada a partir das capturas do sino e da página da publicação do Kahoot, junto com a spec 039.
+- 2026-10-27 — spec entregue (status `done`). Todos os 16 CAs têm teste automatizado verde (core, PGlite, realtime, API, componentes e E2E desktop/celular). Escolhas feitas na implementação, dentro das regras:
+  - as notificações são uma leitura dos grupos (ADR 0020): publicação excluída, saída, remoção, grupo ou conta excluídos as tiram sem código de limpeza;
+  - na entrega, as contas existentes começam com tudo lido e visto, para o histórico dos grupos não chegar como "Novo";
+  - o sino mora ao lado da foto, dentro do menu da conta com sessão; o painel é um `Popover` novo do design system;
+  - "Mostrar mais" carrega mais 20 também quando a lista chega ao fim (rolagem);
+  - a página da publicação é `/groups/{grupo}/posts/{publicação}`, com o mesmo cartão do mural.

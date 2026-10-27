@@ -19,6 +19,10 @@ import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/l
 import { InMemoryCreatorProfileQuery } from "@quizio/core/library/testing/in-memory-creator-profile-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
 import { InMemorySourceUploadRepository } from "@quizio/core/media/testing/in-memory-source-upload-repository";
+import { FixedInboxChannels } from "@quizio/core/notifications/testing/fixed-inbox-channels";
+import { InMemoryGroupNoticeRepository } from "@quizio/core/notifications/testing/in-memory-group-notice-repository";
+import { InMemoryNotificationInbox } from "@quizio/core/notifications/testing/in-memory-notification-inbox";
+import { InMemoryNotificationQuery } from "@quizio/core/notifications/testing/in-memory-notification-query";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
 import { quizSearchText } from "@quizio/core/quiz/domain/quiz-details";
 import { FakePdfPages } from "@quizio/core/quiz/testing/fake-pdf-pages";
@@ -79,6 +83,9 @@ export interface TestApi {
 	profilePhotos: InMemoryProfilePhotoRepository;
 	deletionFeedback: InMemoryAccountDeletionFeedback;
 	creatorProfiles: InMemoryCreatorProfileQuery;
+	/** Notifications given by hand (spec 040); the groups' signals go to realtime. */
+	notificationQuery: InMemoryNotificationQuery;
+	notificationInbox: InMemoryNotificationInbox;
 }
 
 function toLibraryRecord(
@@ -121,6 +128,8 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const profilePhotos = new InMemoryProfilePhotoRepository();
 	const deletionFeedback = new InMemoryAccountDeletionFeedback();
 	const creatorProfiles = new InMemoryCreatorProfileQuery();
+	const notificationInbox = new InMemoryNotificationInbox();
+	const notificationQuery = new InMemoryNotificationQuery(notificationInbox);
 	const adapters: Adapters = {
 		storage,
 		realtime,
@@ -211,6 +220,11 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		profilePhotos,
 		deletionFeedback,
 		creatorProfiles,
+		notificationQuery,
+		notificationInbox,
+		groupNotices: new InMemoryGroupNoticeRepository(),
+		inboxChannels: new FixedInboxChannels(),
+		notificationSettings: { readRetentionDays: 90 },
 		// A group's admin reads the reports of the assignments posted there.
 		reportReadGrants: {
 			canRead: async (viewerId, gameId) => {
@@ -255,5 +269,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		profilePhotos,
 		deletionFeedback,
 		creatorProfiles,
+		notificationQuery,
+		notificationInbox,
 	};
 }

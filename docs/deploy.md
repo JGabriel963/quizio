@@ -51,6 +51,7 @@ As funções rodam em **São Paulo** (`"regions": ["gru1"]` em `apps/web/vercel.
 | `AI_PROVIDER` | `anthropic`, `openai` ou `google`; sem ela, o assistente de criação fica desligado. Nunca `fake` (só para os testes) |
 | `AI_API_KEY` / `AI_MODEL` | a chave e o id do modelo do provedor (ex.: `claude-sonnet-5-5`); obrigatórias com `AI_PROVIDER` |
 | `AI_GENERATIONS_PER_DAY` | criações por criador a cada 24 horas; padrão `20` |
+| `NOTIFICATION_READ_RETENTION_DAYS` | por quantos dias as notificações lidas continuam no sino; padrão `90` (de 1 a 365) |
 
 Não defina `PUSHER_HOST`, `PUSHER_PORT`, `VITE_PUSHER_HOST` nem `VITE_PUSHER_PORT` com o Pusher na nuvem. As `VITE_*` entram no pacote do navegador **no build**: mudou uma delas, faça um novo deploy.
 

@@ -31,6 +31,9 @@ import { createDrizzleProfilePhotoRepository } from "@quizio/db/repositories/ide
 import { createDrizzleCreatorProfileQuery } from "@quizio/db/repositories/library/drizzle-creator-profile-query";
 import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
 import { createDrizzleSourceUploadRepository } from "@quizio/db/repositories/media/drizzle-source-upload-repository";
+import { createDrizzleGroupNoticeRepository } from "@quizio/db/repositories/notifications/drizzle-group-notice-repository";
+import { createDrizzleNotificationInbox } from "@quizio/db/repositories/notifications/drizzle-notification-inbox";
+import { createDrizzleNotificationQuery } from "@quizio/db/repositories/notifications/drizzle-notification-query";
 import { createDrizzleAssistantPreferencesRepository } from "@quizio/db/repositories/quiz/drizzle-assistant-preferences-repository";
 import { createDrizzleGenerationQuota } from "@quizio/db/repositories/quiz/drizzle-generation-quota";
 import { createDrizzleQuestionRepository } from "@quizio/db/repositories/quiz/drizzle-question-repository";
@@ -42,6 +45,7 @@ import { createDrizzleReportRepository } from "@quizio/db/repositories/reports/d
 import { createDrizzleAttemptLimiter } from "@quizio/db/repositories/shared/drizzle-attempt-limiter";
 import { createDrizzleQuizShareGrants } from "@quizio/db/repositories/shared/drizzle-quiz-share-grants";
 import { env } from "@quizio/env/server";
+import { createHmacInboxChannels } from "@quizio/realtime/hmac-inbox-channels";
 import { createPusherRealtimePublisher } from "@quizio/realtime/pusher-realtime-publisher";
 import { createS3ObjectStorage } from "@quizio/storage/s3-object-storage";
 
@@ -151,6 +155,14 @@ export function createAdaptersFromEnv(): Adapters {
 		profilePhotos: createDrizzleProfilePhotoRepository(db),
 		deletionFeedback: createDrizzleAccountDeletionFeedback(db),
 		creatorProfiles: createDrizzleCreatorProfileQuery(db),
+		notificationQuery: createDrizzleNotificationQuery(db),
+		notificationInbox: createDrizzleNotificationInbox(db),
+		groupNotices: createDrizzleGroupNoticeRepository(db),
+		// The inbox channels' names are an HMAC with the Pusher secret (ADR 0020).
+		inboxChannels: createHmacInboxChannels(env.PUSHER_SECRET),
+		notificationSettings: {
+			readRetentionDays: env.NOTIFICATION_READ_RETENTION_DAYS,
+		},
 	};
 }
 

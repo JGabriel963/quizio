@@ -7,6 +7,7 @@ import {
 	assertPostHasContent,
 	parseOptionalPostMessage,
 } from "../domain/group-post";
+import { type InboxSignalDeps, signalOtherMembers } from "./inbox-signals";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
 import type { GroupPostRepository } from "./ports/group-post-repository";
 
@@ -30,7 +31,7 @@ export function createCreateGroupPost(
 		storage: ObjectStorage;
 		ids: IdGenerator;
 		clock: Clock;
-	},
+	} & InboxSignalDeps,
 ): CreateGroupPost {
 	return async ({ message: rawMessage, uploadKey, ...input }) => {
 		const { group } = await requireMembership(deps, input);
@@ -49,6 +50,7 @@ export function createCreateGroupPost(
 		if (uploadKey === undefined) {
 			assertPostHasContent(message, false);
 			await deps.groupPosts.createPost({ ...post, file: null });
+			await signalOtherMembers(deps, group.id, input.userId);
 			return { postId: post.id };
 		}
 
@@ -65,6 +67,7 @@ export function createCreateGroupPost(
 		if (created === "missing") {
 			throw new GroupUploadNotFoundError();
 		}
+		await signalOtherMembers(deps, group.id, input.userId);
 		return { postId: post.id };
 	};
 }

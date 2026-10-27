@@ -2,6 +2,7 @@ import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import { AlreadyAssignedToGroupError } from "../domain/group-errors";
 import { assertCanAssign } from "../domain/group-permissions";
+import { type InboxSignalDeps, signalOtherMembers } from "./inbox-signals";
 import { requireShareableAssignment } from "./list-assignable-groups";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
 import type { GroupAssignmentQuery } from "./ports/group-assignments";
@@ -27,7 +28,7 @@ export function createAssignToGroups(
 		groupPosts: GroupPostRepository;
 		ids: IdGenerator;
 		clock: Clock;
-	},
+	} & InboxSignalDeps,
 ): AssignToGroups {
 	return async ({ userId, gameId, groupIds }) => {
 		await requireShareableAssignment(deps, { userId, gameId });
@@ -60,6 +61,7 @@ export function createAssignToGroups(
 			});
 			if (result === "created") {
 				assigned++;
+				await signalOtherMembers(deps, groupId, userId);
 			}
 		}
 		return { assigned };

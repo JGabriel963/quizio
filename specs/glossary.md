@@ -205,8 +205,8 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Remover do grupo | `unshareQuiz` | Tirar um quiz compartilhado da aba; a publicação "compartilhou um kahoot" fica sem o anexo; de quem compartilhou e do administrador (spec 037) | ✅ |
 | Duplique para editar | `duplicateSharedQuiz` | O Editar de um quiz compartilhado: o membro não edita o original, duplica para a própria biblioteca (spec 037) | ✅ |
 | Relatório somente para leitura | `ReportView.readOnly` | O administrador do grupo vê o relatório de uma atribuição publicada ali por outra pessoa, sem nenhuma ação (spec 038) | ✅ |
-| Notificação | `Notification` | Aviso no sino para uma pessoa sobre o que outra fez num grupo; lida ou não lida (spec 040) | 📝 |
-| Página da publicação | `GroupPostPage` | Uma publicação do mural com endereço próprio, aberta pela notificação (spec 040) | 📝 |
+| Notificação | `Notification` | Aviso no sino para uma pessoa sobre o que outra fez num grupo; lida ou não lida (spec 040) | ✅ |
+| Página da publicação | `GroupPostPage` | Uma publicação do mural com endereço próprio, aberta pela notificação (spec 040) | ✅ |
 
 ## Library, Reports, Media
 

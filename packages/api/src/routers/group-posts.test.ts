@@ -142,3 +142,29 @@ describe("group posts (spec 036)", () => {
 		expect(second.nextCursor).toBeNull();
 	});
 });
+
+describe("the post's own page (spec 040, RN-19)", () => {
+	it("posts.get returns a member's post", async () => {
+		const { ana, bruno, groupId } = await setup();
+		const { postId } = await bruno.group.post({ groupId, message: "Oi" });
+
+		expect(await ana.group.posts.get({ groupId, postId })).toMatchObject({
+			id: postId,
+			message: "Oi",
+			author: { userId: "bruno", name: "Bruno", photoUrl: null },
+		});
+	});
+
+	it("posts.get is NOT_FOUND outside the group and after deletion", async () => {
+		const { ana, bruno, carla, groupId } = await setup();
+		const { postId } = await bruno.group.post({ groupId, message: "Oi" });
+
+		await expect(
+			carla.group.posts.get({ groupId, postId }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		await bruno.group.posts.delete({ groupId, postId });
+		await expect(
+			ana.group.posts.get({ groupId, postId }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+});

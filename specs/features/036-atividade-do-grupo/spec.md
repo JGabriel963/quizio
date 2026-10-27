@@ -262,3 +262,4 @@ Todo membro do grupo escreve uma publicação no mural, com texto, uma imagem ou
 - 2026-10-26: spec criada com as capturas do fluxo de publicar no grupo enviadas pelo usuário. Decisões do usuário: "Compartilhar kahoot" fica "Em breve" até a 037; um anexo por publicação (imagem até 10 MB, PDF até 20 MB ou uma atividade); endereços no texto viram links, sem prévia; texto ou anexo basta para publicar, também no "Adicionar mensagem" da 038.
 - 2026-10-26: spec aprovada pelo usuário.
 - 2026-10-26: spec entregue (status `done`). Escolhas feitas na implementação, dentro das regras: o arquivo é enviado assim que escolhido, com a barra de andamento, e um envio que termina depois do X ou do Cancelar é descartado; o cartão do PDF diz "PDF · 2,4 MB"; o `Progress` foi escrito à mão no estilo do projeto, sem o CLI do shadcn.
+- 2026-10-27 — as notificações que esta spec deixava para o sino chegaram com a spec 040.

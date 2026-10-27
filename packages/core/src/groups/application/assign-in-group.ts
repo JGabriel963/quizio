@@ -3,6 +3,7 @@ import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import { assertCanAssign } from "../domain/group-permissions";
 import { parseOptionalPostMessage } from "../domain/group-post";
+import { type InboxSignalDeps, signalOtherMembers } from "./inbox-signals";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
 import type { GroupAssignments } from "./ports/group-assignments";
 import type { GroupPostRepository } from "./ports/group-post-repository";
@@ -32,7 +33,7 @@ export function createAssignInGroup(
 		groupPosts: GroupPostRepository;
 		ids: IdGenerator;
 		clock: Clock;
-	},
+	} & InboxSignalDeps,
 ): AssignInGroup {
 	return async ({
 		message: rawMessage,
@@ -63,6 +64,7 @@ export function createAssignInGroup(
 			file: null,
 			createdAt: deps.clock.now(),
 		});
+		await signalOtherMembers(deps, group.id, input.userId);
 		return { postId, gameId };
 	};
 }

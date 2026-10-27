@@ -179,6 +179,10 @@ import {
 	type GetGroupInvite,
 } from "@quizio/core/groups/application/get-group-invite";
 import {
+	createGetGroupPost,
+	type GetGroupPost,
+} from "@quizio/core/groups/application/get-group-post";
+import {
 	createGetGroupSettings,
 	type GetGroupSettings,
 } from "@quizio/core/groups/application/get-group-settings";
@@ -224,6 +228,7 @@ import {
 } from "@quizio/core/groups/application/list-shared-quizzes";
 import type { GroupAssignmentQuery } from "@quizio/core/groups/application/ports/group-assignments";
 import type { GroupFeedQuery } from "@quizio/core/groups/application/ports/group-feed-query";
+import type { GroupInbox } from "@quizio/core/groups/application/ports/group-inbox";
 import type { GroupMemberRepository } from "@quizio/core/groups/application/ports/group-member-repository";
 import type { GroupPostRepository } from "@quizio/core/groups/application/ports/group-post-repository";
 import type { GroupReads } from "@quizio/core/groups/application/ports/group-reads";
@@ -325,6 +330,34 @@ import {
 	createRequestSourceUpload,
 	type RequestSourceUpload,
 } from "@quizio/core/media/application/request-source-upload";
+import {
+	createGetInboxSummary,
+	type GetInboxSummary,
+} from "@quizio/core/notifications/application/get-inbox-summary";
+import {
+	createListNotifications,
+	type ListNotifications,
+	type NotificationSettings,
+} from "@quizio/core/notifications/application/list-notifications";
+import {
+	createMarkAllNotificationsRead,
+	type MarkAllNotificationsRead,
+} from "@quizio/core/notifications/application/mark-all-notifications-read";
+import {
+	createMarkInboxSeen,
+	type MarkInboxSeen,
+} from "@quizio/core/notifications/application/mark-inbox-seen";
+import {
+	createMarkNotificationRead,
+	type MarkNotificationRead,
+} from "@quizio/core/notifications/application/mark-notification-read";
+import type { GroupNoticeRepository } from "@quizio/core/notifications/application/ports/group-notice-repository";
+import {
+	INBOX_CHANGED_EVENT,
+	type InboxChannels,
+} from "@quizio/core/notifications/application/ports/inbox-channels";
+import type { NotificationInboxRepository } from "@quizio/core/notifications/application/ports/notification-inbox-repository";
+import type { NotificationQuery } from "@quizio/core/notifications/application/ports/notification-query";
 import {
 	type AddGeneratedQuestions,
 	createAddGeneratedQuestions,
@@ -544,6 +577,12 @@ export interface Adapters {
 	deletionFeedback: AccountDeletionFeedbackRepository;
 	/** The profile and its public quizzes (spec 039). */
 	creatorProfiles: CreatorProfileQuery;
+	/** The bell (spec 040; ADR 0020): a reading of the groups, marks and notices. */
+	notificationQuery: NotificationQuery;
+	notificationInbox: NotificationInboxRepository;
+	groupNotices: GroupNoticeRepository;
+	inboxChannels: InboxChannels;
+	notificationSettings: NotificationSettings;
 }
 
 export interface Container extends Adapters {
@@ -654,6 +693,12 @@ export interface Container extends Adapters {
 		getCreatorProfile: GetCreatorProfile;
 		getPublicQuiz: GetPublicQuiz;
 		setQuizVisibility: SetQuizVisibility;
+		getGroupPost: GetGroupPost;
+		getInboxSummary: GetInboxSummary;
+		listNotifications: ListNotifications;
+		markInboxSeen: MarkInboxSeen;
+		markNotificationRead: MarkNotificationRead;
+		markAllNotificationsRead: MarkAllNotificationsRead;
 	};
 }
 
@@ -661,7 +706,46 @@ export interface Container extends Adapters {
  * Wires use cases to adapters. Pure function with no env access, so tests
  * build a container from in-memory fakes and exercise real routers.
  */
-export function createContainer(adapters: Adapters): Container {
+export function createContainer(baseAdapters: Adapters): Container {
+	// The groups tell people they have news through their own port (spec 040;
+	// ADR 0020): a hint on each one's inbox channel, and a notice when the
+	// group's rows are about to go.
+	const groupInbox: GroupInbox = {
+		signal: (userIds) =>
+			baseAdapters.realtime.publishMany(
+				userIds.map((userId) => ({
+					channel: baseAdapters.inboxChannels.channelOf(userId),
+					event: INBOX_CHANGED_EVENT,
+					payload: {},
+				})),
+			),
+		noticeRemoved: async (userId, groupName, at) => {
+			await baseAdapters.groupNotices.add([
+				{
+					id: baseAdapters.ids.generate(),
+					userId,
+					kind: "removed",
+					groupName,
+					at,
+				},
+			]);
+			await groupInbox.signal([userId]);
+		},
+		noticeDeleted: async (userIds, groupId, groupName, at) => {
+			await baseAdapters.groupNotices.add(
+				userIds.map((userId) => ({
+					// Deleting twice adds nothing (plan 040, risks).
+					id: `deleted:${groupId}:${userId}`,
+					userId,
+					kind: "groupDeleted" as const,
+					groupName,
+					at,
+				})),
+			);
+			await groupInbox.signal(userIds);
+		},
+	};
+	const adapters = { ...baseAdapters, groupInbox };
 	// The quiz context reaches the live games through its own port (spec 008, RN-34).
 	const endGamesOfQuiz = createEndGamesOfQuiz(adapters);
 	const assignmentDeps = {
@@ -840,6 +924,12 @@ export function createContainer(adapters: Adapters): Container {
 			getCreatorProfile: createGetCreatorProfile(adapters),
 			getPublicQuiz: createGetPublicQuiz(adapters),
 			setQuizVisibility: createSetQuizVisibility(adapters),
+			getGroupPost: createGetGroupPost(groupDeps),
+			getInboxSummary: createGetInboxSummary(adapters),
+			listNotifications: createListNotifications(adapters),
+			markInboxSeen: createMarkInboxSeen(adapters),
+			markNotificationRead: createMarkNotificationRead(adapters),
+			markAllNotificationsRead: createMarkAllNotificationsRead(adapters),
 		},
 	};
 }

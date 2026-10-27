@@ -364,6 +364,15 @@ export class InMemoryGroupStore
 		}));
 	}
 
+	async findPostRecord(
+		groupId: string,
+		postId: string,
+		viewerId: string,
+	): Promise<GroupPostRecord | null> {
+		const posts = await this.listPosts(groupId, viewerId);
+		return posts.find((post) => post.id === postId) ?? null;
+	}
+
 	async likeCount(postId: string): Promise<number> {
 		return this.#likeCountOf(postId);
 	}

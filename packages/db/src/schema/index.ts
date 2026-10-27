@@ -3,6 +3,7 @@ export * from "./game";
 export * from "./groups";
 export * from "./identity";
 export * from "./media";
+export * from "./notifications";
 export * from "./quiz";
 export * from "./reports";
 export * from "./shared";
