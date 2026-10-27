@@ -49,9 +49,18 @@ export function QuizListItem({
 		<li className="group relative flex items-center gap-4 rounded-lg bg-card p-3 shadow-sm">
 			<QuizCover url={item.coverImageUrl} className="w-24 shrink-0 sm:w-32" />
 			<div className="flex min-w-0 flex-1 flex-col gap-1">
+				{/* Opens the drawer over the list, as Kahoot does: the address shows
+				    the quiz's own page, which a reload or a new tab opens. */}
 				<Link
-					to="/quizzes/$quizId"
-					params={{ quizId: item.id }}
+					from="/library"
+					search={(previous) => ({ ...previous, quiz: item.id })}
+					mask={{
+						to: "/quizzes/$quizId",
+						params: { quizId: item.id },
+						// A reload opens the page itself, not the drawer again.
+						unmaskOnReload: true,
+					}}
+					resetScroll={false}
 					className="truncate font-bold hover:underline"
 				>
 					{title}

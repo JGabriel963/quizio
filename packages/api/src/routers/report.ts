@@ -14,6 +14,7 @@ export const reportRouter = router({
 			z.object({
 				section: z.enum(REPORT_SECTIONS),
 				search: z.string().max(200).optional(),
+				quizId: z.string().min(1).max(100).optional(),
 				limit: z.number().int().min(1).max(200),
 			}),
 		)

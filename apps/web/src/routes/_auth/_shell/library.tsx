@@ -18,6 +18,7 @@ import {
 import { QuizList, QuizListSkeleton } from "@/components/library/quiz-list";
 import type { QuizItemActions } from "@/components/library/quiz-list-item";
 import { DeletePermanentlyDialog } from "@/components/quiz/delete-permanently-dialog";
+import { QuizDrawer } from "@/components/quiz/quiz-drawer";
 import {
 	QuizFormDialog,
 	type QuizFormDialogState,
@@ -31,6 +32,8 @@ import { useTRPC } from "@/utils/trpc";
 const librarySearchSchema = z.object({
 	section: z.enum(LIBRARY_SECTIONS).catch("recent").default("recent"),
 	q: z.string().optional(),
+	/** The quiz open in the drawer, under the masked `/quizzes/{id}`. */
+	quiz: z.string().min(1).optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/_auth/_shell/library")({
@@ -39,7 +42,7 @@ export const Route = createFileRoute("/_auth/_shell/library")({
 });
 
 function LibraryPage() {
-	const { section, q = "" } = Route.useSearch();
+	const { section, q = "", quiz: openQuizId } = Route.useSearch();
 	const navigate = Route.useNavigate();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -53,6 +56,26 @@ function LibraryPage() {
 		useState<LibraryItemView | null>(null);
 	const hosting = useHostGame(null);
 	const assigning = useAssignQuiz();
+
+	const items = library.data ?? [];
+	const openIndex = items.findIndex((item) => item.id === openQuizId);
+	// The arrows keep the address masked, as the list's links do.
+	const openQuiz = (quizId: string) =>
+		navigate({
+			search: { section, q: q || undefined, quiz: quizId },
+			mask: {
+				to: "/quizzes/$quizId",
+				params: { quizId },
+				unmaskOnReload: true,
+			},
+			replace: true,
+			resetScroll: false,
+		});
+	const previousQuiz = openIndex > 0 ? items[openIndex - 1] : undefined;
+	const nextQuiz =
+		openIndex >= 0 && openIndex < items.length - 1
+			? items[openIndex + 1]
+			: undefined;
 
 	const actions: QuizItemActions = {
 		onAssign: (item) =>
@@ -122,6 +145,19 @@ function LibraryPage() {
 				)}
 			</section>
 
+			<QuizDrawer
+				quizId={openQuizId ?? null}
+				onClose={() =>
+					navigate({
+						search: { section, q: q || undefined },
+						// Back after closing goes on from the list, not to the drawer.
+						replace: true,
+						resetScroll: false,
+					})
+				}
+				onPrevious={previousQuiz && (() => openQuiz(previousQuiz.id))}
+				onNext={nextQuiz && (() => openQuiz(nextQuiz.id))}
+			/>
 			<QuizFormDialog state={formDialog} onClose={() => setFormDialog(null)} />
 			{assigning.dialog}
 			<OpeningGame

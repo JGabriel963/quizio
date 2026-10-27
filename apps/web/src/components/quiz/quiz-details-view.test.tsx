@@ -250,6 +250,94 @@ describe("QuizDetailsView: Organizar ao vivo (spec 008)", () => {
 	});
 });
 
+describe("QuizDetailsView: Kahoot layout", () => {
+	it("shows the owner, the games, the participants and the open activities", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={quiz}
+				actions={fakeActions()}
+				now={now}
+				owner={{ userId: "user-1", name: "João Gabriel" }}
+				preview={{ questions: [], imageUrls: {} }}
+				activity={{
+					games: 3,
+					participants: 1,
+					openAssignments: [
+						{
+							gameId: "game-9",
+							mode: "assignment",
+							open: true,
+							remainingMs: 2 * 24 * 60 * 60 * 1000,
+							name: "Bom de Bíblia (Junho)",
+							coverUrl: null,
+							questionCount: 3,
+							participantCount: 4,
+							accuracyPercent: null,
+							endedEarly: false,
+							endedAt: null,
+							trashedAt: null,
+							quizId: "quiz-1",
+							canPlayAgain: true,
+							playQuizId: "quiz-1",
+						},
+					],
+				}}
+			/>,
+		);
+
+		expect(await screen.findByText("João Gabriel")).toBeInTheDocument();
+		expect(screen.getByText(/jogos/).textContent).toBe("3jogos");
+		expect(screen.getByText(/participante$/).textContent).toBe("1participante");
+		const activity = screen.getByRole("link", { name: /Termina: em 2 dias/ });
+		expect(activity).toHaveAttribute("href", "/reports/game-9");
+		expect(activity).toHaveTextContent("Participantes:4");
+		expect(
+			screen.getByText("Este quiz ainda não tem perguntas."),
+		).toBeInTheDocument();
+	});
+
+	it("switches the questions' layout and Mostrar respostas", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={{ ...quiz, questionCount: 1 }}
+				actions={fakeActions()}
+				now={now}
+				preview={{ questions: [], imageUrls: {} }}
+			/>,
+		);
+		const user = userEvent.setup();
+
+		expect(
+			await screen.findByRole("heading", { name: "Perguntas (0)" }),
+		).toBeInTheDocument();
+		const list = screen.getByRole("button", { name: "Lista de perguntas" });
+		await user.click(list);
+		expect(list).toHaveAttribute("aria-pressed", "true");
+		expect(
+			screen.getByRole("button", { name: "Grade de perguntas" }),
+		).toHaveAttribute("aria-pressed", "false");
+		await user.click(screen.getByRole("button", { name: "Mostrar respostas" }));
+		expect(
+			screen.getByRole("button", { name: "Ocultar respostas" }),
+		).toHaveAttribute("aria-pressed", "true");
+	});
+
+	it("puts the navigation it is given at the end of the top bar", async () => {
+		renderWithRouter(
+			<QuizDetailsView
+				quiz={quiz}
+				actions={fakeActions()}
+				now={now}
+				navigation={<button type="button">Fechar</button>}
+			/>,
+		);
+
+		expect(
+			await screen.findByRole("button", { name: "Fechar" }),
+		).toBeInTheDocument();
+	});
+});
+
 describe("QuizDetailsView: Atribuir (spec 029)", () => {
 	const published: QuizDetailsData = {
 		...quiz,
