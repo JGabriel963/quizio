@@ -63,7 +63,7 @@ O anfitrião aciona Iniciar e conduz a partida pergunta a pergunta. Cada jogador
 | --- | --- | --- |
 | RN-06 | Cada pergunta passa por três fases, nesta ordem: **abertura (`intro`)**, **respostas (`answering`)** e **revelação (`results`)**. | kahoot-reference §6.4 |
 | RN-07 | Na **abertura**, o anfitrião vê o tipo da pergunta ("Quiz" ou "Verdadeiro ou falso"), o enunciado, a posição ("2/10") e uma barra de progresso; as alternativas ainda não aparecem. O jogador vê **"Pergunta 2"**, uma contagem regressiva e **"Preparar…"**. | referência visual do Kahoot · kahoot-reference §5.1 (tempo de leitura) |
-| RN-08 | A abertura dura **6,5 segundos** (1,5 s para o tipo da pergunta e 5 s de leitura) e não conta no tempo de resposta. | kahoot-reference §5.1 · decisão do usuário (2026-10-02) |
+| RN-08 | A abertura dura **6 segundos** (1 s para o tipo da pergunta e 5 s de leitura) e não conta no tempo de resposta. | kahoot-reference §5.1 · decisão do usuário (2026-10-02, 2026-10-27) |
 | RN-09 | Na fase de **respostas**, o anfitrião vê o enunciado, a imagem da pergunta (RN-28), as alternativas com cor, forma e texto, o **tempo restante** em segundos e o **total de respostas recebidas**. | referência visual do Kahoot · kahoot-reference §6.4 |
 | RN-10 | A fase de respostas dura o **limite de tempo da pergunta** (spec 004) e termina no primeiro destes acontecimentos: (a) o tempo acaba; (b) **todos os jogadores da partida responderam**; (c) o anfitrião aciona **"Pular o cronômetro"**. | kahoot-reference §6.4 · referência visual do Kahoot |
 | RN-11 | Na **revelação**, o anfitrião vê a distribuição das respostas e a correta em destaque (RN-22), e o botão **Avançar**. Avançar leva à abertura da pergunta seguinte ou, depois da última, ao fim do jogo (RN-30). Não há tempo: a revelação fica até o anfitrião avançar. | referência visual do Kahoot · kahoot-reference §6.4 |
@@ -169,7 +169,7 @@ O anfitrião aciona Iniciar e conduz a partida pergunta a pergunta. Cada jogador
 #### CA-08 — Respostas abrem depois da abertura
 
 - **Dado** a abertura da pergunta 1
-- **Quando** passam 6,5 segundos
+- **Quando** passam 6 segundos
 - **Então** a tela do anfitrião mostra as alternativas e o tempo, e o celular mostra os botões
 
 #### CA-09 — Abrir as respostas antes da hora
@@ -413,7 +413,7 @@ O anfitrião aciona Iniciar e conduz a partida pergunta a pergunta. Cada jogador
 As telas seguem as da demonstração do Kahoot, no tema escuro do Quizio.
 
 - **Abertura da partida**: o nome do Quizio grande e o título do quiz na tela do anfitrião; no celular, "Prepare-se!" com um indicador de carregamento.
-- **Abertura da pergunta (anfitrião)**: o tipo no topo, com o ícone das quatro cores; o enunciado numa faixa branca ao centro; "2/10" numa cápsula embaixo; uma barra que se enche nos 5 segundos de leitura, depois de o tipo aparecer sozinho por 1,5 s.
+- **Abertura da pergunta (anfitrião)**: o tipo no topo, com o ícone das quatro cores; o enunciado numa faixa branca ao centro; "2/10" numa cápsula embaixo; uma barra que se enche nos 5 segundos de leitura, depois de o tipo aparecer sozinho por 1 s.
 - **Abertura da pergunta (jogador)**: o número da pergunta num círculo e o tipo numa cápsula no topo; "Pergunta 2", a contagem num círculo e "Preparar…".
 - **Respostas (anfitrião)**: o enunciado na faixa branca do topo; "Pular o cronômetro" à direita; o tempo restante num círculo à esquerda e o total de respostas num círculo à direita, com "respostas"; a imagem ao centro, quando há; as alternativas na base, em faixas de cor com forma e texto. Com imagem de fundo, ela cobre a tela atrás de tudo.
 - **Respostas (jogador)**: os botões de cor ocupando a tela, em duas colunas, com a forma grande no centro.
@@ -464,3 +464,4 @@ As telas seguem as da demonstração do Kahoot, no tema escuro do Quizio.
 - 2026-10-02 — ajuste de layout pedido pelo usuário, com capturas do Kahoot: a abertura da pergunta na tela do anfitrião passa a ter dois passos e a durar 6,5 segundos, por decisão do usuário: 1,5 s para o tipo e os 5 s de leitura de antes (RN-07, RN-08, alteradas). Primeiro o tipo da pergunta entra animado, grande, por 1,5 s; depois a pergunta ocupa o meio da tela, com o tipo pequeno no alto e a barra do tempo de leitura embaixo, na largura toda. A posição ("1/5") aparece nos dois passos. Com movimento reduzido, a pergunta aparece direto. O total de respostas salta a cada resposta que chega.
 - 2026-10-06 — spec 014: com a reprodução automática ligada, a revelação deixa de esperar o anfitrião (RN-11) e avança sozinha em 5 segundos, com a contagem no lugar de "Avançar". Com ela desligada, a RN-11 vale como está.
 - 2026-10-15 — spec 028: os jogadores ganham avatar (personagem e acessório), e a divergência "Sem avatar" deixa de valer enquanto a chave "Personagens dos jogadores" estiver ligada.
+- 2026-10-27 — a pedido do usuário, o tipo da pergunta passa a ficar 1 s sozinho na tela, e a abertura da pergunta passa a durar 6 segundos: 1 s para o tipo e os 5 s de leitura (RN-08).
