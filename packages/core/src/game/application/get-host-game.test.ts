@@ -50,8 +50,8 @@ describe("getHostGame during a game (spec 009)", () => {
 			stage: {
 				questionIndex: 1,
 				phase: "questionIntro",
-				remainingMs: 6_500,
-				durationMs: 6_500,
+				remainingMs: 6_000,
+				durationMs: 6_000,
 				question: {
 					type: "trueFalse",
 					text: "A capital do Brasil é Brasília",

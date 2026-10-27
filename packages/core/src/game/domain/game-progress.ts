@@ -18,7 +18,7 @@ export type GamePhase = (typeof GAME_PHASES)[number];
 /** The opening of the game (RN-04). */
 export const GAME_INTRO_MS = 3_000;
 /** How long the host's screen shows the question's type before the question (spec 012). */
-export const QUESTION_TYPE_REVEAL_MS = 1_500;
+export const QUESTION_TYPE_REVEAL_MS = 1_000;
 /** Reading time: it does not count as response time (RN-08). */
 export const QUESTION_READING_MS = 5_000;
 /** The question's intro: its type coming in, then the time to read it. */
