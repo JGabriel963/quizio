@@ -37,6 +37,17 @@ const quizWith = (
 		...overrides,
 	});
 
+describe("getHostGame theme (spec 042)", () => {
+	it("the view carries the game's theme", async () => {
+		const deps = createGameDeps();
+		await deps.games.create(aGame({ themeId: "light-yellow" }));
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.themeId).toBe("light-yellow");
+	});
+});
+
 describe("getHostGame during a game (spec 009)", () => {
 	it("shows the question of the intro and its position", async () => {
 		const { deps, reach } = await createStartedGame();

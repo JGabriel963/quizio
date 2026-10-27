@@ -25,6 +25,7 @@ const assignment = (options = {}) =>
 		deadline: later(3 * 24 * 60 * 60 * 1000),
 		options: { ...DEFAULT_ASSIGNMENT_OPTIONS, ...options },
 		questionCount: 3,
+		themeId: "standard",
 		now,
 	});
 

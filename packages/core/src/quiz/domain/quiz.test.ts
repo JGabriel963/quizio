@@ -7,6 +7,7 @@ import {
 	copyQuiz,
 	markQuizChanges,
 	newQuiz,
+	parseThemeId,
 	publishQuiz,
 	type Quiz,
 	QuizInTrashError,
@@ -19,6 +20,7 @@ import {
 	restoreQuiz,
 	touchQuiz,
 	trashQuiz,
+	UnknownThemeError,
 	withFinishingTouches,
 } from "./quiz";
 import {
@@ -68,6 +70,7 @@ describe("newQuiz", () => {
 			publishedVersion: null,
 			publishedAt: null,
 			hasUnpublishedChanges: false,
+			themeId: "standard",
 			createdAt,
 			updatedAt: createdAt,
 			trashedAt: null,
@@ -264,7 +267,29 @@ describe("assertPermanentlyDeletable", () => {
 	});
 });
 
+describe("parseThemeId", () => {
+	it("accepts a theme of the catalog", () => {
+		expect(parseThemeId("light-blue")).toBe("light-blue");
+	});
+
+	it("rejects an id outside the catalog with QUIZ.UNKNOWN_THEME", () => {
+		expect(() => parseThemeId("winter-games")).toThrow(UnknownThemeError);
+		expect(new UnknownThemeError("x").code).toBe("QUIZ.UNKNOWN_THEME");
+	});
+});
+
 describe("copyQuiz", () => {
+	it("keeps the source's theme", () => {
+		const copy = copyQuiz(aQuiz({ themeId: "lilac" }), {
+			id: "quiz-2",
+			ownerId: "user-2",
+			coverImageKey: null,
+			now: twoDaysLater,
+		});
+
+		expect(copy.themeId).toBe("lilac");
+	});
+
 	it("creates a draft copy with the duplicate title and new identity and timestamps", () => {
 		const copy = copyQuiz(aQuiz(), {
 			id: "quiz-2",
@@ -284,6 +309,7 @@ describe("copyQuiz", () => {
 			publishedVersion: null,
 			publishedAt: null,
 			hasUnpublishedChanges: false,
+			themeId: "standard",
 			createdAt: twoDaysLater,
 			updatedAt: twoDaysLater,
 			trashedAt: null,

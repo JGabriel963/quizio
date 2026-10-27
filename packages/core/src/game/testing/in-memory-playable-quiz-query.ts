@@ -33,6 +33,7 @@ export function aPlayableQuiz(
 		title: "Bom de Bíblia (Junho)",
 		version: 1,
 		trashed: false,
+		themeId: "standard",
 		...overrides,
 	};
 }

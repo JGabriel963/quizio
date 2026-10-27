@@ -1,3 +1,4 @@
+import type { ThemeId } from "../../../shared/domain/theme";
 import type { Quiz } from "../../domain/quiz";
 import type { QuizVisibility } from "../../domain/quiz-details";
 
@@ -21,6 +22,11 @@ export interface QuizRepository {
 	saveVisibility(
 		id: string,
 		change: { visibility: QuizVisibility; updatedAt: Date },
+	): Promise<void>;
+	/** Sets only the theme, chosen in the editor (spec 042, RN-06). */
+	saveTheme(
+		id: string,
+		change: { themeId: ThemeId; updatedAt: Date },
 	): Promise<void>;
 	/** Every quiz of the owner, trashed ones too, for deleting the account (spec 039). */
 	listIdsByOwner(ownerId: string): Promise<string[]>;

@@ -106,6 +106,10 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Pergunta criada | `GeneratedQuestion` | Pergunta Quiz ou Verdadeiro ou falso devolvida pela IA, válida pelas regras do editor; fica no assistente até ser adicionada (spec 027) | ✅ |
 | Feita com IA | `aiGenerated` | Marca de uma pergunta adicionada pelo assistente, mostrada com um ícone de brilho na lista; fica ao editar e ao duplicar, não vai para a partida (spec 027) | ✅ |
 | Cota de criações | `GenerationQuota` | Criações com IA permitidas por criador a cada 24 horas (janela móvel), 20 por padrão, configurável; falhas não contam (spec 027) | ✅ |
+| Tema | `Theme` | Aparência das telas de jogo e do centro do editor: fundo, cor de destaque e tom; os prontos vêm de um catálogo próprio, gratuito (spec 042) | ✅ |
+| Tema do quiz | `Quiz.themeId` | Tema escolhido no editor, salvo ao escolher e fora da versão jogável; Padrão quando não há outro (spec 042) | ✅ |
+| Tom do tema | `ThemeTone` | `dark` ou `light`; num tema claro o texto sobre o fundo fica escuro (spec 042) | ✅ |
+| Tema padrão | `standard` | O roxo de sempre do Quizio; vale para os quizzes e partidas de antes dos temas e para temas que saíram do catálogo (spec 042) | ✅ |
 
 ## Game (partida ao vivo)
 
@@ -156,6 +160,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Jogar novamente | `playAgain` | Ação do pódio: cria uma partida nova do mesmo quiz, com outro PIN e sem jogadores (spec 011) | ✅ (`game.host`, `usePlayAgain`) |
 | Revisar respostas | `reviewTypedAnswers`, `openAnswerReview`, `AnswerReview` | Na revelação de uma Resposta curta, o anfitrião marca respostas enviadas como corretas ou incorretas; a correção e os pontos de quem as enviou são refeitos, e a partida vai direto ao placar. Só enquanto a revelação está na tela (spec 031) | ✅ |
 | Respostas parecidas | `isSimilarAnswer` | Respostas erradas a até 2 letras de diferença de uma correta, com ao menos 4 caracteres; aparecem primeiro na revisão (spec 031) | ✅ |
+| Tema da partida | `Game.themeId` | Tema copiado do quiz quando a partida ou a atribuição é criada; não muda depois (spec 042) | ✅ |
 | Equipe | `Team` | Grupo de jogadores; pontuação = média dos membros | 📝 |
 
 ## Atribuição (assignment)

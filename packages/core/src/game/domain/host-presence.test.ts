@@ -23,6 +23,7 @@ describe("host presence (spec 013)", () => {
 			title: "Capitais",
 			pin: "265914",
 			options: DEFAULT_GAME_OPTIONS,
+			themeId: "standard",
 			now,
 		});
 

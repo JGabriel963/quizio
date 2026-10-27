@@ -6,6 +6,7 @@ import {
 } from "../../shared/application/person-view";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { ProfilePhotoKeys } from "../../shared/application/ports/profile-photo-keys";
+import type { ThemeId } from "../../shared/domain/theme";
 import { SharedQuizNotFoundError } from "../domain/group-errors";
 import { canUnshare } from "../domain/group-permissions";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
@@ -34,6 +35,8 @@ export interface SharedQuizView {
 	/** The owner goes to the quiz's own page instead (RN-10). */
 	ownedByViewer: boolean;
 	canUnshare: boolean;
+	/** For the screen that opens a game from this page (spec 042, RN-13). */
+	themeId: ThemeId;
 }
 
 export type GetSharedQuiz = (input: {
@@ -96,6 +99,7 @@ export function createGetSharedQuiz(
 			imageUrls,
 			ownedByViewer: detail.ownerId === input.userId,
 			canUnshare: canUnshare(detail, membership),
+			themeId: detail.themeId,
 		};
 	};
 }

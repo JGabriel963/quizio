@@ -1,4 +1,5 @@
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ThemeId } from "../../shared/domain/theme";
 import type { Quiz, QuizStatus } from "../domain/quiz";
 import type { QuizVisibility } from "../domain/quiz-details";
 import type { QuestionRepository } from "./ports/question-repository";
@@ -15,6 +16,8 @@ export interface QuizDetailsView {
 	publishedVersion: number | null;
 	publishedAt: Date | null;
 	hasUnpublishedChanges: boolean;
+	/** The look of the editor and of new games (spec 042). */
+	themeId: ThemeId;
 	questionCount: number;
 	createdAt: Date;
 	updatedAt: Date;
@@ -38,6 +41,7 @@ export function toQuizDetailsView(
 		publishedVersion: quiz.publishedVersion,
 		publishedAt: quiz.publishedAt,
 		hasUnpublishedChanges: quiz.hasUnpublishedChanges,
+		themeId: quiz.themeId,
 		questionCount,
 		createdAt: quiz.createdAt,
 		updatedAt: quiz.updatedAt,

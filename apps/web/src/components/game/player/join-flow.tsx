@@ -7,6 +7,10 @@ import {
 } from "@quizio/core/game/domain/game-events";
 import { parseGamePin, parseJoinPin } from "@quizio/core/game/domain/game-pin";
 import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
+import {
+	DEFAULT_THEME_ID,
+	type ThemeId,
+} from "@quizio/core/shared/domain/theme";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type {
@@ -23,6 +27,7 @@ import {
 	REMOVED_FROM_GAME_MESSAGE,
 } from "@/lib/game-error-messages";
 import { nextSessionCheckInMs, stageOrder } from "@/lib/game-stage";
+import { GameThemeProvider } from "@/lib/game-theme";
 import type {
 	LastGame,
 	PlayerSessionStore,
@@ -32,7 +37,6 @@ import type {
 import { useRealtimeEvent } from "@/lib/realtime";
 import { useConnectionWatch } from "@/lib/use-connection-watch";
 import { earliestDeadline } from "@/lib/use-countdown";
-
 import { AvatarEditor } from "./avatar-editor";
 import { ConnectionBar, type ConnectionTrouble } from "./connection-bar";
 import {
@@ -44,13 +48,17 @@ import {
 } from "./join-forms";
 import { AvatarWaitingScreen } from "./player-avatar";
 import { PlayerAvatarContext } from "./player-avatar-context";
+
 import { PlayerStage } from "./player-stage";
 
 /** What the player's flow asks of the API; the route wires it to tRPC (specs 008, 009). */
 export interface JoinApi {
-	find(
-		pin: string,
-	): Promise<{ gameId: string; pin: string; mode: "live" | "assignment" }>;
+	find(pin: string): Promise<{
+		gameId: string;
+		pin: string;
+		mode: "live" | "assignment";
+		themeId: ThemeId;
+	}>;
 	enter(input: {
 		gameId: string;
 		nickname: string;
@@ -79,6 +87,8 @@ export interface JoinApi {
 interface FoundGame {
 	gameId: string;
 	pin: string;
+	/** The screens after the PIN wear it (spec 042, RN-14). */
+	themeId: ThemeId;
 }
 
 /** The game after the lobby, as this device last knew it (spec 009). */
@@ -286,7 +296,11 @@ export function JoinFlow({
 					store.remember({ pin: parsed, nickname: view.nickname });
 					return {
 						kind: "waiting",
-						game: { gameId: stored.gameId, pin: parsed },
+						game: {
+							gameId: stored.gameId,
+							pin: parsed,
+							themeId: view.themeId,
+						},
 						session: stored,
 						nickname: view.nickname,
 						play: toPlay(view),
@@ -313,8 +327,12 @@ export function JoinFlow({
 		}
 
 		try {
-			const { gameId, pin: foundPin } = await api.find(parsed);
-			return { kind: "nickname", game: { gameId, pin: foundPin }, error: null };
+			const { gameId, pin: foundPin, themeId } = await api.find(parsed);
+			return {
+				kind: "nickname",
+				game: { gameId, pin: foundPin, themeId },
+				error: null,
+			};
 		} catch (error) {
 			return pinStep(
 				gameErrorMessage(error),
@@ -759,115 +777,128 @@ export function JoinFlow({
 		}
 	}
 
-	switch (step.kind) {
-		case "resolving":
-			return <JoinLoading />;
-		case "pin":
-			return (
-				<PinForm
-					notice={step.notice}
-					invalid={step.invalid}
-					busy={busy}
-					onSubmit={(typedPin) => submitPin(typedPin)}
-				/>
-			);
-		case "rejoin":
-			return (
-				<RejoinForm
-					nickname={step.nickname}
-					busy={busy}
-					onRejoin={() => submitPin(step.pin, false)}
-					onOtherPin={() => show(pinStep(), null)}
-				/>
-			);
-		case "nickname":
-			return (
-				<NicknameForm
-					error={step.error}
-					busy={busy}
-					onSubmit={(nickname) => submitNickname(step.game, nickname)}
-				/>
-			);
-		case "waiting": {
-			const { play } = step;
-			// Nobody waits for the host, or for the connection, once the game is
-			// over (spec 013, RN-19).
-			const trouble: ConnectionTrouble = play?.finished
-				? null
-				: watch.lost
-					? "device"
-					: step.hostIdleMs !== null && step.hostIdleMs >= HOST_AWAY_AFTER_MS
-						? "host"
+	// The PIN entry is standard; once the game is known, its theme (RN-14).
+	const themeId =
+		step.kind === "nickname" || step.kind === "waiting"
+			? step.game.themeId
+			: DEFAULT_THEME_ID;
+	return (
+		<GameThemeProvider themeId={themeId}>{screenOf(step)}</GameThemeProvider>
+	);
+
+	function screenOf(step: Step) {
+		switch (step.kind) {
+			case "resolving":
+				return <JoinLoading />;
+			case "pin":
+				return (
+					<PinForm
+						notice={step.notice}
+						invalid={step.invalid}
+						busy={busy}
+						onSubmit={(typedPin) => submitPin(typedPin)}
+					/>
+				);
+			case "rejoin":
+				return (
+					<RejoinForm
+						nickname={step.nickname}
+						busy={busy}
+						onRejoin={() => submitPin(step.pin, false)}
+						onOtherPin={() => show(pinStep(), null)}
+					/>
+				);
+			case "nickname":
+				return (
+					<NicknameForm
+						error={step.error}
+						busy={busy}
+						onSubmit={(nickname) => submitNickname(step.game, nickname)}
+					/>
+				);
+			case "waiting": {
+				const { play } = step;
+				// Nobody waits for the host, or for the connection, once the game is
+				// over (spec 013, RN-19).
+				const trouble: ConnectionTrouble = play?.finished
+					? null
+					: watch.lost
+						? "device"
+						: step.hostIdleMs !== null && step.hostIdleMs >= HOST_AWAY_AFTER_MS
+							? "host"
+							: null;
+				const questionIndex = play?.stage?.questionIndex ?? null;
+				const notice =
+					answerFailure?.questionIndex === questionIndex
+						? answerFailure.message
 						: null;
-			const questionIndex = play?.stage?.questionIndex ?? null;
-			const notice =
-				answerFailure?.questionIndex === questionIndex
-					? answerFailure.message
-					: null;
-			const connection = (
-				<ConnectionBar trouble={trouble} notice={notice} onLeave={stepOut} />
-			);
-			// The avatar changes while the player waits: in the lobby, or until
-			// the first question of who joined in the middle (spec 028, RN-13).
-			const waitingToPlay =
-				!play || (!play.finished && (play.stage?.sittingOut ?? false));
-			const editable =
-				step.avatar !== null && step.canChangeAvatar && waitingToPlay;
-			const avatarState = {
-				avatar: step.avatar,
-				onEdit: editable ? () => setEditingAvatar(true) : null,
-			};
-			const editor = step.avatar && (
-				<AvatarEditor
-					open={editable && editingAvatar}
-					avatar={step.avatar}
-					onChange={changeAvatar}
-					onClose={() => setEditingAvatar(false)}
-				/>
-			);
-			if (!play) {
+				const connection = (
+					<ConnectionBar trouble={trouble} notice={notice} onLeave={stepOut} />
+				);
+				// The avatar changes while the player waits: in the lobby, or until
+				// the first question of who joined in the middle (spec 028, RN-13).
+				const waitingToPlay =
+					!play || (!play.finished && (play.stage?.sittingOut ?? false));
+				const editable =
+					step.avatar !== null && step.canChangeAvatar && waitingToPlay;
+				const avatarState = {
+					avatar: step.avatar,
+					onEdit: editable ? () => setEditingAvatar(true) : null,
+				};
+				const editor = step.avatar && (
+					<AvatarEditor
+						open={editable && editingAvatar}
+						avatar={step.avatar}
+						onChange={changeAvatar}
+						onClose={() => setEditingAvatar(false)}
+					/>
+				);
+				if (!play) {
+					return (
+						<PlayerAvatarContext value={avatarState}>
+							{step.avatar ? (
+								<AvatarWaitingScreen nickname={step.nickname} />
+							) : (
+								<WaitingScreen nickname={step.nickname} />
+							)}
+							{editor}
+							{connection}
+						</PlayerAvatarContext>
+					);
+				}
 				return (
 					<PlayerAvatarContext value={avatarState}>
-						{step.avatar ? (
-							<AvatarWaitingScreen nickname={step.nickname} />
-						) : (
-							<WaitingScreen nickname={step.nickname} />
-						)}
+						<PlayerStage
+							nickname={step.nickname}
+							finished={play.finished}
+							final={play.final}
+							stage={play.stage}
+							receivedAt={play.receivedAt}
+							late={questionIndex !== null && lateFor === questionIndex}
+							// The bar sits where the notice would: it shows it instead.
+							notice={trouble ? null : notice}
+							onAnswer={(choiceIds) => void submitAnswer({ choiceIds })}
+							onType={(text) => void submitAnswer({ text })}
+							onSlide={(value) => void submitAnswer({ value })}
+							typedDraft={
+								typedDraft !== null &&
+								typedDraft.questionIndex === questionIndex
+									? typedDraft.text
+									: undefined
+							}
+							orderDraft={
+								orderDraft !== null &&
+								orderDraft.questionIndex === questionIndex
+									? orderDraft.choiceIds
+									: undefined
+							}
+							onLeave={() => leave(null)}
+						/>
 						{editor}
 						{connection}
 					</PlayerAvatarContext>
 				);
 			}
-			return (
-				<PlayerAvatarContext value={avatarState}>
-					<PlayerStage
-						nickname={step.nickname}
-						finished={play.finished}
-						final={play.final}
-						stage={play.stage}
-						receivedAt={play.receivedAt}
-						late={questionIndex !== null && lateFor === questionIndex}
-						// The bar sits where the notice would: it shows it instead.
-						notice={trouble ? null : notice}
-						onAnswer={(choiceIds) => void submitAnswer({ choiceIds })}
-						onType={(text) => void submitAnswer({ text })}
-						onSlide={(value) => void submitAnswer({ value })}
-						typedDraft={
-							typedDraft !== null && typedDraft.questionIndex === questionIndex
-								? typedDraft.text
-								: undefined
-						}
-						orderDraft={
-							orderDraft !== null && orderDraft.questionIndex === questionIndex
-								? orderDraft.choiceIds
-								: undefined
-						}
-						onLeave={() => leave(null)}
-					/>
-					{editor}
-					{connection}
-				</PlayerAvatarContext>
-			);
 		}
 	}
 }

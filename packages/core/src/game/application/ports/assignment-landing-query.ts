@@ -1,3 +1,4 @@
+import type { ThemeId } from "../../../shared/domain/theme";
 /** What the activity's screen shows of an assignment (spec 029, RN-46, RN-47). */
 export interface AssignmentLandingRecord {
 	gameId: string;
@@ -12,6 +13,8 @@ export interface AssignmentLandingRecord {
 	coverImageKey: string | null;
 	/** How many questions the assignment has. */
 	questionCount: number;
+	/** Copied from the quiz when it was created (spec 042). */
+	themeId: ThemeId;
 }
 
 /**

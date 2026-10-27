@@ -34,6 +34,7 @@ export class InMemoryAssignmentLandingQuery implements AssignmentLandingQuery {
 			participantCount: await this.players.countActive(game.id),
 			coverImageKey: this.covers.get(game.quizId) ?? null,
 			questionCount: game.questionCount,
+			themeId: game.themeId,
 		};
 	}
 }

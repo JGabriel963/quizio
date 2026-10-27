@@ -80,6 +80,7 @@ describe("account router (spec 039)", () => {
 			participants: 0,
 			description: "",
 			questions: [],
+			themeId: "standard",
 		});
 		const bia = api.callerFor("bia");
 

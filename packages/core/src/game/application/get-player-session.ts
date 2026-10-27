@@ -1,5 +1,6 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ThemeId } from "../../shared/domain/theme";
 import type { Answer, Correctness } from "../domain/answer";
 import type { Avatar } from "../domain/avatar";
 import { type Game, GameNotFoundError } from "../domain/game";
@@ -97,6 +98,8 @@ export interface PlayerFinalView {
 
 export interface PlayerSessionView {
 	gameId: string;
+	/** The game's theme (spec 042, RN-14). */
+	themeId: ThemeId;
 	nickname: string;
 	/** Null with the characters off (spec 028, RN-25). */
 	avatar: Avatar | null;
@@ -254,6 +257,7 @@ export function createGetPlayerSession(deps: {
 		}
 		return {
 			gameId: game.id,
+			themeId: game.themeId,
 			nickname: player.nickname,
 			avatar: avatarShown(game, player),
 			canChangeAvatar: canChangeAvatar(game, player),

@@ -31,6 +31,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		questionCount: 0,
 		progress: null,
 		hostSeenAt: createdAt,
+		themeId: "standard",
 		...overrides,
 	};
 }

@@ -5,6 +5,7 @@ import type {
 } from "../../quiz/domain/question-image";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ThemeId } from "../../shared/domain/theme";
 import { type AnswerDistribution, answerDistribution } from "../domain/answer";
 import {
 	autoAdvanceRemainingMs,
@@ -157,6 +158,8 @@ export interface HostGameView {
 	locked: boolean;
 	/** What the settings panel shows (spec 012). */
 	options: GameOptions;
+	/** Copied from the quiz when the game was created (spec 042). */
+	themeId: ThemeId;
 	/** Active players, in order of arrival: who joined in the middle too. */
 	players: LobbyPlayerView[];
 	questionCount: number;
@@ -373,6 +376,7 @@ export async function loadHostGameView(
 		endReason: game.endReason,
 		locked: game.locked,
 		options: { ...game.options },
+		themeId: game.themeId,
 		players: players.map((player) => toLobbyPlayerView(game, player)),
 		questionCount: game.questionCount,
 		autoStart: await loadAutoStart(deps, game, players),

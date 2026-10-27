@@ -4,6 +4,7 @@ import {
 	personView,
 } from "../../shared/application/person-view";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ThemeId } from "../../shared/domain/theme";
 import { PublicQuizNotFoundError } from "../domain/profile-errors";
 import type { CreatorProfileQuery } from "./ports/creator-profile-query";
 
@@ -25,6 +26,8 @@ export interface PublicQuizView {
 	imageUrls: Record<string, string>;
 	/** The owner goes to the quiz's own page instead. */
 	ownedByViewer: boolean;
+	/** For the screen that opens a game from this page (spec 042, RN-13). */
+	themeId: ThemeId;
 }
 
 export type GetPublicQuiz = (input: {
@@ -66,6 +69,7 @@ export function createGetPublicQuiz(deps: {
 			questions: detail.questions,
 			imageUrls,
 			ownedByViewer: viewerId === ownerId,
+			themeId: detail.themeId,
 		};
 	};
 }

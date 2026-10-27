@@ -38,7 +38,7 @@ const RESULTS: Record<
 };
 
 const stripClass =
-	"w-full max-w-sm rounded-md bg-black/40 px-4 py-3 font-bold text-lg";
+	"w-full max-w-sm rounded-md bg-game-chip px-4 py-3 font-bold text-game-chip-fg text-lg";
 
 /**
  * How the player did: the result, what it was worth and where it leaves them,

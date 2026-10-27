@@ -21,13 +21,32 @@ async function withAssignment() {
 	return { deps, gameId };
 }
 
+describe("findGameByPin theme (spec 042, RN-14)", () => {
+	it("returns the game's theme with the game", async () => {
+		const deps = createGameDeps();
+		await deps.games.save(aGame({ themeId: "light-green" }));
+
+		const found = await createFindGameByPin(deps)({
+			pin: "265914",
+			clientKey: "ip",
+		});
+
+		expect(found.themeId).toBe("light-green");
+	});
+});
+
 describe("findGameByPin with assignments (spec 029, RN-20)", () => {
 	it("eight digits of an open assignment give its id and the assignment mode", async () => {
 		const { deps, gameId } = await withAssignment();
 
 		expect(
 			await createFindGameByPin(deps)({ pin: "0435 2236", clientKey: "ip" }),
-		).toEqual({ gameId, pin: "04352236", mode: "assignment" });
+		).toEqual({
+			gameId,
+			pin: "04352236",
+			mode: "assignment",
+			themeId: "standard",
+		});
 	});
 
 	it("eight digits of an ended assignment give its id, and the attempt is released", async () => {
@@ -36,7 +55,12 @@ describe("findGameByPin with assignments (spec 029, RN-20)", () => {
 
 		expect(
 			await createFindGameByPin(deps)({ pin: "04352236", clientKey: "ip" }),
-		).toEqual({ gameId, pin: "04352236", mode: "assignment" });
+		).toEqual({
+			gameId,
+			pin: "04352236",
+			mode: "assignment",
+			themeId: "standard",
+		});
 		expect(
 			await deps.attempts.reserve(
 				"pin:ip",
@@ -69,6 +93,11 @@ describe("findGameByPin with assignments (spec 029, RN-20)", () => {
 
 		expect(
 			await createFindGameByPin(deps)({ pin: "265914", clientKey: "ip" }),
-		).toEqual({ gameId: "game-1", pin: "265914", mode: "live" });
+		).toEqual({
+			gameId: "game-1",
+			pin: "265914",
+			mode: "live",
+			themeId: "standard",
+		});
 	});
 });

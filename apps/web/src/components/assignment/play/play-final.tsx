@@ -46,7 +46,7 @@ export function PlayFinal({
 				{endedEarly && (
 					<p
 						role="status"
-						className="rounded-md bg-black/50 px-4 py-2 text-center font-bold"
+						className="rounded-md bg-game-chip px-4 py-2 text-center font-bold text-game-chip-fg"
 					>
 						Esta atividade foi encerrada
 					</p>
@@ -62,7 +62,7 @@ export function PlayFinal({
 						) : (
 							<span
 								aria-hidden="true"
-								className="flex size-32 items-center justify-center rounded-full border-8 border-white/80 bg-brand-strong font-black text-6xl shadow-xl motion-safe:animate-pop-in"
+								className="flex size-32 items-center justify-center rounded-full border-8 border-white/80 bg-game-accent font-black text-6xl text-game-accent-fg shadow-xl motion-safe:animate-pop-in"
 							>
 								{place}
 							</span>

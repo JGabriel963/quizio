@@ -162,4 +162,13 @@ describe("DrizzleCreatorProfileQuery (spec 039)", () => {
 		expect(await profiles.publicQuiz("ana", "private")).toBeNull();
 		expect(await profiles.publicQuiz("bia", "capitais")).toBeNull();
 	});
+
+	it("publicQuiz returns the quiz's theme (spec 042)", async () => {
+		await publish("capitais", { themeId: "teal" });
+		const profiles = createDrizzleCreatorProfileQuery(testDb.db);
+
+		expect((await profiles.publicQuiz("ana", "capitais"))?.themeId).toBe(
+			"teal",
+		);
+	});
 });

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { QuestionData, QuizEditorData } from "@/lib/api-types";
+import { DARK_TEXT } from "@/lib/contrast";
 import { withQuizPublished } from "@/lib/editor-cache";
 import {
 	createSaveTracker,
@@ -32,6 +33,7 @@ const question = (id: string, text: string | null): QuestionData => ({
 function editorData(...questions: QuestionData[]): QuizEditorData {
 	return {
 		quiz: {
+			themeId: "standard",
 			id: "quiz-1",
 			title: "Geografia",
 			description: null,
@@ -93,6 +95,7 @@ async function renderEditor(
 		tracker,
 		assistant,
 		assistantLater = false,
+		themeSaveFails = false,
 	}: {
 		afterAdd?: QuizEditorData;
 		/** The list once the assistant's questions are added. */
@@ -101,6 +104,8 @@ async function renderEditor(
 		assistant?: EditorAssistant;
 		/** The assistant's status arrives after the editor (a slower query). */
 		assistantLater?: boolean;
+		/** `setTheme` answers false, as the action does when the save failed. */
+		themeSaveFails?: boolean;
 	} = {},
 ) {
 	let latest = data;
@@ -176,6 +181,14 @@ async function renderEditor(
 		}),
 		moveQuestion: vi.fn(),
 		deleteQuestion: vi.fn(),
+		// Like the real action: the cache gets the theme once it is saved.
+		setTheme: vi.fn(async (themeId) => {
+			if (themeSaveFails) {
+				return false;
+			}
+			setData({ ...latest, quiz: { ...latest.quiz, themeId } });
+			return true;
+		}),
 	};
 	let revealAssistant = () => {};
 	function Harness() {
@@ -500,6 +513,116 @@ describe("QuizEditor", () => {
 		});
 		// The harness does not apply the change, so the question still has 20 s.
 		expect(actions.applyTimeLimitToAll).toHaveBeenCalledWith(20);
+	});
+});
+
+describe("QuizEditor: themes (spec 042)", () => {
+	const canvas = () =>
+		document.querySelector('[data-slot="editor-canvas"]') as HTMLElement;
+	const rail = () => screen.getByRole("toolbar", { name: "Painéis do editor" });
+
+	it("Propriedades starts open; Temas and Propriedades switch the side panel and the X closes it", async () => {
+		const { user } = await renderEditor(editorData(question("a", "A?")));
+		const themesButton = within(rail()).getByRole("button", { name: "Temas" });
+		const propertiesButton = within(rail()).getByRole("button", {
+			name: "Propriedades",
+		});
+
+		expect(propertiesButton).toHaveAttribute("aria-pressed", "true");
+		await user.click(themesButton);
+		expect(themesButton).toHaveAttribute("aria-pressed", "true");
+		expect(screen.getByRole("heading", { name: "Temas" })).toBeInTheDocument();
+		expect(
+			screen.queryByRole("heading", { name: "Propriedades da pergunta" }),
+		).toBeNull();
+
+		await user.click(screen.getByRole("button", { name: "Fechar temas" }));
+		expect(screen.queryByRole("heading", { name: "Temas" })).toBeNull();
+		expect(themesButton).toHaveAttribute("aria-pressed", "false");
+		expect(rail()).toBeInTheDocument();
+
+		await user.click(propertiesButton);
+		await user.click(
+			screen.getByRole("button", { name: "Fechar propriedades" }),
+		);
+		expect(
+			screen.queryByRole("heading", { name: "Propriedades da pergunta" }),
+		).toBeNull();
+	});
+
+	it("the canvas shows the quiz's theme", async () => {
+		const data = editorData(question("a", "A?"));
+		await renderEditor({ ...data, quiz: { ...data.quiz, themeId: "teal" } });
+
+		expect(canvas()).toHaveAttribute("data-theme", "teal");
+		expect(canvas().style.getPropertyValue("--game-bg-image")).toBe(
+			'url("/themes/teal.svg")',
+		);
+	});
+
+	it("a light theme gives dark text on the canvas", async () => {
+		const data = editorData(question("a", "A?"));
+		await renderEditor({ ...data, quiz: { ...data.quiz, themeId: "light" } });
+
+		expect(canvas().style.getPropertyValue("--game-fg")).toBe(DARK_TEXT);
+	});
+
+	it("the theme's text color does not reach the question's white fields", async () => {
+		const data = editorData(question("a", "A?"));
+		await renderEditor({ ...data, quiz: { ...data.quiz, themeId: "teal" } });
+
+		// Inherited, it painted the statement white on white.
+		expect(canvas()).not.toHaveClass("text-game-fg");
+	});
+
+	it("choosing a theme changes the canvas at once and saves it, without Alterações não salvas", async () => {
+		const published = [complete("a", "Capital?")];
+		const { actions, user } = await renderEditor(publishedData(published));
+
+		await user.click(within(rail()).getByRole("button", { name: "Temas" }));
+		await user.click(screen.getByRole("radio", { name: "Azul claro" }));
+
+		expect(actions.setTheme).toHaveBeenCalledWith("light-blue");
+		expect(canvas()).toHaveAttribute("data-theme", "light-blue");
+		expect(screen.getByRole("radio", { name: "Azul claro" })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
+		expect(badge("Alterações não salvas")).toBeNull();
+	});
+
+	it("a failed save puts the previous theme back", async () => {
+		const { user } = await renderEditor(editorData(question("a", "A?")), {
+			themeSaveFails: true,
+		});
+
+		await user.click(within(rail()).getByRole("button", { name: "Temas" }));
+		await user.click(screen.getByRole("radio", { name: "Vermelho" }));
+
+		await vi.waitFor(() =>
+			expect(canvas()).toHaveAttribute("data-theme", "standard"),
+		);
+		expect(screen.getByRole("radio", { name: "Padrão" })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
+	});
+
+	it("a question with a background image covers the theme", async () => {
+		const data = editorData({
+			...question("a", "A?"),
+			image: { ...newQuestionImage(IMAGE_KEY), placement: "background" },
+		});
+		await renderEditor({
+			...data,
+			quiz: { ...data.quiz, themeId: "orange" },
+			imageUrls: { [IMAGE_KEY]: IMAGE_URL },
+		});
+
+		expect(
+			document.querySelector('[data-slot="question-background"]'),
+		).toHaveAttribute("src", IMAGE_URL);
+		expect(canvas()).toHaveAttribute("data-theme", "orange");
 	});
 });
 

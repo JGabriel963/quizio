@@ -83,6 +83,10 @@ export function useEditorActions(quizId: string): EditorActions {
 		...trpc.quiz.rename.mutationOptions(),
 		...SEND_EVEN_OFFLINE,
 	});
+	const saveTheme = useMutation({
+		...trpc.quiz.setTheme.mutationOptions(),
+		...SEND_EVEN_OFFLINE,
+	});
 	const update = useMutation({
 		...trpc.quiz.questions.update.mutationOptions(),
 		...SEND_EVEN_OFFLINE,
@@ -292,6 +296,18 @@ export function useEditorActions(quizId: string): EditorActions {
 			setData((data) => ({ ...data, quiz: { ...data.quiz, ...quiz } }));
 			void invalidateListings();
 		},
+
+		// In the queue too: a rename rewrites the whole quiz row and must not put
+		// back the theme it read (spec 042). Tracked, so a failure waits in the
+		// header with "Tentar de novo", which sends this choice again (RN-26).
+		setTheme: (themeId) =>
+			tracker.track("quiz:theme", async () => {
+				const quiz = await enqueue(() =>
+					saveTheme.mutateAsync({ quizId, themeId }),
+				);
+				setData((data) => ({ ...data, quiz: { ...data.quiz, ...quiz } }));
+				void invalidateListings();
+			}),
 
 		saveQuestionField: async (questionId, change) => {
 			await prepareChange(questionId, change)?.();

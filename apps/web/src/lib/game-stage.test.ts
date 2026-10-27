@@ -14,6 +14,7 @@ import {
 } from "./game-stage";
 
 const answering: HostGameData = {
+	themeId: "standard",
 	gameId: "game-1",
 	quizId: "quiz-1",
 	title: "Capitais",

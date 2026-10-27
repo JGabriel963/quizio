@@ -167,7 +167,7 @@ function TimeBar({
 		<div className="shrink-0 px-2 pb-2">
 			<div className="h-6 overflow-hidden rounded-full bg-black/40">
 				<div
-					className="flex h-full min-w-10 items-center justify-end rounded-full bg-brand-strong px-2.5 ring-1 ring-white/30 transition-[width] duration-200 ease-linear"
+					className="flex h-full min-w-10 items-center justify-end rounded-full bg-game-accent px-2.5 text-game-accent-fg ring-1 ring-white/30 transition-[width] duration-200 ease-linear"
 					style={{ width: `${left * 100}%` }}
 				>
 					<span

@@ -40,6 +40,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 
 		expect(await createGetPlayerSession(deps)(player(1))).toEqual({
 			gameId: "game-1",
+			themeId: "standard",
 			nickname: "Ana",
 			avatar: aPlayer().avatar,
 			canChangeAvatar: false,
@@ -369,6 +370,7 @@ describe("getPlayerSession: the final screen (spec 011)", () => {
 
 		expect(await getPlayerSession(player(3))).toEqual({
 			gameId: "game-1",
+			themeId: "standard",
 			nickname: "Caio",
 			avatar: aPlayer().avatar,
 			canChangeAvatar: false,
@@ -440,6 +442,7 @@ describe("getPlayerSession: who joined in the middle (spec 012)", () => {
 
 		expect(await createGetPlayerSession(deps)(caio)).toEqual({
 			gameId: "game-1",
+			themeId: "standard",
 			nickname: "Caio",
 			// Drawn on joining; sitting out, Caio may still change it (spec 028).
 			avatar: { character: "moon", accessory: "fire" },
@@ -686,6 +689,18 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 			shapeIndex: 3,
 			text: "Brasília",
 		});
+	});
+});
+
+describe("getPlayerSession: theme (spec 042)", () => {
+	it("the session carries the game's theme", async () => {
+		const deps = createGameDeps();
+		await deps.games.save(aGame({ themeId: "blue" }));
+		await deps.players.add(aPlayer({ id: "p1", secret: "s1" }));
+
+		const view = await createGetPlayerSession(deps)(player(1));
+
+		expect(view.themeId).toBe("blue");
 	});
 });
 

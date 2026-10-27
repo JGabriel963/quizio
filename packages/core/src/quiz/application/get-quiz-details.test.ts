@@ -42,6 +42,7 @@ describe("getQuizDetails", () => {
 			publishedVersion: null,
 			publishedAt: null,
 			hasUnpublishedChanges: false,
+			themeId: "standard",
 			questionCount: 0,
 			createdAt: quiz.createdAt,
 			updatedAt: quiz.updatedAt,

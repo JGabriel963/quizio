@@ -1,6 +1,11 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
 import {
+	DEFAULT_THEME_ID,
+	isThemeId,
+	type ThemeId,
+} from "../../shared/domain/theme";
+import {
 	duplicateQuizTitle,
 	parseQuizDescription,
 	parseQuizTitle,
@@ -35,6 +40,11 @@ export interface Quiz {
 	 * data, kept on the quiz so listings need no question content.
 	 */
 	hasUnpublishedChanges: boolean;
+	/**
+	 * The look of the editor and of the games made from it (spec 042). Not
+	 * part of the playable version: saved when chosen, like the visibility.
+	 */
+	themeId: ThemeId;
 	createdAt: Date;
 	updatedAt: Date;
 	trashedAt: Date | null;
@@ -65,6 +75,18 @@ export class QuizNotPublishedError extends DomainError {
 	readonly code = "QUIZ.NOT_PUBLISHED";
 }
 
+export class UnknownThemeError extends DomainError {
+	readonly code = "QUIZ.UNKNOWN_THEME";
+}
+
+/** Only themes of the catalog are chosen (spec 042, RN-05). */
+export function parseThemeId(value: string): ThemeId {
+	if (!isThemeId(value)) {
+		throw new UnknownThemeError(`Unknown theme: ${value}`);
+	}
+	return value;
+}
+
 export function newQuiz(input: {
 	id: string;
 	ownerId: string;
@@ -83,6 +105,7 @@ export function newQuiz(input: {
 		publishedVersion: null,
 		publishedAt: null,
 		hasUnpublishedChanges: false,
+		themeId: DEFAULT_THEME_ID,
 		createdAt: input.now,
 		updatedAt: input.now,
 		trashedAt: null,
@@ -222,18 +245,22 @@ export function copyQuiz(
 	},
 ): Quiz {
 	assertQuizEditable(source);
-	return newQuiz({
-		id: copy.id,
-		// The owner's own copy, or a group member's (spec 037, RN-21).
-		ownerId: copy.ownerId,
-		details: {
-			title: duplicateQuizTitle(source.title),
-			description: source.description,
-			visibility: copy.visibility ?? source.visibility,
-		},
-		coverImageKey: copy.coverImageKey,
-		now: copy.now,
-	});
+	return {
+		...newQuiz({
+			id: copy.id,
+			// The owner's own copy, or a group member's (spec 037, RN-21).
+			ownerId: copy.ownerId,
+			details: {
+				title: duplicateQuizTitle(source.title),
+				description: source.description,
+				visibility: copy.visibility ?? source.visibility,
+			},
+			coverImageKey: copy.coverImageKey,
+			now: copy.now,
+		}),
+		// Every copy keeps the look (spec 042, RN-08).
+		themeId: source.themeId,
+	};
 }
 
 /** Missing and foreign quizzes are indistinguishable to the caller (RN-10). */

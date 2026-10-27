@@ -48,6 +48,30 @@ describe("hostGame (spec 008)", () => {
 		});
 	});
 
+	it("the game takes the quiz's theme (spec 042, RN-10)", async () => {
+		const deps = createGameDeps({
+			quizzes: [aPlayableQuiz({ themeId: "teal" })],
+		});
+
+		const { gameId } = await createHostGame(deps)(host);
+
+		expect((await deps.games.findById(gameId))?.themeId).toBe("teal");
+	});
+
+	it("changing the quiz's theme does not change an open game, and the next game takes the new theme (RN-11)", async () => {
+		const deps = createGameDeps({
+			quizzes: [aPlayableQuiz({ themeId: "purple" })],
+		});
+		const hostGame = createHostGame(deps);
+		const first = await hostGame(host);
+
+		deps.quizzes[0] = aPlayableQuiz({ themeId: "beige" });
+
+		expect((await deps.games.findById(first.gameId))?.themeId).toBe("purple");
+		const next = await hostGame(host);
+		expect((await deps.games.findById(next.gameId))?.themeId).toBe("beige");
+	});
+
 	it("refuses a draft", async () => {
 		const deps = createGameDeps({
 			quizzes: [aPlayableQuiz({ version: null })],

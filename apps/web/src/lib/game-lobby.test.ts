@@ -7,6 +7,7 @@ const koala = { character: "koala", accessory: null } as const;
 const fox = { character: "fox", accessory: "crown" } as const;
 
 const lobby: HostGameData = {
+	themeId: "standard",
 	gameId: "game-1",
 	quizId: "quiz-1",
 	title: "Capitais",

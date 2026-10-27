@@ -2,6 +2,7 @@ import { type Avatar, knownAvatar } from "@quizio/core/game/domain/avatar";
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
 import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import type { PublicStage } from "@quizio/core/game/domain/public-stage";
+import type { ThemeId } from "@quizio/core/shared/domain/theme";
 import { InMemoryRealtimeSubscriber } from "@quizio/realtime/testing/in-memory-realtime-subscriber";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -79,6 +80,8 @@ class FakeJoinApi implements JoinApi {
 	readonly assignments = new Map<string, string>();
 	/** "Personagens dos jogadores" (spec 028). */
 	charactersOn = true;
+	/** The game's theme (spec 042). */
+	themeId: ThemeId = "standard";
 	/** What a change of avatar ends in, when it fails. */
 	avatarRefusal: Error | null = null;
 	/** The avatars each `enter` was sent. */
@@ -88,7 +91,12 @@ class FakeJoinApi implements JoinApi {
 		this.finds.push(pin);
 		const assignment = this.assignments.get(pin);
 		if (assignment) {
-			return { gameId: assignment, pin, mode: "assignment" as const };
+			return {
+				gameId: assignment,
+				pin,
+				mode: "assignment" as const,
+				themeId: this.themeId,
+			};
 		}
 		if (this.blocked) {
 			throw refusal("GAME.TOO_MANY_PIN_ATTEMPTS");
@@ -99,7 +107,12 @@ class FakeJoinApi implements JoinApi {
 		if (this.locked) {
 			throw refusal("GAME.LOCKED");
 		}
-		return { gameId: GAME, pin, mode: "live" as const };
+		return {
+			gameId: GAME,
+			pin,
+			mode: "live" as const,
+			themeId: this.themeId,
+		};
 	}
 
 	async enter({
@@ -181,6 +194,7 @@ class FakeJoinApi implements JoinApi {
 			stage !== null && stage.questionIndex < player.firstQuestionIndex;
 		return {
 			gameId: GAME,
+			themeId: this.themeId,
 			nickname: player.nickname,
 			avatar: this.charactersOn ? player.avatar : null,
 			canChangeAvatar:
@@ -440,6 +454,32 @@ describe("JoinFlow: the join link (spec 008)", () => {
 			screen.getByRole("textbox", { name: "Apelido" }),
 		).toBeInTheDocument();
 		expect(flow.api.finds).toEqual([PIN]);
+	});
+});
+
+describe("JoinFlow: the theme (spec 042, RN-14)", () => {
+	const shownTheme = () =>
+		document
+			.querySelector('[data-slot="game-screen"]')
+			?.getAttribute("data-theme");
+
+	it("the PIN screen is standard and the nickname and waiting screens have the game's theme", async () => {
+		const api = new FakeJoinApi();
+		api.themeId = "light-blue";
+		const flow = renderFlow({ api });
+
+		expect(shownTheme()).toBe("standard");
+		await flow.user.type(pinField(), PIN);
+		await flow.user.click(screen.getByRole("button", { name: "Entrar" }));
+		await screen.findByRole("textbox", { name: "Apelido" });
+		expect(shownTheme()).toBe("light-blue");
+
+		await flow.user.type(nicknameField(), "ACT");
+		await flow.user.click(
+			screen.getByRole("button", { name: "Ok, vamos lá!" }),
+		);
+		await screen.findByRole("heading", { name: "ACT" });
+		expect(shownTheme()).toBe("light-blue");
 	});
 });
 

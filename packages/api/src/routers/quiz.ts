@@ -135,6 +135,19 @@ export const quizRouter = router({
 			}),
 		),
 
+	/**
+	 * "Temas" in the editor (spec 042). Any string: an id outside the catalog
+	 * reaches the core and comes back as QUIZ.UNKNOWN_THEME.
+	 */
+	setTheme: protectedProcedure
+		.input(quizReference.extend({ themeId: z.string().max(64) }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.setQuizTheme({
+				ownerId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
 	duplicateShared: protectedProcedure
 		.input(quizReference)
 		.mutation(({ ctx, input }) =>

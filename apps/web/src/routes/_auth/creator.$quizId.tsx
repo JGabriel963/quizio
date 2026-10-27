@@ -130,6 +130,7 @@ function Creator({ quizId }: { quizId: string }) {
 			{assigning.dialog}
 			<OpeningGame
 				state={hosting.state}
+				themeId={editor.data?.quiz.themeId}
 				onRetry={() => hosting.start()}
 				onCancel={hosting.cancel}
 			/>

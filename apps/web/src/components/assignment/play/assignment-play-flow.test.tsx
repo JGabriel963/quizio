@@ -22,6 +22,7 @@ const cover: AssignmentCoverData = {
 	participants: [],
 	coverUrl: null,
 	questionCount: 2,
+	themeId: "standard",
 };
 
 const question = (index: number, text: string) => ({
@@ -62,6 +63,7 @@ const me = (total: number) => ({
 
 function viewWith(screen: AssignmentPlayData["screen"]): AssignmentPlayData {
 	return {
+		themeId: "standard",
 		nickname: "John",
 		avatar: null,
 		questionCount: 2,
@@ -143,6 +145,36 @@ function renderFlow(api: AssignmentPlayApi, store = memoryStore()) {
 	);
 	return { onLeave, store, user: userEvent.setup() };
 }
+
+describe("AssignmentPlayFlow theme (spec 042, RN-15)", () => {
+	const shownThemes = () =>
+		[...document.querySelectorAll('[data-slot="game-screen"]')].map((node) =>
+			node.getAttribute("data-theme"),
+		);
+
+	it("the cover and the game use the assignment's theme", async () => {
+		const api = fakeApi({
+			cover: vi.fn(async () => ({ ...cover, themeId: "lilac" as const })),
+			play: vi.fn(async () => ({
+				...viewWith({ phase: "ready" }),
+				themeId: "lilac" as const,
+			})),
+		});
+		const { user } = renderFlow(api);
+
+		await screen.findByRole("button", { name: "Iniciar" });
+		expect(shownThemes()).toEqual(["lilac"]);
+		await user.click(screen.getByRole("button", { name: "Iniciar" }));
+		await user.type(
+			screen.getByRole("textbox", { name: "Insira um apelido" }),
+			"John",
+		);
+		await user.click(screen.getByRole("button", { name: "Ok, vamos lá!" }));
+
+		await screen.findByRole("button", { name: /Começar|Iniciar|Pronto/ });
+		expect(new Set(shownThemes())).toEqual(new Set(["lilac"]));
+	});
+});
 
 describe("AssignmentPlayFlow (spec 030)", () => {
 	afterEach(() => {

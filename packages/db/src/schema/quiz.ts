@@ -54,6 +54,11 @@ export const quiz = pgTable(
 		hasUnpublishedChanges: boolean("has_unpublished_changes")
 			.notNull()
 			.default(false),
+		/**
+		 * A theme id of the catalog (spec 042). Text, not an enum: themes come and
+		 * go without a migration, and an id that left reads as the default.
+		 */
+		themeId: text("theme_id").notNull().default("standard"),
 		/** Normalized display title (accents and case removed) for library search. */
 		searchTitle: text("search_title").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),

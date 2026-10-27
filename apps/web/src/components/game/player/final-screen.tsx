@@ -52,7 +52,7 @@ export function FinalScreen({
 			<Centered key="final">
 				<p
 					data-slot="quiz-title"
-					className="max-w-full break-words rounded-md bg-black/40 px-4 py-1.5 font-bold"
+					className="max-w-full break-words rounded-md bg-game-chip px-4 py-1.5 font-bold text-game-chip-fg"
 				>
 					{final.title}
 				</p>

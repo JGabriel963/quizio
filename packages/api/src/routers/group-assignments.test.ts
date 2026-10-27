@@ -50,6 +50,27 @@ async function setup() {
 	return { api, ana, bruno, groupId };
 }
 
+describe("assignments in a group: theme (spec 042)", () => {
+	it("an assignment made in a group has the quiz's theme", async () => {
+		const { api, ana, groupId } = await setup();
+		const quiz = await api.quizzes.findById("quiz-1");
+		if (!quiz) {
+			throw new Error("The quiz should exist");
+		}
+		await api.quizzes.save({ ...quiz, themeId: "graphite" });
+
+		const { gameId } = await ana.group.assign({
+			groupId,
+			quizId: "quiz-1",
+			deadline: inDays(3),
+			options,
+			message: "",
+		});
+
+		expect((await api.games.findById(gameId))?.themeId).toBe("graphite");
+	});
+});
+
 describe("assignments in a group (spec 038)", () => {
 	it("group.assign creates the assignment and the post", async () => {
 		const { ana, bruno, groupId } = await setup();

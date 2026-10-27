@@ -1,6 +1,7 @@
 import type { Question } from "../../quiz/domain/question";
 import type { QuizVisibility } from "../../quiz/domain/quiz-details";
 import { normalizeSearchText } from "../../shared/domain/search-text";
+import type { ThemeId } from "../../shared/domain/theme";
 import type {
 	SharedQuizCard,
 	SharedQuizDetail,
@@ -24,6 +25,7 @@ export interface FakeSharedQuizSource {
 	questions: Question[];
 	games: number;
 	participants: number;
+	themeId: ThemeId;
 }
 
 const bySharedAt = (a: SharedQuiz, b: SharedQuiz) =>
@@ -54,6 +56,7 @@ export class InMemorySharedQuizReads implements SharedQuizReads {
 			questions: [],
 			games: 0,
 			participants: 0,
+			themeId: "standard",
 			...quiz,
 		});
 	}
@@ -134,6 +137,7 @@ export class InMemorySharedQuizReads implements SharedQuizReads {
 			sharedByName: this.store.userName(share.sharedById),
 			participants: quiz.participants,
 			questions: quiz.questions,
+			themeId: quiz.themeId,
 		};
 	}
 

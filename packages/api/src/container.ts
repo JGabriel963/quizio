@@ -447,6 +447,10 @@ import {
 	type RestoreQuiz,
 } from "@quizio/core/quiz/application/restore-quiz";
 import {
+	createSetQuizTheme,
+	type SetQuizTheme,
+} from "@quizio/core/quiz/application/set-quiz-theme";
+import {
 	createSetQuizVisibility,
 	type SetQuizVisibility,
 } from "@quizio/core/quiz/application/set-quiz-visibility";
@@ -693,6 +697,7 @@ export interface Container extends Adapters {
 		getCreatorProfile: GetCreatorProfile;
 		getPublicQuiz: GetPublicQuiz;
 		setQuizVisibility: SetQuizVisibility;
+		setQuizTheme: SetQuizTheme;
 		getGroupPost: GetGroupPost;
 		getInboxSummary: GetInboxSummary;
 		listNotifications: ListNotifications;
@@ -924,6 +929,7 @@ export function createContainer(baseAdapters: Adapters): Container {
 			getCreatorProfile: createGetCreatorProfile(adapters),
 			getPublicQuiz: createGetPublicQuiz(adapters),
 			setQuizVisibility: createSetQuizVisibility(adapters),
+			setQuizTheme: createSetQuizTheme(adapters),
 			getGroupPost: createGetGroupPost(groupDeps),
 			getInboxSummary: createGetInboxSummary(adapters),
 			listNotifications: createListNotifications(adapters),

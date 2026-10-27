@@ -61,6 +61,15 @@ describe("duplicateQuiz", () => {
 		});
 	});
 
+	it("the copy has the source's theme (spec 042, RN-08)", async () => {
+		await quizzes.save(aQuiz({ themeId: "lilac" }));
+
+		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(copy.themeId).toBe("lilac");
+		expect((await quizzes.findById(copy.id))?.themeId).toBe("lilac");
+	});
+
 	it("copies quizzes without a cover without touching storage", async () => {
 		await quizzes.save(aQuiz());
 

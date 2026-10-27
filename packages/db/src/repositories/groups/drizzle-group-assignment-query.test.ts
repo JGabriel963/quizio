@@ -29,6 +29,7 @@ const anAssignment = (id: string, pin: string) =>
 		deadline,
 		options: DEFAULT_ASSIGNMENT_OPTIONS,
 		questionCount: 5,
+		themeId: "standard",
 		now,
 	});
 

@@ -17,6 +17,7 @@ function renderMenu(
 		onChange: vi.fn(),
 		onChangeType: vi.fn(),
 		onApplyTimeLimitToAll: vi.fn(),
+		onOpenThemes: vi.fn(),
 	};
 	render(
 		<QuestionPropertiesMenu
@@ -37,6 +38,16 @@ async function openItem(user: UserEvent, item: string) {
 
 const dialog = (name: string) => screen.findByRole("dialog", { name });
 
+describe("QuestionPropertiesMenu: Temas (spec 042, RN-28)", () => {
+	it("Temas asks for the themes panel", async () => {
+		const { handlers, user } = renderMenu();
+
+		await openItem(user, "Temas");
+
+		expect(handlers.onOpenThemes).toHaveBeenCalled();
+	});
+});
+
 describe("QuestionPropertiesMenu", () => {
 	it("lists the properties and the question's actions, as in Kahoot", async () => {
 		const { user } = renderMenu();
@@ -52,6 +63,8 @@ describe("QuestionPropertiesMenu", () => {
 			"Definir limite de tempo",
 			"Pontos",
 			"Opções de resposta",
+			// The quiz's themes, where there is no side rail (spec 042, RN-28).
+			"Temas",
 			"Duplicar",
 			"Excluir",
 		]);

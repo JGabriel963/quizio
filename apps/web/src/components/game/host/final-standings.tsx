@@ -41,7 +41,7 @@ export function FinalStandings({
 								"flex h-14 shrink-0 items-center gap-4 rounded-md px-4 font-black text-xl shadow-lg sm:text-2xl",
 								standing.rank === 1
 									? "bg-white text-neutral-900"
-									: "bg-brand-strong text-white",
+									: "bg-game-accent text-game-accent-fg",
 							)}
 						>
 							<span data-slot="standing-rank" className="w-12 shrink-0">

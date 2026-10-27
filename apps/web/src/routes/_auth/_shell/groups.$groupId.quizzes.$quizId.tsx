@@ -117,6 +117,7 @@ function SharedQuizRoute() {
 			{assigning.dialog}
 			<OpeningGame
 				state={hosting.state}
+				themeId={quiz.data?.themeId}
 				onRetry={() => hosting.start()}
 				onCancel={hosting.cancel}
 			/>

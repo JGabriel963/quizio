@@ -33,6 +33,7 @@ async function setup() {
 		questions,
 		games: 2,
 		participants: 10,
+		themeId: "red",
 	});
 	await createShareQuizzesInGroup(t.deps)({
 		userId: "ana",
@@ -67,6 +68,8 @@ describe("getSharedQuiz (spec 037, RN-16)", () => {
 			imageUrls: { "media/ana/q1.png": "https://media.test/media/ana/q1.png" },
 			ownedByViewer: false,
 			canUnshare: false,
+			// For the screen that opens a game from this page (spec 042, RN-13).
+			themeId: "red",
 		});
 		expect(
 			(await t.get({ userId: "ana", groupId: t.groupId, quizId: "capitais" }))

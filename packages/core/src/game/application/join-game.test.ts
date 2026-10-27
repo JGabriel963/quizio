@@ -42,6 +42,7 @@ describe("findGameByPin (spec 008)", () => {
 			gameId: "game-1",
 			pin: "265914",
 			mode: "live",
+			themeId: "standard",
 		});
 		expect(await find({ pin: "265 914", clientKey: "ip" })).toMatchObject({
 			gameId: "game-1",
@@ -324,6 +325,7 @@ describe("getPlayerSession (spec 008)", () => {
 
 		expect(await createGetPlayerSession(deps)(session)).toEqual({
 			gameId: "game-1",
+			themeId: "standard",
 			nickname: "ACT",
 			avatar: drawn,
 			canChangeAvatar: true,
@@ -378,6 +380,7 @@ describe("joining a game in progress (spec 012)", () => {
 			gameId: "game-1",
 			pin: "265914",
 			mode: "live",
+			themeId: "standard",
 		});
 	});
 

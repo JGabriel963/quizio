@@ -30,6 +30,7 @@ import {
 	DiffIcon,
 	EllipsisVerticalIcon,
 	ListChecksIcon,
+	PaletteIcon,
 	SquareCheckIcon,
 	Trash2Icon,
 	TrophyIcon,
@@ -67,6 +68,7 @@ export function QuestionPropertiesMenu({
 	onApplyTimeLimitToAll,
 	onDelete,
 	onDuplicate,
+	onOpenThemes,
 	className,
 }: {
 	question: QuestionData;
@@ -76,6 +78,8 @@ export function QuestionPropertiesMenu({
 	onApplyTimeLimitToAll: (seconds: QuestionData["timeLimitSeconds"]) => void;
 	onDelete: (questionId: string) => void;
 	onDuplicate: (questionId: string) => void;
+	/** The quiz's themes, here where there is no side rail (spec 042, RN-28). */
+	onOpenThemes?: () => void;
 	className?: string;
 }) {
 	const { deleteReason, growReason } = questionActionReasons(questionCount);
@@ -126,6 +130,12 @@ export function QuestionPropertiesMenu({
 						>
 							<DiffIcon />
 							Margem de resposta
+						</DropdownMenuItem>
+					)}
+					{onOpenThemes && (
+						<DropdownMenuItem onClick={onOpenThemes}>
+							<PaletteIcon />
+							Temas
 						</DropdownMenuItem>
 					)}
 					<DropdownMenuItem

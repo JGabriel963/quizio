@@ -4,6 +4,7 @@ import {
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { incompleteQuestions } from "@quizio/core/quiz/domain/question-issues";
+import type { ThemeId } from "@quizio/core/shared/domain/theme";
 import { useState } from "react";
 
 import type {
@@ -19,11 +20,13 @@ import {
 	publishStateOf,
 	selectionAfterRemoval,
 } from "@/lib/editor-cache";
+import { themeStyle } from "@/lib/theme-catalog";
 
 import { NewQuizDialog } from "./assistant/new-quiz-dialog";
 import { QuizAssistant } from "./assistant/quiz-assistant";
 import { DeleteQuestionDialog } from "./delete-question-dialog";
 import { EditorHeader, type ExitDestination } from "./editor-header";
+import { type EditorPanel, EditorSideRail } from "./editor-side-rail";
 import {
 	type FinishingTouches,
 	FinishingTouchesDialog,
@@ -36,6 +39,8 @@ import { type ImageUploadState, NO_UPLOAD } from "./question-media";
 import { QuestionPropertiesMenu } from "./question-properties-menu";
 import { QuestionPropertiesPanel } from "./question-properties-panel";
 import { QuizReadyDialog } from "./quiz-ready-dialog";
+import { ThemesPanel } from "./themes-panel";
+import { ThemesSheet } from "./themes-sheet";
 import { UnsavedChangesDialog } from "./unsaved-changes-dialog";
 
 export const PUBLISHED_QUIZ_NEEDS_TITLE = "Um quiz publicado precisa de título";
@@ -94,6 +99,11 @@ export interface EditorActions {
 	) => Promise<string | null>;
 	moveQuestion: (questionId: string, toIndex: number) => void;
 	deleteQuestion: (questionId: string) => void;
+	/**
+	 * "Temas" (spec 042): resolves whether it was saved. The cache gets the
+	 * theme only then; a failure stays in the header to try again (RN-26).
+	 */
+	setTheme: (themeId: ThemeId) => Promise<boolean>;
 }
 
 /** The creation assistant, when the instance has one (spec 027, RN-01). */
@@ -166,6 +176,23 @@ export function QuizEditor({
 	const [uploads, setUploads] = useState<Record<string, ImageUploadState>>({});
 	// Bumped to reload the header's title field from the saved title.
 	const [titleReset, setTitleReset] = useState(0);
+	// The side panel on wide screens; Propriedades first (spec 042, RN-22).
+	const [openPanel, setOpenPanel] = useState<EditorPanel | null>("properties");
+	// "Temas" in the ⋮ of compact screens (RN-28).
+	const [themesSheetOpen, setThemesSheetOpen] = useState(false);
+	// The theme being saved shows at once and goes back if the save fails (RN-26).
+	const [pendingTheme, setPendingTheme] = useState<ThemeId | null>(null);
+	const shownTheme = pendingTheme ?? data.quiz.themeId;
+	const chooseTheme = async (themeId: ThemeId) => {
+		setPendingTheme(themeId);
+		await actions.setTheme(themeId);
+		setPendingTheme((current) => (current === themeId ? null : current));
+	};
+	const themesPanelProps = {
+		themeId: shownTheme,
+		savingId: pendingTheme,
+		onSelect: (themeId: ThemeId) => void chooseTheme(themeId),
+	};
 	// A question removed elsewhere (or not in the cache yet) falls back to the first.
 	const selected =
 		questions.find((question) => question.id === selectedId) ?? questions[0];
@@ -310,7 +337,8 @@ export function QuizEditor({
 		selected.image?.placement === "background" ? selectedImageUrl : null;
 
 	return (
-		<div className="flex h-svh flex-col">
+		// Full screen: only the list, the question and the panels scroll.
+		<div className="flex h-svh flex-col overflow-hidden">
 			<EditorHeader
 				key={`${titleRevision}:${titleReset}`}
 				title={data.quiz.title}
@@ -342,7 +370,14 @@ export function QuizEditor({
 					/>
 				</aside>
 
-				<div className="relative min-h-0 min-w-0 flex-1 bg-linear-to-b from-brand to-brand-strong">
+				{/* The quiz's theme behind the question (spec 042, RN-29). Its text
+				    color is not inherited: the fields are white cards. */}
+				<div
+					data-slot="editor-canvas"
+					data-theme={shownTheme}
+					style={themeStyle(shownTheme)}
+					className="bg-(image:--game-bg-image) relative min-h-0 min-w-0 flex-1 bg-(--game-base) bg-center bg-cover"
+				>
 					{/* As a background the image covers the whole question (spec 007, RN-23). */}
 					{backgroundUrl && (
 						<img
@@ -388,6 +423,7 @@ export function QuizEditor({
 								<QuestionPropertiesMenu
 									className="lg:hidden"
 									{...propertiesProps}
+									onOpenThemes={() => setThemesSheetOpen(true)}
 								/>
 							}
 						/>
@@ -395,13 +431,35 @@ export function QuizEditor({
 				</div>
 
 				{/* On compact screens the ⋮ beside the question text holds these. */}
-				<aside
-					aria-label="Propriedades"
-					className="hidden w-72 shrink-0 overflow-y-auto border-border border-l bg-card lg:block"
-				>
-					<QuestionPropertiesPanel {...propertiesProps} />
-				</aside>
+				{openPanel && (
+					<aside
+						aria-label={openPanel === "themes" ? "Temas" : "Propriedades"}
+						className="hidden w-72 shrink-0 overflow-y-auto border-border border-l bg-card lg:block"
+					>
+						{openPanel === "themes" ? (
+							<ThemesPanel
+								{...themesPanelProps}
+								onClose={() => setOpenPanel(null)}
+							/>
+						) : (
+							<QuestionPropertiesPanel
+								{...propertiesProps}
+								onClose={() => setOpenPanel(null)}
+							/>
+						)}
+					</aside>
+				)}
+				<EditorSideRail
+					open={openPanel}
+					onOpen={setOpenPanel}
+					className="hidden border-border border-l bg-card lg:flex"
+				/>
 			</div>
+			<ThemesSheet
+				open={themesSheetOpen}
+				onOpenChange={setThemesSheetOpen}
+				{...themesPanelProps}
+			/>
 			<DeleteQuestionDialog
 				position={deletingIndex === -1 ? null : deletingIndex + 1}
 				onCancel={() => setDeletingId(null)}
