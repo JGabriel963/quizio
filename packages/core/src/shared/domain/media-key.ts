@@ -46,6 +46,34 @@ export function isGroupFileKeyOf(key: string, groupId: string): boolean {
 	return isFileDirectlyUnder(key, `${GROUPS_ROOT}/${groupId}/`);
 }
 
+/** A creator's profile photo (spec 039, ADR 0019): cropped in the browser. */
+const PROFILES_ROOT = "profiles";
+
+export function profilePhotoKeyFor(
+	userId: string,
+	id: string,
+	extension: string,
+): string {
+	return `${PROFILES_ROOT}/${userId}/${id}.${extension}`;
+}
+
+export function isProfilePhotoKeyOwnedBy(key: string, userId: string): boolean {
+	return isFileDirectlyUnder(key, profilePhotoPrefixOf(userId));
+}
+
+/** Everything a user keeps in storage, by prefix, for deleting the account. */
+export function profilePhotoPrefixOf(userId: string): string {
+	return `${PROFILES_ROOT}/${userId}/`;
+}
+
+export function mediaPrefixOf(ownerId: string): string {
+	return `${MEDIA_ROOT}/${ownerId}/`;
+}
+
+export function sourcesPrefixOf(ownerId: string): string {
+	return `${SOURCES_ROOT}/${ownerId}/`;
+}
+
 function isFileDirectlyUnder(key: string, prefix: string): boolean {
 	if (!key.startsWith(prefix)) {
 		return false;

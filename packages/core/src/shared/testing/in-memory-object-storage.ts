@@ -46,6 +46,14 @@ export class InMemoryObjectStorage implements ObjectStorage {
 		this.#objects.set(destinationKey, new Uint8Array(bytes));
 	}
 
+	async deletePrefix(prefix: string): Promise<void> {
+		for (const key of [...this.#objects.keys()]) {
+			if (key.startsWith(prefix)) {
+				this.#objects.delete(key);
+			}
+		}
+	}
+
 	/** Test helper: every stored key, sorted. */
 	keys(): string[] {
 		return [...this.#objects.keys()].sort();

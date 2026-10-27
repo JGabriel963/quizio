@@ -4,6 +4,7 @@ import type { ObjectStorage } from "../../shared/application/ports/object-storag
 import { mediaKeyExtension, mediaKeyFor } from "../../shared/domain/media-key";
 import { blankQuestion, copyQuestion, type Question } from "../domain/question";
 import { copyQuiz, type Quiz } from "../domain/quiz";
+import type { QuizVisibility } from "../domain/quiz-details";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
 import { imageKeysOf } from "./question-images";
@@ -27,6 +28,7 @@ export async function copyQuizContent(
 	source: Quiz,
 	sourceQuestions: readonly Question[],
 	ownerId: string,
+	visibility?: QuizVisibility,
 ): Promise<QuizDetailsView> {
 	const id = deps.ids.generate();
 	let coverImageKey: string | null = null;
@@ -78,6 +80,7 @@ export async function copyQuizContent(
 		ownerId,
 		coverImageKey,
 		now: deps.clock.now(),
+		visibility,
 	});
 	await deps.quizzes.save(copy);
 	await deps.questions.saveList(copy.id, copiedQuestions);

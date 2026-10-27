@@ -1,5 +1,10 @@
+import {
+	loadPhotoUrls,
+	type PersonView,
+} from "../../shared/application/person-view";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ProfilePhotoKeys } from "../../shared/application/ports/profile-photo-keys";
 import {
 	attachmentOf,
 	type GroupAssignmentRecord,
@@ -45,7 +50,7 @@ export interface GroupPostView {
 	kind: GroupPostKind;
 	/** What the header says was shared (spec 036, RN-17). */
 	headline: GroupPostHeadline;
-	author: { userId: string; name: string };
+	author: PersonView;
 	createdAt: Date;
 	message: string | null;
 	/** The assignment, also once its card is gone ("Ver relatório"). */
@@ -71,6 +76,7 @@ export interface GroupPostViewDeps {
 	groupAssignmentQuery: GroupAssignmentQuery;
 	sharedQuizReads: SharedQuizReads;
 	storage: ObjectStorage;
+	profilePhotos: ProfilePhotoKeys;
 	clock: Clock;
 }
 
@@ -100,6 +106,13 @@ export async function postViewsOf(
 			card,
 		]),
 	);
+	const photoUrlOf = await loadPhotoUrls(
+		[
+			...posts.map((post) => post.authorId),
+			...[...quizzes.values()].map((card) => card.ownerId),
+		],
+		deps,
+	);
 	const now = deps.clock.now();
 	return posts.map((post) => {
 		const record = post.gameId ? (records.get(post.gameId) ?? null) : null;
@@ -115,7 +128,11 @@ export async function postViewsOf(
 				post,
 				post.kind === "quizShare" ? quizCard !== null : attachment !== null,
 			),
-			author: { userId: post.authorId, name: post.authorName },
+			author: {
+				userId: post.authorId,
+				name: post.authorName,
+				photoUrl: photoUrlOf(post.authorId),
+			},
 			createdAt: post.createdAt,
 			message: post.message,
 			gameId: post.gameId,
@@ -137,7 +154,9 @@ export async function postViewsOf(
 				name: post.file.name,
 				sizeBytes: post.file.sizeBytes,
 			},
-			quiz: quizCard && sharedQuizCardViewOf(quizCard, deps.storage, viewer),
+			quiz:
+				quizCard &&
+				sharedQuizCardViewOf(quizCard, deps.storage, viewer, photoUrlOf),
 			canSeeReport: manages && record !== null,
 			canDelete: manages,
 		};

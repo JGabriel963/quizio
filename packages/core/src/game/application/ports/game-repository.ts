@@ -80,4 +80,6 @@ export interface GameRepository {
 	 * quiz is deleted for good.
 	 */
 	deleteUnstartedByQuiz(quizId: string): Promise<void>;
+	/** The open games and assignments a user hosts, to end them with the account (spec 039). */
+	listUnendedByOwner(ownerId: string): Promise<Game[]>;
 }

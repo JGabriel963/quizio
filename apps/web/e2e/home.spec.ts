@@ -75,14 +75,13 @@ test("creating from the top bar opens the editor and puts the quiz on top of the
 test.describe("tela larga", () => {
 	test.use({ viewport: { width: 1280, height: 800 } });
 
-	test("areas that are not built yet are visible but not reachable", async ({
+	test("the main navigation has no Descobrir and its areas open (spec 039, RN-43)", async ({
 		page,
 	}) => {
 		await signUp(page);
 
 		const nav = page.getByRole("navigation", { name: "Navegação principal" });
-		await expect(nav.getByText("Descobrir")).toBeVisible();
-		await expect(nav.getByRole("link", { name: "Descobrir" })).toHaveCount(0);
+		await expect(nav.getByText("Descobrir")).toHaveCount(0);
 		await expect(page).toHaveURL(/\/$/);
 
 		// Relatórios is built (spec 015, RN-22): it opens its area.

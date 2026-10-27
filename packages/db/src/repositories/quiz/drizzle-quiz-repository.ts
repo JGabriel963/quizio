@@ -33,6 +33,21 @@ export function createDrizzleQuizRepository(db: Database): QuizRepository {
 				.where(eq(quizTable.id, id));
 		},
 
+		async saveVisibility(id, { visibility, updatedAt }) {
+			await db
+				.update(quizTable)
+				.set({ visibility, updatedAt })
+				.where(eq(quizTable.id, id));
+		},
+
+		async listIdsByOwner(ownerId) {
+			const rows = await db
+				.select({ id: quizTable.id })
+				.from(quizTable)
+				.where(eq(quizTable.ownerId, ownerId));
+			return rows.map((row) => row.id);
+		},
+
 		async delete(id) {
 			await db.delete(quizTable).where(eq(quizTable.id, id));
 		},
@@ -43,5 +58,9 @@ function toQuiz({
 	searchTitle: _searchTitle,
 	...quiz
 }: typeof quizTable.$inferSelect): Quiz {
-	return quiz;
+	// A row still "public" (spec 001) reads as private (spec 039, RN-25).
+	return {
+		...quiz,
+		visibility: quiz.visibility === "public" ? "public" : "private",
+	};
 }

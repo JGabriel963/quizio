@@ -35,7 +35,7 @@ describe("group posts (spec 036)", () => {
 		expect(posts).toEqual([
 			expect.objectContaining({
 				headline: "message",
-				author: { userId: "bruno", name: "Bruno" },
+				author: { userId: "bruno", name: "Bruno", photoUrl: null },
 				message: "Prova na sexta",
 				file: null,
 				canDelete: true,

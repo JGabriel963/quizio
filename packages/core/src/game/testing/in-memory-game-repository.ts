@@ -31,6 +31,12 @@ export class InMemoryGameRepository implements GameRepository {
 		);
 	}
 
+	async listUnendedByOwner(ownerId: string): Promise<Game[]> {
+		return this.all().filter(
+			(game) => game.ownerId === ownerId && game.endedAt === null,
+		);
+	}
+
 	async findLatestAssignmentByPin(pin: string): Promise<Game | null> {
 		const assignments = this.all()
 			.filter((game) => game.mode === "assignment" && game.pin === pin)

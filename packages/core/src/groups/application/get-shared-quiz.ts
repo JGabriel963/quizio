@@ -1,5 +1,11 @@
 import type { Question } from "../../quiz/domain/question";
+import type { QuizVisibility } from "../../quiz/domain/quiz-details";
+import {
+	loadPhotoUrls,
+	type PersonView,
+} from "../../shared/application/person-view";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ProfilePhotoKeys } from "../../shared/application/ports/profile-photo-keys";
 import { SharedQuizNotFoundError } from "../domain/group-errors";
 import { canUnshare } from "../domain/group-permissions";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
@@ -11,9 +17,9 @@ export interface SharedQuizView {
 	title: string;
 	description: string;
 	coverUrl: string | null;
-	visibility: "private" | "unlisted";
-	owner: { userId: string; name: string };
-	sharedBy: { userId: string; name: string };
+	visibility: QuizVisibility;
+	owner: PersonView;
+	sharedBy: PersonView;
 	sharedAt: Date;
 	/** "N jogos" and "N participantes", of any host. */
 	games: number;
@@ -40,6 +46,7 @@ export function createGetSharedQuiz(
 	deps: GroupStoreDeps & {
 		sharedQuizReads: SharedQuizReads;
 		storage: ObjectStorage;
+		profilePhotos: ProfilePhotoKeys;
 	},
 ): GetSharedQuiz {
 	return async ({ quizId, ...input }) => {
@@ -52,6 +59,10 @@ export function createGetSharedQuiz(
 		if (!detail) {
 			throw new SharedQuizNotFoundError();
 		}
+		const photoUrlOf = await loadPhotoUrls(
+			[detail.ownerId, detail.sharedById],
+			deps,
+		);
 		const imageUrls: Record<string, string> = {};
 		for (const question of detail.questions) {
 			if (question.image) {
@@ -68,8 +79,16 @@ export function createGetSharedQuiz(
 				? deps.storage.getPublicUrl(detail.coverImageKey)
 				: null,
 			visibility: detail.visibility,
-			owner: { userId: detail.ownerId, name: detail.ownerName },
-			sharedBy: { userId: detail.sharedById, name: detail.sharedByName },
+			owner: {
+				userId: detail.ownerId,
+				name: detail.ownerName,
+				photoUrl: photoUrlOf(detail.ownerId),
+			},
+			sharedBy: {
+				userId: detail.sharedById,
+				name: detail.sharedByName,
+				photoUrl: photoUrlOf(detail.sharedById),
+			},
 			sharedAt: detail.sharedAt,
 			games: detail.games,
 			participants: detail.participants,

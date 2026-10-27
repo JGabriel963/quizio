@@ -221,7 +221,15 @@ describe("group router (spec 034)", () => {
 		]);
 		expect(forMember).toEqual({
 			total: 2,
-			items: [{ userId: "bruno", name: "Bruno", email: null, role: "member" }],
+			items: [
+				{
+					userId: "bruno",
+					name: "Bruno",
+					email: null,
+					role: "member",
+					photoUrl: null,
+				},
+			],
 		});
 	});
 

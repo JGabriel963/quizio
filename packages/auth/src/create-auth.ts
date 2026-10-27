@@ -114,10 +114,16 @@ export function createAuth({
 			customRules: {
 				"/sign-in/email": SIGN_IN_RATE_LIMIT,
 				"/sign-up/email": SIGN_IN_RATE_LIMIT,
+				// A wrong current password counts as a wrong sign-in (spec 039, RN-23).
+				"/change-password": SIGN_IN_RATE_LIMIT,
 			},
 		},
 		hooks: {
 			before: createAuthMiddleware(async (ctx) => {
+				if (ctx.path === "/update-user" && ctx.body) {
+					checkUserUpdate(ctx.body);
+					return;
+				}
 				if (!EMAIL_CREDENTIAL_PATHS.has(ctx.path) || !ctx.body) {
 					return;
 				}
@@ -138,6 +144,25 @@ export function createAuth({
 }
 
 export type Auth = ReturnType<typeof createAuth>;
+
+/**
+ * "Alterar" the name in Seu perfil follows the sign-up rules (spec 039,
+ * RN-13). The photo is Quizio's own (ADR 0019): `user.image` is never set
+ * by the client and never read.
+ */
+function checkUserUpdate(body: Record<string, unknown>): void {
+	if (body.image !== undefined) {
+		throw new APIError("BAD_REQUEST", {
+			code: "IMAGE_NOT_ALLOWED",
+			message: "The profile photo is not changed here",
+		});
+	}
+	if (typeof body.name === "string") {
+		const name = normalizeCreatorName(body.name);
+		assertValidName(name);
+		body.name = name;
+	}
+}
 
 function assertValidName(name: string): void {
 	try {

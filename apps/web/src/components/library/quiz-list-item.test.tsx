@@ -31,6 +31,7 @@ function fakeActions(): QuizItemActions {
 		onMoveToTrash: vi.fn(),
 		onRestore: vi.fn(),
 		onDeletePermanently: vi.fn(),
+		onSetVisibility: vi.fn(),
 	};
 }
 
@@ -89,7 +90,12 @@ describe("QuizListItem", () => {
 			(await screen.findAllByRole("menuitem")).map((menuItem) =>
 				menuItem.textContent?.trim(),
 			),
-		).toEqual(["Editar dados", "Duplicar", "Mover para a lixeira"]);
+		).toEqual([
+			"Editar dados",
+			"Visibilidade",
+			"Duplicar",
+			"Mover para a lixeira",
+		]);
 		await user.click(screen.getByRole("menuitem", { name: "Duplicar" }));
 		expect(actions.onDuplicate).toHaveBeenCalledWith(item);
 	});
@@ -229,5 +235,35 @@ describe("QuizListItem: Atribuir and Organizar ao vivo (spec 029, RN-02)", () =>
 		await user.click(assign);
 
 		expect(actions.onAssign).toHaveBeenCalledWith(published);
+	});
+
+	it("Visibilidade submenu with Privado and Público, info texts, and the choice goes up (spec 039, RN-25a)", async () => {
+		const actions = fakeActions();
+		renderWithRouter(
+			<QuizListItem item={item} section="recent" now={now} actions={actions} />,
+		);
+
+		const user = await openActionsMenu("Bom de Bíblia (Junho)");
+		await user.click(
+			await screen.findByRole("menuitem", { name: "Visibilidade" }),
+		);
+
+		const privateOption = await screen.findByRole("menuitemradio", {
+			name: /Privado/,
+		});
+		const publicOption = screen.getByRole("menuitemradio", { name: /Público/ });
+		expect(privateOption).toHaveAttribute("aria-checked", "true");
+		expect(publicOption).toHaveAttribute("aria-checked", "false");
+		expect(
+			screen.getByRole("img", { name: "Visível apenas para você." }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("img", { name: "Visível para todos no seu perfil." }),
+		).toBeInTheDocument();
+
+		// Base UI turns the parent menu's pointer events off while the submenu is open.
+		await userEvent.setup({ pointerEventsCheck: 0 }).click(publicOption);
+
+		expect(actions.onSetVisibility).toHaveBeenCalledWith(item, "public");
 	});
 });

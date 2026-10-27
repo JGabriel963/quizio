@@ -217,6 +217,8 @@ export function copyQuiz(
 		ownerId: string;
 		coverImageKey: string | null;
 		now: Date;
+		/** Someone else's quiz is copied private (spec 039, RN-26). */
+		visibility?: QuizVisibility;
 	},
 ): Quiz {
 	assertQuizEditable(source);
@@ -227,7 +229,7 @@ export function copyQuiz(
 		details: {
 			title: duplicateQuizTitle(source.title),
 			description: source.description,
-			visibility: source.visibility,
+			visibility: copy.visibility ?? source.visibility,
 		},
 		coverImageKey: copy.coverImageKey,
 		now: copy.now,

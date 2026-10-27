@@ -248,4 +248,31 @@
 	html {
 		@apply font-sans;
 	}
+	/* Whatever acts on a click shows the hand. Tailwind v4 leaves the default
+	   cursor on buttons; a utility (cursor-grab, cursor-not-allowed) still wins,
+	   and disabled controls keep the arrow. */
+	button:not(:disabled),
+	[role="button"]:not([aria-disabled="true"]),
+	[role="tab"]:not([aria-disabled="true"]),
+	[role="radio"]:not([aria-disabled="true"], [data-disabled]),
+	[role="checkbox"]:not([aria-disabled="true"], [data-disabled]),
+	[role="switch"]:not([aria-disabled="true"], [data-disabled]),
+	[role="option"]:not([aria-disabled="true"], [data-disabled]),
+	[role="menuitem"]:not([aria-disabled="true"], [data-disabled]),
+	[role="menuitemradio"]:not([aria-disabled="true"], [data-disabled]),
+	[role="menuitemcheckbox"]:not([aria-disabled="true"], [data-disabled]),
+	select:not(:disabled),
+	summary,
+	input:is(
+		[type="checkbox"],
+		[type="radio"],
+		[type="range"],
+		[type="file"],
+		[type="color"]
+	):not(:disabled),
+	label:has(
+		> input:is([type="checkbox"], [type="radio"], [type="file"]):not(:disabled)
+	) {
+		cursor: pointer;
+	}
 }

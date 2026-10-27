@@ -22,4 +22,6 @@ export interface GroupUploadRepository {
 	takeExpiredUploads(before: Date, limit: number): Promise<string[]>;
 	/** The group's pending keys, to delete them with the group. */
 	uploadKeysOfGroup(groupId: string): Promise<string[]>;
+	/** The user's pending keys in any group (spec 039). */
+	uploadKeysOfUser(userId: string): Promise<string[]>;
 }

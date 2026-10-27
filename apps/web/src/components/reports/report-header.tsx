@@ -9,7 +9,13 @@ import {
 import { Input } from "@quizio/ui/components/input";
 import { TabNav, TabNavItem } from "@quizio/ui/components/tab-nav";
 import { Link } from "@tanstack/react-router";
-import { EllipsisVerticalIcon, PencilIcon, TrophyIcon } from "lucide-react";
+import {
+	EllipsisVerticalIcon,
+	FileTextIcon,
+	PencilIcon,
+	Trash2Icon,
+	TrophyIcon,
+} from "lucide-react";
 import { useId, useState } from "react";
 
 import type { ReportHeaderData } from "@/lib/api-types";
@@ -75,6 +81,7 @@ export function ReportHeader({
 												/>
 											}
 										>
+											<FileTextIcon />
 											Ver quiz
 										</DropdownMenuItem>
 									)}
@@ -82,6 +89,7 @@ export function ReportHeader({
 										// It is ended first (spec 029, RN-41).
 										<>
 											<DropdownMenuItem disabled>
+												<Trash2Icon />
 												Mover para a lixeira
 											</DropdownMenuItem>
 											<p className="max-w-60 px-2 pb-1.5 text-muted-foreground text-xs">
@@ -93,6 +101,7 @@ export function ReportHeader({
 											variant="destructive"
 											onClick={onMoveToTrash}
 										>
+											<Trash2Icon />
 											Mover para a lixeira
 										</DropdownMenuItem>
 									)}

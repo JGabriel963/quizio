@@ -42,9 +42,9 @@ describe("getGroup (spec 034)", () => {
 			createdAt: new Date("2026-10-26T12:00:00.000Z"),
 		});
 		expect(view.memberPreview).toEqual([
-			{ userId: "carla", name: "Carla" },
-			{ userId: "ana", name: "Ana" },
-			{ userId: "bruno", name: "Bruno" },
+			{ userId: "carla", name: "Carla", photoUrl: null },
+			{ userId: "ana", name: "Ana", photoUrl: null },
+			{ userId: "bruno", name: "Bruno", photoUrl: null },
 		]);
 	});
 

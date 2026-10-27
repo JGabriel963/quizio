@@ -3,7 +3,6 @@ import { cn } from "@quizio/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import {
 	ChartColumnIcon,
-	CompassIcon,
 	HouseIcon,
 	LibraryBigIcon,
 	type LucideIcon,
@@ -39,7 +38,6 @@ export const MAIN_NAV_ITEMS: readonly MainNavItem[] = [
 		to: "/reports",
 		search: { section: "reports" },
 	},
-	{ label: "Descobrir", icon: CompassIcon, comingSoon: true },
 	{
 		label: "Grupos",
 		icon: UsersIcon,

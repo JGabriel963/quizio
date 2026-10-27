@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 
-import { UserAvatar } from "@/components/groups/user-avatar";
+import { UserAvatar } from "@/components/account/user-avatar";
 import type { QuizDetailsData, ReportListItemData } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
@@ -81,7 +81,7 @@ export function QuizDetailsView({
 }: {
 	quiz: QuizDetailsData;
 	actions: QuizDetailsActions;
-	owner?: { userId: string; name: string };
+	owner?: { userId: string; name: string; photoUrl?: string | null };
 	/** Undefined while it loads. */
 	preview?: QuizPreviewData;
 	activity?: QuizActivityData;
@@ -108,7 +108,11 @@ export function QuizDetailsView({
 				<p className="flex min-w-0 items-center gap-2 font-semibold text-sm">
 					{owner && (
 						<>
-							<UserAvatar userId={owner.userId} size="md" />
+							<UserAvatar
+								userId={owner.userId}
+								photoUrl={owner.photoUrl}
+								size="md"
+							/>
 							<span className="truncate">{owner.name}</span>
 						</>
 					)}

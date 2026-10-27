@@ -270,13 +270,47 @@ import {
 	type VisitGroup,
 } from "@quizio/core/groups/application/visit-group";
 import {
+	createDeleteAccount,
+	type DeleteAccount,
+} from "@quizio/core/identity/application/delete-account";
+import {
+	createGetAccount,
+	type GetAccount,
+} from "@quizio/core/identity/application/get-account";
+import type { AccountClosure } from "@quizio/core/identity/application/ports/account-closure";
+import type { AccountCredentials } from "@quizio/core/identity/application/ports/account-credentials";
+import type { AccountDeletionFeedbackRepository } from "@quizio/core/identity/application/ports/account-deletion-feedback-repository";
+import type { AccountRepository } from "@quizio/core/identity/application/ports/account-repository";
+import type { ProfilePhotoRepository } from "@quizio/core/identity/application/ports/profile-photo-repository";
+import {
+	createRemoveProfilePhoto,
+	type RemoveProfilePhoto,
+} from "@quizio/core/identity/application/remove-profile-photo";
+import {
+	createRequestProfilePhotoUpload,
+	type RequestProfilePhotoUpload,
+} from "@quizio/core/identity/application/request-profile-photo-upload";
+import {
+	createSetProfilePhoto,
+	type SetProfilePhoto,
+} from "@quizio/core/identity/application/set-profile-photo";
+import {
+	createGetCreatorProfile,
+	type GetCreatorProfile,
+} from "@quizio/core/library/application/get-creator-profile";
+import {
 	createGetHomeOverview,
 	type GetHomeOverview,
 } from "@quizio/core/library/application/get-home-overview";
 import {
+	createGetPublicQuiz,
+	type GetPublicQuiz,
+} from "@quizio/core/library/application/get-public-quiz";
+import {
 	createListLibrary,
 	type ListLibrary,
 } from "@quizio/core/library/application/list-library";
+import type { CreatorProfileQuery } from "@quizio/core/library/application/ports/creator-profile-query";
 import type { LibraryQuizQuery } from "@quizio/core/library/application/ports/library-quiz-query";
 import {
 	createDiscardSource,
@@ -379,6 +413,10 @@ import {
 	createRestoreQuiz,
 	type RestoreQuiz,
 } from "@quizio/core/quiz/application/restore-quiz";
+import {
+	createSetQuizVisibility,
+	type SetQuizVisibility,
+} from "@quizio/core/quiz/application/set-quiz-visibility";
 import {
 	createUpdateQuestion,
 	type UpdateQuestion,
@@ -497,8 +535,15 @@ export interface Adapters {
 	/** Quizzes shared with groups (spec 037; ADR 0018). */
 	groupSharedQuizzes: GroupSharedQuizRepository;
 	sharedQuizReads: SharedQuizReads;
-	/** Who may use a quiz they do not own: a member of a group it is in. */
+	/** Who may use a quiz they do not own: a member of a group it is in, or anybody when it is public. */
 	quizShareGrants: QuizShareGrants;
+	/** The creator's account, password and photo (spec 039; ADR 0019). */
+	accounts: AccountRepository;
+	accountCredentials: AccountCredentials;
+	profilePhotos: ProfilePhotoRepository;
+	deletionFeedback: AccountDeletionFeedbackRepository;
+	/** The profile and its public quizzes (spec 039). */
+	creatorProfiles: CreatorProfileQuery;
 }
 
 export interface Container extends Adapters {
@@ -601,6 +646,14 @@ export interface Container extends Adapters {
 		getGroupSettings: GetGroupSettings;
 		setGroupPermission: SetGroupPermission;
 		updateGroupDetails: UpdateGroupDetails;
+		getAccount: GetAccount;
+		requestProfilePhotoUpload: RequestProfilePhotoUpload;
+		setProfilePhoto: SetProfilePhoto;
+		removeProfilePhoto: RemoveProfilePhoto;
+		deleteAccount: DeleteAccount;
+		getCreatorProfile: GetCreatorProfile;
+		getPublicQuiz: GetPublicQuiz;
+		setQuizVisibility: SetQuizVisibility;
 	};
 }
 
@@ -634,6 +687,35 @@ export function createContainer(adapters: Adapters): Container {
 			await endGamesOfQuiz({ quizId, reason: "quizDeleted" });
 			await adapters.games.deleteUnstartedByQuiz(quizId);
 		},
+	};
+
+	const deleteGroup = createDeleteGroup(adapters);
+	// Deleting an account reaches the games and the groups through its port
+	// (spec 039, RN-39; ADR 0019).
+	const accountClosure: AccountClosure = {
+		endGames: async (userId) => {
+			for (const quizId of await adapters.quizzes.listIdsByOwner(userId)) {
+				await quizGames.endGamesOfDeletedQuiz(quizId);
+			}
+			for (const game of await adapters.games.listUnendedByOwner(userId)) {
+				await endGamesOfQuiz({
+					quizId: game.quizId,
+					reason: "host",
+					ownerId: userId,
+				});
+			}
+		},
+		deleteManagedGroups: async (userId) => {
+			for (const group of await adapters.groupReads.listForUser(userId)) {
+				if (group.role === "admin") {
+					await deleteGroup({ userId, groupId: group.id });
+				}
+			}
+		},
+		groupFileKeys: async (userId) => [
+			...(await adapters.groupPosts.fileKeysByAuthor(userId)),
+			...(await adapters.groupUploads.uploadKeysOfUser(userId)),
+		],
 	};
 
 	return {
@@ -713,7 +795,7 @@ export function createContainer(adapters: Adapters): Container {
 			restoreReports: createRestoreReports(adapters),
 			acceptGroupInvite: createAcceptGroupInvite(adapters),
 			createGroup: createCreateGroup(adapters),
-			deleteGroup: createDeleteGroup(adapters),
+			deleteGroup,
 			dismissGroupSetup: createDismissGroupSetup(adapters),
 			getGroup: createGetGroup(adapters),
 			getGroupInvitation: createGetGroupInvitation(adapters),
@@ -743,6 +825,21 @@ export function createContainer(adapters: Adapters): Container {
 			getGroupSettings: createGetGroupSettings(adapters),
 			setGroupPermission: createSetGroupPermission(adapters),
 			updateGroupDetails: createUpdateGroupDetails(adapters),
+			getAccount: createGetAccount({
+				...adapters,
+				credentials: adapters.accountCredentials,
+			}),
+			requestProfilePhotoUpload: createRequestProfilePhotoUpload(adapters),
+			setProfilePhoto: createSetProfilePhoto(adapters),
+			removeProfilePhoto: createRemoveProfilePhoto(adapters),
+			deleteAccount: createDeleteAccount({
+				...adapters,
+				credentials: adapters.accountCredentials,
+				accountClosure,
+			}),
+			getCreatorProfile: createGetCreatorProfile(adapters),
+			getPublicQuiz: createGetPublicQuiz(adapters),
+			setQuizVisibility: createSetQuizVisibility(adapters),
 		},
 	};
 }

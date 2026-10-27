@@ -212,7 +212,7 @@ describe("quiz router", () => {
 			quizId: created.id,
 			title: "Geografia",
 			description: null,
-			visibility: "unlisted",
+			visibility: "public",
 			cover: { type: "keep" },
 		});
 
@@ -225,7 +225,7 @@ describe("quiz router", () => {
 		expect(fetched).toEqual(created);
 		expect(updated).toMatchObject({
 			title: "Geografia",
-			visibility: "unlisted",
+			visibility: "public",
 		});
 	});
 
@@ -351,7 +351,10 @@ describe("quiz router", () => {
 		const ana = createTestApi().callerFor("user-1");
 
 		const error = await failureOf(
-			ana.quiz.create({ title: "Público", visibility: "public" as never }),
+			ana.quiz.create({
+				title: "Não listado",
+				visibility: "unlisted" as never,
+			}),
 		);
 
 		expect(error).toMatchObject({ code: "BAD_REQUEST" });

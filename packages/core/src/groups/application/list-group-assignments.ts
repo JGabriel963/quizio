@@ -1,3 +1,4 @@
+import type { PersonView } from "../../shared/application/person-view";
 import {
 	type GroupAssignmentSort,
 	sortGroupAssignments,
@@ -14,7 +15,7 @@ import type { GroupFeedQuery } from "./ports/group-feed-query";
 export interface GroupAssignmentView extends GroupAssignmentCard {
 	postId: string;
 	assignedAt: Date;
-	assignedBy: { userId: string; name: string };
+	assignedBy: PersonView;
 	canSeeReport: boolean;
 	canDelete: boolean;
 }

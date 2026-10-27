@@ -1,4 +1,6 @@
+import { loadPhotoUrls } from "../../shared/application/person-view";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ProfilePhotoKeys } from "../../shared/application/ports/profile-photo-keys";
 import {
 	SHARED_QUIZZES_PAGE_SIZE,
 	type SharedQuizSort,
@@ -23,6 +25,7 @@ export function createListSharedQuizzes(
 	deps: GroupStoreDeps & {
 		sharedQuizReads: SharedQuizReads;
 		storage: ObjectStorage;
+		profilePhotos: ProfilePhotoKeys;
 	},
 ): ListSharedQuizzes {
 	return async ({ sort, limit = SHARED_QUIZZES_PAGE_SIZE, ...input }) => {
@@ -32,10 +35,15 @@ export function createListSharedQuizzes(
 			sort,
 			limit + 1,
 		);
+		const page = cards.slice(0, limit);
+		const photoUrlOf = await loadPhotoUrls(
+			page.map((card) => card.ownerId),
+			deps,
+		);
 		return {
-			items: cards
-				.slice(0, limit)
-				.map((card) => sharedQuizCardViewOf(card, deps.storage, membership)),
+			items: page.map((card) =>
+				sharedQuizCardViewOf(card, deps.storage, membership, photoUrlOf),
+			),
 			hasMore: cards.length > limit,
 		};
 	};

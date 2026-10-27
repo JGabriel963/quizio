@@ -26,6 +26,10 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Criador | `Creator` (usuário do Better Auth) | Pessoa com conta que cria e organiza quizzes (spec 001) | ✅ |
 | Regras de cadastro | `sign-up-rules` (`CREATOR_NAME_LENGTH`, `PASSWORD_LENGTH`) | Nome de 2 a 50 caracteres, senha de 8 a 128, e-mail normalizado (spec 001) | ✅ |
 | Cadastro aberto | `signUpEnabled` / `AUTH_SIGN_UP_ENABLED` | Configuração da instância que permite ou bloqueia a criação de novas contas (spec 001) | ✅ |
+| Foto do perfil | `ProfilePhoto` | Foto opcional do criador, carregada no Quizio e recortada em círculo; sem ela, o ícone padrão (spec 039) | ✅ |
+| Perfil | `CreatorProfile` | Página de um criador com a foto, o nome, os números e os quizzes públicos, vista por quem tem conta (spec 039) | ✅ |
+| Página do quiz público | `PublicQuizPage` | A página de um quiz Público para quem não é o dono: jogar, atribuir ou duplicar (spec 039) | ✅ |
+| Feedback de exclusão | `AccountDeletionFeedback` | Motivo e texto opcional de quem excluiu a conta, guardados sem ligação com ela (spec 039) | ✅ |
 
 ## Quiz (autoria)
 
@@ -40,7 +44,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Alteração de capa | `CoverChange` | `keep`, `set` (nova chave) ou `remove` ao editar os dados (spec 001) | ✅ |
 | Última modificação | `updatedAt` | Instante da criação ou da última alteração dos dados do quiz (spec 001) | ✅ |
 | Rascunho | `status: "draft"` | Quiz que nunca foi salvo como versão jogável (spec 006) | ✅ |
-| Visibilidade | `QuizVisibility` | `private`, `unlisted` (spec 001); `public` com a descoberta pública | ✅ (`public` 📝) |
+| Visibilidade | `QuizVisibility` | `private` ou `public` (spec 039, que tirou o `unlisted` da spec 001); `public` = aparece no perfil do dono | ✅ |
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
 | Pergunta | `Question` | Bloco interativo com texto (≤ 160), tipo, tempo limite e pontos | ✅ |
 | Enunciado | `text` | Texto da pergunta, ≤ 160 caracteres (120 no Kahoot); pode ficar vazio no rascunho (spec 003) | ✅ |
@@ -201,6 +205,8 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Remover do grupo | `unshareQuiz` | Tirar um quiz compartilhado da aba; a publicação "compartilhou um kahoot" fica sem o anexo; de quem compartilhou e do administrador (spec 037) | ✅ |
 | Duplique para editar | `duplicateSharedQuiz` | O Editar de um quiz compartilhado: o membro não edita o original, duplica para a própria biblioteca (spec 037) | ✅ |
 | Relatório somente para leitura | `ReportView.readOnly` | O administrador do grupo vê o relatório de uma atribuição publicada ali por outra pessoa, sem nenhuma ação (spec 038) | ✅ |
+| Notificação | `Notification` | Aviso no sino para uma pessoa sobre o que outra fez num grupo; lida ou não lida (spec 040) | 📝 |
+| Página da publicação | `GroupPostPage` | Uma publicação do mural com endereço próprio, aberta pela notificação (spec 040) | 📝 |
 
 ## Library, Reports, Media
 

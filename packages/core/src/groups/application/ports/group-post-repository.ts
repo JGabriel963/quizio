@@ -18,6 +18,8 @@ export interface GroupPostRepository {
 	deletePost(postId: string): Promise<GroupPost | null>;
 	/** The files posted in the group, to delete them with it. */
 	fileKeysOfGroup(groupId: string): Promise<string[]>;
+	/** The files the user posted in any group, to delete them with the account (spec 039). */
+	fileKeysByAuthor(authorId: string): Promise<string[]>;
 	/** Idempotent: liking twice is one like (spec 038, RN-17, RN-18). */
 	setLike(
 		postId: string,

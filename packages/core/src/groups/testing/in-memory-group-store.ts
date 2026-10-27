@@ -284,6 +284,12 @@ export class InMemoryGroupStore
 		);
 	}
 
+	async fileKeysByAuthor(authorId: string): Promise<string[]> {
+		return [...this.#posts.values()].flatMap((post) =>
+			post.authorId === authorId && post.file ? [post.file.key] : [],
+		);
+	}
+
 	async addUpload(upload: GroupUpload): Promise<void> {
 		this.#uploads.set(upload.key, { ...upload, file: { ...upload.file } });
 	}
@@ -309,6 +315,12 @@ export class InMemoryGroupStore
 	async uploadKeysOfGroup(groupId: string): Promise<string[]> {
 		return [...this.#uploads.values()]
 			.filter((upload) => upload.groupId === groupId)
+			.map((upload) => upload.key);
+	}
+
+	async uploadKeysOfUser(userId: string): Promise<string[]> {
+		return [...this.#uploads.values()]
+			.filter((upload) => upload.uploaderId === userId)
 			.map((upload) => upload.key);
 	}
 

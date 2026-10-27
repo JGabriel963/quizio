@@ -14,7 +14,7 @@ async function setup() {
 		ownerId: "bruno",
 		title: "Capitais",
 		coverImageKey: "media/bruno/capa.png",
-		visibility: "unlisted",
+		visibility: "public",
 		games: 2,
 	});
 	t.sharedQuizReads.addQuiz({ id: "rios", ownerId: "ana", title: "Rios" });
@@ -46,7 +46,7 @@ describe("posts of shared quizzes (spec 037)", () => {
 				title: "Capitais",
 				coverUrl: "https://media.test/media/bruno/capa.png",
 				questionCount: 0,
-				visibility: "unlisted",
+				visibility: "public",
 				owner: { userId: "bruno", name: "Bruno" },
 				sharedAt: t.clock.now(),
 				games: 2,

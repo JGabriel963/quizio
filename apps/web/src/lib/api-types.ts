@@ -109,3 +109,7 @@ export type AssignableGroupData =
 export type SharedQuizCardData =
 	RouterOutputs["group"]["shared"]["list"]["items"][number];
 export type SharedQuizPageData = RouterOutputs["group"]["shared"]["get"];
+
+/** A creator's profile and a public quiz seen from it (spec 039). */
+export type CreatorProfileData = RouterOutputs["account"]["profile"];
+export type PublicQuizPageData = RouterOutputs["account"]["publicQuiz"];

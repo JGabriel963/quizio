@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { GroupMemberData } from "@/lib/api-types";
+import { renderWithRouter } from "@/testing/render-with-router";
 
 import {
 	DeleteGroupDialog,
@@ -13,19 +14,26 @@ import { MemberInfoDialog } from "./member-info-dialog";
 import { MembersTable } from "./members-table";
 
 const members: GroupMemberData[] = [
-	{ userId: "ana", name: "Ana", email: "ana@exemplo.com", role: "admin" },
+	{
+		userId: "ana",
+		name: "Ana",
+		email: "ana@exemplo.com",
+		role: "admin",
+		photoUrl: null,
+	},
 	{
 		userId: "bruno",
 		name: "Bruno",
 		email: "bruno@exemplo.com",
 		role: "member",
+		photoUrl: null,
 	},
 ];
 
 const actions = { onInfo: vi.fn(), onRemove: vi.fn() };
 
-function renderTable(viewerId: string, isAdmin: boolean) {
-	render(
+async function renderTable(viewerId: string, isAdmin: boolean) {
+	renderWithRouter(
 		<MembersTable
 			members={members}
 			viewerId={viewerId}
@@ -33,7 +41,7 @@ function renderTable(viewerId: string, isAdmin: boolean) {
 			{...actions}
 		/>,
 	);
-	return screen.getByRole("table", { name: "Membros do grupo" });
+	return await screen.findByRole("table", { name: "Membros do grupo" });
 }
 
 async function menuOf(name: string) {
@@ -43,8 +51,8 @@ async function menuOf(name: string) {
 }
 
 describe("MembersTable (spec 034, RN-32, RN-33)", () => {
-	it("renders the Administrador badge and Ativo for each member", () => {
-		const table = renderTable("ana", true);
+	it("renders the Administrador badge and Ativo for each member", async () => {
+		const table = await renderTable("ana", true);
 
 		const rows = within(table).getAllByRole("row").slice(1);
 		expect(rows).toHaveLength(2);
@@ -62,7 +70,7 @@ describe("MembersTable (spec 034, RN-32, RN-33)", () => {
 	});
 
 	it("Remover only for the admin and never on their own row", async () => {
-		renderTable("ana", true);
+		await renderTable("ana", true);
 
 		const brunoMenu = await menuOf("Bruno");
 		expect(
@@ -71,7 +79,7 @@ describe("MembersTable (spec 034, RN-32, RN-33)", () => {
 	});
 
 	it("the admin's own row has no Remover", async () => {
-		renderTable("ana", true);
+		await renderTable("ana", true);
 
 		const anaMenu = await menuOf("Ana");
 		expect(
@@ -79,16 +87,16 @@ describe("MembersTable (spec 034, RN-32, RN-33)", () => {
 		).toBeNull();
 	});
 
-	it("a member sees no Remover; Ver perfil is Em breve", async () => {
-		renderTable("bruno", false);
+	it("a member sees no Remover; Ver perfil links to the profile (spec 039, RN-27)", async () => {
+		await renderTable("bruno", false);
 
 		const menu = await menuOf("Ana");
 		expect(
 			within(menu).queryByRole("menuitem", { name: "Remover" }),
 		).toBeNull();
 		expect(
-			within(menu).getByRole("menuitem", { name: "Ver perfil (em breve)" }),
-		).toHaveAttribute("aria-disabled", "true");
+			within(menu).getByRole("menuitem", { name: "Ver perfil" }),
+		).toHaveAttribute("href", "/profile/ana");
 	});
 
 	it("ⓘ and Informações do membro open the member's details", async () => {
@@ -128,7 +136,13 @@ describe("MemberInfoDialog (spec 034, RN-34)", () => {
 	it("omits the email line without it", async () => {
 		render(
 			<MemberInfoDialog
-				member={{ userId: "ana", name: "Ana", email: null, role: "admin" }}
+				member={{
+					userId: "ana",
+					name: "Ana",
+					email: null,
+					role: "admin",
+					photoUrl: null,
+				}}
 				onClose={() => {}}
 			/>,
 		);

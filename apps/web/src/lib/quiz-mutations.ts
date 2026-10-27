@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import type { LibraryItemView } from "@/lib/api-types";
 import { useTRPC, useTRPCClient } from "@/utils/trpc";
 
 import { quizErrorMessage } from "./quiz-error-messages";
@@ -27,6 +28,7 @@ const showError = (error: unknown) => {
 /** Quiz mutations that keep the library and details pages in sync. */
 export function useQuizMutations() {
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const invalidate = useInvalidateQuizzes();
 
 	const create = useMutation(
@@ -65,6 +67,25 @@ export function useQuizMutations() {
 			onError: showError,
 		}),
 	);
+	// The row's visibility follows at once; a refusal puts the list back
+	// (spec 039, RN-25a).
+	const setVisibility = useMutation(
+		trpc.quiz.setVisibility.mutationOptions({
+			onMutate: async ({ quizId, visibility }) => {
+				const key = trpc.library.list.pathKey();
+				await queryClient.cancelQueries({ queryKey: key });
+				queryClient.setQueriesData<LibraryItemView[]>(
+					{ queryKey: key },
+					(items) =>
+						items?.map((item) =>
+							item.id === quizId ? { ...item, visibility } : item,
+						),
+				);
+			},
+			onError: showError,
+			onSettled: invalidate,
+		}),
+	);
 	const deletePermanently = useMutation(
 		trpc.quiz.deletePermanently.mutationOptions({
 			onSuccess: () => {
@@ -82,6 +103,7 @@ export function useQuizMutations() {
 		moveToTrash,
 		restore,
 		deletePermanently,
+		setVisibility,
 	};
 }
 

@@ -227,7 +227,7 @@ describe("DrizzleLibraryQuizQuery", () => {
 		await seed(
 			aQuiz({
 				coverImageKey: "media/user-1/cover.png",
-				visibility: "unlisted",
+				visibility: "public",
 			}),
 		);
 
@@ -239,7 +239,7 @@ describe("DrizzleLibraryQuizQuery", () => {
 				searchTitle: "bom de biblia (junho)",
 				description: "Atos 1 a 7",
 				coverImageKey: "media/user-1/cover.png",
-				visibility: "unlisted",
+				visibility: "public",
 				status: "draft",
 				hasUnpublishedChanges: false,
 				questionCount: 0,

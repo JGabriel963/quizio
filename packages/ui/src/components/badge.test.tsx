@@ -6,7 +6,7 @@ import { Badge } from "./badge";
 describe("Badge", () => {
 	it.each([
 		["private", "Privado"],
-		["unlisted", "Não listado"],
+		["public", "Público"],
 	] as const)("renders the %s visibility variant", (variant, label) => {
 		render(<Badge variant={variant}>{label}</Badge>);
 

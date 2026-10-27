@@ -17,9 +17,10 @@ const badgeVariants = cva(
 					"border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
 				ghost: "hover:bg-muted hover:text-muted-foreground",
 				link: "text-primary underline-offset-4 hover:underline",
-				// Quiz visibility (spec 001): private is neutral, unlisted hints it can be shared.
+				// Quiz visibility (specs 001 and 039): private is neutral, public
+				// hints that others see it on the owner's profile.
 				private: "bg-muted text-muted-foreground",
-				unlisted: "bg-accent text-accent-foreground",
+				public: "bg-accent text-accent-foreground",
 				// Entry point of a feature that is planned but not delivered yet
 				// (spec 002): dashed outline reads as "not here yet", not as a state.
 				soon: "border-border border-dashed text-muted-foreground",

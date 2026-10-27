@@ -155,13 +155,13 @@ function DesignSystemPage() {
 								<RadioGroupItem value="private" /> Privado
 							</Label>
 							<Label className="flex items-center gap-2">
-								<RadioGroupItem value="unlisted" /> Não listado
+								<RadioGroupItem value="public" /> Público
 							</Label>
 						</RadioGroup>
 					</div>
 					<div className="flex flex-wrap items-center gap-2">
 						<Badge variant="private">Privado</Badge>
-						<Badge variant="unlisted">Não listado</Badge>
+						<Badge variant="public">Público</Badge>
 						<Badge variant="soon">Em breve</Badge>
 						<Badge variant="draft">Rascunho</Badge>
 						<Badge variant="published">Publicado</Badge>

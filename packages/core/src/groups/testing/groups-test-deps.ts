@@ -1,5 +1,6 @@
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
+import { InMemoryProfilePhotoRepository } from "../../shared/testing/in-memory-profile-photo-repository";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { createAcceptGroupInvite } from "../application/accept-group-invite";
 import { createCreateGroup } from "../application/create-group";
@@ -52,6 +53,7 @@ export function groupsTestDeps() {
 		groupAssignments: assignments,
 		groupAssignmentQuery: assignments,
 		storage: new InMemoryObjectStorage("https://media.test"),
+		profilePhotos: new InMemoryProfilePhotoRepository(),
 		ids: new SequentialIdGenerator("group"),
 		inviteCodes: new SequentialInviteCodeGenerator(),
 		clock,

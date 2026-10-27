@@ -1,7 +1,8 @@
 import { createLanguageModel } from "@quizio/ai/ai-model";
 import { createAiSdkQuestionGenerator } from "@quizio/ai/ai-sdk-question-generator";
 import { createPdfLibPdfPages } from "@quizio/ai/pdf-lib-pdf-pages";
-import { authSettings } from "@quizio/auth";
+import { auth, authSettings } from "@quizio/auth";
+import { createBetterAuthAccountCredentials } from "@quizio/auth/account-credentials";
 import type { QuestionGenerator } from "@quizio/core/quiz/application/ports/question-generator";
 import { InMemoryQuestionGenerator } from "@quizio/core/quiz/testing/in-memory-question-generator";
 import { db } from "@quizio/db";
@@ -24,6 +25,10 @@ import { createDrizzleGroupSharedQuizRepository } from "@quizio/db/repositories/
 import { createDrizzleGroupUploadRepository } from "@quizio/db/repositories/groups/drizzle-group-upload-repository";
 import { createDrizzleGroupVisitRepository } from "@quizio/db/repositories/groups/drizzle-group-visit-repository";
 import { createDrizzleSharedQuizReads } from "@quizio/db/repositories/groups/drizzle-shared-quiz-reads";
+import { createDrizzleAccountDeletionFeedback } from "@quizio/db/repositories/identity/drizzle-account-deletion-feedback";
+import { createDrizzleAccountRepository } from "@quizio/db/repositories/identity/drizzle-account-repository";
+import { createDrizzleProfilePhotoRepository } from "@quizio/db/repositories/identity/drizzle-profile-photo-repository";
+import { createDrizzleCreatorProfileQuery } from "@quizio/db/repositories/library/drizzle-creator-profile-query";
 import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
 import { createDrizzleSourceUploadRepository } from "@quizio/db/repositories/media/drizzle-source-upload-repository";
 import { createDrizzleAssistantPreferencesRepository } from "@quizio/db/repositories/quiz/drizzle-assistant-preferences-repository";
@@ -141,6 +146,11 @@ export function createAdaptersFromEnv(): Adapters {
 		assistantPreferences: createDrizzleAssistantPreferencesRepository(db),
 		sourceUploads: createDrizzleSourceUploadRepository(db),
 		assistantSettings: { generationsPerDay: env.AI_GENERATIONS_PER_DAY },
+		accounts: createDrizzleAccountRepository(db),
+		accountCredentials: createBetterAuthAccountCredentials(auth),
+		profilePhotos: createDrizzleProfilePhotoRepository(db),
+		deletionFeedback: createDrizzleAccountDeletionFeedback(db),
+		creatorProfiles: createDrizzleCreatorProfileQuery(db),
 	};
 }
 

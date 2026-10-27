@@ -1,4 +1,5 @@
 import { publicProcedure, router } from "../index";
+import { accountRouter } from "./account";
 import { authRouter } from "./auth";
 import { gameRouter } from "./game";
 import { groupRouter } from "./group";
@@ -11,6 +12,7 @@ export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
 		return "OK";
 	}),
+	account: accountRouter,
 	auth: authRouter,
 	game: gameRouter,
 	group: groupRouter,

@@ -26,7 +26,7 @@ describe("getQuizDetails", () => {
 	it("returns details with the cover URL and zero questions", async () => {
 		const quiz = aQuiz({
 			coverImageKey: "media/user-1/cover.png",
-			visibility: "unlisted",
+			visibility: "public",
 		});
 		await quizzes.save(quiz);
 
@@ -37,7 +37,7 @@ describe("getQuizDetails", () => {
 			title: "Bom de Bíblia (Junho)",
 			description: "Atos 1 a 7",
 			coverImageUrl: "https://media.test/media/user-1/cover.png",
-			visibility: "unlisted",
+			visibility: "public",
 			status: "draft",
 			publishedVersion: null,
 			publishedAt: null,

@@ -26,7 +26,7 @@ import {
 	Trash2Icon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-
+import { UserAvatar } from "@/components/account/user-avatar";
 import { QuizCover } from "@/components/quiz/quiz-cover";
 import type { GroupPostData } from "@/lib/api-types";
 import { assignmentLink } from "@/lib/assignment-link";
@@ -37,13 +37,11 @@ import {
 	postHeadlineLabel,
 } from "@/lib/group-post-labels";
 import { questionCountLabel } from "@/lib/quiz-labels";
-
 import { PostFileCard } from "./post/post-file-card";
 import { PostImage } from "./post/post-image";
 import { PostText } from "./post/post-text";
 import { SharedQuizAttachment } from "./shared/shared-quiz-attachment";
 import type { SharedQuizActions } from "./shared/shared-quiz-menu";
-import { UserAvatar } from "./user-avatar";
 
 /**
  * A post of the feed: who posted and what (spec 036, RN-17), the text with
@@ -72,7 +70,7 @@ export function GroupPost({
 	return (
 		<article className="flex flex-col rounded-lg bg-card shadow-sm">
 			<header className="flex items-center gap-3 px-4 pt-4">
-				<UserAvatar userId={author.userId} />
+				<UserAvatar userId={author.userId} photoUrl={author.photoUrl} />
 				<p className="min-w-0 flex-1 text-sm">
 					<span className="font-bold">{author.name}</span>{" "}
 					{postHeadlineLabel(post.headline)}

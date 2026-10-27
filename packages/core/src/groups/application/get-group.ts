@@ -1,3 +1,9 @@
+import {
+	loadPhotoUrls,
+	type PersonView,
+} from "../../shared/application/person-view";
+import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ProfilePhotoKeys } from "../../shared/application/ports/profile-photo-keys";
 import { type GroupRole, sortMembers } from "../domain/group-member";
 import {
 	canAssign,
@@ -31,7 +37,7 @@ export interface GroupView {
 		share: boolean;
 	};
 	/** Up to 3, the admin first (RN-13); none when the list is hidden (spec 035). */
-	memberPreview: { userId: string; name: string }[];
+	memberPreview: PersonView[];
 	/** Null for a member, or once dismissed (RN-17). */
 	setup: GroupSetup | null;
 }
@@ -42,13 +48,23 @@ export type GetGroup = (input: {
 }) => Promise<GroupView>;
 
 export function createGetGroup(
-	deps: GroupStoreDeps & { groupReads: GroupReads; groupFeed: GroupFeedQuery },
+	deps: GroupStoreDeps & {
+		groupReads: GroupReads;
+		groupFeed: GroupFeedQuery;
+		profilePhotos: ProfilePhotoKeys;
+		storage: ObjectStorage;
+	},
 ): GetGroup {
 	return async (input) => {
 		const { group, membership } = await requireMembership(deps, input);
 		const members = sortMembers(await deps.groupReads.members(group.id));
 		const admin = members.find((member) => member.role === "admin");
 		const seeMembers = canSeeMembers(group, membership.role);
+		const preview = seeMembers ? members.slice(0, GROUP_MEMBER_PREVIEW) : [];
+		const photoUrlOf = await loadPhotoUrls(
+			preview.map((member) => member.userId),
+			deps,
+		);
 		return {
 			id: group.id,
 			name: group.name,
@@ -65,11 +81,11 @@ export function createGetGroup(
 				share: canShare(group, membership.role),
 			},
 			// No names the screen may not show leave the server (spec 035, RN-13).
-			memberPreview: seeMembers
-				? members
-						.slice(0, GROUP_MEMBER_PREVIEW)
-						.map(({ userId, name }) => ({ userId, name }))
-				: [],
+			memberPreview: preview.map(({ userId, name }) => ({
+				userId,
+				name,
+				photoUrl: photoUrlOf(userId),
+			})),
 			setup: groupSetupOf(
 				group,
 				members.length,

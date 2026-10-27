@@ -15,16 +15,14 @@ import {
 	TimerIcon,
 } from "lucide-react";
 import { useId, useState } from "react";
-
+import { UserAvatar } from "@/components/account/user-avatar";
 import { QuizCover } from "@/components/quiz/quiz-cover";
 import type { GroupAssignmentData } from "@/lib/api-types";
 import { assignmentLink } from "@/lib/assignment-link";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { timeLeftLabel } from "@/lib/group-post-labels";
 import { questionCountLabel } from "@/lib/quiz-labels";
-
 import { PostMenu } from "./group-post";
-import { UserAvatar } from "./user-avatar";
 
 const SORT_LABELS: Record<GroupAssignmentSort, string> = {
 	recent: "Mais recentes",
@@ -226,7 +224,11 @@ function AssignmentCard({
 						{item.name}
 					</a>
 					<span className="flex items-center gap-2 text-muted-foreground text-sm">
-						<UserAvatar userId={item.assignedBy.userId} size="sm" />
+						<UserAvatar
+							userId={item.assignedBy.userId}
+							photoUrl={item.assignedBy.photoUrl}
+							size="sm"
+						/>
 						<span className="truncate">{item.assignedBy.name}</span>
 					</span>
 				</div>
@@ -296,7 +298,11 @@ function AssignmentsTable({
 									title={item.assignedBy.name}
 									className="inline-flex"
 								>
-									<UserAvatar userId={item.assignedBy.userId} size="sm" />
+									<UserAvatar
+										userId={item.assignedBy.userId}
+										photoUrl={item.assignedBy.photoUrl}
+										size="sm"
+									/>
 								</span>
 							</td>
 							<td className="px-4 py-2">{timeLeftLabel(item.remainingMs)}</td>

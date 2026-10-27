@@ -64,6 +64,8 @@ Não defina `PUSHER_HOST`, `PUSHER_PORT`, `VITE_PUSHER_HOST` nem `VITE_PUSHER_PO
 
 **Arquivos dos grupos.** Imagens e PDFs publicados nos grupos (spec 036, ADR 0017) vão para o prefixo `groups/` do mesmo bucket e são lidos pelo mesmo domínio público das imagens (no R2, o acesso público vale para o bucket inteiro; no RustFS e em provedores com políticas, o `bucket:setup` libera `groups/*`). Não precisam de regra de ciclo de vida: o app apaga o arquivo com a publicação ou o grupo, e cada novo envio varre os que ninguém publicou em 24 horas. O envio assina o cabeçalho `Content-Disposition`; o CORS (`AllowedHeaders: *`) já o permite.
 
+**Fotos do perfil.** A foto que o criador carrega (spec 039, ADR 0019) vai para o prefixo `profiles/` do mesmo bucket e é lida pelo mesmo domínio público (no R2, o acesso público vale para o bucket inteiro; no RustFS e em provedores com políticas, o `bucket:setup` libera `profiles/*`). Excluir a conta apaga os prefixos `media/`, `sources/` e `profiles/` do usuário.
+
 ### 4. Banco
 
 O schema de produção é aplicado por migrations versionadas em `packages/db/src/migrations`, nunca por `db:push`, e **a Vercel aplica sozinha**: o `buildCommand` de `apps/web/vercel.json` roda `db:migrate:deploy` antes do build quando o deploy é de produção (`VERCEL_ENV=production`). Não há passo manual, nem no primeiro deploy.

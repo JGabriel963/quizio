@@ -112,6 +112,16 @@ export function createDrizzleGroupPostRepository(
 			return rows.flatMap((row) => (row.key ? [row.key] : []));
 		},
 
+		async fileKeysByAuthor(authorId) {
+			const rows = await db
+				.select({ key: groupPost.fileKey })
+				.from(groupPost)
+				.where(
+					and(eq(groupPost.authorId, authorId), isNotNull(groupPost.fileKey)),
+				);
+			return rows.flatMap((row) => (row.key ? [row.key] : []));
+		},
+
 		async setLike(postId, userId, liked, at) {
 			if (liked) {
 				await db

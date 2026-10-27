@@ -37,8 +37,10 @@ describe("quiz.assistant router", () => {
 		expect(status).toEqual({
 			enabled: true,
 			limit: 20,
+			used: 0,
 			remaining: 20,
 			nextAvailableAt: null,
+			nextFreeInMs: null,
 			options: DEFAULT_GENERATION_OPTIONS,
 		});
 	});

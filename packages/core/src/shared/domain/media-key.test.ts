@@ -4,9 +4,11 @@ import {
 	groupFileKeyFor,
 	isGroupFileKeyOf,
 	isMediaKeyOwnedBy,
+	isProfilePhotoKeyOwnedBy,
 	isSourceKeyOwnedBy,
 	mediaKeyExtension,
 	mediaKeyFor,
+	profilePhotoKeyFor,
 	sourceKeyFor,
 } from "./media-key";
 
@@ -72,6 +74,26 @@ describe("source keys", () => {
 			"media/group-1/abc.pdf",
 		]) {
 			expect(isGroupFileKeyOf(other, "group-1")).toBe(false);
+		}
+	});
+
+	it("profilePhotoKeyFor builds profiles/{userId}/{id}.{ext}", () => {
+		expect(profilePhotoKeyFor("user-1", "abc", "webp")).toBe(
+			"profiles/user-1/abc.webp",
+		);
+	});
+
+	it("isProfilePhotoKeyOwnedBy refuses another user's key and nested paths", () => {
+		expect(isProfilePhotoKeyOwnedBy("profiles/user-1/abc.webp", "user-1")).toBe(
+			true,
+		);
+		for (const other of [
+			"profiles/user-10/abc.webp",
+			"profiles/user-1/nested/abc.webp",
+			"profiles/user-1/",
+			"media/user-1/abc.webp",
+		]) {
+			expect(isProfilePhotoKeyOwnedBy(other, "user-1")).toBe(false);
 		}
 	});
 });

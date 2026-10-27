@@ -39,4 +39,19 @@ describe("InMemoryObjectStorage", () => {
 		expect(await storage.read("sources/user-1/a.pdf")).toBeNull();
 		expect(await storage.read("sources/user-1/b.pdf")).toBeNull();
 	});
+
+	it("deletePrefix removes only the keys under the prefix", async () => {
+		const storage = new InMemoryObjectStorage();
+		storage.simulateUpload("media/user-1/a.png");
+		storage.simulateUpload("media/user-1/b.png");
+		storage.simulateUpload("media/user-10/c.png");
+		storage.simulateUpload("profiles/user-1/d.webp");
+
+		await storage.deletePrefix("media/user-1/");
+
+		expect(storage.keys()).toEqual([
+			"media/user-10/c.png",
+			"profiles/user-1/d.webp",
+		]);
+	});
 });

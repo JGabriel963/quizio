@@ -47,6 +47,7 @@ export function createDuplicateSharedQuiz(deps: {
 		if (!version) {
 			throw new QuizNotFoundError("Quiz not found");
 		}
-		return copyQuizContent(deps, source, version.questions, userId);
+		// Someone else's quiz never goes public as the copier's (spec 039, RN-26).
+		return copyQuizContent(deps, source, version.questions, userId, "private");
 	};
 }

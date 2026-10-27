@@ -299,3 +299,4 @@ Jogadores não aparecem nesta feature: eles entram pelo PIN, nunca pela área do
 - 2026-10-01 — renumeração do roadmap: a partida ao vivo virou quatro specs (008 a 011) e as features seguintes subiram três números (robustez 012, relatórios 013, mais tipos 014, opiniões 015, slides 016, atribuir 017, equipe 018, produtividade 019, extras 020). Só as referências mudaram.
 - 2026-10-06 — spec 015: o item Relatórios da navegação e o cartão "Relatórios mais recentes" deixam de ser "Em breve" (RN-05, RN-19) quando ela for entregue.
 - 2026-10-26 — Grupos deixou de ser "Em breve" na navegação principal (spec 034, RN-06).
+- 2026-10-27 — alterada pela spec 039 (RN-43): **Descobrir** saiu da navegação principal, que fica com Início, Biblioteca, Relatórios e Grupos (RN-04).
