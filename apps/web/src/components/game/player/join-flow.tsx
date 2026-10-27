@@ -106,7 +106,7 @@ type Step =
 	/** A join link, a reload or the last game is being checked with the server. */
 	| { kind: "resolving" }
 	/** A game this browser's player left is still on: the way back (spec 008, RN-44a). */
-	| { kind: "rejoin"; pin: string; nickname: string }
+	| { kind: "rejoin"; pin: string; nickname: string; themeId: ThemeId }
 	| { kind: "nickname"; game: FoundGame; error: string | null }
 	/** An assignment's PIN: its own screen takes over (spec 029, RN-20). */
 	| { kind: "assignment"; gameId: string }
@@ -394,7 +394,12 @@ export function JoinFlow({
 		try {
 			const view = await api.session(stored);
 			if (view.status === "waiting" || view.status === "playing") {
-				return { kind: "rejoin", pin: last.pin, nickname: view.nickname };
+				return {
+					kind: "rejoin",
+					pin: last.pin,
+					nickname: view.nickname,
+					themeId: view.themeId,
+				};
 			}
 			// A finished game keeps its session: its link still shows the final screen.
 			if (view.status === "finished") {
@@ -452,7 +457,12 @@ export function JoinFlow({
 		}
 		resolvedPin.current = null;
 		onPinChange(null);
-		setStep({ kind: "rejoin", pin: step.game.pin, nickname: step.nickname });
+		setStep({
+			kind: "rejoin",
+			pin: step.game.pin,
+			nickname: step.nickname,
+			themeId: step.game.themeId,
+		});
 	}
 
 	/** What the session says of the avatar (spec 028). */
@@ -781,7 +791,9 @@ export function JoinFlow({
 	const themeId =
 		step.kind === "nickname" || step.kind === "waiting"
 			? step.game.themeId
-			: DEFAULT_THEME_ID;
+			: step.kind === "rejoin"
+				? step.themeId
+				: DEFAULT_THEME_ID;
 	return (
 		<GameThemeProvider themeId={themeId}>{screenOf(step)}</GameThemeProvider>
 	);

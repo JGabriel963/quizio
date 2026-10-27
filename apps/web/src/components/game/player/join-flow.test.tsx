@@ -481,6 +481,20 @@ describe("JoinFlow: the theme (spec 042, RN-14)", () => {
 		await screen.findByRole("heading", { name: "ACT" });
 		expect(shownTheme()).toBe("light-blue");
 	});
+
+	it("the way back to a remembered game has the game's theme", async () => {
+		const api = new FakeJoinApi();
+		api.themeId = "teal";
+		const store = memoryStore();
+		const first = renderFlow({ api, store });
+		await joinAs(first, "ACT");
+		first.unmount();
+
+		renderFlow({ api, store });
+
+		await screen.findByRole("button", { name: "Voltar como ACT" });
+		expect(shownTheme()).toBe("teal");
+	});
 });
 
 describe("JoinFlow: the nickname (spec 008)", () => {
