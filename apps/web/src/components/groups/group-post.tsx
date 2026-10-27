@@ -41,26 +41,33 @@ import { questionCountLabel } from "@/lib/quiz-labels";
 import { PostFileCard } from "./post/post-file-card";
 import { PostImage } from "./post/post-image";
 import { PostText } from "./post/post-text";
+import { SharedQuizAttachment } from "./shared/shared-quiz-attachment";
+import type { SharedQuizActions } from "./shared/shared-quiz-menu";
 import { UserAvatar } from "./user-avatar";
 
 /**
  * A post of the feed: who posted and what (spec 036, RN-17), the text with
- * its links, the image, the PDF or the activity's card with Iniciar (or the
- * removed box once it is over, spec 038, RN-16), the likes and the ⋮.
+ * its links, the image, the PDF, the activity's card with Iniciar or the
+ * shared quiz's (spec 037, RN-09), or the removed box once it is gone (spec
+ * 038, RN-16; spec 037, RN-13), the likes and the ⋮.
  */
 export function GroupPost({
 	post,
 	origin,
+	quizActions,
 	onLike,
 	onDelete,
 }: {
 	post: GroupPostData;
 	origin: string;
+	quizActions: SharedQuizActions;
 	onLike: (liked: boolean) => Promise<unknown>;
 	onDelete: () => Promise<unknown>;
 }) {
-	const { author, attachment, file } = post;
-	const isAssignment = post.gameId !== null;
+	const { author, attachment, file, quiz } = post;
+	const isAssignment = post.kind === "assignment";
+	const lostAttachment =
+		(isAssignment && !attachment) || (post.kind === "quizShare" && !quiz);
 
 	return (
 		<article className="flex flex-col rounded-lg bg-card shadow-sm">
@@ -69,6 +76,19 @@ export function GroupPost({
 				<p className="min-w-0 flex-1 text-sm">
 					<span className="font-bold">{author.name}</span>{" "}
 					{postHeadlineLabel(post.headline)}
+					{post.headline === "quizzes" && (
+						<>
+							{" "}
+							<Link
+								to="/groups/$groupId"
+								params={{ groupId: quizActions.groupId }}
+								search={{ tab: "shared" }}
+								className="text-primary hover:underline"
+							>
+								múltiplos kahoots
+							</Link>
+						</>
+					)}
 				</p>
 				<span className="text-muted-foreground text-xs">
 					{postDateLabel(new Date(post.createdAt))}
@@ -78,6 +98,9 @@ export function GroupPost({
 					canSeeReport={post.canSeeReport}
 					canDelete={post.canDelete}
 					hasFile={file !== null}
+					sharesQuizzes={
+						post.kind === "quizShare" || post.kind === "quizzesShare"
+					}
 					onDelete={onDelete}
 				/>
 			</header>
@@ -97,7 +120,13 @@ export function GroupPost({
 						sizeBytes={file.sizeBytes}
 					/>
 				)}
-				{!isAssignment ? null : attachment ? (
+				{quiz && <SharedQuizAttachment quiz={quiz} actions={quizActions} />}
+				{lostAttachment ? (
+					<p className="flex items-center justify-center gap-2 rounded-md border border-border border-dashed px-4 py-6 text-muted-foreground text-sm">
+						<CircleAlertIcon aria-hidden="true" className="size-4" />
+						{author.name} excluiu o anexo da publicação
+					</p>
+				) : isAssignment && attachment ? (
 					<div className="flex items-stretch overflow-hidden rounded-md border border-border bg-card shadow-sm">
 						<div className="relative w-28 shrink-0 sm:w-32">
 							<QuizCover
@@ -135,12 +164,7 @@ export function GroupPost({
 							</Button>
 						</div>
 					</div>
-				) : (
-					<p className="flex items-center justify-center gap-2 rounded-md border border-border border-dashed px-4 py-6 text-muted-foreground text-sm">
-						<CircleAlertIcon aria-hidden="true" className="size-4" />
-						{author.name} excluiu o anexo da publicação
-					</p>
-				)}
+				) : null}
 			</div>
 
 			<LikeRow post={post} onLike={onLike} />
@@ -207,6 +231,7 @@ export function PostMenu({
 	canSeeReport,
 	canDelete,
 	hasFile = false,
+	sharesQuizzes = false,
 	onDelete,
 }: {
 	gameId: string | null;
@@ -214,6 +239,8 @@ export function PostMenu({
 	canDelete: boolean;
 	/** Its image or PDF goes with it. */
 	hasFile?: boolean;
+	/** Its quizzes stay in the group (spec 037, RN-12). */
+	sharesQuizzes?: boolean;
 	onDelete: () => Promise<unknown>;
 }) {
 	const [deleting, setDeleting] = useState(false);
@@ -264,7 +291,9 @@ export function PostMenu({
 								? "Ela some do mural e das atribuições do grupo, mas a atividade continua aberta para quem tem o link, até o prazo."
 								: hasFile
 									? "Ela some do mural para todos, com o arquivo."
-									: "Ela some do mural para todos."}
+									: sharesQuizzes
+										? "Ela some do mural para todos. Os kahoots continuam em Compartilhado."
+										: "Ela some do mural para todos."}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

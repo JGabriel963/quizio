@@ -4,6 +4,7 @@ import { FixedClock } from "../../shared/testing/fixed-clock";
 import { FixedShuffler } from "../../shared/testing/fixed-shuffler";
 import { InMemoryAttemptLimiter } from "../../shared/testing/in-memory-attempt-limiter";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
+import { InMemoryQuizShareGrants } from "../../shared/testing/in-memory-quiz-share-grants";
 import { InMemoryRealtimePublisher } from "../../shared/testing/in-memory-realtime-publisher";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import type { PlayableQuiz } from "../application/ports/playable-quiz-query";
@@ -89,6 +90,8 @@ export function createGameDeps(
 		assignmentLanding: new InMemoryAssignmentLandingQuery(games, players),
 		maxDeadlineDays: ASSIGNMENT_DEFAULT_MAX_DEADLINE_DAYS,
 		attempts: new InMemoryAttemptLimiter(),
+		/** Quizzes of others a user may play, from a group (spec 037). */
+		quizShareGrants: new InMemoryQuizShareGrants(),
 		storage: new InMemoryObjectStorage("https://media.test"),
 		ids: new SequentialIdGenerator("id"),
 		clock: new FixedClock("2026-06-01T12:00:00.000Z"),

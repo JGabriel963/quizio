@@ -24,7 +24,10 @@ export function toGroupPost(row: GroupPostRow): GroupPost {
 	};
 }
 
-function toRow({ file, ...post }: GroupPost): typeof groupPost.$inferInsert {
+export function toGroupPostRow({
+	file,
+	...post
+}: GroupPost): typeof groupPost.$inferInsert {
 	return {
 		...post,
 		fileType: file?.type ?? null,
@@ -43,7 +46,7 @@ export function createDrizzleGroupPostRepository(
 			// The partial unique index keeps an assignment once per group (RN-28).
 			const created = await db
 				.insert(groupPost)
-				.values(toRow(post))
+				.values(toGroupPostRow(post))
 				.onConflictDoNothing()
 				.returning({ id: groupPost.id });
 			return created.length > 0 ? "created" : "taken";
@@ -67,7 +70,7 @@ export function createDrizzleGroupPostRepository(
 					return "missing";
 				}
 				await tx.insert(groupPost).values(
-					toRow({
+					toGroupPostRow({
 						...post,
 						file: {
 							type: taken.fileType,

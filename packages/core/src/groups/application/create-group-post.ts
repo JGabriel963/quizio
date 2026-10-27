@@ -42,6 +42,7 @@ export function createCreateGroupPost(
 			kind: "message" as const,
 			message,
 			gameId: null,
+			sharedQuizId: null,
 			createdAt: deps.clock.now(),
 		};
 

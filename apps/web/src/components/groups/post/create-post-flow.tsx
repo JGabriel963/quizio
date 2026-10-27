@@ -47,6 +47,8 @@ const revoke = (url: string | null) => {
 export function CreatePostFlow({
 	open,
 	canAssign,
+	canShare,
+	sharedIds,
 	quizzes,
 	ownerName,
 	setup,
@@ -54,10 +56,14 @@ export function CreatePostFlow({
 	onDiscardUpload,
 	onPost,
 	onAssign,
+	onShare,
 	onClose,
 }: {
 	open: boolean;
 	canAssign: boolean;
+	canShare: boolean;
+	/** The group's quizzes, "Já compartilhado" in the list (spec 037, RN-04). */
+	sharedIds: readonly string[];
 	quizzes: readonly LibraryItemView[] | undefined;
 	ownerName: string;
 	setup: AssignmentSetupData | undefined;
@@ -65,6 +71,7 @@ export function CreatePostFlow({
 	onDiscardUpload: (key: string) => void;
 	onPost: (input: { message: string; uploadKey?: string }) => Promise<unknown>;
 	onAssign: (input: GroupAssignInput) => Promise<unknown>;
+	onShare: (input: { quizIds: string[]; message: string }) => Promise<unknown>;
 	onClose: () => void;
 }) {
 	const [state, dispatch] = useReducer(groupPostReducer, initialGroupPostState);
@@ -144,7 +151,9 @@ export function CreatePostFlow({
 		setPublishError(null);
 		const { attachment, message } = state;
 		try {
-			if (attachment.kind === "quiz") {
+			if (attachment.kind === "sharedQuiz") {
+				await onShare({ quizIds: [attachment.quiz.id], message });
+			} else if (attachment.kind === "quiz") {
 				await onAssign({
 					quizId: attachment.quiz.id,
 					...attachment.settings,
@@ -187,10 +196,12 @@ export function CreatePostFlow({
 					dispatch({ type: "message", text });
 				}}
 				onPickFile={(type, file) => void pickFile(type, file)}
+				canShare={canShare}
 				onAssign={() => {
 					setAssigningSince(new Date());
 					dispatch({ type: "chooseQuiz" });
 				}}
+				onShare={() => dispatch({ type: "chooseQuizToShare" })}
 				onRemoveAttachment={() => {
 					dropAttachment();
 					dispatch({ type: "removeAttachment" });
@@ -198,11 +209,13 @@ export function CreatePostFlow({
 				onCancel={cancel}
 				onPublish={() => void publish()}
 			/>
-			{canAssign && (
+			{(canAssign || canShare) && (
 				<SelectQuizDialog
 					open={state.step === "select"}
 					quizzes={quizzes}
 					ownerName={ownerName}
+					purpose={state.purpose}
+					sharedIds={state.purpose === "share" ? sharedIds : []}
 					onPick={(quiz) => dispatch({ type: "pickQuiz", quiz })}
 					onClose={() => dispatch({ type: "backToCompose" })}
 				/>

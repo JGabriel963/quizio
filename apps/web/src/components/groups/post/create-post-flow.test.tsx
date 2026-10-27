@@ -31,16 +31,20 @@ const setup = {
 function renderFlow({
 	onUpload = vi.fn<GroupFileUploader>(async () => ({ key: "groups/g/a.pdf" })),
 	canAssign = true,
+	canShare = true,
 } = {}) {
 	const user = userEvent.setup();
 	const onPost = vi.fn(async () => {});
 	const onAssign = vi.fn(async () => {});
+	const onShare = vi.fn(async () => {});
 	const onDiscardUpload = vi.fn();
 	const onClose = vi.fn();
 	renderWithRouter(
 		<CreatePostFlow
 			open
 			canAssign={canAssign}
+			canShare={canShare}
+			sharedIds={[]}
 			quizzes={[quiz]}
 			ownerName="Ana"
 			setup={setup}
@@ -48,11 +52,21 @@ function renderFlow({
 			onDiscardUpload={onDiscardUpload}
 			onPost={onPost}
 			onAssign={onAssign}
+			onShare={onShare}
 			onClose={onClose}
 		/>,
 	);
 	const post = () => screen.findByRole("dialog", { name: "Criar publicação" });
-	return { user, onUpload, onPost, onAssign, onDiscardUpload, onClose, post };
+	return {
+		user,
+		onUpload,
+		onPost,
+		onAssign,
+		onShare,
+		onDiscardUpload,
+		onClose,
+		post,
+	};
 }
 
 const pdf = () =>
@@ -216,6 +230,39 @@ describe("CreatePostFlow (spec 036)", () => {
 			options: setup.options,
 			message: "Revisem",
 		});
+		expect(onPost).not.toHaveBeenCalled();
+	});
+
+	it("Compartilhar kahoot picks one quiz and comes back with its card, without settings (spec 037, RN-08)", async () => {
+		const { user, onShare, onAssign, onPost, post } = renderFlow();
+
+		await user.type(
+			within(await post()).getByPlaceholderText("Digite seu texto"),
+			"Para a revisão",
+		);
+		await user.click(
+			within(await post()).getByRole("button", { name: "Compartilhar kahoot" }),
+		);
+		await user.click(
+			within(
+				await screen.findByRole("dialog", { name: "Selecionar kahoot" }),
+			).getByRole("button", { name: /Capitais/ }),
+		);
+
+		const dialog = await post();
+		expect(
+			screen.queryByRole("dialog", {
+				name: "Configurações da atividade atribuída",
+			}),
+		).toBeNull();
+		expect(within(dialog).getByText("Capitais")).toBeVisible();
+		await user.click(within(dialog).getByRole("button", { name: "Publicar" }));
+
+		expect(onShare).toHaveBeenCalledWith({
+			quizIds: ["quiz-1"],
+			message: "Para a revisão",
+		});
+		expect(onAssign).not.toHaveBeenCalled();
 		expect(onPost).not.toHaveBeenCalled();
 	});
 

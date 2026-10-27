@@ -17,7 +17,12 @@ export function aReportHeader(
 		mode: "live",
 		name: "Capitais",
 		quizId: "quiz-1",
-		quiz: { trashed: false, playable: true, coverImageKey: null },
+		quiz: {
+			ownerId: "user-1",
+			trashed: false,
+			playable: true,
+			coverImageKey: null,
+		},
 		questionCount: 3,
 		status: "finished",
 		stoppedAt: null,

@@ -2,6 +2,10 @@ import { GROUP_ASSIGNMENT_SORTS } from "@quizio/core/groups/domain/group-assignm
 import { GROUP_FILE_TYPES } from "@quizio/core/groups/domain/group-file";
 import { GROUP_PERMISSIONS } from "@quizio/core/groups/domain/group-permissions";
 import { GROUP_SECTIONS } from "@quizio/core/groups/domain/group-section";
+import {
+	MAX_QUIZZES_PER_SHARE,
+	SHARED_QUIZ_SORTS,
+} from "@quizio/core/groups/domain/shared-quiz";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -25,6 +29,42 @@ const feedCursor = z.object({
 });
 /** A key the server signed under the group; the use cases check it. */
 const uploadKey = z.string().min(1).max(300);
+const quizId = z.string().min(1).max(100);
+
+/** "Compartilhado" (spec 037). */
+const sharedRouter = router({
+	list: protectedProcedure
+		.input(
+			z.object({
+				groupId,
+				sort: z.enum(SHARED_QUIZ_SORTS),
+				limit: z.number().int().min(1).max(200).optional(),
+			}),
+		)
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.listSharedQuizzes({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** "Já compartilhado" in "Selecionar kahoot" (RN-04). */
+	ids: protectedProcedure.input(inGroup).query(({ ctx, input }) =>
+		ctx.container.useCases.listSharedQuizIds({
+			userId: ctx.session.user.id,
+			...input,
+		}),
+	),
+
+	get: protectedProcedure
+		.input(z.object({ groupId, quizId }))
+		.query(({ ctx, input }) =>
+			ctx.container.useCases.getSharedQuiz({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+});
 
 /** The feed's posts: likes and "Excluir publicação" (spec 038). */
 const postsRouter = router({
@@ -289,6 +329,33 @@ export const groupRouter = router({
 			}),
 		),
 
+	/** "Compartilhar N kahoots" and "Publicar" with a quiz (spec 037, RN-06, RN-08). */
+	share: protectedProcedure
+		.input(
+			z.object({
+				groupId,
+				quizIds: z.array(quizId).min(1).max(MAX_QUIZZES_PER_SHARE),
+				// The length is the domain's rule, counted in characters.
+				message: z.string().max(5000).optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.shareQuizzesInGroup({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
+	/** "Remover do grupo" (spec 037, RN-13). */
+	unshare: protectedProcedure
+		.input(z.object({ groupId, quizId }))
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.unshareQuiz({
+				userId: ctx.session.user.id,
+				...input,
+			}),
+		),
+
 	assignments: protectedProcedure
 		.input(z.object({ groupId, sort: z.enum(GROUP_ASSIGNMENT_SORTS) }))
 		.query(({ ctx, input }) =>
@@ -318,6 +385,7 @@ export const groupRouter = router({
 		),
 
 	posts: postsRouter,
+	shared: sharedRouter,
 	invite: inviteRouter,
 	settings: settingsRouter,
 });

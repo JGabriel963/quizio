@@ -24,6 +24,7 @@ const header = (
 	participantCount: 25,
 	quizId: "quiz-1",
 	canPlayAgain: true,
+	playQuizId: "quiz-1",
 	readOnly: false,
 	...overrides,
 });

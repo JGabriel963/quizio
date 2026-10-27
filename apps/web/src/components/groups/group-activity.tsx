@@ -9,33 +9,38 @@ import { type ReactNode, useId } from "react";
 
 import type { GroupViewData } from "@/lib/api-types";
 
-import { ComingSoonAction } from "./coming-soon-action";
 import { GroupSetupCard } from "./group-setup-card";
 
 /**
  * The Atividade tab (spec 034, RN-15, RN-17; specs 036 and 038): the
  * composer, whose "Publicar algo" and Criar publicação open "Criar
- * publicação", with Atribuir for who may assign; the admin's setup card; and
- * the feed, or the empty state without posts. Compart. comes with spec 037.
+ * publicação", with Compart. for who may share (spec 037) and Atribuir for
+ * who may assign; the admin's setup card; and the feed, or the empty state
+ * without posts.
  */
 export function GroupActivity({
 	isAdmin,
 	canAssign,
+	canShare,
 	setup,
 	feed,
 	onInvite,
 	onAssign,
+	onShare,
 	onCreatePost,
 	onDismissSetup,
 }: {
 	isAdmin: boolean;
 	/** The admin, or members when the admin lets them (spec 038, RN-01). */
 	canAssign: boolean;
+	/** The admin, or members when the admin lets them (spec 037, RN-01). */
+	canShare: boolean;
 	setup: GroupViewData["setup"];
 	/** The feed; null without posts. */
 	feed: ReactNode | null;
 	onInvite: () => void;
 	onAssign: () => void;
+	onShare: () => void;
 	onCreatePost: () => void;
 	onDismissSetup: () => void;
 }) {
@@ -66,11 +71,16 @@ export function GroupActivity({
 						<MessageCircleIcon aria-hidden="true" />
 						Criar publicação
 					</button>
-					<ComingSoonAction
-						label="Compart."
-						icon={<ShareIcon />}
-						showBadge={false}
-					/>
+					{canShare && (
+						<button
+							type="button"
+							onClick={onShare}
+							className="inline-flex items-center gap-1.5 text-sm hover:text-primary [&>svg]:size-4 [&>svg]:text-primary"
+						>
+							<ShareIcon aria-hidden="true" />
+							Compart.
+						</button>
+					)}
 					{canAssign && (
 						<button
 							type="button"
@@ -107,16 +117,6 @@ export function GroupActivity({
 					<Button onClick={onCreatePost}>Criar publicação</Button>
 				</div>
 			)}
-		</div>
-	);
-}
-
-/** Compartilhado, until spec 037 (RN-14). */
-export function GroupComingSoon({ title }: { title: string }) {
-	return (
-		<div className="flex flex-col items-center gap-3 rounded-lg border-2 border-border border-dashed px-6 py-16 text-center">
-			<p className="font-semibold">{title}</p>
-			<p className="text-muted-foreground text-sm">Em breve.</p>
 		</div>
 	);
 }

@@ -125,6 +125,38 @@ export function useGroupMutations() {
 				onSuccess: invalidate,
 			}),
 		),
+		// "Compartilhar N kahoots" and "Criar publicação" tell their own
+		// refusals (spec 037).
+		share: useMutation(
+			trpc.group.share.mutationOptions({
+				meta: { suppressErrorToast: true },
+				onSuccess: (_data, variables) => {
+					toast.success(
+						variables.quizIds.length === 1
+							? "Kahoot compartilhado com o grupo."
+							: "Kahoots compartilhados com o grupo.",
+					);
+					return invalidate();
+				},
+			}),
+		),
+		unshare: useMutation(
+			trpc.group.unshare.mutationOptions({
+				onSuccess: () => {
+					toast.success("Kahoot removido do grupo.");
+					return invalidate();
+				},
+				onError: showError,
+			}),
+		),
+		// The copy is a draft in the member's library (spec 037, RN-21).
+		duplicateShared: useMutation(
+			trpc.quiz.duplicateShared.mutationOptions({
+				onSuccess: () =>
+					queryClient.invalidateQueries({ queryKey: trpc.library.pathKey() }),
+				onError: showError,
+			}),
+		),
 		requestUpload: useMutation(
 			trpc.group.requestUpload.mutationOptions({
 				meta: { suppressErrorToast: true },

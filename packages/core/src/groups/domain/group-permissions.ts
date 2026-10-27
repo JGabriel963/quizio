@@ -5,6 +5,7 @@ import {
 	InviteNotAllowedError,
 	MembersHiddenError,
 	NotGroupAdminError,
+	ShareNotAllowedError,
 } from "./group-errors";
 import type { GroupRole } from "./group-member";
 
@@ -109,4 +110,26 @@ export function canManagePost(
 		return false;
 	}
 	return viewer.role === "admin" || viewer.userId === post.authorId;
+}
+
+/** The admin always; a member when the admin lets them (spec 037, RN-01). */
+export function canShare(group: WithPermissions, role: GroupRole): boolean {
+	return role === "admin" || group.permissions.membersCanShare;
+}
+
+export function assertCanShare(
+	group: WithPermissions,
+	membership: { role: GroupRole },
+): void {
+	if (!canShare(group, membership.role)) {
+		throw new ShareNotAllowedError();
+	}
+}
+
+/** "Remover do grupo": who shared the quiz, and the admin (spec 037, RN-11). */
+export function canUnshare(
+	shared: { sharedById: string },
+	viewer: { userId: string; role: GroupRole },
+): boolean {
+	return viewer.role === "admin" || viewer.userId === shared.sharedById;
 }

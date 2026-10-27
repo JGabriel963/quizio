@@ -34,21 +34,24 @@ const IMAGE_ACCEPT = Object.keys(GROUP_IMAGE_EXTENSIONS).join(",");
 
 /**
  * "Criar publicação" (spec 036, RN-04 to RN-08): the text with its counter,
- * "Adicionar à minha publicação" (Imagem, PDF, Compartilhar kahoot, which is
- * still to come, and Atribuir kahoot for who may assign), or the attachment
- * with its X; Cancelar and Publicar. The flow around it holds the state.
+ * "Adicionar à minha publicação" (Imagem, PDF, Compartilhar kahoot for who
+ * may share, spec 037, and Atribuir kahoot for who may assign), or the
+ * attachment with its X; Cancelar and Publicar. The flow around it holds the
+ * state.
  */
 export function CreatePostDialog({
 	open,
 	message,
 	attachment,
 	canAssign,
+	canShare,
 	canPublish,
 	publishing,
 	error,
 	onMessageChange,
 	onPickFile,
 	onAssign,
+	onShare,
 	onRemoveAttachment,
 	onCancel,
 	onPublish,
@@ -57,6 +60,8 @@ export function CreatePostDialog({
 	message: string;
 	attachment: PostAttachment;
 	canAssign: boolean;
+	/** The admin, or members when the admin lets them (spec 037, RN-01). */
+	canShare: boolean;
 	canPublish: boolean;
 	publishing: boolean;
 	/** A refused file or a refused post. */
@@ -64,6 +69,7 @@ export function CreatePostDialog({
 	onMessageChange: (message: string) => void;
 	onPickFile: (type: "image" | "pdf", file: File) => void;
 	onAssign: () => void;
+	onShare: () => void;
 	onRemoveAttachment: () => void;
 	onCancel: () => void;
 	onPublish: () => void;
@@ -119,7 +125,13 @@ export function CreatePostDialog({
 								icon={FileTextIcon}
 								onClick={() => pdfInput.current?.click()}
 							/>
-							<AttachButton label="Compartilhar kahoot" icon={ShareIcon} soon />
+							{canShare && (
+								<AttachButton
+									label="Compartilhar kahoot"
+									icon={ShareIcon}
+									onClick={onShare}
+								/>
+							)}
 							{canAssign && (
 								<AttachButton
 									label="Atribuir kahoot"
@@ -223,7 +235,7 @@ function AttachmentPreview({
 	return (
 		<div className="rounded-md bg-muted p-3">
 			<div className="flex items-center gap-3 overflow-hidden rounded-md bg-card shadow-sm">
-				{attachment.kind === "quiz" ? (
+				{attachment.kind === "quiz" || attachment.kind === "sharedQuiz" ? (
 					<QuizCover
 						url={attachment.quiz.coverImageUrl ?? null}
 						className="w-28 shrink-0 rounded-none"
@@ -247,7 +259,7 @@ function AttachmentPreview({
 					</span>
 				)}
 				<div className="flex min-w-0 flex-1 flex-col gap-1 py-2">
-					{attachment.kind === "quiz" ? (
+					{attachment.kind === "quiz" || attachment.kind === "sharedQuiz" ? (
 						<>
 							<p className="truncate font-bold">{attachment.quiz.title}</p>
 							{attachment.quiz.ownerName && (

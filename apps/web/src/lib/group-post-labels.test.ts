@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	checkGroupFile,
 	formatFileSize,
+	gamesLabel,
 	likesLabel,
 	postDateLabel,
 	postHeadlineLabel,
@@ -20,6 +21,17 @@ describe("group post labels (spec 036)", () => {
 		expect(postHeadlineLabel("image")).toBe("compartilhou uma imagem");
 		expect(postHeadlineLabel("file")).toBe("compartilhou um arquivo");
 		expect(postHeadlineLabel("assignment")).toBe("atribuiu um kahoot");
+	});
+
+	it("N partida(s) of a shared quiz (spec 037, RN-15)", () => {
+		expect(gamesLabel(0)).toBe("0 partidas");
+		expect(gamesLabel(1)).toBe("1 partida");
+		expect(gamesLabel(8)).toBe("8 partidas");
+	});
+
+	it("headlines of shared quizzes (spec 037, RN-09)", () => {
+		expect(postHeadlineLabel("quiz")).toBe("compartilhou um kahoot");
+		expect(postHeadlineLabel("quizzes")).toBe("compartilhou");
 	});
 
 	it("formatFileSize: 2,4 MB, 850 KB", () => {

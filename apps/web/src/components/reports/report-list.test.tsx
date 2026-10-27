@@ -27,6 +27,7 @@ const report = (
 	trashedAt: null,
 	quizId: "quiz-1",
 	canPlayAgain: true,
+	playQuizId: "quiz-1",
 	...overrides,
 });
 

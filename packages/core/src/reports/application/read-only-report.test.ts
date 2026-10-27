@@ -16,7 +16,17 @@ import { createRenameReport } from "./rename-report";
 function setup() {
 	const store = new InMemoryReportStore([
 		aReportGame({
-			header: { gameId: "game-1", ownerId: "bruno", quizId: "quiz-1" },
+			header: {
+				gameId: "game-1",
+				ownerId: "bruno",
+				quizId: "quiz-1",
+				quiz: {
+					ownerId: "bruno",
+					trashed: false,
+					playable: true,
+					coverImageKey: null,
+				},
+			},
 			questions: 2,
 			players: ["Lia"],
 			answers: { Lia: ["right", "wrong"] },

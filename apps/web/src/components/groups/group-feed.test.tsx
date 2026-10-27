@@ -11,7 +11,9 @@ import { GroupFeed } from "./group-feed";
 const aMessage = (id: string): GroupPostData =>
 	({
 		id,
+		kind: "message",
 		headline: "message",
+		quiz: null,
 		author: { userId: "ana", name: "Ana" },
 		createdAt: new Date(2026, 9, 26, 15, 1).toISOString(),
 		message: `Publicação ${id}`,
@@ -32,6 +34,11 @@ function Harness() {
 		<GroupFeed
 			posts={posts}
 			origin="https://quizio.app"
+			quizActions={{
+				groupId: "g1",
+				onDuplicate: async () => {},
+				onUnshare: async () => {},
+			}}
 			hasMore={pages === 1}
 			onLoadMore={() => setPages(2)}
 			onLike={async () => {}}

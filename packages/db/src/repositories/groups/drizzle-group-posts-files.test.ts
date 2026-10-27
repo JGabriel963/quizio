@@ -24,6 +24,7 @@ function aMessage(
 		kind: "message",
 		message: "Leiam",
 		gameId: null,
+		sharedQuizId: null,
 		createdAt: at(1),
 		...overrides,
 	};

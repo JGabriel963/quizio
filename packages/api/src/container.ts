@@ -183,6 +183,10 @@ import {
 	type GetGroupSettings,
 } from "@quizio/core/groups/application/get-group-settings";
 import {
+	createGetSharedQuiz,
+	type GetSharedQuiz,
+} from "@quizio/core/groups/application/get-shared-quiz";
+import {
 	createLeaveGroup,
 	type LeaveGroup,
 } from "@quizio/core/groups/application/leave-group";
@@ -210,15 +214,25 @@ import {
 	createListRecentGroups,
 	type ListRecentGroups,
 } from "@quizio/core/groups/application/list-recent-groups";
+import {
+	createListSharedQuizIds,
+	type ListSharedQuizIds,
+} from "@quizio/core/groups/application/list-shared-quiz-ids";
+import {
+	createListSharedQuizzes,
+	type ListSharedQuizzes,
+} from "@quizio/core/groups/application/list-shared-quizzes";
 import type { GroupAssignmentQuery } from "@quizio/core/groups/application/ports/group-assignments";
 import type { GroupFeedQuery } from "@quizio/core/groups/application/ports/group-feed-query";
 import type { GroupMemberRepository } from "@quizio/core/groups/application/ports/group-member-repository";
 import type { GroupPostRepository } from "@quizio/core/groups/application/ports/group-post-repository";
 import type { GroupReads } from "@quizio/core/groups/application/ports/group-reads";
 import type { GroupRepository } from "@quizio/core/groups/application/ports/group-repository";
+import type { GroupSharedQuizRepository } from "@quizio/core/groups/application/ports/group-shared-quiz-repository";
 import type { GroupUploadRepository } from "@quizio/core/groups/application/ports/group-upload-repository";
 import type { GroupVisitRepository } from "@quizio/core/groups/application/ports/group-visit-repository";
 import type { InviteCodeGenerator } from "@quizio/core/groups/application/ports/invite-code-generator";
+import type { SharedQuizReads } from "@quizio/core/groups/application/ports/shared-quiz-reads";
 import {
 	createRemoveGroupMember,
 	type RemoveGroupMember,
@@ -239,6 +253,14 @@ import {
 	createSetPostLike,
 	type SetPostLike,
 } from "@quizio/core/groups/application/set-post-like";
+import {
+	createShareQuizzesInGroup,
+	type ShareQuizzesInGroup,
+} from "@quizio/core/groups/application/share-quizzes-in-group";
+import {
+	createUnshareQuiz,
+	type UnshareQuiz,
+} from "@quizio/core/groups/application/unshare-quiz";
 import {
 	createUpdateGroupDetails,
 	type UpdateGroupDetails,
@@ -305,6 +327,10 @@ import {
 	createDuplicateQuiz,
 	type DuplicateQuiz,
 } from "@quizio/core/quiz/application/duplicate-quiz";
+import {
+	createDuplicateSharedQuiz,
+	type DuplicateSharedQuiz,
+} from "@quizio/core/quiz/application/duplicate-shared-quiz";
 import {
 	createGenerateQuestions,
 	type GenerateQuestions,
@@ -396,6 +422,7 @@ import type { AttemptLimiter } from "@quizio/core/shared/application/ports/attem
 import type { Clock } from "@quizio/core/shared/application/ports/clock";
 import type { IdGenerator } from "@quizio/core/shared/application/ports/id-generator";
 import type { ObjectStorage } from "@quizio/core/shared/application/ports/object-storage";
+import type { QuizShareGrants } from "@quizio/core/shared/application/ports/quiz-share-grants";
 import type { RealtimePublisher } from "@quizio/core/shared/application/ports/realtime-publisher";
 import type { Shuffler } from "@quizio/core/shared/application/ports/shuffler";
 
@@ -463,6 +490,11 @@ export interface Adapters {
 	groupUploads: GroupUploadRepository;
 	/** Who else may read a report: a group's admin (spec 038, RN-20a). */
 	reportReadGrants: ReportReadGrants;
+	/** Quizzes shared with groups (spec 037; ADR 0018). */
+	groupSharedQuizzes: GroupSharedQuizRepository;
+	sharedQuizReads: SharedQuizReads;
+	/** Who may use a quiz they do not own: a member of a group it is in. */
+	quizShareGrants: QuizShareGrants;
 }
 
 export interface Container extends Adapters {
@@ -477,6 +509,7 @@ export interface Container extends Adapters {
 		getQuizDetails: GetQuizDetails;
 		updateQuizDetails: UpdateQuizDetails;
 		duplicateQuiz: DuplicateQuiz;
+		duplicateSharedQuiz: DuplicateSharedQuiz;
 		moveQuizToTrash: MoveQuizToTrash;
 		restoreQuiz: RestoreQuiz;
 		deleteQuizPermanently: DeleteQuizPermanently;
@@ -553,6 +586,11 @@ export interface Container extends Adapters {
 		listGroupFeed: ListGroupFeed;
 		setPostLike: SetPostLike;
 		createGroupPost: CreateGroupPost;
+		shareQuizzesInGroup: ShareQuizzesInGroup;
+		unshareQuiz: UnshareQuiz;
+		listSharedQuizzes: ListSharedQuizzes;
+		listSharedQuizIds: ListSharedQuizIds;
+		getSharedQuiz: GetSharedQuiz;
 		requestGroupUpload: RequestGroupUpload;
 		discardGroupUpload: DiscardGroupUpload;
 		getGroupSettings: GetGroupSettings;
@@ -606,6 +644,10 @@ export function createContainer(adapters: Adapters): Container {
 			getQuizDetails: createGetQuizDetails(adapters),
 			updateQuizDetails: createUpdateQuizDetails(adapters),
 			duplicateQuiz: createDuplicateQuiz(adapters),
+			duplicateSharedQuiz: createDuplicateSharedQuiz({
+				...adapters,
+				quizVersions: adapters.versions,
+			}),
 			moveQuizToTrash: createMoveQuizToTrash(adapters),
 			restoreQuiz: createRestoreQuiz(adapters),
 			deleteQuizPermanently: createDeleteQuizPermanently({
@@ -685,6 +727,11 @@ export function createContainer(adapters: Adapters): Container {
 			listGroupFeed: createListGroupFeed(groupDeps),
 			setPostLike: createSetPostLike(groupDeps),
 			createGroupPost: createCreateGroupPost(adapters),
+			shareQuizzesInGroup: createShareQuizzesInGroup(adapters),
+			unshareQuiz: createUnshareQuiz(adapters),
+			listSharedQuizzes: createListSharedQuizzes(adapters),
+			listSharedQuizIds: createListSharedQuizIds(adapters),
+			getSharedQuiz: createGetSharedQuiz(adapters),
 			requestGroupUpload: createRequestGroupUpload(adapters),
 			discardGroupUpload: createDiscardGroupUpload(adapters),
 			getGroupSettings: createGetGroupSettings(adapters),

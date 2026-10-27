@@ -7,9 +7,18 @@ import {
 import type { GroupFileType } from "../domain/group-file";
 import type { GroupMember } from "../domain/group-member";
 import { canManagePost } from "../domain/group-permissions";
-import { type GroupPostHeadline, postHeadlineOf } from "../domain/group-post";
+import {
+	type GroupPostHeadline,
+	type GroupPostKind,
+	postHeadlineOf,
+} from "../domain/group-post";
 import type { GroupAssignmentQuery } from "./ports/group-assignments";
 import type { GroupPostRecord } from "./ports/group-feed-query";
+import type { SharedQuizReads } from "./ports/shared-quiz-reads";
+import {
+	type SharedQuizCardView,
+	sharedQuizCardViewOf,
+} from "./shared-quiz-view";
 
 /** The card of an assignment as the screens draw it (spec 038, RN-14, RN-23). */
 export interface GroupAssignmentCard {
@@ -32,6 +41,8 @@ export interface GroupPostFileView {
 /** A post of the feed (spec 036; spec 038, RN-13 to RN-20). */
 export interface GroupPostView {
 	id: string;
+	/** What was posted, whatever is left of it (spec 037: a removed quiz). */
+	kind: GroupPostKind;
 	/** What the header says was shared (spec 036, RN-17). */
 	headline: GroupPostHeadline;
 	author: { userId: string; name: string };
@@ -45,6 +56,11 @@ export interface GroupPostView {
 	attachment: GroupAssignmentCard | null;
 	/** The image or PDF of a message (spec 036). */
 	file: GroupPostFileView | null;
+	/**
+	 * The quiz of "compartilhou um kahoot", while it is in the group and out
+	 * of its owner's trash (spec 037, RN-09, RN-13).
+	 */
+	quiz: SharedQuizCardView | null;
 	/** "Ver relatório": who posted and the admin, while the report exists (RN-20). */
 	canSeeReport: boolean;
 	/** "Excluir publicação": who posted and the admin (RN-20, RN-31). */
@@ -53,6 +69,7 @@ export interface GroupPostView {
 
 export interface GroupPostViewDeps {
 	groupAssignmentQuery: GroupAssignmentQuery;
+	sharedQuizReads: SharedQuizReads;
 	storage: ObjectStorage;
 	clock: Clock;
 }
@@ -74,14 +91,30 @@ export async function postViewsOf(
 			record,
 		]),
 	);
+	const sharedQuizIds = posts.flatMap((post) =>
+		post.sharedQuizId ? [post.sharedQuizId] : [],
+	);
+	const quizzes = new Map(
+		(await deps.sharedQuizReads.sharedQuizCards(sharedQuizIds)).map((card) => [
+			card.sharedQuizId,
+			card,
+		]),
+	);
 	const now = deps.clock.now();
 	return posts.map((post) => {
 		const record = post.gameId ? (records.get(post.gameId) ?? null) : null;
 		const attachment = attachmentOf(record, now);
+		const quizCard = post.sharedQuizId
+			? (quizzes.get(post.sharedQuizId) ?? null)
+			: null;
 		const manages = canManagePost(post, viewer);
 		return {
 			id: post.id,
-			headline: postHeadlineOf(post, attachment !== null),
+			kind: post.kind,
+			headline: postHeadlineOf(
+				post,
+				post.kind === "quizShare" ? quizCard !== null : attachment !== null,
+			),
 			author: { userId: post.authorId, name: post.authorName },
 			createdAt: post.createdAt,
 			message: post.message,
@@ -104,6 +137,7 @@ export async function postViewsOf(
 				name: post.file.name,
 				sizeBytes: post.file.sizeBytes,
 			},
+			quiz: quizCard && sharedQuizCardViewOf(quizCard, deps.storage, viewer),
 			canSeeReport: manages && record !== null,
 			canDelete: manages,
 		};

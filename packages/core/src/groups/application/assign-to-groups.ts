@@ -55,6 +55,7 @@ export function createAssignToGroups(
 				file: null,
 				message: null,
 				gameId,
+				sharedQuizId: null,
 				createdAt: now,
 			});
 			if (result === "created") {

@@ -162,7 +162,7 @@ export function GroupAssignmentsTab({
 	);
 }
 
-function ViewOption({
+export function ViewOption({
 	label,
 	icon,
 	checked,

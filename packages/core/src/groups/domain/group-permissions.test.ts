@@ -8,6 +8,7 @@ import {
 	InviteNotAllowedError,
 	MembersHiddenError,
 	NotGroupAdminError,
+	ShareNotAllowedError,
 } from "./group-errors";
 import {
 	assertAdmin,
@@ -15,11 +16,14 @@ import {
 	assertCanInvite,
 	assertCanLeave,
 	assertCanSeeMembers,
+	assertCanShare,
 	assertRemovable,
 	canAssign,
 	canInvite,
 	canManagePost,
 	canSeeMembers,
+	canShare,
+	canUnshare,
 	DEFAULT_GROUP_PERMISSIONS,
 } from "./group-permissions";
 
@@ -122,5 +126,34 @@ describe("assigning and managing posts (spec 038)", () => {
 			false,
 		);
 		expect(canManagePost(post, null)).toBe(false);
+	});
+});
+
+describe("sharing quizzes (spec 037)", () => {
+	const withShare = (membersCanShare: boolean) =>
+		aGroup({
+			permissions: { ...DEFAULT_GROUP_PERMISSIONS, membersCanShare },
+		});
+
+	it("canShare: the admin always, a member only with membersCanShare (RN-01)", () => {
+		expect(canShare(withShare(false), "admin")).toBe(true);
+		expect(canShare(withShare(false), "member")).toBe(false);
+		expect(canShare(withShare(true), "member")).toBe(true);
+	});
+
+	it("assertCanShare refuses with GROUP.SHARE_NOT_ALLOWED", () => {
+		expect(() => assertCanShare(withShare(false), member)).toThrow(
+			ShareNotAllowedError,
+		);
+		expect(() => assertCanShare(withShare(true), member)).not.toThrow();
+		expect(new ShareNotAllowedError().code).toBe("GROUP.SHARE_NOT_ALLOWED");
+	});
+
+	it("canUnshare: who shared and the admin (RN-11, RN-13)", () => {
+		const shared = { sharedById: "bruno" };
+
+		expect(canUnshare(shared, { userId: "bruno", role: "member" })).toBe(true);
+		expect(canUnshare(shared, { userId: "ana", role: "admin" })).toBe(true);
+		expect(canUnshare(shared, { userId: "carla", role: "member" })).toBe(false);
 	});
 });

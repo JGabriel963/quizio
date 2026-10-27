@@ -196,6 +196,10 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Criar publicação | `createGroupPost` | O diálogo de publicar no mural: texto de até 500 caracteres e no máximo um anexo; aberto por "Publicar algo" e pelos botões "Criar publicação" (spec 036) | ✅ |
 | Anexo da publicação | `GroupPostAttachment` | O único anexo de uma publicação: imagem (até 10 MB), PDF (até 20 MB) ou atividade atribuída; apagado com a publicação (spec 036) | ✅ |
 | Excluir publicação | `deleteGroupPost` | Tira a publicação, com as curtidas, do mural e da aba; a atribuição continua; de quem atribuiu e do administrador (spec 038) | ✅ |
+| Compartilhar com o grupo | `shareQuizzesInGroup` | Pôr um ou vários quizzes jogáveis da própria pessoa no grupo, cada um uma vez por grupo, sempre com uma publicação ("compartilhou um kahoot" ou "compartilhou múltiplos kahoots"); do administrador, e dos membros com a chave (spec 037) | ✅ |
+| Quiz compartilhado | `SharedQuiz` | Um quiz no grupo, na aba Compartilhado; acompanha a última versão salva pelo dono; os membros veem, jogam, atribuem e duplicam, sem editar (spec 037) | ✅ |
+| Remover do grupo | `unshareQuiz` | Tirar um quiz compartilhado da aba; a publicação "compartilhou um kahoot" fica sem o anexo; de quem compartilhou e do administrador (spec 037) | ✅ |
+| Duplique para editar | `duplicateSharedQuiz` | O Editar de um quiz compartilhado: o membro não edita o original, duplica para a própria biblioteca (spec 037) | ✅ |
 | Relatório somente para leitura | `ReportView.readOnly` | O administrador do grupo vê o relatório de uma atribuição publicada ali por outra pessoa, sem nenhuma ação (spec 038) | ✅ |
 
 ## Library, Reports, Media

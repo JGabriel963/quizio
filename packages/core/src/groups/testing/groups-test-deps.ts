@@ -5,6 +5,7 @@ import { createAcceptGroupInvite } from "../application/accept-group-invite";
 import { createCreateGroup } from "../application/create-group";
 import { InMemoryGroupAssignments } from "./in-memory-group-assignments";
 import { InMemoryGroupStore } from "./in-memory-group-store";
+import { InMemorySharedQuizReads } from "./in-memory-shared-quiz-reads";
 import { SequentialInviteCodeGenerator } from "./sequential-invite-code-generator";
 
 /**
@@ -36,6 +37,8 @@ export function groupsTestDeps() {
 			coverImageKey: `media/${ownerId}/cover.png`,
 		});
 	}
+	// Quizzes the groups may share and read (spec 037).
+	const sharedQuizReads = new InMemorySharedQuizReads(store);
 	const deps = {
 		groups: store,
 		groupMembers: store,
@@ -44,6 +47,8 @@ export function groupsTestDeps() {
 		groupPosts: store,
 		groupFeed: store,
 		groupUploads: store,
+		groupSharedQuizzes: store,
+		sharedQuizReads,
 		groupAssignments: assignments,
 		groupAssignmentQuery: assignments,
 		storage: new InMemoryObjectStorage("https://media.test"),
@@ -69,5 +74,5 @@ export function groupsTestDeps() {
 		return groupId;
 	}
 
-	return { store, clock, deps, aGroupOf, assignments };
+	return { store, clock, deps, aGroupOf, assignments, sharedQuizReads };
 }

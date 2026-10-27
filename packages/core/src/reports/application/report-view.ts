@@ -1,6 +1,7 @@
 import type { Correctness } from "../../game/domain/answer";
 import type { QuestionType } from "../../quiz/domain/question";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { QuizShareGrants } from "../../shared/application/ports/quiz-share-grants";
 import { marginRange } from "../../shared/domain/slider-scale";
 import { groupTypedAnswers } from "../../shared/domain/typed-answer";
 import { accuracyPercent, isLowAccuracy } from "../domain/accuracy";
@@ -141,15 +142,51 @@ export function coverUrlOf(
 	return imageUrlOf(header, header.quiz?.coverImageKey ?? null, storage);
 }
 
-/** The quiz's id while it can be opened (RN-05), and whether it can be played. */
-export function quizLinksOf(header: ReportHeader): {
+/** Where a report leads: its quiz's page, and the quiz to play again. */
+export interface QuizLinksView {
+	/** The quiz's page while it can be opened (RN-05), for its owner only. */
 	quizId: string | null;
 	canPlayAgain: boolean;
-} {
+	/**
+	 * What "Jogar novamente" hosts: the reader's quiz, or one a group shares
+	 * with them (spec 037, RN-24).
+	 */
+	playQuizId: string | null;
+}
+
+export const NO_QUIZ_LINKS: QuizLinksView = {
+	quizId: null,
+	canPlayAgain: false,
+	playQuizId: null,
+};
+
+export function quizLinksOf(
+	header: ReportHeader,
+	viewerId: string,
+	sharedWithViewer: boolean,
+): QuizLinksView {
+	const owned = header.quiz?.ownerId === viewerId;
+	const playable = canPlayAgain(header) && (owned || sharedWithViewer);
 	return {
-		quizId: canViewQuiz(header) ? header.quizId : null,
-		canPlayAgain: canPlayAgain(header),
+		quizId: owned && canViewQuiz(header) ? header.quizId : null,
+		canPlayAgain: playable,
+		playQuizId: playable ? header.quizId : null,
 	};
+}
+
+/** Asks the grants only for a playable quiz the reader does not own. */
+export async function quizLinksFor(
+	grants: QuizShareGrants | undefined,
+	header: ReportHeader,
+	viewerId: string,
+): Promise<QuizLinksView> {
+	const shared =
+		grants !== undefined &&
+		header.quiz !== null &&
+		header.quiz.ownerId !== viewerId &&
+		canPlayAgain(header) &&
+		(await grants.canUse(viewerId, header.quizId));
+	return quizLinksOf(header, viewerId, shared);
 }
 
 /** What a report of an assignment adds (spec 029, RN-29, RN-31, RN-32). */

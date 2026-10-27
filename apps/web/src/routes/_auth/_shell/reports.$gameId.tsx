@@ -168,7 +168,8 @@ function ReportPage() {
 								pending: playAgain.pending,
 								error: playAgain.error,
 								start: () => {
-									const { quizId } = report.data.header;
+									// Their own quiz, or one a group shares with them (spec 037).
+									const { playQuizId: quizId } = report.data.header;
 									if (quizId) {
 										playAgain.start(quizId);
 									}

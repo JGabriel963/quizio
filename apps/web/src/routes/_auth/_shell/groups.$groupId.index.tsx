@@ -1,5 +1,13 @@
 import { GROUP_ASSIGNMENT_SORTS } from "@quizio/core/groups/domain/group-assignment";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+	SHARED_QUIZ_SORTS,
+	SHARED_QUIZZES_PAGE_SIZE,
+} from "@quizio/core/groups/domain/shared-quiz";
+import {
+	keepPreviousData,
+	useInfiniteQuery,
+	useQuery,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -9,10 +17,7 @@ import {
 	DeleteGroupDialog,
 	LeaveGroupDialog,
 } from "@/components/groups/confirm-group-dialogs";
-import {
-	GroupActivity,
-	GroupComingSoon,
-} from "@/components/groups/group-activity";
+import { GroupActivity } from "@/components/groups/group-activity";
 import { GroupAssignmentsTab } from "@/components/groups/group-assignments-tab";
 import { GroupFeed } from "@/components/groups/group-feed";
 import { GroupHeader } from "@/components/groups/group-header";
@@ -23,15 +28,14 @@ import {
 	GroupNotFound,
 	GroupSkeleton,
 } from "@/components/groups/group-states";
-import {
-	GROUP_TAB_LABELS,
-	GROUP_TABS,
-	GroupTabs,
-} from "@/components/groups/group-tabs";
+import { GROUP_TABS, GroupTabs } from "@/components/groups/group-tabs";
 import {
 	CreatePostFlow,
 	type GroupFileUploader,
 } from "@/components/groups/post/create-post-flow";
+import { ShareQuizzesDialog } from "@/components/groups/shared/share-quizzes-dialog";
+import type { SharedQuizActions } from "@/components/groups/shared/shared-quiz-menu";
+import { SharedQuizzesTab } from "@/components/groups/shared/shared-quizzes-tab";
 import { isGroupNotFound } from "@/lib/group-error-messages";
 import { useGroupMutations } from "@/lib/group-mutations";
 import { uploadFile } from "@/lib/upload-file";
@@ -41,6 +45,8 @@ import { useTRPC } from "@/utils/trpc";
 const groupSearchSchema = z.object({
 	tab: z.enum(GROUP_TABS).catch("activity").default("activity"),
 	sort: z.enum(GROUP_ASSIGNMENT_SORTS).catch("recent").default("recent"),
+	/** "Ordenar por" of the Compartilhado tab (spec 037, RN-14). */
+	order: z.enum(SHARED_QUIZ_SORTS).catch("recent").default("recent"),
 });
 
 export const Route = createFileRoute("/_auth/_shell/groups/$groupId/")({
@@ -48,10 +54,10 @@ export const Route = createFileRoute("/_auth/_shell/groups/$groupId/")({
 	component: GroupPage,
 });
 
-/** A group's page (spec 034, RN-13 to RN-20; specs 036 and 038). */
+/** A group's page (spec 034, RN-13 to RN-20; specs 036 to 038). */
 function GroupPage() {
 	const { groupId } = Route.useParams();
-	const { tab, sort } = Route.useSearch();
+	const { tab, sort, order } = Route.useSearch();
 	const { session } = Route.useRouteContext();
 	const navigate = Route.useNavigate();
 	const trpc = useTRPC();
@@ -63,6 +69,9 @@ function GroupPage() {
 	// When the assign flow opened: its default deadline counts from then.
 	const [assigningSince, setAssigningSince] = useState<Date | null>(null);
 	const [posting, setPosting] = useState(false);
+	// The Compart. of the box and of the tab (spec 037, RN-05).
+	const [sharing, setSharing] = useState(false);
+	const [sharedLimit, setSharedLimit] = useState(SHARED_QUIZZES_PAGE_SIZE);
 	// A group that is gone (left, deleted) is the page's own state, not a toast,
 	// and asking again will not bring it back.
 	const groupQuery = {
@@ -89,10 +98,27 @@ function GroupPage() {
 		...groupQuery,
 		enabled: isMember && tab === "assignments",
 	});
-	// "Atribuir" and "Criar publicação" (with Atribuir kahoot) pick a quiz.
+	const shared = useQuery({
+		...trpc.group.shared.list.queryOptions({
+			groupId,
+			sort: order,
+			limit: sharedLimit,
+		}),
+		...groupQuery,
+		placeholderData: keepPreviousData,
+		enabled: isMember && tab === "shared",
+	});
+	const abilities = group.data?.abilities;
+	// "Atribuir", the Compart. and "Criar publicação" (with its kahoot
+	// buttons) pick a quiz.
 	const picksQuiz =
 		assigningSince !== null ||
-		(posting && group.data?.abilities.assign === true);
+		sharing ||
+		(posting && (abilities?.assign === true || abilities?.share === true));
+	const sharedIds = useQuery({
+		...trpc.group.shared.ids.queryOptions({ groupId }),
+		enabled: isMember && abilities?.share === true && picksQuiz,
+	});
 	const quizzes = useQuery({
 		...trpc.library.list.queryOptions({ section: "recent" }),
 		enabled: picksQuiz,
@@ -125,6 +151,16 @@ function GroupPage() {
 	const startAssigning = () => setAssigningSince(new Date());
 	const deletePost = (postId: string) =>
 		mutations.deletePost.mutateAsync({ groupId, postId });
+	const quizActions: SharedQuizActions = {
+		groupId,
+		onDuplicate: async (quizId) => {
+			const copy = await mutations.duplicateShared.mutateAsync({ quizId });
+			await navigate({ to: "/creator/$quizId", params: { quizId: copy.id } });
+		},
+		onUnshare: (quizId) => mutations.unshare.mutateAsync({ groupId, quizId }),
+	};
+	const share = (input: { quizIds: string[]; message?: string }) =>
+		mutations.share.mutateAsync({ groupId, ...input });
 	const posts = feed.data?.pages.flatMap((page) => page.posts) ?? [];
 	// The browser sends the file straight to storage (ADR 0017).
 	const uploadGroupFile: GroupFileUploader = async (type, file, onProgress) => {
@@ -157,12 +193,14 @@ function GroupPage() {
 				<GroupActivity
 					isAdmin={isAdmin}
 					canAssign={data.abilities.assign}
+					canShare={data.abilities.share}
 					setup={data.setup}
 					feed={
 						posts.length > 0 ? (
 							<GroupFeed
 								posts={posts}
 								origin={origin ?? ""}
+								quizActions={quizActions}
 								hasMore={feed.hasNextPage}
 								loadingMore={feed.isFetchingNextPage}
 								onLoadMore={() => void feed.fetchNextPage()}
@@ -175,6 +213,7 @@ function GroupPage() {
 					}
 					onInvite={() => setDialog("invite")}
 					onAssign={startAssigning}
+					onShare={() => setSharing(true)}
 					onCreatePost={() => setPosting(true)}
 					onDismissSetup={() => mutations.dismissSetup.mutate({ groupId })}
 				/>
@@ -191,7 +230,33 @@ function GroupPage() {
 					onDelete={deletePost}
 				/>
 			) : (
-				<GroupComingSoon title={GROUP_TAB_LABELS[tab]} />
+				<SharedQuizzesTab
+					items={shared.data?.items}
+					hasMore={shared.data?.hasMore ?? false}
+					loadingMore={shared.isPlaceholderData}
+					sort={order}
+					canShare={data.abilities.share}
+					actions={quizActions}
+					onSortChange={(next) => {
+						setSharedLimit(SHARED_QUIZZES_PAGE_SIZE);
+						navigate({ search: (prev) => ({ ...prev, order: next }) });
+					}}
+					onShare={() => setSharing(true)}
+					onLoadMore={() =>
+						setSharedLimit((limit) => limit + SHARED_QUIZZES_PAGE_SIZE)
+					}
+				/>
+			)}
+
+			{data.abilities.share && (
+				<ShareQuizzesDialog
+					open={sharing}
+					quizzes={quizzes.data}
+					ownerName={session.user.name}
+					sharedIds={sharedIds.data ?? []}
+					onShare={(quizIds) => share({ quizIds: [...quizIds] })}
+					onClose={() => setSharing(false)}
+				/>
 			)}
 
 			{data.abilities.assign && (
@@ -215,6 +280,8 @@ function GroupPage() {
 			<CreatePostFlow
 				open={posting}
 				canAssign={data.abilities.assign}
+				canShare={data.abilities.share}
+				sharedIds={sharedIds.data ?? []}
 				quizzes={quizzes.data}
 				ownerName={session.user.name}
 				setup={assignmentSetup.data}
@@ -230,6 +297,7 @@ function GroupPage() {
 						...input,
 					})
 				}
+				onShare={share}
 				onClose={() => setPosting(false)}
 			/>
 

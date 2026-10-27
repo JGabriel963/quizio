@@ -59,6 +59,7 @@ export function createAssignInGroup(
 			kind: "assignment",
 			message,
 			gameId,
+			sharedQuizId: null,
 			file: null,
 			createdAt: deps.clock.now(),
 		});

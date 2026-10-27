@@ -20,7 +20,9 @@ export type PostAttachment =
 			previewUrl: string | null;
 	  })
 	| (ChosenFile & { kind: "file"; key: string; previewUrl: string | null })
-	| { kind: "quiz"; quiz: PickedQuiz; settings: AssignSettings };
+	| { kind: "quiz"; quiz: PickedQuiz; settings: AssignSettings }
+	/** "Compartilhar kahoot": a quiz shared with the post (spec 037, RN-08). */
+	| { kind: "sharedQuiz"; quiz: PickedQuiz };
 
 /**
  * "Criar publicação" (spec 036, RN-04 to RN-15): the text, the attachment,
@@ -29,6 +31,8 @@ export type PostAttachment =
  */
 export interface GroupPostState {
 	step: "closed" | "compose" | "select" | "configure";
+	/** What "Selecionar kahoot" is for: assigning, or sharing (spec 037). */
+	purpose: "assign" | "share";
 	message: string;
 	attachment: PostAttachment;
 	/** The quiz being configured, before "Adicionar à publicação". */
@@ -53,12 +57,14 @@ export type GroupPostAction =
 	| { type: "fileRefused"; error: string }
 	| { type: "removeAttachment" }
 	| { type: "chooseQuiz" }
+	| { type: "chooseQuizToShare" }
 	| { type: "pickQuiz"; quiz: PickedQuiz }
 	| ({ type: "addToPost" } & AssignSettings)
 	| { type: "backToCompose" };
 
 export const initialGroupPostState: GroupPostState = {
 	step: "closed",
+	purpose: "assign",
 	message: "",
 	attachment: { kind: "none" },
 	pickedQuiz: null,
@@ -116,9 +122,18 @@ export function groupPostReducer(
 		case "removeAttachment":
 			return { ...state, attachment: NONE, error: null };
 		case "chooseQuiz":
-			return { ...state, step: "select", error: null };
+			return { ...state, step: "select", purpose: "assign", error: null };
+		case "chooseQuizToShare":
+			return { ...state, step: "select", purpose: "share", error: null };
 		case "pickQuiz":
-			return { ...state, step: "configure", pickedQuiz: action.quiz };
+			// Sharing skips the settings and comes straight back (spec 037, RN-08).
+			return state.purpose === "share"
+				? {
+						...state,
+						step: "compose",
+						attachment: { kind: "sharedQuiz", quiz: action.quiz },
+					}
+				: { ...state, step: "configure", pickedQuiz: action.quiz };
 		case "addToPost":
 			return state.pickedQuiz
 				? {

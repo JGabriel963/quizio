@@ -64,3 +64,23 @@ describe("postHeadlineOf (spec 036, RN-17)", () => {
 		);
 	});
 });
+
+describe("postHeadlineOf for shared quizzes (spec 037, RN-09, RN-13)", () => {
+	it("quizShare alive is quiz, without its share is file", () => {
+		expect(postHeadlineOf({ kind: "quizShare", file: null }, true)).toBe(
+			"quiz",
+		);
+		expect(postHeadlineOf({ kind: "quizShare", file: null }, false)).toBe(
+			"file",
+		);
+	});
+
+	it("quizzesShare is always quizzes", () => {
+		expect(postHeadlineOf({ kind: "quizzesShare", file: null }, false)).toBe(
+			"quizzes",
+		);
+		expect(postHeadlineOf({ kind: "quizzesShare", file: null }, true)).toBe(
+			"quizzes",
+		);
+	});
+});

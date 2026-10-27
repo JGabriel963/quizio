@@ -5,8 +5,16 @@ import type { GroupPostFile } from "./group-file";
 /** As "Criar publicação" counts it (spec 036, RN-05; spec 038, RN-12). */
 export const GROUP_POST_MESSAGE_MAX_LENGTH = 500;
 
-/** An assignment of spec 038, or what a member wrote (spec 036). */
-export const GROUP_POST_KINDS = ["assignment", "message"] as const;
+/**
+ * An assignment of spec 038, what a member wrote (spec 036), or one or
+ * several quizzes shared with the group (spec 037).
+ */
+export const GROUP_POST_KINDS = [
+	"assignment",
+	"message",
+	"quizShare",
+	"quizzesShare",
+] as const;
 export type GroupPostKind = (typeof GROUP_POST_KINDS)[number];
 
 /**
@@ -22,6 +30,11 @@ export interface GroupPost {
 	message: string | null;
 	gameId: string | null;
 	file: GroupPostFile | null;
+	/**
+	 * The share of a `quizShare` post, not the quiz: removed and shared again,
+	 * the quiz does not come back to the old post (spec 037, RN-13).
+	 */
+	sharedQuizId: string | null;
 	createdAt: Date;
 }
 
@@ -49,7 +62,13 @@ export function assertPostHasContent(
 }
 
 /** What the post's header says was shared (spec 036, RN-17). */
-export type GroupPostHeadline = "message" | "image" | "file" | "assignment";
+export type GroupPostHeadline =
+	| "message"
+	| "image"
+	| "file"
+	| "assignment"
+	| "quiz"
+	| "quizzes";
 
 /**
  * An assignment that lost its card reads as a file (spec 038, RN-16); a
@@ -61,6 +80,14 @@ export function postHeadlineOf(
 ): GroupPostHeadline {
 	if (post.kind === "assignment") {
 		return attachmentAlive ? "assignment" : "file";
+	}
+	// A shared quiz that left the group reads as a file too (spec 037, RN-13);
+	// "múltiplos kahoots" never changes.
+	if (post.kind === "quizShare") {
+		return attachmentAlive ? "quiz" : "file";
+	}
+	if (post.kind === "quizzesShare") {
+		return "quizzes";
 	}
 	if (post.file === null) {
 		return "message";

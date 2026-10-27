@@ -110,11 +110,12 @@ export const game = pgTable(
 			.on(table.pin)
 			.where(sql`${table.endedAt} is null`),
 		/**
-		 * A quiz has one live game that was not ended (RN-07); its assignments
-		 * are as many as the creator wants (spec 029, RN-05).
+		 * A host has one live game of a quiz that was not ended (RN-07; spec
+		 * 037, RN-19: other hosts of a shared quiz have their own); its
+		 * assignments are as many as the creator wants (spec 029, RN-05).
 		 */
 		uniqueIndex("game_unended_quiz_idx")
-			.on(table.quizId)
+			.on(table.quizId, table.ownerId)
 			.where(sql`${table.endedAt} is null and ${table.mode} = 'live'`),
 		/** The newest assignment that had a PIN (spec 029, CA-42). */
 		index("game_assignment_pin_idx")

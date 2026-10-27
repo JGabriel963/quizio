@@ -54,6 +54,7 @@ const headerColumns = {
 	trashedAt: reportTable.trashedAt,
 	// Null when the quiz was deleted for good: the game only keeps its id.
 	quizRowId: quizTable.id,
+	quizOwnerId: quizTable.ownerId,
 	quizTrashedAt: quizTable.trashedAt,
 	quizPublishedVersion: quizTable.publishedVersion,
 	quizCoverImageKey: quizTable.coverImageKey,
@@ -77,6 +78,7 @@ interface HeaderRow {
 	reportName: string | null;
 	trashedAt: Date | null;
 	quizRowId: string | null;
+	quizOwnerId: string | null;
 	quizTrashedAt: Date | null;
 	quizPublishedVersion: number | null;
 	quizCoverImageKey: string | null;
@@ -99,6 +101,8 @@ function toHeader(row: HeaderRow, now: Date): ReportHeader {
 			row.quizRowId === null
 				? null
 				: {
+						// A member's game of a quiz shared in a group (spec 037).
+						ownerId: row.quizOwnerId ?? row.ownerId,
 						trashed: row.quizTrashedAt !== null,
 						playable: row.quizPublishedVersion !== null,
 						coverImageKey: row.quizCoverImageKey,

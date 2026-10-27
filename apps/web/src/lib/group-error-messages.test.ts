@@ -5,6 +5,7 @@ import {
 	isGroupNotFound,
 	isMembersHidden,
 	isNotGroupAdmin,
+	isSharedQuizNotFound,
 } from "./group-error-messages";
 
 const failure = (domainCode: string) => ({ data: { domainCode } });
@@ -55,6 +56,17 @@ describe("groupErrorMessage (spec 034)", () => {
 			"Esta atividade não pode mais ser atribuída a grupos.",
 		],
 		["GROUP.ALREADY_ASSIGNED", "A atividade já foi atribuída a esse grupo."],
+		["GROUP.SHARE_NOT_ALLOWED", "Você não pode compartilhar neste grupo."],
+		[
+			"GROUP.QUIZ_NOT_SHAREABLE",
+			"Um dos kahoots não pode mais ser compartilhado.",
+		],
+		["GROUP.QUIZ_ALREADY_SHARED", "Um dos kahoots já está no grupo."],
+		[
+			"GROUP.SHARED_QUIZ_NOT_FOUND",
+			"Este quiz não está mais disponível no grupo.",
+		],
+		["GROUP.UNSHARE_NOT_ALLOWED", "Você não pode remover este kahoot."],
 	])("maps %s to Portuguese", (code, message) => {
 		expect(groupErrorMessage(failure(code))).toBe(message);
 	});
@@ -63,6 +75,13 @@ describe("groupErrorMessage (spec 034)", () => {
 		expect(groupErrorMessage(new Error("boom"))).toBe(
 			"Não foi possível concluir. Tente novamente.",
 		);
+	});
+
+	it("tells a shared quiz that left the group apart (spec 037)", () => {
+		expect(isSharedQuizNotFound(failure("GROUP.SHARED_QUIZ_NOT_FOUND"))).toBe(
+			true,
+		);
+		expect(isSharedQuizNotFound(failure("GROUP.NOT_FOUND"))).toBe(false);
 	});
 
 	it("tells a missing group apart", () => {

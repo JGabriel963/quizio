@@ -28,9 +28,10 @@ describe("game repositories (spec 008)", () => {
 
 	beforeAll(async () => {
 		testDb = await createTestDb();
-		await testDb.db
-			.insert(user)
-			.values([{ id: "user-1", name: "Ana", email: "ana@quizio.test" }]);
+		await testDb.db.insert(user).values([
+			{ id: "user-1", name: "Ana", email: "ana@quizio.test" },
+			{ id: "user-2", name: "Carla", email: "carla@quizio.test" },
+		]);
 		games = createDrizzleGameRepository(testDb.db);
 		players = createDrizzlePlayerRepository(testDb.db);
 		quizzes = createDrizzleQuizRepository(testDb.db);
@@ -164,6 +165,27 @@ describe("game repositories (spec 008)", () => {
 			await games.save(aGame({ locked: true }));
 
 			expect((await games.findById("game-1"))?.locked).toBe(true);
+		});
+
+		it("one open live game per quiz and host; two hosts may play the same quiz (spec 037, RN-19)", async () => {
+			await games.create(aGame());
+
+			expect(
+				await games.create(
+					aGame({ id: "game-2", pin: "111111", ownerId: "user-2" }),
+				),
+			).toBe("created");
+			expect(await games.create(aGame({ id: "game-3", pin: "222222" }))).toBe(
+				"taken",
+			);
+			expect(
+				(await games.listUnendedByQuiz("quiz-1", ["live"], "user-2")).map(
+					(game) => game.id,
+				),
+			).toEqual(["game-2"]);
+			expect(
+				(await games.listUnendedByQuiz("quiz-1")).map((game) => game.id),
+			).toEqual(["game-1", "game-2"]);
 		});
 
 		it("lists the unended games of a quiz", async () => {

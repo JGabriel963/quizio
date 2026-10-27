@@ -3,6 +3,7 @@ import {
 	canAssign,
 	canInvite,
 	canSeeMembers,
+	canShare,
 } from "../domain/group-permissions";
 import { GROUP_MEMBER_PREVIEW } from "../domain/group-section";
 import { type GroupSetup, groupSetupOf } from "../domain/group-setup";
@@ -22,7 +23,13 @@ export interface GroupView {
 	memberCount: number;
 	createdAt: Date;
 	/** What the viewer may do, as the switches say (spec 035, RN-11, RN-13). */
-	abilities: { invite: boolean; seeMembers: boolean; assign: boolean };
+	abilities: {
+		invite: boolean;
+		seeMembers: boolean;
+		assign: boolean;
+		/** Spec 037, RN-01. */
+		share: boolean;
+	};
 	/** Up to 3, the admin first (RN-13); none when the list is hidden (spec 035). */
 	memberPreview: { userId: string; name: string }[];
 	/** Null for a member, or once dismissed (RN-17). */
@@ -55,6 +62,7 @@ export function createGetGroup(
 				seeMembers,
 				// Spec 038, RN-01.
 				assign: canAssign(group, membership.role),
+				share: canShare(group, membership.role),
 			},
 			// No names the screen may not show leave the server (spec 035, RN-13).
 			memberPreview: seeMembers

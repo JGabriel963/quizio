@@ -74,8 +74,8 @@ function ReportsPage() {
 
 	const actions: ReportItemActions = {
 		onPlayAgain: (item) => {
-			if (item.quizId) {
-				playAgain.start(item.quizId);
+			if (item.playQuizId) {
+				playAgain.start(item.playQuizId);
 			}
 		},
 		onRename: setRenaming,

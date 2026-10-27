@@ -152,3 +152,43 @@ export class GroupUploadNotFoundError extends DomainError {
 		super("The file was not found; send it again.");
 	}
 }
+
+/** A member without "Os membros podem compartilhar conteúdo" (spec 037, RN-01). */
+export class ShareNotAllowedError extends DomainError {
+	readonly code = "GROUP.SHARE_NOT_ALLOWED";
+	constructor() {
+		super("Only the admin may share quizzes in this group.");
+	}
+}
+
+/** Somebody else's, a draft, in the trash or gone (spec 037, RN-02, RN-06). */
+export class QuizNotShareableError extends DomainError {
+	readonly code = "GROUP.QUIZ_NOT_SHAREABLE";
+	constructor() {
+		super("Only your saved quizzes out of the trash can be shared.");
+	}
+}
+
+/** A quiz is in a group at most once (spec 037, RN-04). */
+export class QuizAlreadySharedError extends DomainError {
+	readonly code = "GROUP.QUIZ_ALREADY_SHARED";
+	constructor() {
+		super("This quiz is already in the group.");
+	}
+}
+
+/** Not shared in the group, removed, or in its owner's trash (spec 037, RN-25). */
+export class SharedQuizNotFoundError extends NotFoundError {
+	readonly code = "GROUP.SHARED_QUIZ_NOT_FOUND";
+	constructor() {
+		super("This quiz is no longer in the group.");
+	}
+}
+
+/** Only who shared and the admin remove a quiz (spec 037, RN-13). */
+export class UnshareNotAllowedError extends DomainError {
+	readonly code = "GROUP.UNSHARE_NOT_ALLOWED";
+	constructor() {
+		super("Only who shared it and the admin may remove this quiz.");
+	}
+}

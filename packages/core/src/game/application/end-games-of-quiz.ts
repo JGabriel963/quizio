@@ -9,6 +9,8 @@ export type EndGamesOfQuiz = (input: {
 	reason: GameEndReason;
 	/** Every mode when absent: a deleted quiz ends its assignments too (spec 029, RN-42). */
 	modes?: readonly GameMode[];
+	/** Every host when absent: a deleted quiz ends the games of all (spec 037, RN-19). */
+	ownerId?: string;
 }) => Promise<void>;
 
 /**
@@ -20,8 +22,12 @@ export function createEndGamesOfQuiz(deps: {
 	clock: Clock;
 	realtime: RealtimePublisher;
 }): EndGamesOfQuiz {
-	return async ({ quizId, reason, modes }) => {
-		for (const stored of await deps.games.listUnendedByQuiz(quizId, modes)) {
+	return async ({ quizId, reason, modes, ownerId }) => {
+		for (const stored of await deps.games.listUnendedByQuiz(
+			quizId,
+			modes,
+			ownerId,
+		)) {
 			await closeGame(deps, await settleGame(deps, stored), reason);
 		}
 	};

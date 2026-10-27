@@ -111,7 +111,12 @@ describe("GroupHeader (spec 034, RN-13, RN-18)", () => {
 					role: "member",
 					setup: null,
 					memberPreview: [],
-					abilities: { invite: true, seeMembers: false, assign: false },
+					abilities: {
+						invite: true,
+						seeMembers: false,
+						assign: false,
+						share: true,
+					},
 				})}
 				{...headerActions}
 			/>,
@@ -174,11 +179,13 @@ describe("GroupActivity (spec 034, RN-15, RN-17; spec 036, RN-02, RN-03; spec 03
 		onInvite: noop,
 		onDismissSetup: noop,
 		onAssign: noop,
+		onShare: noop,
 		onCreatePost: noop,
+		canShare: true,
 		feed: null,
 	};
 
-	it("Publicar algo, Criar publicação, the setup step and the empty state open the dialog; Compart. stays em breve", async () => {
+	it("Publicar algo, Criar publicação, the setup step and the empty state open the dialog", async () => {
 		const user = userEvent.setup();
 		const onCreatePost = vi.fn();
 		render(
@@ -192,9 +199,6 @@ describe("GroupActivity (spec 034, RN-15, RN-17; spec 036, RN-02, RN-03; spec 03
 		);
 
 		const composer = screen.getByRole("region", { name: "Publicar algo" });
-		expect(
-			within(composer).getByRole("button", { name: "Compart. (em breve)" }),
-		).toHaveAttribute("aria-disabled", "true");
 		await user.click(
 			within(composer).getByRole("button", { name: "Publicar algo" }),
 		);
@@ -214,6 +218,35 @@ describe("GroupActivity (spec 034, RN-15, RN-17; spec 036, RN-02, RN-03; spec 03
 		);
 		expect(onCreatePost).toHaveBeenCalledTimes(4);
 		expect(screen.queryByText(/chegam em breve/)).toBeNull();
+	});
+
+	it("Compart. opens the share dialog for who can share and is hidden otherwise (spec 037, RN-01, RN-03)", async () => {
+		const user = userEvent.setup();
+		const onShare = vi.fn();
+		const { unmount } = render(
+			<GroupActivity
+				isAdmin={false}
+				canAssign={false}
+				setup={null}
+				{...activity}
+				onShare={onShare}
+			/>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Compart." }));
+		expect(onShare).toHaveBeenCalled();
+		unmount();
+
+		render(
+			<GroupActivity
+				isAdmin={false}
+				canAssign={false}
+				setup={null}
+				{...activity}
+				canShare={false}
+			/>,
+		);
+		expect(screen.queryByRole("button", { name: /Compart/ })).toBeNull();
 	});
 
 	it("Atribuir is active for who may assign", async () => {

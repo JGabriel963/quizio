@@ -11,15 +11,19 @@ import { CreatePostDialog } from "./create-post-dialog";
 function Harness({
 	attachment = { kind: "none" },
 	canAssign = false,
+	canShare = false,
 	onPickFile = () => {},
 	onAssign = () => {},
+	onShare = () => {},
 	onRemoveAttachment = () => {},
 	onPublish = () => {},
 }: {
 	attachment?: PostAttachment;
 	canAssign?: boolean;
+	canShare?: boolean;
 	onPickFile?: (type: "image" | "pdf", file: File) => void;
 	onAssign?: () => void;
+	onShare?: () => void;
 	onRemoveAttachment?: () => void;
 	onPublish?: () => void;
 }) {
@@ -30,12 +34,14 @@ function Harness({
 			message={message}
 			attachment={attachment}
 			canAssign={canAssign}
+			canShare={canShare}
 			canPublish={message.trim() !== "" || attachment.kind !== "none"}
 			publishing={false}
 			error={null}
 			onMessageChange={setMessage}
 			onPickFile={onPickFile}
 			onAssign={onAssign}
+			onShare={onShare}
 			onRemoveAttachment={onRemoveAttachment}
 			onCancel={() => {}}
 			onPublish={onPublish}
@@ -70,7 +76,7 @@ describe("CreatePostDialog (spec 036, RN-04 to RN-11)", () => {
 		expect(publish).toBeEnabled();
 	});
 
-	it("the attach bar shows Imagem, PDF, Compartilhar kahoot (em breve) and Atribuir kahoot only for who may assign", async () => {
+	it("the attach bar shows Imagem and PDF, Compartilhar kahoot only for who may share and Atribuir kahoot only for who may assign", async () => {
 		const { dialog } = await open();
 
 		expect(
@@ -81,13 +87,22 @@ describe("CreatePostDialog (spec 036, RN-04 to RN-11)", () => {
 		).toBeVisible();
 		expect(within(dialog).getByRole("button", { name: "PDF" })).toBeVisible();
 		expect(
-			within(dialog).getByRole("button", {
-				name: "Compartilhar kahoot (em breve)",
-			}),
-		).toHaveAttribute("aria-disabled", "true");
+			within(dialog).queryByRole("button", { name: /Compartilhar kahoot/ }),
+		).toBeNull();
 		expect(
 			within(dialog).queryByRole("button", { name: "Atribuir kahoot" }),
 		).toBeNull();
+	});
+
+	it("Compartilhar kahoot for who may share (spec 037, RN-03)", async () => {
+		const onShare = vi.fn();
+		const { user, dialog } = await open({ canShare: true, onShare });
+
+		await user.click(
+			within(dialog).getByRole("button", { name: "Compartilhar kahoot" }),
+		);
+
+		expect(onShare).toHaveBeenCalled();
 	});
 
 	it("Atribuir kahoot for who may assign, with its tooltip", async () => {

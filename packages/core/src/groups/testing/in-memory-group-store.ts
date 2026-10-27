@@ -11,6 +11,7 @@ import type {
 	GroupReads,
 } from "../application/ports/group-reads";
 import type { GroupRepository } from "../application/ports/group-repository";
+import type { GroupSharedQuizRepository } from "../application/ports/group-shared-quiz-repository";
 import type {
 	GroupUpload,
 	GroupUploadRepository,
@@ -20,6 +21,7 @@ import type { Group } from "../domain/group";
 import type { GroupMember } from "../domain/group-member";
 import type { GroupPermission } from "../domain/group-permissions";
 import type { GroupPost } from "../domain/group-post";
+import type { SharedQuiz } from "../domain/shared-quiz";
 
 interface StoredUser {
 	id: string;
@@ -54,7 +56,8 @@ export class InMemoryGroupStore
 		GroupReads,
 		GroupPostRepository,
 		GroupFeedQuery,
-		GroupUploadRepository
+		GroupUploadRepository,
+		GroupSharedQuizRepository
 {
 	readonly #groups = new Map<string, Group>();
 	readonly #members = new Map<string, GroupMember>();
@@ -67,6 +70,7 @@ export class InMemoryGroupStore
 	/** `postId:userId` of each like. */
 	readonly #likes = new Set<string>();
 	readonly #uploads = new Map<string, GroupUpload>();
+	readonly #shares = new Map<string, SharedQuiz>();
 
 	addUser(user: StoredUser): void {
 		this.#users.set(user.id, { ...user });
@@ -152,6 +156,74 @@ export class InMemoryGroupStore
 		for (const [key, upload] of this.#uploads) {
 			if (upload.groupId === id) {
 				this.#uploads.delete(key);
+			}
+		}
+		for (const [key, share] of this.#shares) {
+			if (share.groupId === id) {
+				this.#shares.delete(key);
+			}
+		}
+	}
+
+	async shareWithPost(
+		shares: readonly SharedQuiz[],
+		post: GroupPost,
+	): Promise<"created" | "alreadyShared"> {
+		const taken = shares.some((share) =>
+			[...this.#shares.values()].some(
+				(other) =>
+					other.groupId === share.groupId && other.quizId === share.quizId,
+			),
+		);
+		if (taken) {
+			return "alreadyShared";
+		}
+		for (const share of shares) {
+			this.#shares.set(share.id, { ...share });
+		}
+		this.#posts.set(post.id, { ...post });
+		return "created";
+	}
+
+	async findSharedQuiz(
+		groupId: string,
+		quizId: string,
+	): Promise<SharedQuiz | null> {
+		const share = [...this.#shares.values()].find(
+			(candidate) =>
+				candidate.groupId === groupId && candidate.quizId === quizId,
+		);
+		return share ? { ...share } : null;
+	}
+
+	async removeSharedQuiz(id: string): Promise<void> {
+		this.#shares.delete(id);
+	}
+
+	async sharedQuizIdsOf(groupId: string): Promise<string[]> {
+		return [...this.#shares.values()]
+			.filter((share) => share.groupId === groupId)
+			.map((share) => share.quizId);
+	}
+
+	/** Test helper: the shares of a group, as the read model joins them. */
+	sharesOf(groupId: string): SharedQuiz[] {
+		return [...this.#shares.values()]
+			.filter((share) => share.groupId === groupId)
+			.map((share) => ({ ...share }));
+	}
+
+	/** Test helper: a share by its id. */
+	shareById(id: string): SharedQuiz | null {
+		const share = this.#shares.get(id);
+		return share ? { ...share } : null;
+	}
+
+	/** As the database's cascade when the owner deletes the quiz for good. */
+	deleteSharesOfQuiz(quizId: string): void {
+		for (const [key, share] of this.#shares) {
+			if (share.quizId === quizId) {
+				this.#shares.delete(key);
 			}
 		}
 	}
@@ -340,6 +412,13 @@ export class InMemoryGroupStore
 
 	async remove(groupId: string, userId: string): Promise<void> {
 		this.#members.delete(memberKey(groupId, userId));
+		// Their quizzes leave with them, as the database's cascade does
+		// (spec 037, RN-22).
+		for (const [key, share] of this.#shares) {
+			if (share.groupId === groupId && share.sharedById === userId) {
+				this.#shares.delete(key);
+			}
+		}
 	}
 
 	async touch(userId: string, groupId: string, at: Date): Promise<void> {

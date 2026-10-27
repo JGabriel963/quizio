@@ -35,6 +35,11 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"GROUP.ASSIGNMENT_NOT_SHAREABLE":
 		"Esta atividade não pode mais ser atribuída a grupos.",
 	"GROUP.ALREADY_ASSIGNED": "A atividade já foi atribuída a esse grupo.",
+	"GROUP.SHARE_NOT_ALLOWED": "Você não pode compartilhar neste grupo.",
+	"GROUP.QUIZ_NOT_SHAREABLE": "Um dos kahoots não pode mais ser compartilhado.",
+	"GROUP.QUIZ_ALREADY_SHARED": "Um dos kahoots já está no grupo.",
+	"GROUP.SHARED_QUIZ_NOT_FOUND": "Este quiz não está mais disponível no grupo.",
+	"GROUP.UNSHARE_NOT_ALLOWED": "Você não pode remover este kahoot.",
 };
 
 /** Portuguese message for a failed group call, based on its domain code (spec 034). */
@@ -59,4 +64,9 @@ export function isMembersHidden(error: unknown): boolean {
 /** A member asked for the admin's screen (spec 035, RN-02). */
 export function isNotGroupAdmin(error: unknown): boolean {
 	return domainCodeOf(error) === "GROUP.NOT_ADMIN";
+}
+
+/** A shared quiz that left the group, or was never in it (spec 037, RN-25). */
+export function isSharedQuizNotFound(error: unknown): boolean {
+	return domainCodeOf(error) === "GROUP.SHARED_QUIZ_NOT_FOUND";
 }

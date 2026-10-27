@@ -13,6 +13,9 @@ const HEADLINES: Record<GroupPostHeadline, string> = {
 	image: "compartilhou uma imagem",
 	file: "compartilhou um arquivo",
 	assignment: "atribuiu um kahoot",
+	quiz: "compartilhou um kahoot",
+	// "múltiplos kahoots" is a link of its own (spec 037, RN-09).
+	quizzes: "compartilhou",
 };
 
 /** What follows the author's name in a post's header (spec 036, RN-17). */
@@ -60,6 +63,11 @@ export function checkGroupFile(
 /** "0 curtidas", "1 curtida" (spec 038, RN-18). */
 export function likesLabel(count: number): string {
 	return `${count} ${count === 1 ? "curtida" : "curtidas"}`;
+}
+
+/** "1 partida", "8 partidas": games started with a shared quiz (spec 037, RN-15). */
+export function gamesLabel(count: number): string {
+	return `${count} ${count === 1 ? "partida" : "partidas"}`;
 }
 
 const dayAndMonth = new Intl.DateTimeFormat("pt-BR", {

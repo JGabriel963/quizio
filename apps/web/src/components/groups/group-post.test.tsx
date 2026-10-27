@@ -7,12 +7,21 @@ import { renderWithRouter } from "@/testing/render-with-router";
 
 import { GroupFeed } from "./group-feed";
 import { GroupPost } from "./group-post";
+import type { SharedQuizActions } from "./shared/shared-quiz-menu";
+
+const noQuizActions: SharedQuizActions = {
+	groupId: "g1",
+	onDuplicate: async () => {},
+	onUnshare: async () => {},
+};
 
 function aPost(overrides: Partial<GroupPostData> = {}): GroupPostData {
 	return {
 		id: "post-1",
+		kind: "assignment",
 		headline: "assignment",
 		file: null,
+		quiz: null,
 		author: { userId: "ana", name: "Ana" },
 		createdAt: new Date(2026, 9, 26, 15, 1).toISOString(),
 		message: "Revisem\naté sexta",
@@ -39,12 +48,14 @@ function renderPost(
 		onLike: (liked: boolean) => Promise<unknown>;
 		onDelete: () => Promise<unknown>;
 	}> = {},
+	quizActions: SharedQuizActions = noQuizActions,
 ) {
 	const user = userEvent.setup();
 	renderWithRouter(
 		<GroupPost
 			post={post}
 			origin="https://quizio.app"
+			quizActions={quizActions}
 			onLike={actions.onLike ?? (async () => {})}
 			onDelete={actions.onDelete ?? (async () => {})}
 		/>,
@@ -165,6 +176,7 @@ describe("GroupPost (spec 038)", () => {
 /** A message post of spec 036, by Bruno. */
 function aMessage(overrides: Partial<GroupPostData> = {}): GroupPostData {
 	return aPost({
+		kind: "message",
 		headline: "message",
 		author: { userId: "bruno", name: "Bruno" },
 		message: "Prova na sexta\nTragam lápis",
@@ -307,6 +319,7 @@ describe("GroupFeed (spec 038, RN-13)", () => {
 					aPost({ id: "old", message: "Antiga" }),
 				]}
 				origin="https://quizio.app"
+				quizActions={noQuizActions}
 				onLike={async () => {}}
 				onDelete={async () => {}}
 			/>,
@@ -317,5 +330,102 @@ describe("GroupFeed (spec 038, RN-13)", () => {
 			true,
 			false,
 		]);
+	});
+});
+
+/** A post of spec 037: Bruno shared "Capitais", Ana's. */
+function aSharePost(overrides: Partial<GroupPostData> = {}): GroupPostData {
+	return aPost({
+		kind: "quizShare",
+		headline: "quiz",
+		author: { userId: "bruno", name: "Bruno" },
+		message: null,
+		gameId: null,
+		attachment: null,
+		canSeeReport: false,
+		quiz: {
+			sharedQuizId: "share-1",
+			quizId: "capitais",
+			title: "Capitais",
+			coverUrl: null,
+			questionCount: 24,
+			visibility: "private",
+			owner: { userId: "ana", name: "Ana" },
+			sharedAt: new Date().toISOString(),
+			games: 0,
+			ownedByViewer: false,
+			canUnshare: true,
+		},
+		...overrides,
+	} as Partial<GroupPostData>);
+}
+
+describe("GroupPost of shared quizzes (spec 037, RN-09 to RN-13)", () => {
+	it("compartilhou um kahoot shows the card with Iniciar and its menu", async () => {
+		renderPost(aSharePost());
+
+		const post = await screen.findByRole("article");
+		expect(post).toHaveTextContent("Bruno compartilhou um kahoot");
+		expect(post).toHaveTextContent("Capitais");
+		expect(post).toHaveTextContent("24 perguntas");
+		expect(within(post).getByText("Iniciar").closest("a")).toHaveAttribute(
+			"href",
+			"/groups/g1/quizzes/capitais",
+		);
+		expect(
+			within(post).getByRole("button", { name: "Opções de Capitais" }),
+		).toBeVisible();
+	});
+
+	it("the owner's Iniciar opens the quiz's own page", async () => {
+		const shared = aSharePost();
+		renderPost(
+			aSharePost({
+				quiz: shared.quiz && { ...shared.quiz, ownedByViewer: true },
+			}),
+		);
+
+		const post = await screen.findByRole("article");
+		expect(within(post).getByText("Iniciar").closest("a")).toHaveAttribute(
+			"href",
+			"/quizzes/capitais",
+		);
+	});
+
+	it("compartilhou múltiplos kahoots links to the shared tab and has no card", async () => {
+		renderPost(
+			aSharePost({ kind: "quizzesShare", headline: "quizzes", quiz: null }),
+		);
+
+		const post = await screen.findByRole("article");
+		expect(post).toHaveTextContent("Bruno compartilhou múltiplos kahoots");
+		expect(
+			within(post).getByRole("link", { name: "múltiplos kahoots" }),
+		).toHaveAttribute("href", "/groups/g1?tab=shared");
+		expect(within(post).queryByText("Iniciar")).toBeNull();
+		expect(within(post).queryByText(/excluiu o anexo/)).toBeNull();
+	});
+
+	it("a removed share shows compartilhou um arquivo and the dashed box", async () => {
+		renderPost(aSharePost({ headline: "file", quiz: null }));
+
+		const post = await screen.findByRole("article");
+		expect(post).toHaveTextContent("Bruno compartilhou um arquivo");
+		expect(post).toHaveTextContent("Bruno excluiu o anexo da publicação");
+	});
+
+	it("deleting a share post tells the quizzes stay in the group (RN-12)", async () => {
+		const { user } = renderPost(aSharePost());
+
+		await user.click(
+			await screen.findByRole("button", { name: "Opções da publicação" }),
+		);
+		await user.click(
+			await screen.findByRole("menuitem", { name: "Excluir publicação" }),
+		);
+
+		expect(
+			await screen.findByRole("alertdialog", { name: "Excluir a publicação?" }),
+		).toHaveTextContent("Os kahoots continuam em Compartilhado.");
 	});
 });

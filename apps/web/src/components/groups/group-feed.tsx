@@ -3,6 +3,7 @@ import { Button } from "@quizio/ui/components/button";
 import type { GroupPostData } from "@/lib/api-types";
 
 import { GroupPost } from "./group-post";
+import type { SharedQuizActions } from "./shared/shared-quiz-menu";
 
 /**
  * The Atividade tab's posts, newest first as the server sends them, and
@@ -11,6 +12,7 @@ import { GroupPost } from "./group-post";
 export function GroupFeed({
 	posts,
 	origin,
+	quizActions,
 	hasMore = false,
 	loadingMore = false,
 	onLoadMore,
@@ -19,6 +21,7 @@ export function GroupFeed({
 }: {
 	posts: readonly GroupPostData[];
 	origin: string;
+	quizActions: SharedQuizActions;
 	hasMore?: boolean;
 	loadingMore?: boolean;
 	onLoadMore?: () => void;
@@ -32,6 +35,7 @@ export function GroupFeed({
 					key={post.id}
 					post={post}
 					origin={origin}
+					quizActions={quizActions}
 					onLike={(liked) => onLike(post.id, liked)}
 					onDelete={() => onDelete(post.id)}
 				/>

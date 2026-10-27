@@ -105,3 +105,7 @@ export type GroupAssignmentData =
 	RouterOutputs["group"]["assignments"]["items"][number];
 export type AssignableGroupData =
 	RouterOutputs["group"]["assignableGroups"]["groups"][number];
+/** A shared quiz's card, row and page (spec 037). */
+export type SharedQuizCardData =
+	RouterOutputs["group"]["shared"]["list"]["items"][number];
+export type SharedQuizPageData = RouterOutputs["group"]["shared"]["get"];

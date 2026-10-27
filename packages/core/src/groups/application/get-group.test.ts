@@ -80,12 +80,26 @@ describe("getGroup (spec 034)", () => {
 			invite: false,
 			seeMembers: true,
 			assign: false,
+			share: true,
 		});
 		expect((await get({ userId: "ana", groupId })).abilities).toEqual({
 			invite: true,
 			seeMembers: true,
 			assign: true,
+			share: true,
 		});
+	});
+
+	it("share follows membersCanShare for a member (spec 037, RN-01)", async () => {
+		const t = groupsTestDeps();
+		const groupId = await t.aGroupOf("ana", ["bruno"]);
+		await t.store.savePermission(groupId, "membersCanShare", false);
+		const get = createGetGroup(t.deps);
+
+		expect((await get({ userId: "bruno", groupId })).abilities.share).toBe(
+			false,
+		);
+		expect((await get({ userId: "ana", groupId })).abilities.share).toBe(true);
 	});
 
 	it("with the list hidden a member gets no preview, but the total and the admin (spec 035, RN-13, RN-14)", async () => {
@@ -124,6 +138,7 @@ describe("getGroup (spec 034)", () => {
 			invite: true,
 			seeMembers: false,
 			assign: false,
+			share: true,
 		});
 	});
 });

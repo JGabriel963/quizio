@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
+import { InMemoryQuizShareGrants } from "../../shared/testing/in-memory-quiz-share-grants";
 import { ReportInTrashError, ReportNotFoundError } from "../domain/report";
 import {
 	type AnswerSpec,
@@ -13,13 +14,16 @@ import { createGetReport } from "./get-report";
 
 function setup(game: ReturnType<typeof aReportGame>) {
 	const storage = new InMemoryObjectStorage();
+	const quizShareGrants = new InMemoryQuizShareGrants();
 	const getReport = createGetReport({
 		reportGames: new InMemoryReportStore([game]),
 		storage,
 		clock: new FixedClock("2026-06-20T12:00:00.000Z"),
+		quizShareGrants,
 	});
 	return {
 		storage,
+		quizShareGrants,
 		get: (ownerId = "user-1", gameId = "game-1") =>
 			getReport({ ownerId, gameId }),
 	};
@@ -57,6 +61,7 @@ describe("getReport (spec 015)", () => {
 			participantCount: 2,
 			quizId: "quiz-1",
 			canPlayAgain: true,
+			playQuizId: "quiz-1",
 			readOnly: false,
 			assignment: null,
 		});
@@ -269,7 +274,12 @@ describe("getReport (spec 015)", () => {
 		const game = (quiz: null | { coverImageKey: string }) =>
 			aReportGame({
 				header: {
-					quiz: quiz && { trashed: false, playable: true, ...quiz },
+					quiz: quiz && {
+						ownerId: "user-1",
+						trashed: false,
+						playable: true,
+						...quiz,
+					},
 				},
 				questions: [aReportQuestion(0, { imageKey: "questions/a.png" })],
 				players: ["Ana"],
@@ -298,7 +308,12 @@ describe("getReport (spec 015)", () => {
 		const { get } = setup(
 			aReportGame({
 				header: {
-					quiz: { trashed: true, playable: true, coverImageKey: null },
+					quiz: {
+						ownerId: "user-1",
+						trashed: true,
+						playable: true,
+						coverImageKey: null,
+					},
 				},
 				questions: 1,
 				players: ["Ana"],
@@ -308,6 +323,54 @@ describe("getReport (spec 015)", () => {
 		expect((await get()).header).toMatchObject({
 			quizId: null,
 			canPlayAgain: false,
+		});
+	});
+});
+
+describe("getReport of a shared quiz (spec 037, RN-24)", () => {
+	const carlasGame = () =>
+		aReportGame({
+			header: {
+				ownerId: "carla",
+				quiz: {
+					ownerId: "user-1",
+					trashed: false,
+					playable: true,
+					coverImageKey: null,
+				},
+			},
+			questions: 1,
+			players: ["Ana"],
+		});
+
+	it("the quiz link is only for its owner", async () => {
+		const { get, quizShareGrants } = setup(carlasGame());
+		quizShareGrants.grant("carla", "quiz-1");
+
+		expect((await get("carla")).header.quizId).toBeNull();
+	});
+
+	it("playQuizId for a member with a grant, null otherwise", async () => {
+		const { get, quizShareGrants } = setup(carlasGame());
+
+		expect((await get("carla")).header).toMatchObject({
+			canPlayAgain: false,
+			playQuizId: null,
+		});
+		quizShareGrants.grant("carla", "quiz-1");
+		expect((await get("carla")).header).toMatchObject({
+			canPlayAgain: true,
+			playQuizId: "quiz-1",
+		});
+	});
+
+	it("the owner plays their own quiz again", async () => {
+		const { get } = setup(aReportGame({ questions: 1, players: ["Ana"] }));
+
+		expect((await get()).header).toMatchObject({
+			quizId: "quiz-1",
+			canPlayAgain: true,
+			playQuizId: "quiz-1",
 		});
 	});
 });

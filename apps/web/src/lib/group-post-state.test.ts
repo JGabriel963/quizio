@@ -104,6 +104,25 @@ describe("groupPostReducer (spec 036)", () => {
 		});
 	});
 
+	it("Compartilhar kahoot: select → back with the quiz, without settings (spec 037, RN-08)", () => {
+		const state = run(
+			{ type: "open" },
+			{ type: "message", text: "Para a revisão" },
+			{ type: "chooseQuizToShare" },
+		);
+		expect(state).toMatchObject({ step: "select", purpose: "share" });
+
+		const back = groupPostReducer(state, { type: "pickQuiz", quiz });
+
+		expect(back).toMatchObject({
+			step: "compose",
+			message: "Para a revisão",
+			attachment: { kind: "sharedQuiz", quiz },
+		});
+		expect(canPublish({ ...back, message: "" })).toBe(true);
+		expect(uploadToDiscard(back)).toBeNull();
+	});
+
 	it("Fechar and Cancelar go back to compose without attachment (RN-13)", () => {
 		for (const at of [
 			run(

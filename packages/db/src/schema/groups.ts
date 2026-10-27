@@ -5,6 +5,7 @@ import { isNotNull, sql } from "drizzle-orm";
 import {
 	boolean,
 	check,
+	foreignKey,
 	index,
 	integer,
 	pgEnum,
@@ -16,6 +17,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { quiz } from "./quiz";
 
 export const groupRole = pgEnum("group_role", GROUP_ROLES);
 
@@ -105,6 +107,11 @@ export const groupPost = pgTable(
 		kind: groupPostKind("kind").notNull(),
 		message: text("message"),
 		gameId: text("game_id"),
+		/**
+		 * The share of a `quizShare` post, without a foreign key: the post
+		 * outlives "Remover do grupo" and loses its card (spec 037, RN-13).
+		 */
+		sharedQuizId: text("shared_quiz_id"),
 		fileType: groupFileType("file_type"),
 		fileKey: text("file_key"),
 		fileName: text("file_name"),
@@ -123,6 +130,11 @@ export const groupPost = pgTable(
 			table.id.desc(),
 		),
 		index("group_post_game_idx").on(table.gameId),
+		// Only a quizShare post points at a share, and it always does.
+		check(
+			"group_post_shared_quiz",
+			sql`(${table.kind}::text = 'quizShare') = (${table.sharedQuizId} is not null)`,
+		),
 		check(
 			"group_post_file_complete",
 			sql`(${table.fileType} is null and ${table.fileKey} is null and ${table.fileName} is null and ${table.fileSizeBytes} is null) or (${table.fileType} is not null and ${table.fileKey} is not null and ${table.fileName} is not null and ${table.fileSizeBytes} is not null)`,
@@ -169,4 +181,41 @@ export const groupPostLike = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 	},
 	(table) => [primaryKey({ columns: [table.postId, table.userId] })],
+);
+
+/**
+ * A quiz in the group's "Compartilhado" (spec 037; ADR 0018): a reference,
+ * read through the quiz's playable version in force. The database removes it
+ * with the quiz, with the sharer's membership (who shared is the quiz's
+ * owner) and with the group (RN-22).
+ */
+export const groupSharedQuiz = pgTable(
+	"group_shared_quiz",
+	{
+		id: text("id").primaryKey(),
+		groupId: text("group_id")
+			.notNull()
+			.references(() => groupTable.id, { onDelete: "cascade" }),
+		quizId: text("quiz_id")
+			.notNull()
+			.references(() => quiz.id, { onDelete: "cascade" }),
+		sharedById: text("shared_by_id").notNull(),
+		sharedAt: timestamp("shared_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [
+		// A quiz at most once in each group (RN-04).
+		uniqueIndex("group_shared_quiz_idx").on(table.groupId, table.quizId),
+		// The tab's order, most recent first (RN-14).
+		index("group_shared_quiz_recent_idx").on(
+			table.groupId,
+			table.sharedAt.desc(),
+			table.id.desc(),
+		),
+		index("group_shared_quiz_quiz_idx").on(table.quizId),
+		foreignKey({
+			name: "group_shared_quiz_member_fk",
+			columns: [table.groupId, table.sharedById],
+			foreignColumns: [groupMember.groupId, groupMember.userId],
+		}).onDelete("cascade"),
+	],
 );

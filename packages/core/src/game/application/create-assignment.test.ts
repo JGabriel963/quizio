@@ -158,6 +158,29 @@ describe("createAssignment (spec 029)", () => {
 		).rejects.toThrow(GameQuizNotFoundError);
 	});
 
+	it("a member with a grant assigns a shared quiz as their own assignment (spec 037, RN-20)", async () => {
+		const deps = createGameDeps();
+		deps.quizShareGrants.grant("carla", "quiz-1");
+
+		const { gameId } = await createCreateAssignment(deps)(
+			assign({ ownerId: "carla" }),
+		);
+
+		expect(await deps.games.findById(gameId)).toMatchObject({
+			ownerId: "carla",
+			quizId: "quiz-1",
+			mode: "assignment",
+		});
+	});
+
+	it("refuses a shared quiz without a grant (spec 037)", async () => {
+		const deps = createGameDeps();
+
+		await expect(
+			createCreateAssignment(deps)(assign({ ownerId: "carla" })),
+		).rejects.toThrow(GameQuizNotFoundError);
+	});
+
 	it("refuses a deadline in the past or past the maximum days, creating nothing", async () => {
 		const deps = createGameDeps();
 		const create = createCreateAssignment(deps);

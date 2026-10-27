@@ -31,11 +31,14 @@ import { InMemoryAttemptLimiter } from "@quizio/core/shared/testing/in-memory-at
 import { InMemoryObjectStorage } from "@quizio/core/shared/testing/in-memory-object-storage";
 import { InMemoryRealtimePublisher } from "@quizio/core/shared/testing/in-memory-realtime-publisher";
 import { SequentialIdGenerator } from "@quizio/core/shared/testing/sequential-id-generator";
-
 import { type Adapters, createContainer } from "../container";
 import type { Context } from "../context";
 import { createCallerFactory } from "../index";
 import { appRouter } from "../routers/index";
+import {
+	testQuizShareGrants,
+	testSharedQuizReads,
+} from "./test-shared-quiz-reads";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -184,6 +187,9 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 				return records.flat();
 			},
 		},
+		groupSharedQuizzes: groups,
+		sharedQuizReads: testSharedQuizReads({ quizzes, versions, groups, games }),
+		quizShareGrants: testQuizShareGrants(groups),
 		// A group's admin reads the reports of the assignments posted there.
 		reportReadGrants: {
 			canRead: async (viewerId, gameId) => {
