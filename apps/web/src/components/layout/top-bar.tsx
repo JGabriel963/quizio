@@ -38,11 +38,8 @@ export function TopBar({
 					<MenuIcon />
 				</Button>
 
-				<Link
-					to="/"
-					className="shrink-0 font-black text-brand text-xl tracking-tight"
-				>
-					Quizio
+				<Link to="/" aria-label="Quizio" className="shrink-0">
+					<img src="/quizio-logo.svg" alt="Quizio" className="h-8 w-auto" />
 				</Link>
 
 				<div className="order-last flex w-full min-w-0 justify-center sm:order-none sm:w-auto sm:flex-1">
