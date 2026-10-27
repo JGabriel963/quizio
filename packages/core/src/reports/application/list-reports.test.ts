@@ -190,6 +190,20 @@ describe("listReports (spec 015)", () => {
 		expect(await list({ quizId: null })).toMatchObject({ total: 2 });
 	});
 
+	it("quizId counts the participants of every report of the quiz, past the limit", async () => {
+		const { list } = setup(
+			named("game-1", "Capitais"),
+			named("game-2", "Capitais", { endedAt: day(12) }),
+			named("game-3", "Química", { quizId: "quiz-2" }),
+		);
+
+		const result = await list({ quizId: "quiz-1", limit: 1 });
+
+		expect(result.items).toHaveLength(1);
+		expect(result).toMatchObject({ total: 2, participants: 2 });
+		expect(await list()).not.toHaveProperty("participants");
+	});
+
 	it("limit cuts the list and total tells how many there are", async () => {
 		const games = Array.from({ length: 25 }, (_, index) =>
 			named(`game-${index}`, `Quiz ${index}`, {

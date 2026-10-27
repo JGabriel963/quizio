@@ -65,10 +65,7 @@ export function QuizDetailsPanel({
 
 	const activity: QuizActivityData | undefined = reports.data && {
 		games: reports.data.total,
-		participants: reports.data.items.reduce(
-			(sum, item) => sum + item.participantCount,
-			0,
-		),
+		participants: reports.data.participants ?? 0,
 		openAssignments: reports.data.items.filter((item) => item.open),
 	};
 

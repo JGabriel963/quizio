@@ -15,6 +15,8 @@ export function useInvalidateQuizzes() {
 			queryClient.invalidateQueries({ queryKey: trpc.library.list.pathKey() }),
 			queryClient.invalidateQueries({ queryKey: trpc.library.home.pathKey() }),
 			queryClient.invalidateQueries({ queryKey: trpc.quiz.get.pathKey() }),
+			// The quiz page's questions, which editor writes change.
+			queryClient.invalidateQueries({ queryKey: trpc.quiz.preview.pathKey() }),
 		]);
 }
 
