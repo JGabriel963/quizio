@@ -1,5 +1,10 @@
 import type { NotificationQuery } from "../application/ports/notification-query";
-import { isRead, type NotificationRecord } from "../domain/notification";
+import {
+	isAfterCursor,
+	isRead,
+	type NotificationCursor,
+	type NotificationRecord,
+} from "../domain/notification";
 import type { InMemoryNotificationInbox } from "./in-memory-notification-inbox";
 
 /** Notifications given by hand per user; read marks come from the inbox fake. */
@@ -24,15 +29,25 @@ export class InMemoryNotificationQuery implements NotificationQuery {
 
 	async list(
 		userId: string,
-		options: { limit: number; readAllAt: Date | null; keepReadSince: Date },
+		options: {
+			limit: number;
+			readAllAt: Date | null;
+			keepReadSince: Date;
+			before?: NotificationCursor;
+			unreadOnly?: boolean;
+		},
 	): Promise<NotificationRecord[]> {
 		return this.#withReads(userId)
-			.filter(
-				(record) =>
-					!isRead(record, options.readAllAt) ||
-					record.at.getTime() >= options.keepReadSince.getTime(),
-			)
-			.sort((a, b) => b.at.getTime() - a.at.getTime())
+			.filter((record) => {
+				const unread = !isRead(record, options.readAllAt);
+				const kept = options.unreadOnly
+					? unread
+					: unread || record.at.getTime() >= options.keepReadSince.getTime();
+				return (
+					kept && (!options.before || isAfterCursor(record, options.before))
+				);
+			})
+			.sort((a, b) => b.at.getTime() - a.at.getTime() || (a.id < b.id ? 1 : -1))
 			.slice(0, options.limit);
 	}
 

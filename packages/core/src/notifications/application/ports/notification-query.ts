@@ -1,4 +1,7 @@
-import type { NotificationRecord } from "../../domain/notification";
+import type {
+	NotificationCursor,
+	NotificationRecord,
+} from "../../domain/notification";
 
 /**
  * A user's notifications, read from the groups and the stored notices
@@ -13,6 +16,10 @@ export interface NotificationQuery {
 			readAllAt: Date | null;
 			/** Read ones before this are left out (RN-21). */
 			keepReadSince: Date;
+			/** Only what comes after it in the order: (at, id), newest first. */
+			before?: NotificationCursor;
+			/** Only the unread ones: is anything left to mark read (RN-15)? */
+			unreadOnly?: boolean;
 		},
 	): Promise<NotificationRecord[]>;
 	/** The newest notification's time, for the red dot (RN-10). */

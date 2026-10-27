@@ -24,6 +24,7 @@ export function NotificationPanel({
 	status,
 	items,
 	hasMore,
+	hasUnread,
 	onOpen,
 	onReadAll,
 	onLoadMore,
@@ -32,6 +33,8 @@ export function NotificationPanel({
 	status: "loading" | "error" | "ready";
 	items: readonly NotificationData[];
 	hasMore: boolean;
+	/** Anything unread in the whole inbox, loaded or not (RN-15). */
+	hasUnread: boolean;
 	onOpen: (notification: NotificationData) => void;
 	onReadAll: () => void;
 	onLoadMore: () => void;
@@ -57,10 +60,7 @@ export function NotificationPanel({
 						<EllipsisVerticalIcon />
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						<DropdownMenuItem
-							disabled={unread.length === 0}
-							onClick={onReadAll}
-						>
+						<DropdownMenuItem disabled={!hasUnread} onClick={onReadAll}>
 							<CheckCheckIcon />
 							Marcar todas como lidas
 						</DropdownMenuItem>

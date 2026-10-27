@@ -26,6 +26,22 @@ export interface NotificationRecord {
 	readAt: Date | null;
 }
 
+/** Where the next page starts: the last one's (at, id), newest first (RN-13). */
+export interface NotificationCursor {
+	at: Date;
+	id: string;
+}
+
+/** True when `record` comes after `cursor` in the order (at, id), newest first. */
+export function isAfterCursor(
+	record: Pick<NotificationRecord, "at" | "id">,
+	cursor: NotificationCursor,
+): boolean {
+	const at = record.at.getTime();
+	const cursorAt = cursor.at.getTime();
+	return at < cursorAt || (at === cursorAt && record.id < cursor.id);
+}
+
 /** The panel shows 20 at a time (RN-13). */
 export const NOTIFICATIONS_PAGE_SIZE = 20;
 

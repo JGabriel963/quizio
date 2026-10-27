@@ -30,8 +30,9 @@ describe("notification router (spec 040)", () => {
 			hasNews: true,
 			channel: "inbox-ana",
 		});
-		const { items, hasMore } = await ana.notification.list({});
-		expect(hasMore).toBe(false);
+		const { items, nextCursor, hasUnread } = await ana.notification.list({});
+		expect(nextCursor).toBeNull();
+		expect(hasUnread).toBe(true);
 		expect(items).toEqual([
 			expect.objectContaining({ id: "post:p1", kind: "post", read: false }),
 		]);
@@ -70,5 +71,30 @@ describe("notification router (spec 040)", () => {
 		await expect(
 			setup().callerFor(null).notification.summary(),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+	});
+
+	it("list pages past 200 with the cursor (Codex review of PR #23)", async () => {
+		const api = setup();
+		for (let index = 0; index < 230; index++) {
+			api.notificationQuery.add("ana", {
+				id: `post:q${String(index).padStart(3, "0")}`,
+				at: new Date(Date.UTC(2026, 4, 1, 0, index)),
+				source: { kind: "post", postId: `q${index}`, postKind: "message" },
+				actor: { userId: "bruno", name: "Bruno" },
+				group: { id: "g1", name: "GRUPO 1" },
+				readAt: null,
+			});
+		}
+		const ana = api.callerFor("ana");
+
+		let total = 0;
+		let cursor: { at: string; id: string } | undefined;
+		do {
+			const page = await ana.notification.list({ cursor });
+			total += page.items.length;
+			cursor = page.nextCursor ?? undefined;
+		} while (cursor);
+
+		expect(total).toBe(231);
 	});
 });

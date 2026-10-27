@@ -1,4 +1,3 @@
-import { NOTIFICATIONS_PAGE_SIZE } from "@quizio/core/notifications/domain/notification";
 import { Button } from "@quizio/ui/components/button";
 import {
 	Popover,
@@ -6,7 +5,7 @@ import {
 	PopoverTrigger,
 } from "@quizio/ui/components/popover";
 import {
-	keepPreviousData,
+	useInfiniteQuery,
 	useMutation,
 	useQuery,
 	useQueryClient,
@@ -75,19 +74,23 @@ export function NotificationBell() {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 	const [open, setOpen] = useState(false);
-	const [limit, setLimit] = useState(NOTIFICATIONS_PAGE_SIZE);
 	const summary = useQuery({
 		...trpc.notification.summary.queryOptions(),
 		refetchInterval: 60_000,
 		refetchOnWindowFocus: true,
 		meta: { suppressErrorToast: true },
 	});
-	const list = useQuery({
-		...trpc.notification.list.queryOptions({ limit }),
+	// Pages of 20 from a cursor, as far back as the inbox goes (RN-13).
+	const list = useInfiniteQuery({
+		...trpc.notification.list.infiniteQueryOptions(
+			{},
+			{ getNextPageParam: (page) => page.nextCursor ?? undefined },
+		),
 		enabled: open,
-		placeholderData: keepPreviousData,
 		meta: { suppressErrorToast: true },
 	});
+	const pages = list.data?.pages ?? [];
+	const items = pages.flatMap((page) => page.items);
 	const refresh = () =>
 		queryClient.invalidateQueries({ queryKey: trpc.notification.pathKey() });
 	useRealtimeEvent(summary.data?.channel ?? null, "inbox-changed", () => {
@@ -110,20 +113,21 @@ export function NotificationBell() {
 			onOpenChange={(next) => {
 				setOpen(next);
 				if (next) {
-					setLimit(NOTIFICATIONS_PAGE_SIZE);
 					seen.mutate();
 				}
 			}}
 		>
 			<NotificationPanel
-				status={list.isError ? "error" : list.data ? "ready" : "loading"}
-				items={list.data?.items ?? []}
-				hasMore={list.data?.hasMore ?? false}
+				// A page that fails to load keeps the ones already shown.
+				status={list.data ? "ready" : list.isError ? "error" : "loading"}
+				items={items}
+				hasMore={list.hasNextPage}
+				hasUnread={pages[0]?.hasUnread ?? false}
 				onRetry={() => list.refetch()}
 				onReadAll={() => readAll.mutate()}
 				onLoadMore={() => {
-					if (!list.isFetching) {
-						setLimit((current) => current + NOTIFICATIONS_PAGE_SIZE);
+					if (!list.isFetchingNextPage) {
+						void list.fetchNextPage();
 					}
 				}}
 				onOpen={(notification) => {
