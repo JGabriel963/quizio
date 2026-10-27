@@ -104,7 +104,7 @@ export function QuizDetailsView({
 	// actions sit in the top bar and the session and details in a side column.
 	return (
 		<article className="grid min-h-full grid-cols-1 content-start bg-card lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-x-10 lg:px-10 xl:grid-cols-[minmax(0,1fr)_22rem] xl:px-16">
-			<div className="sticky top-(--quiz-sticky-top,0px) z-10 col-span-full row-start-1 flex items-center justify-between gap-3 border-border border-b bg-card px-4 py-2 sm:px-6 lg:-mx-10 xl:-mx-16">
+			<div className="sticky top-(--quiz-sticky-top,0px) z-10 col-span-full row-start-1 flex h-14 items-center justify-between gap-3 border-border border-b bg-card px-4 sm:px-6 lg:-mx-10 xl:-mx-16">
 				<p className="flex min-w-0 items-center gap-2 font-semibold text-sm">
 					{owner && (
 						<>
@@ -276,7 +276,7 @@ export function QuizDetailsView({
 			{/* Kahoot's Editar, Favorito, Compart. and Opções: in the top bar from
 			    `lg` (laid over it, centered), a row of icons on a phone. */}
 			{!inTrash && (
-				<div className="grid grid-cols-4 gap-1 px-4 pt-5 sm:px-6 lg:sticky lg:top-[calc(var(--quiz-sticky-top,0px)+0.5rem)] lg:z-20 lg:col-span-full lg:row-start-1 lg:flex lg:self-start lg:justify-self-center lg:p-0">
+				<div className="grid grid-cols-4 gap-1 px-4 pt-5 sm:px-6 lg:sticky lg:top-(--quiz-sticky-top,0px) lg:z-20 lg:col-span-full lg:row-start-1 lg:flex lg:h-14 lg:items-center lg:self-start lg:justify-self-center lg:p-0">
 					{/* The editor holds the questions (spec 003, RN-05). */}
 					<Link
 						to="/creator/$quizId"
