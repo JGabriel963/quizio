@@ -307,6 +307,11 @@ A partir das capturas do "Crie seu tema" do Kahoot, depois de entregue. Sem spec
   - E2E `custom-themes.spec.ts` atualizado para os painéis
   - Cobre: RN-06, RN-07, RN-11, RN-13, RN-14, CA-02, CA-03, CA-06, CA-08, CA-10, CA-18, CA-24, CA-25
 
+- [x] **T36** `core/themes` — revisão do PR (Codex): limpeza de arquivos sem corrida com a criação de partidas
+  - Teste: `update-custom-theme.test.ts` e `delete-custom-theme.test.ts` (os arquivos que saem do tema voltam aos pendentes e só a varredura de um dia depois os apaga; uma partida que os copia depois da edição os mantém), `request-theme-upload.test.ts` (a varredura e o descarte mantêm um arquivo copiado)
+  - Implementar: `releaseThemeFiles` e `deleteUncopiedFiles` em `theme-files.ts`
+  - Cobre: CA-14, CA-21, CA-22 · RN-28
+
 ## Fechamento (2026-10-28)
 
 ### Desvios do plano

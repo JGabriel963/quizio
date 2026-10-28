@@ -6,6 +6,19 @@ import { aCustomTheme } from "../testing/a-custom-theme";
 import { themesTestDeps } from "../testing/themes-test-deps";
 import { createDeleteCustomTheme } from "./delete-custom-theme";
 import { createListCustomThemes } from "./list-custom-themes";
+import { createRequestThemeUpload } from "./request-theme-upload";
+
+const HOUR = 60 * 60 * 1000;
+
+/** A later upload request, a day on: it sweeps what was released. */
+async function sweepADayLater(t: ReturnType<typeof themesTestDeps>) {
+	t.clock.advanceBy(24 * HOUR + 1);
+	await createRequestThemeUpload(t.deps)({
+		ownerId: "owner-2",
+		contentType: "image/png",
+		sizeBytes: 1000,
+	});
+}
 
 async function withTheme() {
 	const t = themesTestDeps();
@@ -35,15 +48,18 @@ describe("deleteCustomTheme (spec 043, RN-19, RN-28)", () => {
 
 		expect(await t.store.findById("theme-1")).toBeNull();
 		expect((await t.quizzes.findById("q1"))?.customThemeId).toBeNull();
+		expect(await t.storage.exists(t.image)).toBe(true);
+		await sweepADayLater(t);
 		expect(await t.storage.exists(t.image)).toBe(false);
 		expect(await t.storage.exists(t.logo)).toBe(false);
 	});
 
-	it("keeps the files an open assignment copied (CA-22)", async () => {
+	it("keeps the files an open assignment copied, also one created as it was deleted (CA-22)", async () => {
 		const t = await withTheme();
-		t.fileUsage.copiedByAGame(t.image);
 
 		await t.remove({ ownerId: "owner-1", themeId: "theme-1" });
+		t.fileUsage.copiedByAGame(t.image);
+		await sweepADayLater(t);
 
 		expect(await t.storage.exists(t.image)).toBe(true);
 		expect(await t.storage.exists(t.logo)).toBe(false);

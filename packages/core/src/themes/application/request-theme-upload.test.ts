@@ -68,6 +68,22 @@ describe("requestThemeUpload (spec 043, RN-07, RN-29)", () => {
 		expect(t.store.pendingUploadKeys()).toEqual([upload.key]);
 		expect(await t.storage.exists(stale)).toBe(false);
 	});
+
+	it("an expired file a game copied stays (RN-28)", async () => {
+		const t = themesTestDeps();
+		const copied = await t.uploaded("themes/owner-2/copied.png", "owner-2");
+		t.fileUsage.copiedByAGame(copied);
+		t.clock.advanceBy(DAY + 1);
+
+		await createRequestThemeUpload(t.deps)({
+			ownerId: "owner-1",
+			contentType: "image/png",
+			sizeBytes: MB,
+		});
+
+		expect(await t.storage.exists(copied)).toBe(true);
+		expect(t.store.pendingUploadKeys()).not.toContain(copied);
+	});
 });
 
 describe("discardThemeUpload (spec 043, CA-10)", () => {
@@ -79,6 +95,17 @@ describe("discardThemeUpload (spec 043, CA-10)", () => {
 
 		expect(t.store.pendingUploadKeys()).toEqual([]);
 		expect(await t.storage.exists(key)).toBe(false);
+	});
+
+	it("keeps a file a game copied, released by the theme but still the owner's (RN-28)", async () => {
+		const t = themesTestDeps();
+		const key = await t.uploaded("themes/owner-1/a.png");
+		t.fileUsage.copiedByAGame(key);
+
+		await createDiscardThemeUpload(t.deps)({ ownerId: "owner-1", key });
+
+		expect(t.store.pendingUploadKeys()).toEqual([]);
+		expect(await t.storage.exists(key)).toBe(true);
 	});
 
 	it("ignores someone else's key", async () => {

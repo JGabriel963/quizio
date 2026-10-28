@@ -7,7 +7,9 @@ import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import { themeFileKeyFor } from "../../shared/domain/media-key";
+import type { ThemeFileUsage } from "./ports/theme-file-usage";
 import type { ThemeUploadRepository } from "./ports/theme-upload-repository";
+import { deleteUncopiedFiles } from "./theme-files";
 
 const UPLOAD_URL_TTL_SECONDS = 300;
 /** A file nobody saved in a theme is deleted after this (spec 043, RN-29). */
@@ -30,10 +32,12 @@ export type RequestThemeUpload = (input: {
  * A presigned URL for a theme's logo or background (spec 043, RN-07): the
  * media policy, under `themes/{owner}/`, recorded as pending until a theme
  * takes it. With no timers on the server, each request first deletes a few
- * uploads nobody saved in 24 hours (RN-29), as the groups do (spec 036).
+ * uploads nobody saved in 24 hours (RN-29), as the groups do (spec 036), and
+ * the files themes let go of, unless a game copied them (RN-28).
  */
 export function createRequestThemeUpload(deps: {
 	themeUploads: ThemeUploadRepository;
+	fileUsage: ThemeFileUsage;
 	storage: ObjectStorage;
 	ids: IdGenerator;
 	clock: Clock;
@@ -47,7 +51,7 @@ export function createRequestThemeUpload(deps: {
 			new Date(now.getTime() - THEME_UPLOAD_TTL_MS),
 			SWEEP_LIMIT,
 		);
-		await Promise.all(expired.map((key) => deps.storage.delete(key)));
+		await deleteUncopiedFiles(deps, expired);
 
 		const key = themeFileKeyFor(
 			ownerId,

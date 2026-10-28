@@ -11,8 +11,8 @@ import {
 import { ThemeUploadNotFoundError } from "../domain/theme-errors";
 import { type CustomThemeView, toCustomThemeView } from "./custom-theme-view";
 import type { CustomThemeRepository } from "./ports/custom-theme-repository";
-import type { ThemeFileUsage } from "./ports/theme-file-usage";
-import { newUploadsOf, releaseUnusedThemeFiles } from "./theme-files";
+import type { ThemeUploadRepository } from "./ports/theme-upload-repository";
+import { newUploadsOf, releaseThemeFiles } from "./theme-files";
 
 export type UpdateCustomTheme = (input: {
 	ownerId: string;
@@ -25,12 +25,12 @@ export type UpdateCustomTheme = (input: {
  * Salvar in "Editar tema" (spec 043, RN-17, RN-18): every quiz using the
  * theme reads the new look; games keep the one they copied. A file is the
  * theme's own or a pending upload it takes; the ones it lets go of are
- * deleted unless a game copied them (RN-28).
+ * released, for the sweep to delete unless a game copied them (RN-28).
  */
 export function createUpdateCustomTheme(deps: {
 	themes: CustomThemeRepository;
-	fileUsage: ThemeFileUsage;
-	storage: Pick<ObjectStorage, "exists" | "getPublicUrl" | "delete">;
+	themeUploads: Pick<ThemeUploadRepository, "addThemeUpload">;
+	storage: Pick<ObjectStorage, "exists" | "getPublicUrl">;
 	clock: Clock;
 }): UpdateCustomTheme {
 	return async ({ ownerId, themeId, name, look }) => {
@@ -56,8 +56,9 @@ export function createUpdateCustomTheme(deps: {
 		}
 
 		const kept = new Set(themeLookFileKeys(theme.look));
-		await releaseUnusedThemeFiles(
+		await releaseThemeFiles(
 			deps,
+			ownerId,
 			previousFiles.filter((key) => !kept.has(key)),
 		);
 		const listed = await deps.themes.listByOwner(ownerId);

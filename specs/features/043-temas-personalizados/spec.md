@@ -89,7 +89,7 @@ O criador monta temas próprios em "Seus temas", vê numa prévia como ficam as 
 
 | ID | Regra | Fonte |
 | --- | --- | --- |
-| RN-28 | A imagem de fundo e o logotipo são **arquivos do tema**: só são apagados quando **nada mais os usa**, nem o tema, nem uma partida ou atribuição que os copiou. Trocar a imagem ou o logotipo e excluir o tema apagam os arquivos antigos quando ficam sem uso. | decisão do usuário (2026-10-27) · spec 007 |
+| RN-28 | A imagem de fundo e o logotipo são **arquivos do tema**: só são apagados quando **nada mais os usa**, nem o tema, nem uma partida ou atribuição que os copiou. Um arquivo que sai do tema (trocado, removido ou com o tema excluído) **espera um dia** antes de ser apagado, porque uma partida criada no mesmo instante pode tê-lo copiado; passado esse prazo, só é apagado se nenhuma partida o copiou. | decisão do usuário (2026-10-27) · spec 007 |
 | RN-29 | Um arquivo enviado no "Crie seu tema" que não chegou a ser salvo num tema (Cancelar, aba fechada) é apagado depois. | decisão do produto (2026-10-28) · spec 027 (mesmo cuidado com o PDF) |
 | RN-30 | Excluir a conta exclui os temas do criador e os seus arquivos (spec 039). | spec 039 |
 
@@ -231,7 +231,7 @@ O criador monta temas próprios em "Seus temas", vê numa prévia como ficam as 
 #### CA-21 — Arquivo trocado é apagado quando ninguém usa
 
 - **Dado** um tema com a imagem de fundo A, sem partidas nem atribuições criadas com ele
-- **Quando** o criador troca a imagem para B e salva
+- **Quando** o criador troca a imagem para B e salva, e passa um dia
 - **Então** a imagem A é apagada e a B fica
 
 #### CA-22 — Arquivo copiado por uma partida fica
@@ -308,3 +308,4 @@ As telas seguem as capturas do Kahoot enviadas pelo usuário (2026-10-27 e 2026-
 - 2026-10-28 — na implementação, o logotipo toma o lugar do nome do Quizio onde ele aparece nas telas do anfitrião (lobby, cabeçalho durante a partida, pódio); o celular nunca recebe o logotipo (RN-26).
 - 2026-10-28 — entregue.
 - 2026-10-28 — revisão do layout a pedido do usuário, a partir das capturas do Kahoot: o "Crie seu tema" passou a ter a prévia em cima (notebook e celular, com pontos) e o cartão de linhas com painéis flutuantes; a paleta de 12 cores virou a biblioteca de 48 com "Cores personalizadas" e um seletor de cor livre (RN-06); o logotipo e a imagem de fundo passaram a ser recortados no navegador antes do envio (RN-07), o que saiu de Fora de escopo; a prévia vai para o lobby ao abrir a cor de contraste (RN-14).
+- 2026-10-28 — na revisão do PR (Codex): um arquivo que sai do tema não é apagado na hora. Uma partida criada no mesmo instante pode ter lido a aparência antiga e ainda não estar gravada, então o arquivo volta aos envios pendentes e a varredura de 24 h o apaga só se nenhuma partida o copiou (RN-28, CA-21).

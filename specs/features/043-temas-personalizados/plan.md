@@ -22,7 +22,7 @@ O tema pronto é um ID; o tema personalizado é um **registro do criador**. Ele 
 - Salvar o tema **consome** a linha na mesma transação, e Cancelar a descarta.
 - Cada pedido de envio varre as linhas com mais de 24 h (RN-29).
 
-Um arquivo que sai do tema é apagado só se **nenhuma partida** o copiou: o porto `ThemeFileUsage` pergunta isso ao `game.custom_theme` (RN-28).
+Um arquivo que sai do tema **volta aos envios pendentes** em vez de ser apagado na hora (uma partida criada no mesmo instante pode ter lido a aparência antiga), e a varredura de 24 h o apaga só se **nenhuma partida** o copiou: o porto `ThemeFileUsage` pergunta isso ao `game.custom_theme` (RN-28; revisão do PR).
 
 **As visões ganham um campo, sem perder nenhum**: onde hoje vai `themeId`, vai também `customTheme: ThemeLookView | null`, com as URLs públicas já montadas. Só as visões do anfitrião levam a URL do logotipo (RN-26). Na web, o `GameThemeProvider` e o `GameScreen` passam a receber um `ShownTheme` (o ID e, opcionalmente, a aparência). O `themeStyle` escreve as mesmas variáveis CSS da spec 042 a partir da aparência. As telas do anfitrião trocam o nome do Quizio pelo logotipo com um componente só, o `GameBrand`.
 

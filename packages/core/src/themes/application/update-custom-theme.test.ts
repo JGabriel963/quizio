@@ -7,9 +7,20 @@ import {
 } from "../domain/theme-errors";
 import { aCustomTheme } from "../testing/a-custom-theme";
 import { themesTestDeps } from "../testing/themes-test-deps";
+import { createRequestThemeUpload } from "./request-theme-upload";
 import { createUpdateCustomTheme } from "./update-custom-theme";
 
 const HOUR = 60 * 60 * 1000;
+
+/** A later upload request, a day on: it sweeps what was released. */
+async function sweepADayLater(t: ReturnType<typeof themesTestDeps>) {
+	t.clock.advanceBy(24 * HOUR + 1);
+	await createRequestThemeUpload(t.deps)({
+		ownerId: "owner-2",
+		contentType: "image/png",
+		sizeBytes: 1000,
+	});
+}
 
 /** A theme with image A and logo L, both stored. */
 async function withImageTheme() {
@@ -59,7 +70,7 @@ describe("updateCustomTheme (spec 043, RN-17, RN-18, RN-28)", () => {
 		expect(await t.storage.exists(t.logo)).toBe(true);
 	});
 
-	it("takes a new upload and deletes the replaced image nobody copied (CA-21)", async () => {
+	it("takes a new upload; the replaced files go a day later when nobody copied them (CA-21, RN-28)", async () => {
 		const t = await withImageTheme();
 		const replacement = await t.uploaded("themes/owner-1/b.jpg");
 
@@ -74,15 +85,21 @@ describe("updateCustomTheme (spec 043, RN-17, RN-18, RN-28)", () => {
 			},
 		});
 
-		expect(t.store.pendingUploadKeys()).toEqual([]);
+		// Released, not deleted: a game being created may have read them.
+		expect(t.store.pendingUploadKeys().sort()).toEqual(
+			[t.image, t.logo].sort(),
+		);
+		expect(await t.storage.exists(t.image)).toBe(true);
+
+		await sweepADayLater(t);
+
 		expect(await t.storage.exists(replacement)).toBe(true);
 		expect(await t.storage.exists(t.image)).toBe(false);
 		expect(await t.storage.exists(t.logo)).toBe(false);
 	});
 
-	it("keeps a file a game copied (CA-14)", async () => {
+	it("keeps a file a game copied, also one that copied it while the theme was edited (CA-14)", async () => {
 		const t = await withImageTheme();
-		t.fileUsage.copiedByAGame(t.logo);
 
 		await t.update({
 			ownerId: "owner-1",
@@ -94,6 +111,10 @@ describe("updateCustomTheme (spec 043, RN-17, RN-18, RN-28)", () => {
 				logoKey: null,
 			},
 		});
+
+		// The game was created with the old look at the same moment.
+		t.fileUsage.copiedByAGame(t.logo);
+		await sweepADayLater(t);
 
 		expect(await t.storage.exists(t.logo)).toBe(true);
 		expect(await t.storage.exists(t.image)).toBe(false);

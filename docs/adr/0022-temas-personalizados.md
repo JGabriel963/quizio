@@ -16,7 +16,7 @@ A [ADR 0021](0021-temas-catalogo-proprio.md) previa guardar o tema personalizado
 - **Um contexto novo, `themes`**, com o agregado `CustomTheme` na tabela `custom_theme`. O tema não é parte do quiz: um tema serve a vários quizzes do mesmo criador.
 - **O quiz aponta para o tema por `quiz.custom_theme_id`**, uma chave estrangeira com `ON DELETE SET NULL`. Quando ela está preenchida, `theme_id` vale `standard`. Assim, excluir o tema devolve o quiz ao Padrão sem nenhum código, e nenhum quiz guarda o ID de um tema que não existe. Isso revê a consequência da ADR 0021 sobre "outro formato de ID".
 - **A partida copia a aparência**, e não o ID: `game.custom_theme` é um `jsonb` com o padrão, as cores, a chave da imagem e o seu tom, e a chave do logotipo (`ThemeLook`, no shared kernel). Editar ou excluir o tema não alcança a partida, como trocar o tema do quiz já não alcançava.
-- **Os arquivos ficam em `themes/{ownerId}/`.** Um arquivo que sai do tema só é apagado se nenhuma partida o copiou. A consulta é feita sobre `game.custom_theme`.
+- **Os arquivos ficam em `themes/{ownerId}/`.** Um arquivo que sai do tema não é apagado na hora: volta aos envios pendentes, porque uma partida criada no mesmo instante pode ter lido a aparência antiga e ainda não estar gravada. A varredura de 24 h o apaga só se nenhuma partida o copiou, consultando `game.custom_theme`. Assim não é preciso trava entre a edição do tema e a criação da partida.
 - **O contraste vai para o shared kernel**, porque o servidor recusa uma cor com a qual nenhum texto chega a 4,5:1. O tom de uma imagem de fundo é medido no navegador, já que o servidor não processa imagens.
 
 ## Alternativas consideradas
