@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import {
+	A_THEME_LOOK,
+	aThemeLookView,
+} from "../../shared/testing/a-theme-look";
+
 import { DEFAULT_ASSIGNMENT_OPTIONS } from "../domain/assignment";
 import { GameNotFoundError } from "../domain/game";
 import { aGame, aPlayer } from "../testing/a-game";
@@ -37,6 +42,24 @@ describe("getAssignmentCover theme (spec 042, RN-15)", () => {
 		deps.clock.advanceBy(3 * DAY_MS);
 		expect((await getCover({ gameId })).themeId).toBe("lilac");
 	});
+
+	it("the cover has the custom look without the logo, open or ended (spec 043)", async () => {
+		const { deps, gameId } = await withAssignment();
+		const game = await deps.games.findById(gameId);
+		if (!game) {
+			throw new Error("The assignment should exist");
+		}
+		await deps.games.save({ ...game, customTheme: A_THEME_LOOK });
+		const getCover = createGetAssignmentCover(deps);
+
+		expect((await getCover({ gameId })).customTheme).toEqual(
+			aThemeLookView(false),
+		);
+		deps.clock.advanceBy(3 * DAY_MS);
+		expect((await getCover({ gameId })).customTheme).toEqual(
+			aThemeLookView(false),
+		);
+	});
 });
 
 describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () => {
@@ -55,6 +78,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 			coverUrl: "https://media.test/media/user-1/cover.png",
 			questionCount: 2,
 			themeId: "standard",
+			customTheme: null,
 		});
 	});
 
@@ -66,6 +90,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 			status: "ended",
 			name: "Bom de Bíblia (Junho)",
 			themeId: "standard",
+			customTheme: null,
 		});
 		expect((await deps.games.findById(gameId))?.endedAt).toBeNull();
 	});
@@ -78,6 +103,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 			status: "ended",
 			name: "Bom de Bíblia (Junho)",
 			themeId: "standard",
+			customTheme: null,
 		});
 	});
 
@@ -98,6 +124,7 @@ describe("getAssignmentCover (spec 029, RN-46 to RN-48; spec 030, RN-01)", () =>
 		expect(Object.keys(view).sort()).toEqual([
 			"coverUrl",
 			"creatorName",
+			"customTheme",
 			"name",
 			"participantCount",
 			"participants",

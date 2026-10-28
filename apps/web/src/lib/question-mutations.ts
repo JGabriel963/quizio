@@ -300,12 +300,23 @@ export function useEditorActions(quizId: string): EditorActions {
 		// In the queue too: a rename rewrites the whole quiz row and must not put
 		// back the theme it read (spec 042). Tracked, so a failure waits in the
 		// header with "Tentar de novo", which sends this choice again (RN-26).
-		setTheme: (themeId) =>
+		setTheme: (choice) =>
 			tracker.track("quiz:theme", async () => {
 				const quiz = await enqueue(() =>
-					saveTheme.mutateAsync({ quizId, themeId }),
+					saveTheme.mutateAsync({
+						quizId,
+						choice:
+							choice.kind === "catalog"
+								? choice
+								: { kind: "custom", customThemeId: choice.customThemeId },
+					}),
 				);
-				setData((data) => ({ ...data, quiz: { ...data.quiz, ...quiz } }));
+				setData((data) => ({
+					...data,
+					quiz: { ...data.quiz, ...quiz },
+					// The canvas draws a custom theme's look (spec 043).
+					customTheme: choice.kind === "custom" ? choice.look : null,
+				}));
 				void invalidateListings();
 			}),
 

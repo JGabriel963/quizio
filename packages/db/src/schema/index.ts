@@ -7,3 +7,4 @@ export * from "./notifications";
 export * from "./quiz";
 export * from "./reports";
 export * from "./shared";
+export * from "./themes";

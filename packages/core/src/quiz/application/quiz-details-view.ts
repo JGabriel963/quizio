@@ -18,6 +18,8 @@ export interface QuizDetailsView {
 	hasUnpublishedChanges: boolean;
 	/** The look of the editor and of new games (spec 042). */
 	themeId: ThemeId;
+	/** One of the owner's custom themes, or null (spec 043). */
+	customThemeId: string | null;
 	questionCount: number;
 	createdAt: Date;
 	updatedAt: Date;
@@ -42,6 +44,7 @@ export function toQuizDetailsView(
 		publishedAt: quiz.publishedAt,
 		hasUnpublishedChanges: quiz.hasUnpublishedChanges,
 		themeId: quiz.themeId,
+		customThemeId: quiz.customThemeId,
 		questionCount,
 		createdAt: quiz.createdAt,
 		updatedAt: quiz.updatedAt,

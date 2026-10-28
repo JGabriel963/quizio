@@ -1,6 +1,10 @@
 import type { QuestionType, SelectionMode } from "../../quiz/domain/question";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import {
+	type ThemeLookView,
+	themeLookView,
+} from "../../shared/application/theme-look-view";
 import { marginRange } from "../../shared/domain/slider-scale";
 import type { ThemeId } from "../../shared/domain/theme";
 import type { Answer, Correctness } from "../domain/answer";
@@ -123,6 +127,8 @@ export interface AssignmentPlayView {
 	nickname: string;
 	/** The assignment's theme (spec 042, RN-15). */
 	themeId: ThemeId;
+	/** The custom look the assignment copied, without the logo (spec 043). */
+	customTheme: ThemeLookView | null;
 	/** Null with "Personagens" off (spec 028). */
 	avatar: Avatar | null;
 	questionCount: number;
@@ -392,6 +398,9 @@ export async function buildAssignmentPlayView(
 	return {
 		nickname: player.nickname,
 		themeId: game.themeId,
+		customTheme: themeLookView(game.customTheme, deps.storage, {
+			withLogo: false,
+		}),
 		avatar: avatarShown(game, player),
 		questionCount: game.questionCount,
 		activity: {

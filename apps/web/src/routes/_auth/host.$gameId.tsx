@@ -323,7 +323,7 @@ function HostPage() {
 	const connectionLost = <ConnectionLostDialog watch={watch} />;
 	if (game.status === "finished" && game.final) {
 		return (
-			<GameThemeProvider themeId={game.themeId}>
+			<GameThemeProvider themeId={game.themeId} custom={game.customTheme}>
 				<Podium
 					game={game}
 					final={game.final}
@@ -376,7 +376,7 @@ function HostPage() {
 
 	if (game.status === "playing" && game.stage) {
 		return (
-			<GameThemeProvider themeId={game.themeId}>
+			<GameThemeProvider themeId={game.themeId} custom={game.customTheme}>
 				<HostStage
 					game={game}
 					stage={game.stage}
@@ -392,7 +392,7 @@ function HostPage() {
 
 	// The game's theme, copied from the quiz when it was created (spec 042).
 	return (
-		<GameThemeProvider themeId={game.themeId}>
+		<GameThemeProvider themeId={game.themeId} custom={game.customTheme}>
 			<HostLobby
 				lobby={game}
 				origin={origin}

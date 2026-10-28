@@ -1,5 +1,9 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import {
+	type ThemeLookView,
+	themeLookView,
+} from "../../shared/application/theme-look-view";
 import type { ThemeId } from "../../shared/domain/theme";
 import type { Answer, Correctness } from "../domain/answer";
 import type { Avatar } from "../domain/avatar";
@@ -100,6 +104,8 @@ export interface PlayerSessionView {
 	gameId: string;
 	/** The game's theme (spec 042, RN-14). */
 	themeId: ThemeId;
+	/** The custom look the game copied, without the logo (spec 043, RN-26). */
+	customTheme: ThemeLookView | null;
 	nickname: string;
 	/** Null with the characters off (spec 028, RN-25). */
 	avatar: Avatar | null;
@@ -258,6 +264,9 @@ export function createGetPlayerSession(deps: {
 		return {
 			gameId: game.id,
 			themeId: game.themeId,
+			customTheme: themeLookView(game.customTheme, deps.storage, {
+				withLogo: false,
+			}),
 			nickname: player.nickname,
 			avatar: avatarShown(game, player),
 			canChangeAvatar: canChangeAvatar(game, player),

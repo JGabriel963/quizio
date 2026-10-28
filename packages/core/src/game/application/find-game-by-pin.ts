@@ -1,5 +1,10 @@
 import type { AttemptLimiter } from "../../shared/application/ports/attempt-limiter";
 import type { Clock } from "../../shared/application/ports/clock";
+import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import {
+	type ThemeLookView,
+	themeLookView,
+} from "../../shared/application/theme-look-view";
 import type { ThemeId } from "../../shared/domain/theme";
 import {
 	assertJoinable,
@@ -27,6 +32,8 @@ export type FindGameByPin = (input: {
 	mode: GameMode;
 	/** The screens after the PIN already wear it (spec 042, RN-14). */
 	themeId: ThemeId;
+	/** The custom look the game copied, without the logo (spec 043, RN-26). */
+	customTheme: ThemeLookView | null;
 }>;
 
 /**
@@ -40,6 +47,7 @@ export function createFindGameByPin(deps: {
 		"findUnendedByPin" | "findLatestAssignmentByPin" | "save"
 	>;
 	attempts: AttemptLimiter;
+	storage: Pick<ObjectStorage, "getPublicUrl">;
 	clock: Clock;
 }): FindGameByPin {
 	/** An open game of the mode; for an assignment, the last one with the PIN. */
@@ -84,6 +92,9 @@ export function createFindGameByPin(deps: {
 			pin: game.pin,
 			mode: game.mode,
 			themeId: game.themeId,
+			customTheme: themeLookView(game.customTheme, deps.storage, {
+				withLogo: false,
+			}),
 		};
 	};
 }

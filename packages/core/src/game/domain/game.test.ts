@@ -71,6 +71,30 @@ describe("game (spec 008)", () => {
 		});
 
 		expect(game.themeId).toBe("teal");
+		expect(game.customTheme).toBeNull();
+	});
+
+	it("a new game copies the custom look (spec 043, RN-24)", () => {
+		const look = {
+			background: { kind: "pattern", pattern: "waves", color: "#1b2a6b" },
+			accentColor: "#ffd84d",
+			logoKey: "themes/user-1/logo.png",
+		} as const;
+
+		const game = newGame({
+			id: "game-1",
+			ownerId: "user-1",
+			quizId: "quiz-1",
+			quizVersion: 1,
+			title: "Capitais",
+			pin: "265914",
+			options: DEFAULT_GAME_OPTIONS,
+			themeId: "standard",
+			customTheme: look,
+			now,
+		});
+
+		expect(game.customTheme).toEqual(look);
 	});
 
 	it("a new game with autoplay counts from its creation (spec 014)", () => {

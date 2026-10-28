@@ -5,6 +5,10 @@ import type {
 } from "../../quiz/domain/question-image";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import {
+	type ThemeLookView,
+	themeLookView,
+} from "../../shared/application/theme-look-view";
 import type { ThemeId } from "../../shared/domain/theme";
 import { type AnswerDistribution, answerDistribution } from "../domain/answer";
 import {
@@ -160,6 +164,8 @@ export interface HostGameView {
 	options: GameOptions;
 	/** Copied from the quiz when the game was created (spec 042). */
 	themeId: ThemeId;
+	/** The custom look the game copied, with its logo (spec 043, RN-26). */
+	customTheme: ThemeLookView | null;
 	/** Active players, in order of arrival: who joined in the middle too. */
 	players: LobbyPlayerView[];
 	questionCount: number;
@@ -377,6 +383,9 @@ export async function loadHostGameView(
 		locked: game.locked,
 		options: { ...game.options },
 		themeId: game.themeId,
+		customTheme: themeLookView(game.customTheme, deps.storage, {
+			withLogo: true,
+		}),
 		players: players.map((player) => toLobbyPlayerView(game, player)),
 		questionCount: game.questionCount,
 		autoStart: await loadAutoStart(deps, game, players),

@@ -4,6 +4,7 @@ import {
 } from "@quizio/core/game/domain/assignment";
 import { aGame, aPlayer } from "@quizio/core/game/testing/a-game";
 import { aPublishedQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { A_THEME_LOOK } from "@quizio/core/shared/testing/a-theme-look";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { user } from "../../schema/auth";
 import {
@@ -102,6 +103,12 @@ describe("assignment reads (spec 029)", () => {
 			expect((await landing.find("a-1"))?.themeId).toBe("beige");
 		});
 
+		it("gives the custom look the assignment copied (spec 043)", async () => {
+			await games.create({ ...assignment, customTheme: A_THEME_LOOK });
+
+			expect((await landing.find("a-1"))?.customTheme).toEqual(A_THEME_LOOK);
+		});
+
 		it("gives the game's title and the creator's name", async () => {
 			await games.create(assignment);
 
@@ -115,6 +122,7 @@ describe("assignment reads (spec 029)", () => {
 				coverImageKey: null,
 				questionCount: 2,
 				themeId: "standard",
+				customTheme: null,
 			});
 		});
 

@@ -13,8 +13,15 @@ export class InMemoryCreatorProfileQuery implements CreatorProfileQuery {
 		this.#creators.set(creator.userId, creator);
 	}
 
-	addPublicQuiz(ownerId: string, quiz: PublicQuizDetail): void {
-		this.#quizzes.set(ownerId, [...(this.#quizzes.get(ownerId) ?? []), quiz]);
+	addPublicQuiz(
+		ownerId: string,
+		quiz: Omit<PublicQuizDetail, "customTheme"> &
+			Partial<Pick<PublicQuizDetail, "customTheme">>,
+	): void {
+		this.#quizzes.set(ownerId, [
+			...(this.#quizzes.get(ownerId) ?? []),
+			{ customTheme: null, ...quiz },
+		]);
 	}
 
 	/** The owner made it private, trashed or deleted it. */

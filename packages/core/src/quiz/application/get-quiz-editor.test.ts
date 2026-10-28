@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
+import { aCustomTheme } from "../../themes/testing/a-custom-theme";
+import { InMemoryThemeStore } from "../../themes/testing/in-memory-theme-store";
 import { blankQuestion } from "../domain/question";
 import { QuizInTrashError, QuizNotFoundError } from "../domain/quiz";
 import { newQuizVersion } from "../domain/quiz-version";
@@ -16,13 +18,16 @@ describe("getQuizEditor", () => {
 	let questions: InMemoryQuestionRepository;
 	let versions: InMemoryQuizVersionRepository;
 	let getQuizEditor: GetQuizEditor;
+	let themes: InMemoryThemeStore;
 
 	beforeEach(() => {
 		quizzes = new InMemoryQuizRepository();
 		questions = new InMemoryQuestionRepository();
 		versions = new InMemoryQuizVersionRepository();
+		themes = new InMemoryThemeStore(quizzes);
 		getQuizEditor = createGetQuizEditor({
 			quizzes,
+			customThemes: themes,
 			questions,
 			versions,
 			storage: new InMemoryObjectStorage("https://media.test"),
@@ -108,5 +113,31 @@ describe("getQuizEditor", () => {
 		expect((await quizzes.findById("quiz-1"))?.updatedAt).toEqual(
 			quiz.updatedAt,
 		);
+	});
+
+	it("carries the custom look for the canvas (spec 043, RN-22)", async () => {
+		await themes.createTakingUploads(
+			aCustomTheme({ id: "theme-1", ownerId: "user-1" }),
+			[],
+		);
+		await quizzes.save(aQuiz({ customThemeId: "theme-1" }));
+		await questions.saveList("quiz-1", [aQuestion()]);
+
+		const view = await getQuizEditor({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(view.customTheme).toMatchObject({
+			pattern: "waves",
+			backgroundColor: "#1b2a6b",
+			accentColor: "#ffd84d",
+		});
+	});
+
+	it("no custom theme is a null look", async () => {
+		await quizzes.save(aQuiz());
+		await questions.saveList("quiz-1", [aQuestion()]);
+
+		const view = await getQuizEditor({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(view.customTheme).toBeNull();
 	});
 });

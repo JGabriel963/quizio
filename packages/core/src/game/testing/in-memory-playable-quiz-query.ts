@@ -34,6 +34,7 @@ export function aPlayableQuiz(
 		version: 1,
 		trashed: false,
 		themeId: "standard",
+		customTheme: null,
 		...overrides,
 	};
 }

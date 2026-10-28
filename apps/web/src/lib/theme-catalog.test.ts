@@ -1,10 +1,15 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { THEME_IDS } from "@quizio/core/shared/domain/theme";
-import { describe, expect, it } from "vitest";
-
-import { DARK_TEXT, LIGHT_TEXT, worstContrast } from "./contrast";
 import {
+	DARK_TEXT,
+	LIGHT_TEXT,
+	worstContrast,
+} from "@quizio/core/shared/domain/contrast";
+import { THEME_IDS } from "@quizio/core/shared/domain/theme";
+import { BACKGROUND_PATTERN_IDS } from "@quizio/core/shared/domain/theme-look";
+import { describe, expect, it } from "vitest";
+import {
+	shownTheme,
 	THEME_CATALOG,
 	THEME_GROUPS,
 	themeOf,
@@ -96,5 +101,84 @@ describe("theme catalog (spec 042)", () => {
 		expect(themeStyle("light")).toMatchObject({
 			"--game-bar": "rgb(23 23 23 / 0.8)",
 		});
+	});
+});
+
+describe("custom looks (spec 043)", () => {
+	const patternLook = {
+		pattern: "peaks" as const,
+		backgroundColor: "#1b2a6b",
+		imageUrl: null,
+		imageTone: null,
+		accentColor: "#ffd84d",
+		logoUrl: null,
+	};
+
+	it("every pattern has its art in public/themes/patterns (RN-05)", () => {
+		for (const id of BACKGROUND_PATTERN_IDS) {
+			expect(existsSync(resolve(publicDir, `themes/patterns/${id}.svg`))).toBe(
+				true,
+			);
+		}
+	});
+
+	it("a pattern look gives the color base, the pattern art and readable text", () => {
+		expect(themeStyle(shownTheme("standard", patternLook))).toMatchObject({
+			"--game-base": "#1b2a6b",
+			"--game-bg-image": 'url("/themes/patterns/peaks.svg")',
+			"--game-fg": LIGHT_TEXT,
+			"--game-accent": "#ffd84d",
+			"--game-accent-fg": DARK_TEXT,
+			"--game-chip": "rgb(0 0 0 / 0.4)",
+		});
+		expect(
+			themeStyle(
+				shownTheme("standard", { ...patternLook, backgroundColor: "#f5e9c8" }),
+			),
+		).toMatchObject({
+			"--game-fg": DARK_TEXT,
+			"--game-chip": "rgb(255 255 255 / 0.75)",
+		});
+	});
+
+	it("an image look puts the image behind and takes its tone (RN-12)", () => {
+		const style = themeStyle(
+			shownTheme("standard", {
+				...patternLook,
+				pattern: null,
+				backgroundColor: null,
+				imageUrl: "https://media.test/themes/u1/bg.jpg",
+				imageTone: "dark",
+			}),
+		);
+
+		expect(style).toMatchObject({
+			"--game-bg-image": 'url("https://media.test/themes/u1/bg.jpg")',
+			"--game-fg": LIGHT_TEXT,
+			"--game-chip-fg": LIGHT_TEXT,
+		});
+	});
+
+	it("a light image gives light strips with dark text (RN-12, CA-11)", () => {
+		expect(
+			themeStyle(
+				shownTheme("standard", {
+					...patternLook,
+					pattern: null,
+					backgroundColor: null,
+					imageUrl: "https://media.test/themes/u1/white.jpg",
+					imageTone: "light",
+				}),
+			),
+		).toMatchObject({
+			"--game-fg": DARK_TEXT,
+			"--game-chip": "rgb(255 255 255 / 0.75)",
+			"--game-chip-fg": DARK_TEXT,
+			"--game-bar": "rgb(23 23 23 / 0.8)",
+		});
+	});
+
+	it("a catalog theme is unchanged", () => {
+		expect(themeStyle(shownTheme("teal", null))).toEqual(themeStyle("teal"));
 	});
 });

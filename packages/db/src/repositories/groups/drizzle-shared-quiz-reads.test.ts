@@ -5,12 +5,13 @@ import { trashQuiz } from "@quizio/core/quiz/domain/quiz";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
 import { aQuestion } from "@quizio/core/quiz/testing/a-question";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { A_THEME_LOOK } from "@quizio/core/shared/testing/a-theme-look";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-
 import { user } from "../../schema/auth";
 import { game as gameTable } from "../../schema/game";
 import { groupTable } from "../../schema/groups";
 import { quiz as quizTable } from "../../schema/quiz";
+import { customTheme } from "../../schema/themes";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
 import { createDrizzleGameRepository } from "../game/drizzle-game-repository";
 import { createDrizzlePlayerRepository } from "../game/drizzle-player-repository";
@@ -201,12 +202,38 @@ describe("DrizzleSharedQuizReads (spec 037)", () => {
 
 	it("detail returns the quiz's theme (spec 042)", async () => {
 		await publish("capitais", "Capitais", 2);
-		await quizzes.saveTheme("capitais", { themeId: "red", updatedAt: at(1) });
+		await quizzes.saveTheme("capitais", {
+			themeId: "red",
+			customThemeId: null,
+			updatedAt: at(1),
+		});
 		await share("capitais", 1);
 
 		expect((await reads.sharedQuizDetail("g1", "capitais"))?.themeId).toBe(
 			"red",
 		);
+	});
+
+	it("detail returns the owner's custom look (spec 043, RN-25)", async () => {
+		await publish("capitais", "Capitais", 2);
+		await testDb.db.insert(customTheme).values({
+			id: "theme-1",
+			ownerId: "ana",
+			name: "Escola Azul",
+			look: A_THEME_LOOK,
+			createdAt: at(0),
+			updatedAt: at(0),
+		});
+		await quizzes.saveTheme("capitais", {
+			themeId: "standard",
+			customThemeId: "theme-1",
+			updatedAt: at(1),
+		});
+		await share("capitais", 1);
+
+		expect(
+			(await reads.sharedQuizDetail("g1", "capitais"))?.customTheme,
+		).toEqual(A_THEME_LOOK);
 	});
 
 	it("detail returns the version's questions, the description and who shared", async () => {

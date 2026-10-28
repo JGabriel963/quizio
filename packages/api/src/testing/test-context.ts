@@ -40,6 +40,8 @@ import { InMemoryObjectStorage } from "@quizio/core/shared/testing/in-memory-obj
 import { InMemoryProfilePhotoRepository } from "@quizio/core/shared/testing/in-memory-profile-photo-repository";
 import { InMemoryRealtimePublisher } from "@quizio/core/shared/testing/in-memory-realtime-publisher";
 import { SequentialIdGenerator } from "@quizio/core/shared/testing/sequential-id-generator";
+import { InMemoryThemeFileUsage } from "@quizio/core/themes/testing/in-memory-theme-file-usage";
+import { InMemoryThemeStore } from "@quizio/core/themes/testing/in-memory-theme-store";
 import { type Adapters, createContainer } from "../container";
 import type { Context } from "../context";
 import { createCallerFactory } from "../index";
@@ -130,6 +132,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const creatorProfiles = new InMemoryCreatorProfileQuery();
 	const notificationInbox = new InMemoryNotificationInbox();
 	const notificationQuery = new InMemoryNotificationQuery(notificationInbox);
+	const themes = new InMemoryThemeStore(quizzes);
 	const adapters: Adapters = {
 		storage,
 		realtime,
@@ -155,6 +158,8 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 					version: quiz.publishedVersion,
 					trashed: quiz.trashedAt !== null,
 					themeId: quiz.themeId,
+					// The custom theme's look now, as the database joins it.
+					customTheme: themes.lookOf(quiz.customThemeId),
 				})),
 			async (quizId, version) =>
 				(await versions.find(quizId, version))?.questions ?? [],
@@ -226,6 +231,9 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		groupNotices: new InMemoryGroupNoticeRepository(),
 		inboxChannels: new FixedInboxChannels(),
 		notificationSettings: { readRetentionDays: 90 },
+		customThemes: themes,
+		themeUploads: themes,
+		themeFileUsage: new InMemoryThemeFileUsage(),
 		// A group's admin reads the reports of the assignments posted there.
 		reportReadGrants: {
 			canRead: async (viewerId, gameId) => {

@@ -35,6 +35,7 @@ export class InMemoryAssignmentLandingQuery implements AssignmentLandingQuery {
 			coverImageKey: this.covers.get(game.quizId) ?? null,
 			questionCount: game.questionCount,
 			themeId: game.themeId,
+			customTheme: game.customTheme,
 		};
 	}
 }

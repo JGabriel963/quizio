@@ -222,7 +222,7 @@ describe("quiz router", () => {
 			status: "draft",
 			questionCount: 1,
 		});
-		expect(fetched).toEqual(created);
+		expect(fetched).toEqual({ ...created, customTheme: null });
 		expect(updated).toMatchObject({
 			title: "Geografia",
 			visibility: "public",
@@ -281,10 +281,13 @@ describe("quiz router", () => {
 
 		const details = await ana.quiz.setTheme({
 			quizId: created.id,
-			themeId: "light-blue",
+			choice: { kind: "catalog", themeId: "light-blue" },
 		});
 		const error = await failureOf(
-			api.callerFor(null).quiz.setTheme({ quizId: created.id, themeId: "red" }),
+			api.callerFor(null).quiz.setTheme({
+				quizId: created.id,
+				choice: { kind: "catalog", themeId: "red" },
+			}),
 		);
 
 		expect(details.themeId).toBe("light-blue");
@@ -299,12 +302,44 @@ describe("quiz router", () => {
 		const created = await ana.quiz.create({});
 
 		const error = await failureOf(
-			ana.quiz.setTheme({ quizId: created.id, themeId: "winter-games" }),
+			ana.quiz.setTheme({
+				quizId: created.id,
+				choice: { kind: "catalog", themeId: "winter-games" },
+			}),
 		);
 
 		expect(error).toMatchObject({
 			code: "BAD_REQUEST",
 			cause: { code: "QUIZ.UNKNOWN_THEME" },
+		});
+	});
+
+	it("setTheme applies an own custom theme, and the editor draws its look (spec 043)", async () => {
+		const ana = createTestApi().callerFor("user-1");
+		const created = await ana.quiz.create({});
+		const theme = await ana.theme.create({
+			name: "Escola Azul",
+			look: {
+				background: { kind: "pattern", pattern: "waves", color: "#1b2a6b" },
+				accentColor: "#ffd84d",
+				logoKey: null,
+			},
+		});
+
+		const details = await ana.quiz.setTheme({
+			quizId: created.id,
+			choice: { kind: "custom", customThemeId: theme.id },
+		});
+
+		expect(details).toMatchObject({
+			themeId: "standard",
+			customThemeId: theme.id,
+		});
+		expect(
+			(await ana.quiz.editor({ quizId: created.id })).customTheme,
+		).toMatchObject({
+			pattern: "waves",
+			accentColor: "#ffd84d",
 		});
 	});
 
@@ -378,7 +413,10 @@ describe("quiz router", () => {
 		expect(await failureOf(ana.quiz.get({ quizId: copy.id }))).toMatchObject({
 			code: "NOT_FOUND",
 		});
-		expect(await ana.quiz.get({ quizId: original.id })).toEqual(original);
+		expect(await ana.quiz.get({ quizId: original.id })).toEqual({
+			...original,
+			customTheme: null,
+		});
 	});
 
 	it("rejects visibilities outside the allowed values at the boundary", async () => {

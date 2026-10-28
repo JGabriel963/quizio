@@ -8,6 +8,7 @@ import { mediaRouter } from "./media";
 import { notificationRouter } from "./notification";
 import { quizRouter } from "./quiz";
 import { reportRouter } from "./report";
+import { themeRouter } from "./theme";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -22,5 +23,6 @@ export const appRouter = router({
 	notification: notificationRouter,
 	quiz: quizRouter,
 	report: reportRouter,
+	theme: themeRouter,
 });
 export type AppRouter = typeof appRouter;

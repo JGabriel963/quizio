@@ -354,11 +354,15 @@ export function AssignmentPlayFlow({
 	}
 
 	// The assignment's theme, from its cover and then from the game (spec 042, RN-15).
-	const themeId =
-		view?.themeId ??
-		(coverState.kind === "ready" ? coverState.cover.themeId : DEFAULT_THEME_ID);
+	const theme =
+		view ??
+		(coverState.kind === "ready"
+			? coverState.cover
+			: { themeId: DEFAULT_THEME_ID, customTheme: null });
 	const themed = (screen: ReactNode) => (
-		<GameThemeProvider themeId={themeId}>{screen}</GameThemeProvider>
+		<GameThemeProvider themeId={theme.themeId} custom={theme.customTheme}>
+			{screen}
+		</GameThemeProvider>
 	);
 
 	if (step.kind === "confirm") {

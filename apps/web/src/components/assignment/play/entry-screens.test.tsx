@@ -20,6 +20,7 @@ const cover = {
 	coverUrl: "https://media.test/cover.png",
 	questionCount: 5,
 	themeId: "standard" as const,
+	customTheme: null,
 };
 
 describe("AssignmentCover (spec 030, RN-01)", () => {

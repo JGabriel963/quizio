@@ -1,5 +1,6 @@
 import type { Question } from "../../../quiz/domain/question";
 import type { ThemeId } from "../../../shared/domain/theme";
+import type { ThemeLook } from "../../../shared/domain/theme-look";
 
 /** A creator as the profile reads them (spec 039, RN-27). */
 export interface ProfileCreator {
@@ -28,6 +29,8 @@ export interface PublicQuizDetail extends PublicQuizCard {
 	questions: Question[];
 	/** For the screen that opens a game from this page (spec 042, RN-13). */
 	themeId: ThemeId;
+	/** The look of the owner's custom theme, or null (spec 043, RN-22). */
+	customTheme: ThemeLook | null;
 }
 
 /** Read model over the account, quiz, version and game tables. */

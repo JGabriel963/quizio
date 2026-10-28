@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { A_THEME_LOOK } from "../../shared/testing/a-theme-look";
+
 import {
 	GAME_TTL_MS,
 	GameQuizNotFoundError,
@@ -56,6 +58,19 @@ describe("hostGame (spec 008)", () => {
 		const { gameId } = await createHostGame(deps)(host);
 
 		expect((await deps.games.findById(gameId))?.themeId).toBe("teal");
+	});
+
+	it("the game copies the quiz's custom look and keeps it (spec 043, RN-24)", async () => {
+		const deps = createGameDeps({
+			quizzes: [aPlayableQuiz({ customTheme: A_THEME_LOOK })],
+		});
+
+		const { gameId } = await createHostGame(deps)(host);
+		deps.quizzes[0] = aPlayableQuiz({ customTheme: null });
+
+		expect((await deps.games.findById(gameId))?.customTheme).toEqual(
+			A_THEME_LOOK,
+		);
 	});
 
 	it("changing the quiz's theme does not change an open game, and the next game takes the new theme (RN-11)", async () => {

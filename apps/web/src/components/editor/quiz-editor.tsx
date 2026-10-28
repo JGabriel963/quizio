@@ -4,11 +4,15 @@ import {
 } from "@quizio/core/quiz/domain/question";
 import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
 import { incompleteQuestions } from "@quizio/core/quiz/domain/question-issues";
-import type { ThemeId } from "@quizio/core/shared/domain/theme";
+import type { ThemeLookView } from "@quizio/core/shared/application/theme-look-view";
+import {
+	DEFAULT_THEME_ID,
+	type ThemeId,
+} from "@quizio/core/shared/domain/theme";
 import { useState } from "react";
-
 import type {
 	AssistantStatusData,
+	CustomThemeData,
 	GeneratedQuestionData,
 	QuestionData,
 	QuizEditorData,
@@ -20,7 +24,7 @@ import {
 	publishStateOf,
 	selectionAfterRemoval,
 } from "@/lib/editor-cache";
-import { themeStyle } from "@/lib/theme-catalog";
+import { shownTheme, themeStyle } from "@/lib/theme-catalog";
 
 import { NewQuizDialog } from "./assistant/new-quiz-dialog";
 import { QuizAssistant } from "./assistant/quiz-assistant";
@@ -39,6 +43,11 @@ import { type ImageUploadState, NO_UPLOAD } from "./question-media";
 import { QuestionPropertiesMenu } from "./question-properties-menu";
 import { QuestionPropertiesPanel } from "./question-properties-panel";
 import { QuizReadyDialog } from "./quiz-ready-dialog";
+import {
+	CustomThemeDialog,
+	type CustomThemeDialogActions,
+} from "./themes/custom-theme-dialog";
+import { DeleteCustomThemeDialog } from "./themes/delete-custom-theme-dialog";
 import { ThemesPanel } from "./themes-panel";
 import { ThemesSheet } from "./themes-sheet";
 import { UnsavedChangesDialog } from "./unsaved-changes-dialog";
@@ -102,9 +111,26 @@ export interface EditorActions {
 	/**
 	 * "Temas" (spec 042): resolves whether it was saved. The cache gets the
 	 * theme only then; a failure stays in the header to try again (RN-26).
+	 * A custom theme (spec 043) comes with its look, for the canvas.
 	 */
-	setTheme: (themeId: ThemeId) => Promise<boolean>;
+	setTheme: (choice: EditorThemeChoice) => Promise<boolean>;
 }
+
+/**
+ * "Seus temas" (spec 043): the creator's themes and what the editor does
+ * with them; the dialog's own effects are `dialog`.
+ */
+export interface EditorThemes {
+	list: readonly CustomThemeData[];
+	dialog: CustomThemeDialogActions;
+	/** Resolves whether it was deleted. */
+	deleteTheme: (themeId: string) => Promise<boolean>;
+}
+
+/** A ready-made theme, or one of "Seus temas" with its look (spec 043). */
+export type EditorThemeChoice =
+	| { kind: "catalog"; themeId: ThemeId }
+	| { kind: "custom"; customThemeId: string; look: ThemeLookView };
 
 /** The creation assistant, when the instance has one (spec 027, RN-01). */
 export interface EditorAssistant extends AssistantActions {
@@ -128,10 +154,13 @@ export function QuizEditor({
 	onAssign = () => {},
 	onError = () => {},
 	assistant,
+	themes,
 }: {
 	data: QuizEditorData;
 	actions: EditorActions;
 	assistant?: EditorAssistant;
+	/** Without it, "Seus temas" lists nothing and cannot create (tests). */
+	themes?: EditorThemes;
 	/** Bumped when the title changes outside the header (Configurações). */
 	titleRevision?: number;
 	onOpenSettings: () => void;
@@ -181,17 +210,55 @@ export function QuizEditor({
 	// "Temas" in the ⋮ of compact screens (RN-28).
 	const [themesSheetOpen, setThemesSheetOpen] = useState(false);
 	// The theme being saved shows at once and goes back if the save fails (RN-26).
-	const [pendingTheme, setPendingTheme] = useState<ThemeId | null>(null);
-	const shownTheme = pendingTheme ?? data.quiz.themeId;
-	const chooseTheme = async (themeId: ThemeId) => {
-		setPendingTheme(themeId);
-		await actions.setTheme(themeId);
-		setPendingTheme((current) => (current === themeId ? null : current));
+	const [pendingTheme, setPendingTheme] = useState<EditorThemeChoice | null>(
+		null,
+	);
+	const shown = pendingTheme
+		? pendingTheme.kind === "catalog"
+			? shownTheme(pendingTheme.themeId, null)
+			: shownTheme(DEFAULT_THEME_ID, pendingTheme.look)
+		: shownTheme(data.quiz.themeId, data.customTheme);
+	const chooseTheme = async (choice: EditorThemeChoice) => {
+		setPendingTheme(choice);
+		await actions.setTheme(choice);
+		setPendingTheme((current) => (current === choice ? null : current));
 	};
+	// "Crie seu tema" / "Editar tema", and the theme being deleted (spec 043).
+	const [themeDialog, setThemeDialog] = useState<{
+		key: number;
+		theme: CustomThemeData | null;
+	} | null>(null);
+	const [deletingTheme, setDeletingTheme] = useState<CustomThemeData | null>(
+		null,
+	);
+	const customThemeId = pendingTheme
+		? pendingTheme.kind === "custom"
+			? pendingTheme.customThemeId
+			: null
+		: data.quiz.customThemeId;
 	const themesPanelProps = {
-		themeId: shownTheme,
-		savingId: pendingTheme,
-		onSelect: (themeId: ThemeId) => void chooseTheme(themeId),
+		themeId: shown.themeId,
+		savingId: pendingTheme?.kind === "catalog" ? pendingTheme.themeId : null,
+		onSelect: (themeId: ThemeId) =>
+			void chooseTheme({ kind: "catalog", themeId }),
+		customThemes: themes?.list ?? [],
+		customThemeId,
+		savingCustomId:
+			pendingTheme?.kind === "custom" ? pendingTheme.customThemeId : null,
+		onSelectCustom: (theme: CustomThemeData) =>
+			void chooseTheme({
+				kind: "custom",
+				customThemeId: theme.id,
+				look: theme.view,
+			}),
+		onCreate: () =>
+			setThemeDialog((current) => ({
+				key: (current?.key ?? 0) + 1,
+				theme: null,
+			})),
+		onEdit: (theme: CustomThemeData) =>
+			setThemeDialog((current) => ({ key: (current?.key ?? 0) + 1, theme })),
+		onDelete: setDeletingTheme,
 	};
 	// A question removed elsewhere (or not in the cache yet) falls back to the first.
 	const selected =
@@ -374,8 +441,8 @@ export function QuizEditor({
 				    color is not inherited: the fields are white cards. */}
 				<div
 					data-slot="editor-canvas"
-					data-theme={shownTheme}
-					style={themeStyle(shownTheme)}
+					data-theme={shown.custom ? "custom" : shown.themeId}
+					style={themeStyle(shown)}
 					className="bg-(image:--game-bg-image) relative min-h-0 min-w-0 flex-1 bg-(--game-base) bg-center bg-cover"
 				>
 					{/* As a background the image covers the whole question (spec 007, RN-23). */}
@@ -459,6 +526,36 @@ export function QuizEditor({
 				open={themesSheetOpen}
 				onOpenChange={setThemesSheetOpen}
 				{...themesPanelProps}
+			/>
+			{themes && themeDialog && (
+				<CustomThemeDialog
+					key={themeDialog.key}
+					open
+					theme={themeDialog.theme}
+					actions={themes.dialog}
+					onClose={() => setThemeDialog(null)}
+					onSaved={(saved) => {
+						// A new theme becomes the quiz's (RN-15); an edited one the quiz
+						// uses shows its new look (RN-18).
+						if (!themeDialog.theme || saved.id === customThemeId) {
+							void chooseTheme({
+								kind: "custom",
+								customThemeId: saved.id,
+								look: saved.view,
+							});
+						}
+					}}
+				/>
+			)}
+			<DeleteCustomThemeDialog
+				theme={deletingTheme}
+				onCancel={() => setDeletingTheme(null)}
+				onConfirm={() => {
+					if (deletingTheme) {
+						void themes?.deleteTheme(deletingTheme.id);
+					}
+					setDeletingTheme(null);
+				}}
 			/>
 			<DeleteQuestionDialog
 				position={deletingIndex === -1 ? null : deletingIndex + 1}

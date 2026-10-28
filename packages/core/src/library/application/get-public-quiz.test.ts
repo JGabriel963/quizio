@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-
 import { aQuestion } from "../../quiz/testing/a-question";
+import {
+	A_THEME_LOOK,
+	aThemeLookView,
+} from "../../shared/testing/a-theme-look";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { PublicQuizNotFoundError } from "../domain/profile-errors";
 import { InMemoryCreatorProfileQuery } from "../testing/in-memory-creator-profile-query";
@@ -56,8 +59,33 @@ describe("getPublicQuiz (spec 039, RN-33)", () => {
 			ownedByViewer: false,
 			// For the screen that opens a game from this page (spec 042, RN-13).
 			themeId: "teal",
+			customTheme: null,
 		});
 		expect(view.questions.map((question) => question.id)).toEqual(["q1"]);
+	});
+
+	it("carries the owner's custom look without the logo (spec 043, RN-22)", async () => {
+		const profiles = new InMemoryCreatorProfileQuery();
+		profiles.addCreator({ userId: "ana", name: "Ana", photoKey: null });
+		profiles.addPublicQuiz("ana", {
+			quizId: "quiz-1",
+			title: "Bom de Bíblia",
+			coverImageKey: null,
+			questionCount: 0,
+			games: 0,
+			participants: 0,
+			description: "",
+			themeId: "standard",
+			customTheme: A_THEME_LOOK,
+			questions: [],
+		});
+
+		const view = await createGetPublicQuiz({
+			creatorProfiles: profiles,
+			storage: new InMemoryObjectStorage(),
+		})({ viewerId: "bia", ownerId: "ana", quizId: "quiz-1" });
+
+		expect(view.customTheme).toEqual(aThemeLookView(false));
 	});
 
 	it("a quiz made private, trashed or deleted is PUBLIC_QUIZ_NOT_FOUND", async () => {

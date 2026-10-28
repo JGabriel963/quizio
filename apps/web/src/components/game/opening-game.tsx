@@ -1,3 +1,4 @@
+import type { ThemeLookView } from "@quizio/core/shared/application/theme-look-view";
 import type { ThemeId } from "@quizio/core/shared/domain/theme";
 import { Button } from "@quizio/ui/components/button";
 import { cn } from "@quizio/ui/lib/utils";
@@ -40,6 +41,7 @@ export function PreparingLobby({ address }: { address: string | null }) {
 export function OpeningGame({
 	state,
 	themeId,
+	customTheme,
 	onRetry,
 	onCancel,
 }: {
@@ -49,6 +51,8 @@ export function OpeningGame({
 	 * (spec 042, RN-13). Standard otherwise.
 	 */
 	themeId?: ThemeId;
+	/** The custom theme's look, when the quiz has one (spec 043). */
+	customTheme?: ThemeLookView | null;
 	onRetry: () => void;
 	/** "Voltar ao quiz": back to the page underneath. */
 	onCancel: () => void;
@@ -60,6 +64,7 @@ export function OpeningGame({
 	return (
 		<GameScreen
 			themeId={themeId}
+			customTheme={customTheme}
 			className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-y-auto p-4"
 		>
 			{state.kind === "opening" ? (

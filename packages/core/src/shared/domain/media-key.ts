@@ -61,6 +61,28 @@ export function isProfilePhotoKeyOwnedBy(key: string, userId: string): boolean {
 	return isFileDirectlyUnder(key, profilePhotoPrefixOf(userId));
 }
 
+/**
+ * A custom theme's background image or logo (spec 043, ADR 0022): kept
+ * apart from the media because games copy them and keep them.
+ */
+const THEMES_ROOT = "themes";
+
+export function themeFileKeyFor(
+	ownerId: string,
+	id: string,
+	extension: string,
+): string {
+	return `${THEMES_ROOT}/${ownerId}/${id}.${extension}`;
+}
+
+export function isThemeFileKeyOwnedBy(key: string, ownerId: string): boolean {
+	return isFileDirectlyUnder(key, themesPrefixOf(ownerId));
+}
+
+export function themesPrefixOf(ownerId: string): string {
+	return `${THEMES_ROOT}/${ownerId}/`;
+}
+
 /** Everything a user keeps in storage, by prefix, for deleting the account. */
 export function profilePhotoPrefixOf(userId: string): string {
 	return `${PROFILES_ROOT}/${userId}/`;

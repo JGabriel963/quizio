@@ -6,12 +6,18 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
 /** A quiz as listed in the library (dates arrive as ISO strings over HTTP). */
 export type LibraryItemView = RouterOutputs["library"]["list"][number];
 
-/** A quiz as shown on its details page. */
-export type QuizDetailsData = RouterOutputs["quiz"]["get"];
+/**
+ * A quiz's details, as every quiz procedure returns them; the page's own
+ * query also brings the custom theme's look (spec 043).
+ */
+export type QuizDetailsData = Omit<RouterOutputs["quiz"]["get"], "customTheme">;
 
 /** The dashboard overview: newest quizzes plus the total outside the trash. */
 export type HomeOverviewView = RouterOutputs["library"]["home"];
 export type HomeQuizView = HomeOverviewView["quizzes"][number];
+
+/** A theme of "Seus temas" (spec 043). */
+export type CustomThemeData = RouterOutputs["theme"]["list"][number];
 
 /** Everything the editor opens with (spec 003). */
 export type QuizEditorData = RouterOutputs["quiz"]["editor"];

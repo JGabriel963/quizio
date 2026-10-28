@@ -3,9 +3,11 @@ import type { ObjectStorage } from "../../shared/application/ports/object-storag
 import { blankQuestion } from "../domain/question";
 import { assertQuizEditable, requireOwnedQuiz } from "../domain/quiz";
 import { loadCurrentVersion } from "./editable-quiz";
+import type { CustomThemeReads } from "./ports/custom-theme-reads";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
 import type { QuizVersionRepository } from "./ports/quiz-version-repository";
+import { quizCustomLook } from "./quiz-custom-look";
 import { type QuizEditorView, toQuizEditorView } from "./quiz-editor-view";
 import type { QuizReference } from "./quiz-reference";
 
@@ -13,6 +15,7 @@ export type GetQuizEditor = (input: QuizReference) => Promise<QuizEditorView>;
 
 export function createGetQuizEditor(deps: {
 	quizzes: QuizRepository;
+	customThemes: CustomThemeReads;
 	questions: QuestionRepository;
 	versions: Pick<QuizVersionRepository, "find">;
 	storage: Pick<ObjectStorage, "getPublicUrl">;
@@ -37,6 +40,7 @@ export function createGetQuizEditor(deps: {
 			questions,
 			await loadCurrentVersion(deps, quiz),
 			deps.storage,
+			await quizCustomLook(deps, quiz),
 		);
 	};
 }

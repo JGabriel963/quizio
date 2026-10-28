@@ -126,9 +126,11 @@ describe("deleteAccount (spec 039)", () => {
 		expect(await accounts.find("ana")).toBeNull();
 	});
 
-	it("deletes the group files and the media, sources and profiles prefixes", async () => {
+	it("deletes the group files and the media, sources, profiles and themes prefixes (spec 043, RN-30)", async () => {
 		for (const key of [
 			"media/ana/cover.png",
+			"themes/ana/logo.png",
+			"themes/anabela/keep.png",
 			"sources/ana/a.pdf",
 			"profiles/ana/me.webp",
 			"groups/g2/post.pdf",
@@ -141,9 +143,10 @@ describe("deleteAccount (spec 039)", () => {
 
 		await deleteAccount(withPassword("segredo-123"));
 
-		expect(storage.keys()).toEqual([
+		expect(storage.keys().sort()).toEqual([
 			"groups/g2/other.pdf",
 			"media/anabela/keep.png",
+			"themes/anabela/keep.png",
 		]);
 	});
 });

@@ -8,6 +8,7 @@ const fox = { character: "fox", accessory: "crown" } as const;
 
 const lobby: HostGameData = {
 	themeId: "standard",
+	customTheme: null,
 	gameId: "game-1",
 	quizId: "quiz-1",
 	title: "Capitais",

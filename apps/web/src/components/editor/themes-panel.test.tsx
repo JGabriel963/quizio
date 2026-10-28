@@ -24,13 +24,12 @@ function renderPanel(props: Partial<Parameters<typeof ThemesPanel>[0]> = {}) {
 const group = (name: string) => screen.getByRole("group", { name });
 
 describe("ThemesPanel (spec 042)", () => {
-	it("shows Seus temas as coming soon and the three groups with their themes", () => {
+	it("shows Seus temas and the three groups with their themes", () => {
 		renderPanel();
 
 		expect(screen.getByRole("heading", { name: "Temas" })).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: "Criar tema (em breve)" }),
-		).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Criar tema" })).toBeEnabled();
+		expect(screen.queryByText("Em breve")).toBeNull();
 		expect(within(group("Padrão")).getAllByRole("radio")).toHaveLength(1);
 		expect(within(group("Cores")).getAllByRole("radio")).toHaveLength(6);
 		expect(within(group("Claros")).getAllByRole("radio")).toHaveLength(7);
@@ -116,5 +115,89 @@ describe("ThemesPanel (spec 042)", () => {
 		await user.click(screen.getByRole("button", { name: "Fechar temas" }));
 
 		expect(onClose).toHaveBeenCalled();
+	});
+});
+
+describe("ThemesPanel: Seus temas (spec 043)", () => {
+	const escola = {
+		id: "theme-1",
+		name: "Escola Azul",
+		quizCount: 2,
+		look: {
+			background: {
+				kind: "pattern" as const,
+				pattern: "waves" as const,
+				color: "#1b2a6b",
+			},
+			accentColor: "#ffd84d",
+			logoKey: null,
+		},
+		view: {
+			pattern: "waves" as const,
+			backgroundColor: "#1b2a6b",
+			imageUrl: null,
+			imageTone: null,
+			accentColor: "#ffd84d",
+			logoUrl: null,
+		},
+	};
+
+	it("the plus opens Crie seu tema (CA-01)", async () => {
+		const onCreate = vi.fn();
+		const { user } = renderPanel({ onCreate });
+
+		await user.click(screen.getByRole("button", { name: "Criar tema" }));
+
+		expect(onCreate).toHaveBeenCalledOnce();
+	});
+
+	it("lists the creator's themes in the same radio group as the catalog", () => {
+		const onSelectCustom = vi.fn();
+		renderPanel({
+			customThemes: [escola],
+			customThemeId: "theme-1",
+			onSelectCustom,
+		});
+		const own = screen.getByRole("radio", { name: "Escola Azul" });
+
+		expect(own).toHaveAttribute("aria-checked", "true");
+		expect(screen.getByRole("radio", { name: "Padrão" })).toHaveAttribute(
+			"aria-checked",
+			"false",
+		);
+		expect(own.closest('[role="radiogroup"]')).toBe(
+			screen
+				.getByRole("radio", { name: "Padrão" })
+				.closest('[role="radiogroup"]'),
+		);
+
+		expect(onSelectCustom).not.toHaveBeenCalled();
+	});
+
+	it("choosing one of Seus temas calls onSelectCustom with it", async () => {
+		const onSelectCustom = vi.fn();
+		const { user } = renderPanel({ customThemes: [escola], onSelectCustom });
+
+		await user.click(screen.getByRole("radio", { name: "Escola Azul" }));
+
+		expect(onSelectCustom).toHaveBeenCalledWith(escola);
+	});
+
+	it("the ⋮ has Editar and Excluir (RN-17)", async () => {
+		const onEdit = vi.fn();
+		const onDelete = vi.fn();
+		const { user } = renderPanel({ customThemes: [escola], onEdit, onDelete });
+
+		await user.click(
+			screen.getByRole("button", { name: "Mais opções do tema Escola Azul" }),
+		);
+		await user.click(await screen.findByRole("menuitem", { name: "Editar" }));
+		expect(onEdit).toHaveBeenCalledWith(escola);
+
+		await user.click(
+			screen.getByRole("button", { name: "Mais opções do tema Escola Azul" }),
+		);
+		await user.click(await screen.findByRole("menuitem", { name: "Excluir" }));
+		expect(onDelete).toHaveBeenCalledWith(escola);
 	});
 });

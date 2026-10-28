@@ -6,10 +6,13 @@ import {
 	isMediaKeyOwnedBy,
 	isProfilePhotoKeyOwnedBy,
 	isSourceKeyOwnedBy,
+	isThemeFileKeyOwnedBy,
 	mediaKeyExtension,
 	mediaKeyFor,
 	profilePhotoKeyFor,
 	sourceKeyFor,
+	themeFileKeyFor,
+	themesPrefixOf,
 } from "./media-key";
 
 describe("media keys", () => {
@@ -95,5 +98,24 @@ describe("source keys", () => {
 		]) {
 			expect(isProfilePhotoKeyOwnedBy(other, "user-1")).toBe(false);
 		}
+	});
+});
+
+describe("theme file keys (spec 043, RN-28)", () => {
+	it("a theme file lives under themes/{owner}/", () => {
+		const key = themeFileKeyFor("user-1", "abc", "png");
+
+		expect(key).toBe("themes/user-1/abc.png");
+		expect(themesPrefixOf("user-1")).toBe("themes/user-1/");
+		expect(isThemeFileKeyOwnedBy(key, "user-1")).toBe(true);
+	});
+
+	it.each([
+		"themes/user-2/abc.png",
+		"themes/user-1/nested/abc.png",
+		"media/user-1/abc.png",
+		"themes/user-1/",
+	])("isThemeFileKeyOwnedBy refuses %s", (key) => {
+		expect(isThemeFileKeyOwnedBy(key, "user-1")).toBe(false);
 	});
 });

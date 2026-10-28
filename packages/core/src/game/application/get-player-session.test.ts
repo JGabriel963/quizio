@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
-
 import {
 	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTypeAnswerQuestion,
 } from "../../quiz/testing/a-question";
+import {
+	A_THEME_LOOK,
+	aThemeLookView,
+} from "../../shared/testing/a-theme-look";
 import { HOST_AWAY_AFTER_MS } from "../domain/host-presence";
 import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps, markRemoved } from "../testing/game-deps";
@@ -41,6 +44,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 		expect(await createGetPlayerSession(deps)(player(1))).toEqual({
 			gameId: "game-1",
 			themeId: "standard",
+			customTheme: null,
 			nickname: "Ana",
 			avatar: aPlayer().avatar,
 			canChangeAvatar: false,
@@ -371,6 +375,7 @@ describe("getPlayerSession: the final screen (spec 011)", () => {
 		expect(await getPlayerSession(player(3))).toEqual({
 			gameId: "game-1",
 			themeId: "standard",
+			customTheme: null,
 			nickname: "Caio",
 			avatar: aPlayer().avatar,
 			canChangeAvatar: false,
@@ -443,6 +448,7 @@ describe("getPlayerSession: who joined in the middle (spec 012)", () => {
 		expect(await createGetPlayerSession(deps)(caio)).toEqual({
 			gameId: "game-1",
 			themeId: "standard",
+			customTheme: null,
 			nickname: "Caio",
 			// Drawn on joining; sitting out, Caio may still change it (spec 028).
 			avatar: { character: "moon", accessory: "fire" },
@@ -701,6 +707,16 @@ describe("getPlayerSession: theme (spec 042)", () => {
 		const view = await createGetPlayerSession(deps)(player(1));
 
 		expect(view.themeId).toBe("blue");
+	});
+
+	it("a player's view has the custom look without the logo (spec 043, RN-26)", async () => {
+		const deps = createGameDeps();
+		await deps.games.save(aGame({ customTheme: A_THEME_LOOK }));
+		await deps.players.add(aPlayer({ id: "p1", secret: "s1" }));
+
+		const view = await createGetPlayerSession(deps)(player(1));
+
+		expect(view.customTheme).toEqual(aThemeLookView(false));
 	});
 });
 

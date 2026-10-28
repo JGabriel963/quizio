@@ -140,7 +140,18 @@ export const quizRouter = router({
 	 * reaches the core and comes back as QUIZ.UNKNOWN_THEME.
 	 */
 	setTheme: protectedProcedure
-		.input(quizReference.extend({ themeId: z.string().max(64) }))
+		.input(
+			quizReference.extend({
+				// A ready-made theme (spec 042) or one of the owner's (spec 043).
+				choice: z.discriminatedUnion("kind", [
+					z.object({ kind: z.literal("catalog"), themeId: z.string().max(64) }),
+					z.object({
+						kind: z.literal("custom"),
+						customThemeId: z.string().min(1).max(64),
+					}),
+				]),
+			}),
+		)
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.setQuizTheme({
 				ownerId: ctx.session.user.id,

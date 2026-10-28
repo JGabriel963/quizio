@@ -1,5 +1,6 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import type { ThemeId } from "../../shared/domain/theme";
+import type { ThemeLook } from "../../shared/domain/theme-look";
 import { assertGameOpen, type Game, requireAssignment } from "./game";
 
 /**
@@ -70,6 +71,8 @@ export function newAssignment(input: {
 	options: AssignmentOptions;
 	questionCount: number;
 	themeId: ThemeId;
+	/** The custom theme's look, copied as it is (spec 043, RN-24). */
+	customTheme?: ThemeLook | null;
 	now: Date;
 }): Game {
 	return {
@@ -100,6 +103,7 @@ export function newAssignment(input: {
 		progress: null,
 		hostSeenAt: input.now,
 		themeId: input.themeId,
+		customTheme: input.customTheme ?? null,
 	};
 }
 

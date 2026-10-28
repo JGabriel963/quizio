@@ -144,6 +144,7 @@ export function QuizDetailsPanel({
 			<OpeningGame
 				state={hosting.state}
 				themeId={quiz.data?.themeId}
+				customTheme={quiz.data?.customTheme}
 				onRetry={() => hosting.start()}
 				onCancel={hosting.cancel}
 			/>

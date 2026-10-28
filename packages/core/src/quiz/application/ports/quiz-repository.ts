@@ -23,10 +23,17 @@ export interface QuizRepository {
 		id: string,
 		change: { visibility: QuizVisibility; updatedAt: Date },
 	): Promise<void>;
-	/** Sets only the theme, chosen in the editor (spec 042, RN-06). */
+	/**
+	 * Sets only the theme, chosen in the editor (spec 042, RN-06): the
+	 * ready-made one and the custom one together (spec 043).
+	 */
 	saveTheme(
 		id: string,
-		change: { themeId: ThemeId; updatedAt: Date },
+		change: {
+			themeId: ThemeId;
+			customThemeId: string | null;
+			updatedAt: Date;
+		},
 	): Promise<void>;
 	/** Every quiz of the owner, trashed ones too, for deleting the account (spec 039). */
 	listIdsByOwner(ownerId: string): Promise<string[]>;

@@ -50,6 +50,7 @@ describe("getHostGame (spec 008)", () => {
 				gameCharacters: true,
 			},
 			themeId: "standard",
+			customTheme: null,
 			players: [
 				{ id: "p1", nickname: "Ana", avatar: aPlayer().avatar },
 				{ id: "p2", nickname: "Bia", avatar: aPlayer().avatar },

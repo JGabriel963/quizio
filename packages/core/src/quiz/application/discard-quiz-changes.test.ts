@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
+import { InMemoryThemeStore } from "../../themes/testing/in-memory-theme-store";
 import {
 	QuizInTrashError,
 	QuizNotFoundError,
@@ -36,6 +36,7 @@ describe("discardQuizChanges", () => {
 		clock = new FixedClock("2026-06-01T12:00:00.000Z");
 		discardQuizChanges = createDiscardQuizChanges({
 			quizzes,
+			customThemes: new InMemoryThemeStore(quizzes),
 			questions,
 			versions,
 			storage: new InMemoryObjectStorage("https://media.test"),

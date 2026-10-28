@@ -23,6 +23,7 @@ const cover: AssignmentCoverData = {
 	coverUrl: null,
 	questionCount: 2,
 	themeId: "standard",
+	customTheme: null,
 };
 
 const question = (index: number, text: string) => ({
@@ -64,6 +65,7 @@ const me = (total: number) => ({
 function viewWith(screen: AssignmentPlayData["screen"]): AssignmentPlayData {
 	return {
 		themeId: "standard",
+		customTheme: null,
 		nickname: "John",
 		avatar: null,
 		questionCount: 2,
@@ -173,6 +175,34 @@ describe("AssignmentPlayFlow theme (spec 042, RN-15)", () => {
 
 		await screen.findByRole("button", { name: /Começar|Iniciar|Pronto/ });
 		expect(new Set(shownThemes())).toEqual(new Set(["lilac"]));
+	});
+});
+
+describe("AssignmentPlayFlow custom theme (spec 043)", () => {
+	it("the cover and the game wear the assignment's custom look", async () => {
+		const look = {
+			pattern: "tiles" as const,
+			backgroundColor: "#1b2a6b",
+			imageUrl: null,
+			imageTone: null,
+			accentColor: "#ffd84d",
+			logoUrl: null,
+		};
+		const api = fakeApi({
+			cover: vi.fn(async () => ({ ...cover, customTheme: look })),
+			play: vi.fn(async () => ({
+				...viewWith({ phase: "ready" }),
+				customTheme: look,
+			})),
+		});
+		renderFlow(api);
+
+		await screen.findByRole("button", { name: "Iniciar" });
+		expect(
+			document
+				.querySelector('[data-slot="game-screen"]')
+				?.getAttribute("data-theme"),
+		).toBe("custom");
 	});
 });
 

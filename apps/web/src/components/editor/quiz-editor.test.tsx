@@ -1,13 +1,12 @@
 import { DEFAULT_GENERATION_OPTIONS } from "@quizio/core/quiz/domain/generation";
 import { blankQuestion } from "@quizio/core/quiz/domain/question";
 import { newQuestionImage } from "@quizio/core/quiz/domain/question-image";
+import { DARK_TEXT } from "@quizio/core/shared/domain/contrast";
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-
 import type { QuestionData, QuizEditorData } from "@/lib/api-types";
-import { DARK_TEXT } from "@/lib/contrast";
 import { withQuizPublished } from "@/lib/editor-cache";
 import {
 	createSaveTracker,
@@ -19,6 +18,8 @@ import { renderWithRouter } from "@/testing/render-with-router";
 import {
 	type EditorActions,
 	type EditorAssistant,
+	type EditorThemeChoice,
+	type EditorThemes,
 	QuizEditor,
 } from "./quiz-editor";
 
@@ -34,6 +35,7 @@ function editorData(...questions: QuestionData[]): QuizEditorData {
 	return {
 		quiz: {
 			themeId: "standard",
+			customThemeId: null,
 			id: "quiz-1",
 			title: "Geografia",
 			description: null,
@@ -51,6 +53,7 @@ function editorData(...questions: QuestionData[]): QuizEditorData {
 		questions,
 		publishedQuestions: null,
 		imageUrls: {},
+		customTheme: null,
 	};
 }
 
@@ -96,6 +99,7 @@ async function renderEditor(
 		assistant,
 		assistantLater = false,
 		themeSaveFails = false,
+		themes,
 	}: {
 		afterAdd?: QuizEditorData;
 		/** The list once the assistant's questions are added. */
@@ -106,6 +110,8 @@ async function renderEditor(
 		assistantLater?: boolean;
 		/** `setTheme` answers false, as the action does when the save failed. */
 		themeSaveFails?: boolean;
+		/** "Seus temas" and their actions (spec 043). */
+		themes?: EditorThemes;
 	} = {},
 ) {
 	let latest = data;
@@ -182,11 +188,31 @@ async function renderEditor(
 		moveQuestion: vi.fn(),
 		deleteQuestion: vi.fn(),
 		// Like the real action: the cache gets the theme once it is saved.
-		setTheme: vi.fn(async (themeId) => {
+		setTheme: vi.fn(async (choice: EditorThemeChoice) => {
 			if (themeSaveFails) {
 				return false;
 			}
-			setData({ ...latest, quiz: { ...latest.quiz, themeId } });
+			setData(
+				choice.kind === "catalog"
+					? {
+							...latest,
+							quiz: {
+								...latest.quiz,
+								themeId: choice.themeId,
+								customThemeId: null,
+							},
+							customTheme: null,
+						}
+					: {
+							...latest,
+							quiz: {
+								...latest.quiz,
+								themeId: "standard",
+								customThemeId: choice.customThemeId,
+							},
+							customTheme: choice.look,
+						},
+			);
 			return true;
 		}),
 	};
@@ -209,6 +235,7 @@ async function renderEditor(
 				onExit={onExit}
 				onError={onError}
 				onAssign={onAssign}
+				themes={themes}
 			/>
 		);
 	}
@@ -582,7 +609,10 @@ describe("QuizEditor: themes (spec 042)", () => {
 		await user.click(within(rail()).getByRole("button", { name: "Temas" }));
 		await user.click(screen.getByRole("radio", { name: "Azul claro" }));
 
-		expect(actions.setTheme).toHaveBeenCalledWith("light-blue");
+		expect(actions.setTheme).toHaveBeenCalledWith({
+			kind: "catalog",
+			themeId: "light-blue",
+		});
 		expect(canvas()).toHaveAttribute("data-theme", "light-blue");
 		expect(screen.getByRole("radio", { name: "Azul claro" })).toHaveAttribute(
 			"aria-checked",
@@ -1296,5 +1326,161 @@ describe("QuizEditor question image (spec 007)", () => {
 				screen.queryByRole("dialog", { name: "Crie com o Assistente" }),
 			).toBeNull();
 		});
+	});
+});
+
+describe("QuizEditor: Seus temas (spec 043)", () => {
+	const canvas = () =>
+		document.querySelector('[data-slot="editor-canvas"]') as HTMLElement;
+	const escolaView = {
+		pattern: "rings" as const,
+		backgroundColor: "#1b2a6b",
+		imageUrl: null,
+		imageTone: null,
+		accentColor: "#ffd84d",
+		logoUrl: null,
+	};
+	const escola = {
+		id: "theme-1",
+		name: "Escola Azul",
+		quizCount: 0,
+		look: {
+			background: {
+				kind: "pattern" as const,
+				pattern: "rings" as const,
+				color: "#1b2a6b",
+			},
+			accentColor: "#ffd84d",
+			logoKey: null,
+		},
+		view: escolaView,
+	};
+
+	function fakeThemes(overrides: Partial<EditorThemes> = {}): EditorThemes {
+		return {
+			list: [escola],
+			deleteTheme: vi.fn(async () => true),
+			dialog: {
+				upload: vi.fn(async () => ({ key: "k", url: "u" })),
+				discardUploads: vi.fn(),
+				measureTone: vi.fn(async () => "dark" as const),
+				crop: vi.fn(async (file: Blob) => file as File),
+				save: vi.fn(async (input) => ({
+					id: "theme-new",
+					name: input.name,
+					look: input.look,
+					view: { ...escolaView, pattern: "waves" as const },
+				})),
+			},
+			...overrides,
+		};
+	}
+
+	const openThemes = (user: ReturnType<typeof userEvent.setup>) =>
+		user.click(screen.getByRole("button", { name: "Temas" }));
+
+	it("choosing one of Seus temas shows it at once and saves it (CA-12)", async () => {
+		const { actions, user } = await renderEditor(
+			editorData(question("a", "A?")),
+			{
+				themes: fakeThemes(),
+			},
+		);
+		await openThemes(user);
+
+		await user.click(screen.getByRole("radio", { name: "Escola Azul" }));
+
+		expect(actions.setTheme).toHaveBeenCalledWith({
+			kind: "custom",
+			customThemeId: "theme-1",
+			look: escolaView,
+		});
+		expect(canvas()).toHaveAttribute("data-theme", "custom");
+		expect(canvas().style.getPropertyValue("--game-bg-image")).toBe(
+			'url("/themes/patterns/rings.svg")',
+		);
+		expect(screen.getByRole("radio", { name: "Escola Azul" })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
+	});
+
+	it("saving a new theme applies it to the quiz (RN-15, CA-02)", async () => {
+		const themes = fakeThemes();
+		const { actions, user } = await renderEditor(
+			editorData(question("a", "A?")),
+			{
+				themes,
+			},
+		);
+		await openThemes(user);
+
+		await user.click(screen.getByRole("button", { name: "Criar tema" }));
+		await user.click(await screen.findByRole("button", { name: "Salvar" }));
+
+		await vi.waitFor(() =>
+			expect(actions.setTheme).toHaveBeenCalledWith({
+				kind: "custom",
+				customThemeId: "theme-new",
+				look: { ...escolaView, pattern: "waves" },
+			}),
+		);
+		expect(themes.dialog.save).toHaveBeenCalledWith(
+			expect.objectContaining({ themeId: null, name: "Meu tema" }),
+		);
+	});
+
+	it("Editar opens the theme in the dialog", async () => {
+		const { user } = await renderEditor(editorData(question("a", "A?")), {
+			themes: fakeThemes(),
+		});
+		await openThemes(user);
+
+		await user.click(
+			screen.getByRole("button", { name: "Mais opções do tema Escola Azul" }),
+		);
+		await user.click(await screen.findByRole("menuitem", { name: "Editar" }));
+
+		expect(
+			await screen.findByRole("heading", { name: "Editar tema" }),
+		).toBeVisible();
+		expect(screen.getByRole("textbox", { name: "Nome" })).toHaveValue(
+			"Escola Azul",
+		);
+	});
+
+	it("Excluir asks and deletes the theme (CA-15)", async () => {
+		const themes = fakeThemes({ list: [{ ...escola, quizCount: 2 }] });
+		const { user } = await renderEditor(editorData(question("a", "A?")), {
+			themes,
+		});
+		await openThemes(user);
+
+		await user.click(
+			screen.getByRole("button", { name: "Mais opções do tema Escola Azul" }),
+		);
+		await user.click(await screen.findByRole("menuitem", { name: "Excluir" }));
+		expect(
+			await screen.findByText(
+				"2 quizzes usam este tema e voltarão para o tema Padrão.",
+			),
+		).toBeVisible();
+		await user.click(screen.getByRole("button", { name: "Excluir" }));
+
+		expect(themes.deleteTheme).toHaveBeenCalledWith("theme-1");
+	});
+
+	it("a quiz whose theme went is on standard (RN-20)", async () => {
+		const data = editorData(question("a", "A?"));
+		await renderEditor(
+			{
+				...data,
+				quiz: { ...data.quiz, customThemeId: null },
+				customTheme: null,
+			},
+			{ themes: fakeThemes() },
+		);
+
+		expect(canvas()).toHaveAttribute("data-theme", "standard");
 	});
 });

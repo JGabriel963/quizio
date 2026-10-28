@@ -78,6 +78,7 @@ export function createDrizzleLibraryQuizQuery(db: Database): LibraryQuizQuery {
 					publishedVersion: _publishedVersion,
 					publishedAt: _publishedAt,
 					themeId: _themeId,
+					customThemeId: _customThemeId,
 					description,
 					...row
 				}) => ({ ...row, description: description ?? "" }),

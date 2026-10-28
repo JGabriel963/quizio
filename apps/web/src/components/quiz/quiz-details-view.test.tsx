@@ -11,6 +11,7 @@ const now = new Date("2026-06-15T12:00:00.000Z");
 
 const quiz: QuizDetailsData = {
 	themeId: "standard",
+	customThemeId: null,
 	id: "quiz-1",
 	title: "Bom de Bíblia (Junho)",
 	description: "Atos 1 a 7",

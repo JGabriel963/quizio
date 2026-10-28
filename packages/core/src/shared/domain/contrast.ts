@@ -1,3 +1,9 @@
+/**
+ * The contrast rules of the themes (spec 042, RN-19; spec 043, RN-11), in
+ * the shared kernel because the server refuses a custom color nobody could
+ * read and the web picks the text color with the same math.
+ */
+
 /** The two text colors a theme may get over its background (spec 042, RN-19). */
 export const LIGHT_TEXT = "#ffffff";
 export const DARK_TEXT = "#1f1f1f";
@@ -37,4 +43,15 @@ export function readableTextOn(
 	return worstContrast(LIGHT_TEXT, colors) >= worstContrast(DARK_TEXT, colors)
 		? LIGHT_TEXT
 		: DARK_TEXT;
+}
+
+/** The ratio body text needs, WCAG 2.2, criterion 1.4.3. */
+export const MIN_TEXT_CONTRAST = 4.5;
+
+/** Whether light or dark text can be read on `hex` (spec 043, RN-11). */
+export function isLegibleColor(hex: string): boolean {
+	return (
+		Math.max(contrastRatio(hex, LIGHT_TEXT), contrastRatio(hex, DARK_TEXT)) >=
+		MIN_TEXT_CONTRAST
+	);
 }

@@ -41,7 +41,14 @@ O fundo das telas de jogo e do centro do editor vem do **tema** do quiz (`lib/th
 | `bg-game-chip` + `text-game-chip-fg` | Faixas e etiquetas sobre o fundo: escuras com texto branco num tema escuro, claras com texto escuro num tema claro |
 | `bg-game-bar` + `text-white` | Barras que ficam escuras em qualquer tema: o cabeçalho do anfitrião, o rodapé do celular |
 
-A cor do texto é **calculada** pelo contraste do WCAG sobre as cores do tema (`lib/contrast.ts`), e um teste exige 4,5:1 em todo o catálogo. Sem tema (sem `GameThemeProvider`), os tokens valem o roxo de sempre. O `.dark` continua em todos os temas: cartões, diálogos e superfícies fixas (o cartão do PIN, o enunciado, as alternativas) não mudam. Overlays sobre imagens continuam `bg-black/…` com `text-white`.
+A cor do texto é **calculada** pelo contraste do WCAG sobre as cores do tema (`@quizio/core/shared/domain/contrast`, desde a spec 043 no core, porque o servidor recusa cor ilegível), e um teste exige 4,5:1 em todo o catálogo.
+
+**Temas personalizados (spec 043).** Um tema do criador chega às telas como aparência (`ThemeLookView`) e o `themeStyle` escreve as mesmas variáveis:
+- **Fundo com padrão:** a cor escolhida em `--game-base` e o desenho em `--game-bg-image`. Os 4 padrões (`public/themes/patterns/{waves,peaks,rings,tiles}.svg`) são só formas brancas e pretas translúcidas, então um arquivo serve a qualquer cor.
+- **Fundo com imagem:** o tom medido no navegador (`lib/image-tone.ts`) decide o texto e as faixas.
+- **Logotipo:** o `Wordmark` mostra o logotipo do tema, inteiro, no lugar do nome do Quizio. Só as visões do anfitrião trazem a URL, então o celular continua com o nome.
+- **Escolha de cores:** a `ColorLibrary` (`components/editor/themes/color-library.tsx`): "Cores personalizadas" (lembradas no `localStorage` por `lib/custom-colors.ts`) e a "Biblioteca de cores" de `lib/theme-palette.ts` (48 cores legíveis), num só `RadioGroup` com cada amostra nomeada pelo código.
+- **Recorte:** o `ImageCropDialog` corta a imagem no navegador (`lib/theme-image-crop.ts`: 16:9 ou quadrado, zoom até 3×, saída WebP) antes do envio. Sem tema (sem `GameThemeProvider`), os tokens valem o roxo de sempre. O `.dark` continua em todos os temas: cartões, diálogos e superfícies fixas (o cartão do PIN, o enunciado, as alternativas) não mudam. Overlays sobre imagens continuam `bg-black/…` com `text-white`.
 
 ## Componentes
 
@@ -60,6 +67,10 @@ Abas para as seções de uma área (Recentes / Rascunhos / Lixeira na Biblioteca
 ### `Select`
 
 Lista de opções sobre `@base-ui/react/select`, usada no lugar do `<select>` do navegador (painel de propriedades do editor). `SelectTrigger` tem o visual dos campos do Kahoot (borda, `shadow-press-light`) e ocupa a largura do contêiner; `SelectContent` abre abaixo do campo, com a largura dele. Dê nome ao campo com `aria-labelledby` no `SelectTrigger`. `SelectItem` tem `variant="tile"` para cartões com ícone em cima e nome embaixo (lista de tipos de pergunta), dentro de um `SelectGroup` com `SelectLabel`.
+
+### `ColorPicker`
+
+Uma cor livre, como o seletor de "Cores personalizadas" do Kahoot (spec 043): o quadrado de saturação (horizontal) e brilho (vertical), a barra de matiz, o campo "Hex" (3 ou 6 dígitos, com ou sem `#`) e "Cancelar"/"Ok". O quadrado é um `slider` para o teclado: as setas andam um passo, com Shift dez. A matemática (`hexToHsv`, `hsvToHex`, `parseHexInput`) está em `@quizio/ui/lib/color`. Quem usa decide o que aceitar: o "Crie seu tema" recusa uma cor ilegível no Ok.
 
 ### `RadioGroup` + `RadioGroupItem`
 

@@ -65,6 +65,7 @@ describe("game router: the host (spec 008)", () => {
 				gameCharacters: true,
 			},
 			themeId: "standard",
+			customTheme: null,
 			players: [],
 			questionCount: 0,
 			autoStart: null,
@@ -188,7 +189,13 @@ describe("game router: the player (spec 008)", () => {
 			nickname: "ACT",
 		});
 
-		expect(found).toEqual({ gameId, pin, mode: "live", themeId: "standard" });
+		expect(found).toEqual({
+			gameId,
+			pin,
+			mode: "live",
+			themeId: "standard",
+			customTheme: null,
+		});
 		expect(
 			await visitor.game.join.session({
 				gameId,
@@ -198,6 +205,7 @@ describe("game router: the player (spec 008)", () => {
 		).toEqual({
 			gameId,
 			themeId: "standard",
+			customTheme: null,
 			nickname: "ACT",
 			avatar: drawn,
 			canChangeAvatar: true,
@@ -590,6 +598,7 @@ describe("game router: the end of the game (spec 011)", () => {
 		expect(await visitor.game.join.session(bia)).toEqual({
 			gameId,
 			themeId: "standard",
+			customTheme: null,
 			nickname: "Bia",
 			avatar: drawn,
 			canChangeAvatar: false,
@@ -1227,6 +1236,7 @@ describe("game router: assignments (spec 029)", () => {
 				coverUrl: null,
 				questionCount: 2,
 				themeId: "standard",
+				customTheme: null,
 			},
 		);
 	});
@@ -1250,6 +1260,7 @@ describe("game router: assignments (spec 029)", () => {
 			pin: "04352236",
 			mode: "assignment",
 			themeId: "standard",
+			customTheme: null,
 		});
 	});
 

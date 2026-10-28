@@ -71,6 +71,7 @@ describe("newQuiz", () => {
 			publishedAt: null,
 			hasUnpublishedChanges: false,
 			themeId: "standard",
+			customThemeId: null,
 			createdAt,
 			updatedAt: createdAt,
 			trashedAt: null,
@@ -290,6 +291,35 @@ describe("copyQuiz", () => {
 		expect(copy.themeId).toBe("lilac");
 	});
 
+	it("a copy of one's own quiz keeps the custom theme (spec 043, RN-27)", () => {
+		const copy = copyQuiz(
+			aQuiz({ ownerId: "user-1", customThemeId: "theme-1" }),
+			{
+				id: "quiz-2",
+				ownerId: "user-1",
+				coverImageKey: null,
+				now: twoDaysLater,
+			},
+		);
+
+		expect(copy.customThemeId).toBe("theme-1");
+	});
+
+	it("a copy for someone else starts with standard (spec 043, RN-27)", () => {
+		const copy = copyQuiz(
+			aQuiz({ ownerId: "user-1", customThemeId: "theme-1" }),
+			{
+				id: "quiz-2",
+				ownerId: "user-2",
+				coverImageKey: null,
+				now: twoDaysLater,
+			},
+		);
+
+		expect(copy.customThemeId).toBeNull();
+		expect(copy.themeId).toBe("standard");
+	});
+
 	it("creates a draft copy with the duplicate title and new identity and timestamps", () => {
 		const copy = copyQuiz(aQuiz(), {
 			id: "quiz-2",
@@ -310,6 +340,7 @@ describe("copyQuiz", () => {
 			publishedAt: null,
 			hasUnpublishedChanges: false,
 			themeId: "standard",
+			customThemeId: null,
 			createdAt: twoDaysLater,
 			updatedAt: twoDaysLater,
 			trashedAt: null,

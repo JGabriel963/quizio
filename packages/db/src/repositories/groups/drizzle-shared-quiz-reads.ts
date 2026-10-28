@@ -6,6 +6,7 @@ import type { SharedQuizSort } from "@quizio/core/groups/domain/shared-quiz";
 import { UNTITLED_QUIZ_TITLE } from "@quizio/core/quiz/domain/quiz-details";
 import { parseVersionQuestions } from "@quizio/core/quiz/domain/quiz-version";
 import { knownThemeId } from "@quizio/core/shared/domain/theme";
+import { readThemeLook } from "@quizio/core/shared/domain/theme-look";
 import {
 	and,
 	asc,
@@ -17,10 +18,10 @@ import {
 	type SQL,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-
 import { user } from "../../schema/auth";
 import { groupSharedQuiz } from "../../schema/groups";
 import { quiz as quizTable, quizVersion } from "../../schema/quiz";
+import { customTheme } from "../../schema/themes";
 import type { Database } from "../../types";
 import { quizGameCounts } from "../game/quiz-game-counts";
 
@@ -149,9 +150,12 @@ export function createDrizzleSharedQuizReads(db: Database): SharedQuizReads {
 					description: quizTable.description,
 					sharedByName: user.name,
 					themeId: quizTable.themeId,
+					look: customTheme.look,
 				})
 				.from(quizTable)
 				.innerJoin(user, eq(user.id, card.sharedById))
+				// The owner's custom theme, for the game's opening (spec 043, RN-25).
+				.leftJoin(customTheme, eq(customTheme.id, quizTable.customThemeId))
 				.where(eq(quizTable.id, quizId));
 			const totals = await gameCounts([quizId]);
 			return {
@@ -161,6 +165,7 @@ export function createDrizzleSharedQuizReads(db: Database): SharedQuizReads {
 				participants: totals.get(quizId)?.participants ?? 0,
 				questions: parseVersionQuestions(card.questionsJson),
 				themeId: knownThemeId(details?.themeId),
+				customTheme: readThemeLook(details?.look),
 			};
 		},
 	};
