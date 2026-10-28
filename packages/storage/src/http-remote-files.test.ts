@@ -41,4 +41,22 @@ describe("isPublicAddress (spec 044, RN-24)", () => {
 			expect(isPublicAddress(ip), ip).toBe(false);
 		}
 	});
+
+	it("reads an IPv4-mapped address in any spelling, as a link's host comes in hex", () => {
+		// `new URL("http://[::ffff:127.0.0.1]").hostname` is `[::ffff:7f00:1]`.
+		for (const ip of [
+			"::ffff:7f00:1",
+			"::FFFF:7F00:0001",
+			"0:0:0:0:0:ffff:7f00:1",
+			"::ffff:a9fe:a9fe",
+			"::ffff:a00:5",
+			"::ffff:0:0",
+			// IPv4-compatible, deprecated: never a public address.
+			"::7f00:1",
+			"::808:808",
+		]) {
+			expect(isPublicAddress(ip), ip).toBe(false);
+		}
+		expect(isPublicAddress("::ffff:808:808")).toBe(true);
+	});
 });

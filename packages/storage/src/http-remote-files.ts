@@ -40,7 +40,8 @@ for (const [network, prefix] of [
 	NOT_PUBLIC.addSubnet(network, prefix, "ipv4");
 }
 for (const [network, prefix] of [
-	["::", 128],
+	// Unspecified and IPv4-compatible (deprecated): never a public address.
+	["::", 96],
 	["::1", 128],
 	["64:ff9b::", 96],
 	["100::", 64],
@@ -52,10 +53,23 @@ for (const [network, prefix] of [
 	NOT_PUBLIC.addSubnet(network, prefix, "ipv6");
 }
 
-/** An IPv6 address carrying an IPv4 one (`::ffff:127.0.0.1`) is that one. */
+/**
+ * An IPv4-mapped IPv6 address is the IPv4 one it carries, in any spelling: a
+ * link's host comes in hex (`new URL("http://[::ffff:127.0.0.1]")` gives
+ * `[::ffff:7f00:1]`), so the address is normalized before it is read.
+ */
 function embeddedIPv4(ip: string): string | null {
-	const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
-	return mapped?.[1] ?? null;
+	if (isIP(ip) !== 6) {
+		return null;
+	}
+	const normalized = new URL(`http://[${ip}]`).hostname.slice(1, -1);
+	const [, high, low] =
+		/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(normalized) ?? [];
+	if (high === undefined || low === undefined) {
+		return null;
+	}
+	const [a, b] = [Number.parseInt(high, 16), Number.parseInt(low, 16)];
+	return [a >> 8, a & 255, b >> 8, b & 255].join(".");
 }
 
 /** Whether an address is on the public internet (spec 044, RN-24; ADR 0023). */

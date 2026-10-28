@@ -116,5 +116,9 @@ describe("HttpRemoteFiles against a local HTTP server (spec 044, RN-24)", () => 
 		await expect(
 			files(false).fetch(`http://localhost:${port}/logo.png`, 1024),
 		).rejects.toBeInstanceOf(FileUrlNotPublicError);
+		// 127.0.0.1 as an IPv4-mapped IPv6 literal, which a URL writes in hex.
+		await expect(
+			files(false).fetch(`http://[::ffff:127.0.0.1]:${port}/logo.png`, 1024),
+		).rejects.toBeInstanceOf(FileUrlNotPublicError);
 	});
 });
