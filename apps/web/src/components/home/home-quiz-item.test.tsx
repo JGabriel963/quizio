@@ -1,4 +1,5 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { HomeQuizItem } from "@/components/home/home-quiz-item";
@@ -33,12 +34,23 @@ describe("HomeQuizItem", () => {
 		expect(screen.getByText("há 2 meses")).toBeInTheDocument();
 	});
 
-	it("links to the quiz page", async () => {
-		renderWithRouter(<HomeQuizItem quiz={quiz} now={now} />);
+	it("opens the drawer over the dashboard, with the quiz page in the address", async () => {
+		const { router } = renderWithRouter(<HomeQuizItem quiz={quiz} now={now} />);
+		const link = await screen.findByRole("link", {
+			name: "Bom de Bíblia (Junho)",
+		});
 
-		expect(
-			await screen.findByRole("link", { name: "Bom de Bíblia (Junho)" }),
-		).toHaveAttribute("href", "/quizzes/quiz-1");
+		// A reload or a new tab opens the page itself.
+		expect(link).toHaveAttribute("href", "/quizzes/quiz-1");
+		await userEvent.setup().click(link);
+
+		await waitFor(() =>
+			expect(router.state.location.search).toEqual({ quiz: "quiz-1" }),
+		);
+		expect(router.state.location.pathname).toBe("/");
+		expect(router.state.location.maskedLocation?.pathname).toBe(
+			"/quizzes/quiz-1",
+		);
 	});
 
 	it("offers no quiz actions: those stay in the library", async () => {

@@ -44,12 +44,17 @@ function GroupsLayout() {
 			    height, as in Kahoot: it takes back the content's padding. */}
 			<div className="flex lg:-mx-4 lg:-my-6 lg:min-h-[calc(100%+3rem)]">
 				<div className="hidden shrink-0 border-border border-r bg-card px-3 py-4 lg:block">
-					<GroupsColumn
-						section={section}
-						recent={recent.data?.items ?? []}
-						activeGroupId={groupId}
-						onCreate={() => setCreating(true)}
-					/>
+					{/* Stays in view while the feed scrolls under it. Sticky counts
+					    from inside the content's 1.5rem padding, which this layout
+					    takes back: -0.5rem keeps the column's own 1rem from the top. */}
+					<div className="sticky -top-2">
+						<GroupsColumn
+							section={section}
+							recent={recent.data?.items ?? []}
+							activeGroupId={groupId}
+							onCreate={() => setCreating(true)}
+						/>
+					</div>
 				</div>
 				<div className="min-w-0 flex-1 lg:px-8 lg:py-6">
 					<div className="mx-auto w-full max-w-6xl">

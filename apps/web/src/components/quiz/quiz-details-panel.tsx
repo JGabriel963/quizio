@@ -34,7 +34,9 @@ export function QuizDetailsPanel({
 	/** After "Excluir definitivamente": the quiz is gone, leave it. */
 	onDeleted: () => void | Promise<void>;
 }) {
-	const { session } = useRouteContext({ from: "/_auth" });
+	// Under `/_auth` (the page, the library) or on `/` (the dashboard's
+	// drawer): both put the creator's session in the context.
+	const { session } = useRouteContext({ strict: false });
 	const trpc = useTRPC();
 	const mutations = useQuizMutations();
 	const hosting = useHostGame(quizId);
@@ -120,10 +122,16 @@ export function QuizDetailsPanel({
 		);
 	}
 
+	// Only signed-in screens open it; `/` without a session is the landing.
+	if (!session) {
+		return null;
+	}
+
 	return (
 		<>
 			<QuizDetailsView
 				quiz={quiz.data}
+				customTheme={quiz.data.customTheme}
 				owner={{ userId: session.user.id, name: session.user.name }}
 				preview={preview.data}
 				activity={activity}

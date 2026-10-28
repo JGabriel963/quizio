@@ -1,6 +1,7 @@
 import type { Question } from "@quizio/core/quiz/domain/question";
 import { quizPublishState } from "@quizio/core/quiz/domain/quiz";
 import { displayQuizTitle } from "@quizio/core/quiz/domain/quiz-details";
+import type { ThemeLookView } from "@quizio/core/shared/application/theme-look-view";
 import { Button, buttonVariants } from "@quizio/ui/components/button";
 import { Skeleton } from "@quizio/ui/components/skeleton";
 import { cn } from "@quizio/ui/lib/utils";
@@ -28,6 +29,7 @@ import { UserAvatar } from "@/components/account/user-avatar";
 import type { QuizDetailsData, ReportListItemData } from "@/lib/api-types";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
+import { type ShownTheme, shownTheme } from "@/lib/theme-catalog";
 import { timeUntil } from "@/lib/time-until";
 
 import { QuizCover } from "./quiz-cover";
@@ -77,6 +79,7 @@ export function QuizDetailsView({
 	preview,
 	activity,
 	navigation,
+	customTheme = null,
 	now = new Date(),
 }: {
 	quiz: QuizDetailsData;
@@ -86,6 +89,8 @@ export function QuizDetailsView({
 	preview?: QuizPreviewData;
 	activity?: QuizActivityData;
 	navigation?: ReactNode;
+	/** The custom theme's look, which the slides wear (spec 043). */
+	customTheme?: ThemeLookView | null;
 	now?: Date;
 }) {
 	const hostHintId = useId();
@@ -318,7 +323,11 @@ export function QuizDetailsView({
 			)}
 
 			<div className="min-w-0 px-4 pt-6 sm:px-6 lg:col-start-1 lg:row-start-3 lg:px-0 lg:pt-8 lg:pb-8">
-				<QuestionsSection quiz={quiz} preview={preview} />
+				<QuestionsSection
+					quiz={quiz}
+					preview={preview}
+					theme={shownTheme(quiz.themeId, customTheme)}
+				/>
 			</div>
 		</article>
 	);
@@ -396,9 +405,11 @@ const LAYOUT_BUTTONS = [
 function QuestionsSection({
 	quiz,
 	preview,
+	theme,
 }: {
 	quiz: QuizDetailsData;
 	preview: QuizPreviewData | undefined;
+	theme: ShownTheme;
 }) {
 	const [showAnswers, setShowAnswers] = useState(false);
 	const [layout, setLayout] = useState<QuestionPreviewLayout>("grid");
@@ -466,6 +477,7 @@ function QuestionsSection({
 					imageUrls={preview.imageUrls}
 					layout={layout}
 					showAnswers={showAnswers}
+					theme={theme}
 				/>
 			)}
 		</section>

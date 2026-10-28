@@ -171,6 +171,12 @@ export function shownTheme(
 	return { themeId, custom: custom ?? null };
 }
 
+/** The standard theme, for a screen that was not told another. */
+export const DEFAULT_SHOWN_THEME: ShownTheme = {
+	themeId: DEFAULT_THEME_ID,
+	custom: null,
+};
+
 /** The pattern art of custom themes, drawn over their color (RN-05). */
 export function patternImage(pattern: BackgroundPatternId): string {
 	return `/themes/patterns/${pattern}.svg`;
