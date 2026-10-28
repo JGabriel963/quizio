@@ -9,7 +9,7 @@ import { formatRelativeTime } from "@/lib/format-relative-time";
 import { questionCountLabel } from "@/lib/quiz-labels";
 
 /**
- * A quiz on the dashboard. Opening is the only action here; editing,
+ * A quiz on the dashboard. Opening (in the drawer) is the only action here; editing,
  * duplicating and deleting stay in the library (spec 002, RN-16).
  */
 export function HomeQuizItem({
@@ -25,9 +25,17 @@ export function HomeQuizItem({
 		<li className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-muted">
 			<QuizCover url={quiz.coverImageUrl} className="w-20 shrink-0" />
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+				{/* Opens the drawer over the dashboard, as the library does; the
+				    address shows the quiz's page, which a reload opens. */}
 				<Link
-					to="/quizzes/$quizId"
-					params={{ quizId: quiz.id }}
+					to="/"
+					search={{ quiz: quiz.id }}
+					mask={{
+						to: "/quizzes/$quizId",
+						params: { quizId: quiz.id },
+						unmaskOnReload: true,
+					}}
+					resetScroll={false}
 					className="truncate font-bold text-sm hover:underline"
 				>
 					{title}

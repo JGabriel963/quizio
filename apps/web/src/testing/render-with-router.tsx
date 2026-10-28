@@ -14,5 +14,5 @@ export function renderWithRouter(ui: ReactNode) {
 		routeTree: rootRoute,
 		history: createMemoryHistory({ initialEntries: ["/"] }),
 	});
-	return render(<RouterProvider router={router} />);
+	return { ...render(<RouterProvider router={router} />), router };
 }

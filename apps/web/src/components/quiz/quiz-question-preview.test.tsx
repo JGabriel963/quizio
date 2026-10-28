@@ -6,6 +6,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { shownTheme } from "@/lib/theme-catalog";
+
 import { QuizQuestionPreview } from "./quiz-question-preview";
 
 const capital = aQuestion({
@@ -97,5 +99,49 @@ describe("QuizQuestionPreview", () => {
 
 		expect(toggle).toHaveAttribute("aria-expanded", "true");
 		expect(screen.getByRole("list", { name: "Respostas" })).toBeInTheDocument();
+	});
+
+	it("draws the slides and the list's thumbnails with the quiz's theme", () => {
+		const { rerender } = render(
+			<QuizQuestionPreview
+				questions={[capital]}
+				imageUrls={{}}
+				layout="grid"
+				showAnswers={false}
+				theme={shownTheme("teal", null)}
+			/>,
+		);
+
+		const slide = () =>
+			document.querySelector("[data-slot=question-slide]") as HTMLElement;
+		expect(slide()).toHaveAttribute("data-theme", "teal");
+		expect(slide().style.getPropertyValue("--game-bg-image")).toContain(
+			"/themes/teal.svg",
+		);
+
+		rerender(
+			<QuizQuestionPreview
+				questions={[capital]}
+				imageUrls={{}}
+				layout="list"
+				showAnswers={false}
+				theme={shownTheme("standard", {
+					pattern: null,
+					backgroundColor: null,
+					imageUrl: "https://cdn.test/themes/u1/bg.webp",
+					imageTone: "dark",
+					accentColor: "#ff0000",
+					logoUrl: null,
+				})}
+			/>,
+		);
+
+		const thumbnail = document.querySelector(
+			"[data-slot=question-thumbnail]",
+		) as HTMLElement;
+		expect(thumbnail).toHaveAttribute("data-theme", "custom");
+		expect(thumbnail.style.getPropertyValue("--game-bg-image")).toContain(
+			"https://cdn.test/themes/u1/bg.webp",
+		);
 	});
 });

@@ -1,12 +1,38 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { QuizDetailsPanel } from "@/components/quiz/quiz-details-panel";
+import { drawerBehindPage } from "@/lib/quiz-drawer-return";
 
 /**
  * The quiz's page. From the library it opens as a drawer over the list with
  * this address masked in (`QuizDrawer`); a reload or a link lands here.
+ * Coming back to that drawer from another document opens the drawer again.
  */
 export const Route = createFileRoute("/_auth/_shell/quizzes/$quizId")({
+	// Back to a drawer from another document opens the drawer, not the page.
+	beforeLoad: ({ params }) => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		const screen = drawerBehindPage({
+			state: window.history.state,
+			quizId: params.quizId,
+			documentUrl: performance.getEntriesByType("navigation")[0]?.name ?? "",
+			currentUrl: window.location.href,
+		});
+		if (screen) {
+			throw redirect({
+				to: screen.to,
+				search: screen.search as never,
+				mask: {
+					to: "/quizzes/$quizId",
+					params: { quizId: params.quizId },
+					unmaskOnReload: true,
+				},
+				replace: true,
+			});
+		}
+	},
 	component: QuizDetailsPage,
 });
 

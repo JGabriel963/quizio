@@ -15,6 +15,11 @@ import {
 import { timeLimitLabel } from "@/lib/question-labels";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import { formatSliderNumber } from "@/lib/slider-format";
+import {
+	DEFAULT_SHOWN_THEME,
+	type ShownTheme,
+	themeStyle,
+} from "@/lib/theme-catalog";
 
 /** How "Perguntas (N)" is laid out, as Kahoot's three buttons. */
 export const QUESTION_PREVIEW_LAYOUTS = ["large", "grid", "list"] as const;
@@ -105,18 +110,21 @@ function previewAnswers(question: Question): PreviewAnswer[] {
 /**
  * "Perguntas (N)" of the quiz's page, laid out as in Kahoot: big slides, a
  * grid of slides, or a list. The answers' colors always show; their texts and
- * the right ones only with "Mostrar respostas".
+ * the right ones only with "Mostrar respostas". The slides wear the quiz's
+ * theme, as the editor's canvas does (specs 042 and 043).
  */
 export function QuizQuestionPreview({
 	questions,
 	imageUrls,
 	layout,
 	showAnswers,
+	theme = DEFAULT_SHOWN_THEME,
 }: {
 	questions: readonly Question[];
 	imageUrls: Readonly<Record<string, string>>;
 	layout: QuestionPreviewLayout;
 	showAnswers: boolean;
+	theme?: ShownTheme;
 }) {
 	if (layout === "list") {
 		return (
@@ -131,6 +139,7 @@ export function QuizQuestionPreview({
 							question.image ? imageUrls[question.image.key] : undefined
 						}
 						showAnswers={showAnswers}
+						theme={theme}
 					/>
 				))}
 			</ol>
@@ -151,6 +160,7 @@ export function QuizQuestionPreview({
 					imageUrl={question.image ? imageUrls[question.image.key] : undefined}
 					large={layout === "large"}
 					showAnswers={showAnswers}
+					theme={theme}
 				/>
 			))}
 		</ol>
@@ -161,6 +171,17 @@ function questionCaption(question: Question, number: number): string {
 	return `${number} · ${questionTypeLabel(question.type)} · ${timeLimitLabel(question.timeLimitSeconds)}`;
 }
 
+/** The theme's background, as `GameScreen` and the editor's canvas draw it. */
+function themeBackground(theme: ShownTheme) {
+	return {
+		"data-theme": theme.custom ? "custom" : theme.themeId,
+		style: themeStyle(theme),
+	};
+}
+
+const THEME_BACKGROUND =
+	"bg-(image:--game-bg-image) bg-(--game-base) bg-center bg-cover";
+
 /** A question drawn as its slide: text on top, image, answers at the bottom. */
 function QuestionSlide({
 	question,
@@ -168,12 +189,14 @@ function QuestionSlide({
 	imageUrl,
 	large,
 	showAnswers,
+	theme,
 }: {
 	question: Question;
 	number: number;
 	imageUrl: string | undefined;
 	large: boolean;
 	showAnswers: boolean;
+	theme: ShownTheme;
 }) {
 	const background =
 		question.image?.placement === "background" ? imageUrl : undefined;
@@ -186,8 +209,10 @@ function QuestionSlide({
 	return (
 		<li
 			data-slot="question-slide"
+			{...themeBackground(theme)}
 			className={cn(
-				"relative isolate flex flex-col gap-3 overflow-hidden rounded-lg bg-linear-to-b from-brand to-brand-strong shadow-sm",
+				"relative isolate flex flex-col gap-3 overflow-hidden rounded-lg shadow-sm",
+				THEME_BACKGROUND,
 				large ? "min-h-96 p-4 sm:p-5" : "min-h-52 p-2.5 sm:min-h-72",
 			)}
 		>
@@ -337,11 +362,13 @@ function QuestionRow({
 	number,
 	imageUrl,
 	showAnswers,
+	theme,
 }: {
 	question: Question;
 	number: number;
 	imageUrl: string | undefined;
 	showAnswers: boolean;
+	theme: ShownTheme;
 }) {
 	const answers = previewAnswers(question);
 	const marked = question.type === "quiz" || question.type === "trueFalse";
@@ -352,7 +379,14 @@ function QuestionRow({
 	return (
 		<li className="overflow-hidden rounded-lg bg-card shadow-sm ring-1 ring-border">
 			<div className="flex items-center gap-4 p-2">
-				<span className="flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md bg-linear-to-b from-brand to-brand-strong text-brand-foreground/70">
+				<span
+					data-slot="question-thumbnail"
+					{...themeBackground(theme)}
+					className={cn(
+						"flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md text-game-fg/70",
+						THEME_BACKGROUND,
+					)}
+				>
 					{question.image && imageUrl ? (
 						<QuestionImageView
 							image={thumbnailImage(question.image)}

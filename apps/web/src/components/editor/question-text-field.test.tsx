@@ -91,4 +91,32 @@ describe("QuestionTextField", () => {
 			"Comece a digitar a pergunta",
 		);
 	});
+
+	it("shows a long question whole, wrapping, up to a height and then scrolling", () => {
+		renderField(
+			"Qual foi o nome da caverna comprada por Abraão para sepultar Sara?",
+		);
+
+		expect(textField().tagName).toBe("TEXTAREA");
+		expect(textField()).toHaveClass("overflow-y-auto");
+		expect(textField().className).toMatch(/max-h-/);
+	});
+
+	it("Enter adds no line break: the question is one sentence", async () => {
+		const { user } = renderField("Capital");
+
+		await user.click(textField());
+		await user.keyboard("{End}{Enter} do Brasil?");
+
+		expect(textField()).toHaveValue("Capital do Brasil?");
+	});
+
+	it("line breaks of a pasted text become spaces", async () => {
+		const { user } = renderField();
+
+		await user.click(textField());
+		await user.paste("Qual é a\ncapital\r\ndo Brasil?");
+
+		expect(textField()).toHaveValue("Qual é a capital do Brasil?");
+	});
 });
