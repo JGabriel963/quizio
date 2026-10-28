@@ -119,6 +119,9 @@ export function PasswordSection({
 							{error}
 						</p>
 					)}
+					<p className="text-muted-foreground text-sm">
+						Alterar a senha também desconecta seus agentes de IA.
+					</p>
 					<Button
 						type="submit"
 						className="self-start"

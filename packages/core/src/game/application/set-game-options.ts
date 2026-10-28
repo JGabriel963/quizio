@@ -3,6 +3,7 @@ import { requireOwnedGame } from "../domain/game";
 import {
 	type CharactersChangedPayload,
 	GAME_EVENTS,
+	type OptionsChangedPayload,
 } from "../domain/game-events";
 import {
 	changeGameOptions,
@@ -30,7 +31,8 @@ export type SetGameOptions = (input: {
  * at once and is kept for the host's next games. The devices are not told:
  * what changes for them comes with the next stage (RN-21). The characters are
  * the exception: they change in the lobby too, where no stage comes, and a
- * device must close its avatar editor (spec 028, RN-25).
+ * device must close its avatar editor (spec 028, RN-25). The host's screen is
+ * always told, because an AI agent may turn a switch too (spec 044, RN-34).
  */
 export function createSetGameOptions(
 	deps: HostGameViewDeps & {
@@ -57,6 +59,12 @@ export function createSetGameOptions(
 				{ on: change.gameCharacters },
 			);
 		}
+		await publishToGame<OptionsChangedPayload>(
+			deps.realtime,
+			game.id,
+			GAME_EVENTS.optionsChanged,
+			{},
+		);
 		const latest = await loadGame(deps, gameId);
 		return loadHostGameView(deps, latest ?? changed);
 	};

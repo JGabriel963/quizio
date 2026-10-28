@@ -31,6 +31,7 @@ import { applyLobbyEvent, type LobbyEvent } from "@/lib/game-lobby";
 import { usePlayAgain } from "@/lib/game-mutations";
 import { applyAnswerCount, showsStage } from "@/lib/game-stage";
 import { GameThemeProvider } from "@/lib/game-theme";
+import { useHostGameRefresh } from "@/lib/host-game-refresh";
 import { useRealtimeEvent } from "@/lib/realtime";
 import { useConnectionWatch } from "@/lib/use-connection-watch";
 import { useHostSignal } from "@/lib/use-host-signal";
@@ -225,6 +226,17 @@ function HostPage() {
 			meta: { suppressErrorToast: true },
 		}),
 	);
+	// An AI agent may turn a switch too (spec 044, RN-34). While this screen's
+	// own switch is on its way, its answer brings the options: asking before it
+	// would show that switch going back for a moment.
+	useHostGameRefresh(gameId, () => {
+		const ownSwitches = queryClient.isMutating({
+			mutationKey: trpc.game.setOptions.mutationKey(),
+		});
+		if (ownSwitches === 0) {
+			void refresh();
+		}
+	});
 	const removePlayer = useMutation(
 		trpc.game.removePlayer.mutationOptions({
 			networkMode: "always",

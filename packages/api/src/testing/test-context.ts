@@ -1,3 +1,8 @@
+import { DEFAULT_AGENT_SETTINGS } from "@quizio/core/agents/domain/agent-settings";
+import { FakeAccessKeySecrets } from "@quizio/core/agents/testing/fake-access-key-secrets";
+import { FakeAgentTokenVerifier } from "@quizio/core/agents/testing/fake-agent-token-verifier";
+import { InMemoryAccessKeyRepository } from "@quizio/core/agents/testing/in-memory-access-key-repository";
+import { InMemoryAgentConnectionStore } from "@quizio/core/agents/testing/in-memory-agent-connection-store";
 import { ASSIGNMENT_DEFAULT_MAX_DEADLINE_DAYS } from "@quizio/core/game/domain/assignment";
 import { InMemoryAnswerRepository } from "@quizio/core/game/testing/in-memory-answer-repository";
 import { InMemoryAssignmentLandingQuery } from "@quizio/core/game/testing/in-memory-assignment-landing-query";
@@ -18,6 +23,7 @@ import { InMemoryAccountRepository } from "@quizio/core/identity/testing/in-memo
 import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/library-quiz-query";
 import { InMemoryCreatorProfileQuery } from "@quizio/core/library/testing/in-memory-creator-profile-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
+import { FakeRemoteFiles } from "@quizio/core/media/testing/fake-remote-files";
 import { InMemorySourceUploadRepository } from "@quizio/core/media/testing/in-memory-source-upload-repository";
 import { FixedInboxChannels } from "@quizio/core/notifications/testing/fixed-inbox-channels";
 import { InMemoryGroupNoticeRepository } from "@quizio/core/notifications/testing/in-memory-group-notice-repository";
@@ -42,7 +48,7 @@ import { InMemoryRealtimePublisher } from "@quizio/core/shared/testing/in-memory
 import { SequentialIdGenerator } from "@quizio/core/shared/testing/sequential-id-generator";
 import { InMemoryThemeFileUsage } from "@quizio/core/themes/testing/in-memory-theme-file-usage";
 import { InMemoryThemeStore } from "@quizio/core/themes/testing/in-memory-theme-store";
-import { type Adapters, createContainer } from "../container";
+import { type Adapters, type Container, createContainer } from "../container";
 import type { Context } from "../context";
 import { createCallerFactory } from "../index";
 import { appRouter } from "../routers/index";
@@ -88,6 +94,15 @@ export interface TestApi {
 	/** Notifications given by hand (spec 040); the groups' signals go to realtime. */
 	notificationQuery: InMemoryNotificationQuery;
 	notificationInbox: InMemoryNotificationInbox;
+	/** The same use cases the routers call, for the MCP server's tests (spec 044). */
+	container: Container;
+	accessKeys: InMemoryAccessKeyRepository;
+	/** OAuth tokens the test issues by hand, and the consents behind them. */
+	agentTokens: FakeAgentTokenVerifier;
+	agentConnections: InMemoryAgentConnectionStore;
+	/** The links an agent may give files by. */
+	remoteFiles: FakeRemoteFiles;
+	themes: InMemoryThemeStore;
 }
 
 function toLibraryRecord(
@@ -133,6 +148,10 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const notificationInbox = new InMemoryNotificationInbox();
 	const notificationQuery = new InMemoryNotificationQuery(notificationInbox);
 	const themes = new InMemoryThemeStore(quizzes);
+	const accessKeys = new InMemoryAccessKeyRepository();
+	const agentTokens = new FakeAgentTokenVerifier();
+	const agentConnections = new InMemoryAgentConnectionStore();
+	const remoteFiles = new FakeRemoteFiles();
 	const adapters: Adapters = {
 		storage,
 		realtime,
@@ -245,6 +264,13 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 				);
 			},
 		},
+		accessKeys,
+		accessKeySecrets: new FakeAccessKeySecrets(),
+		agentTokens,
+		agentConnections,
+		agentSettings: { ...DEFAULT_AGENT_SETTINGS },
+		mcpServerUrl: "https://quizio.test/mcp",
+		remoteFiles,
 		...overrides,
 	};
 	const container = createContainer(adapters);
@@ -280,5 +306,11 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		creatorProfiles,
 		notificationQuery,
 		notificationInbox,
+		container,
+		accessKeys,
+		agentTokens,
+		agentConnections,
+		remoteFiles,
+		themes,
 	};
 }

@@ -93,22 +93,39 @@ export function removeQuestion(
 }
 
 /**
- * The creation assistant's questions go to the end, in order; the lone blank
- * question a new quiz starts with is replaced instead (spec 027, RN-26, RN-27).
+ * Questions added in one go, in order, right after `afterId` or at the end
+ * when null; the lone blank question a new quiz starts with is replaced
+ * instead (spec 027, RN-26, RN-27; spec 044, RN-21).
  */
-export function appendGeneratedQuestions(
+export function insertQuestionsAfter(
 	list: QuestionList,
-	generated: QuestionList,
+	afterId: string | null,
+	added: QuestionList,
 ): { list: QuestionList; firstIndex: number } {
-	if (generated.length === 0) {
+	if (added.length === 0) {
 		throw new NoGeneratedQuestionsError("Choose at least one question to add");
 	}
-	const kept =
-		list.length === 1 && isBlankQuestion(list[0] as Question) ? [] : list;
-	if (kept.length + generated.length > QUIZ_MAX_QUESTIONS) {
+	const loneBlank = list.length === 1 && isBlankQuestion(list[0] as Question);
+	const kept = loneBlank ? [] : list;
+	if (kept.length + added.length > QUIZ_MAX_QUESTIONS) {
 		throw new QuestionLimitReachedError(
 			`A quiz has at most ${QUIZ_MAX_QUESTIONS} questions`,
 		);
 	}
-	return { list: [...kept, ...generated], firstIndex: kept.length };
+	const index =
+		loneBlank || afterId === null
+			? kept.length
+			: indexOfQuestion(kept, afterId) + 1;
+	return {
+		list: [...kept.slice(0, index), ...added, ...kept.slice(index)],
+		firstIndex: index,
+	};
+}
+
+/** The creation assistant's questions go to the end (spec 027, RN-26, RN-27). */
+export function appendGeneratedQuestions(
+	list: QuestionList,
+	generated: QuestionList,
+): { list: QuestionList; firstIndex: number } {
+	return insertQuestionsAfter(list, null, generated);
 }

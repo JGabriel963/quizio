@@ -1,6 +1,14 @@
+import { createHash, randomBytes } from "node:crypto";
+import {
+	Client,
+	StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import { type Browser, expect, type Page } from "@playwright/test";
 
 export const E2E_PASSWORD = "senha-e2e-123";
+
+/** The dev server Playwright runs (`baseURL` in playwright.config.ts). */
+const APP_URL = "http://localhost:3001";
 
 /** Unique per test and per project, so tests never share accounts or data. */
 export function uniqueEmail(): string {
@@ -290,4 +298,113 @@ export async function publishedQuiz(page: Page, title: string, right: string) {
 	await expect(
 		page.getByRole("dialog", { name: "O quiz está pronto" }),
 	).toBeVisible();
+}
+
+/** Where the test agent waits for the person's answer (a loopback, as CLIs use). */
+const AGENT_CALLBACK = "http://127.0.0.1:4999/callback";
+
+/**
+ * An agent that registers itself and asks to connect, as Claude Code or Codex
+ * do (spec 044, RN-01): registration, then authorization with PKCE.
+ */
+export async function registerAgent(clientName: string) {
+	const ip = `203.0.${process.pid % 250}.${nextClientIp++ % 250}`;
+	const headers = { origin: APP_URL, "x-forwarded-for": ip };
+	const registration = await fetch(`${APP_URL}/api/auth/oauth2/register`, {
+		method: "POST",
+		headers: { ...headers, "content-type": "application/json" },
+		body: JSON.stringify({
+			client_name: clientName,
+			redirect_uris: [AGENT_CALLBACK],
+			token_endpoint_auth_method: "none",
+			grant_types: ["authorization_code", "refresh_token"],
+			response_types: ["code"],
+		}),
+	});
+	expect(registration.status).toBe(201);
+	const { client_id: clientId } = (await registration.json()) as {
+		client_id: string;
+	};
+	const verifier = randomBytes(32).toString("base64url");
+	const resource = `${APP_URL}/mcp`;
+	const authorizeUrl = `${APP_URL}/api/auth/oauth2/authorize?${new URLSearchParams(
+		{
+			response_type: "code",
+			client_id: clientId,
+			redirect_uri: AGENT_CALLBACK,
+			scope: "openid profile email offline_access",
+			state: "e2e-state",
+			code_challenge: createHash("sha256").update(verifier).digest("base64url"),
+			code_challenge_method: "S256",
+			resource,
+		},
+	)}`;
+
+	/** The code the person's Permitir sent back, traded for the access token. */
+	async function exchange(code: string): Promise<string> {
+		const response = await fetch(`${APP_URL}/api/auth/oauth2/token`, {
+			method: "POST",
+			headers: {
+				...headers,
+				"content-type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				grant_type: "authorization_code",
+				code,
+				redirect_uri: AGENT_CALLBACK,
+				client_id: clientId,
+				code_verifier: verifier,
+				resource,
+			}).toString(),
+		});
+		expect(response.status).toBe(200);
+		return ((await response.json()) as { access_token: string }).access_token;
+	}
+
+	return { clientId, authorizeUrl, exchange };
+}
+
+/**
+ * The agent's own page, which the browser reaches after Permitir or Cancelar:
+ * answered here so the test reads the address it was sent to.
+ */
+export async function agentCallback(page: Page) {
+	let resolve: (url: URL) => void = () => {};
+	const reached = new Promise<URL>((settle) => {
+		resolve = settle;
+	});
+	await page.route(`${AGENT_CALLBACK}**`, async (route) => {
+		resolve(new URL(route.request().url()));
+		await route.fulfill({
+			contentType: "text/html",
+			body: "<p>Pode voltar ao agente.</p>",
+		});
+	});
+	return { reached };
+}
+
+/** An MCP client on the real `/mcp`, with an access key or an access token. */
+export async function mcpClient(token: string) {
+	const client = new Client({ name: "quizio-e2e", version: "1.0.0" });
+	await client.connect(
+		new StreamableHTTPClientTransport(new URL(`${APP_URL}/mcp`), {
+			requestInit: { headers: { authorization: `Bearer ${token}` } },
+		}),
+	);
+	return client;
+}
+
+/** One request to `/mcp` as an agent sends it, to read the status. */
+export async function mcpPing(token: string): Promise<number> {
+	const response = await fetch(`${APP_URL}/mcp`, {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${token}`,
+			"content-type": "application/json",
+			accept: "application/json, text/event-stream",
+		},
+		body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+	});
+	await response.body?.cancel();
+	return response.status;
 }

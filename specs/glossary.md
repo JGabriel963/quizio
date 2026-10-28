@@ -31,6 +31,17 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Página do quiz público | `PublicQuizPage` | A página de um quiz Público para quem não é o dono: jogar, atribuir ou duplicar (spec 039) | ✅ |
 | Feedback de exclusão | `AccountDeletionFeedback` | Motivo e texto opcional de quem excluiu a conta, guardados sem ligação com ela (spec 039) | ✅ |
 
+## Agentes de IA (MCP)
+
+| PT | EN (código) | Definição | Status |
+| --- | --- | --- | --- |
+| Servidor MCP | `createQuizioMcpServer` | O endereço `/mcp` do Quizio que os agentes de IA usam, pelo Model Context Protocol, para agir na conta de uma pessoa com as mesmas regras das telas (spec 044) | ✅ |
+| Agente de IA | `AgentIdentity` (quem ele representa) | O aplicativo de IA da pessoa que se conecta ao servidor MCP: ChatGPT, Claude, Codex, Cursor, VS Code, Gemini CLI ou outro compatível (spec 044) | ✅ |
+| Ferramenta | `ToolDefinition` (`defineTool`) | Cada ação que o servidor MCP oferece ao agente, com nome, descrição, regras e a marca de leitura ou destrutiva (spec 044) | ✅ (60 ferramentas: quizzes, perguntas, arquivos, temas, biblioteca, conta, partida ao vivo até o lobby, atribuições, relatórios, grupos, mural e notificações) |
+| Conexão de agente | `AgentConnection` | Autorização dada pela pessoa a um agente com o Permitir da tela "Conectar ao Quizio"; listada em Agentes de IA com o último uso; deixa de valer com 90 dias sem uso (spec 044) | ✅ |
+| Chave de acesso | `AccessKey` | Segredo criado em Agentes de IA para agentes que só aceitam uma chave fixa; mostrado uma única vez, até 20 ativas por pessoa, vale até ser revogado (spec 044) | ✅ |
+| Ação destrutiva | `ToolKind` `destructive` | Ferramenta irreversível, marcada para o agente pedir confirmação à pessoa antes de usá-la (spec 044) | ✅ |
+
 ## Quiz (autoria)
 
 | PT | EN (código) | Definição | Status |

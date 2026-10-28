@@ -387,14 +387,20 @@ describe("setGameOptions: characters (spec 028)", () => {
 			options: { gameCharacters: false },
 		});
 
-		expect(deps.realtime.messages.at(-1)).toEqual({
-			channel: gameChannel("game-1"),
-			event: GAME_EVENTS.charactersChanged,
-			payload: { on: false },
-		});
+		expect(
+			deps.realtime.messages.filter(
+				(message) => message.event === GAME_EVENTS.charactersChanged,
+			),
+		).toEqual([
+			{
+				channel: gameChannel("game-1"),
+				event: GAME_EVENTS.charactersChanged,
+				payload: { on: false },
+			},
+		]);
 	});
 
-	it("other switches publish nothing", async () => {
+	it("other switches do not tell the devices", async () => {
 		const deps = await lobby();
 
 		await createSetGameOptions(deps)({
@@ -402,6 +408,34 @@ describe("setGameOptions: characters (spec 028)", () => {
 			options: { showQuestionsOnDevices: true },
 		});
 
-		expect(deps.realtime.messages).toEqual([]);
+		expect(
+			deps.realtime.messages.map((message) => message.event),
+		).not.toContain(GAME_EVENTS.charactersChanged);
+	});
+});
+
+describe("setGameOptions: changed elsewhere (spec 044)", () => {
+	it("publishes options-changed on the game's channel after writing", async () => {
+		const deps = await lobby();
+		const autoplayWhenPublished: (boolean | undefined)[] = [];
+		const publish = deps.realtime.publish.bind(deps.realtime);
+		deps.realtime.publish = async (message) => {
+			autoplayWhenPublished.push(
+				(await deps.games.findById("game-1"))?.options.autoplay,
+			);
+			await publish(message);
+		};
+
+		await createSetGameOptions(deps)({ ...mine, options: { autoplay: true } });
+
+		// An agent may turn a switch, so the host's screen asks again (RN-34).
+		expect(deps.realtime.messages).toEqual([
+			{
+				channel: gameChannel("game-1"),
+				event: GAME_EVENTS.optionsChanged,
+				payload: {},
+			},
+		]);
+		expect(autoplayWhenPublished).toEqual([true]);
 	});
 });

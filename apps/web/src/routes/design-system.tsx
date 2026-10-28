@@ -18,6 +18,7 @@ import { Badge } from "@quizio/ui/components/badge";
 import { Button } from "@quizio/ui/components/button";
 import { Calendar } from "@quizio/ui/components/calendar";
 import { Checkbox } from "@quizio/ui/components/checkbox";
+import { CodeBlock } from "@quizio/ui/components/code-block";
 import {
 	Dialog,
 	DialogContent,
@@ -43,6 +44,12 @@ import {
 } from "@quizio/ui/components/sheet";
 import { Switch } from "@quizio/ui/components/switch";
 import { TabNav, TabNavItem } from "@quizio/ui/components/tab-nav";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@quizio/ui/components/tabs";
 import { Textarea } from "@quizio/ui/components/textarea";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
@@ -180,6 +187,27 @@ function DesignSystemPage() {
 					<TabNavItem render={<span />}>Rascunhos</TabNavItem>
 					<TabNavItem render={<span />}>Lixeira</TabNavItem>
 				</TabNav>
+			</Section>
+
+			<Section title="Abas de painel e bloco de código">
+				<Tabs defaultValue="claude-code">
+					<TabsList aria-label="Exemplo de agentes">
+						<TabsTrigger value="claude-code">Claude Code</TabsTrigger>
+						<TabsTrigger value="codex">Codex</TabsTrigger>
+					</TabsList>
+					<TabsContent value="claude-code">
+						<CodeBlock
+							label="Comando do Claude Code"
+							code="claude mcp add --transport http quizio https://quizio.app/mcp"
+						/>
+					</TabsContent>
+					<TabsContent value="codex">
+						<CodeBlock
+							label="Comando do Codex"
+							code="codex mcp add quizio --url https://quizio.app/mcp"
+						/>
+					</TabsContent>
+				</Tabs>
 			</Section>
 
 			<Section title="Diálogos">

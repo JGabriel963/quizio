@@ -14,7 +14,7 @@ const account = {
 };
 
 describe("AccountMenuView (spec 039, RN-01, RN-02)", () => {
-	it("photo trigger, name, email, Ver perfil, Configurações and Encerrar sessão only", async () => {
+	it("photo trigger, name, email, Ver perfil, Agentes de IA, Configurações and Encerrar sessão only", async () => {
 		const user = userEvent.setup();
 		const onSignOut = vi.fn();
 		renderWithRouter(
@@ -35,7 +35,16 @@ describe("AccountMenuView (spec 039, RN-01, RN-02)", () => {
 			within(menu)
 				.getAllByRole("menuitem")
 				.map((item) => item.textContent?.trim()),
-		).toEqual(["Ver perfil", "Configurações", "Encerrar sessão"]);
+		).toEqual([
+			"Ver perfil",
+			"Agentes de IA",
+			"Configurações",
+			"Encerrar sessão",
+		]);
+		// A way into the agents' section from anywhere (spec 044).
+		expect(
+			within(menu).getByRole("menuitem", { name: "Agentes de IA" }),
+		).toHaveAttribute("href", "/settings?section=agents");
 		expect(
 			within(menu).getByRole("menuitem", { name: "Configurações" }),
 		).toHaveAttribute("href", "/settings?section=profile");

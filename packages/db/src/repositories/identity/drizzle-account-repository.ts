@@ -21,6 +21,14 @@ export function createDrizzleAccountRepository(
 			return row ?? null;
 		},
 
+		/** The name an AI agent changes, already checked (spec 044, RN-19). */
+		async rename(userId, name) {
+			await db
+				.update(user)
+				.set({ name, updatedAt: new Date() })
+				.where(eq(user.id, userId));
+		},
+
 		async delete(userId) {
 			await db.delete(user).where(eq(user.id, userId));
 		},

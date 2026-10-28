@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { AgentsHomeCard } from "@/components/home/agents-home-card";
 import { HomeGreeting } from "@/components/home/home-greeting";
 import {
 	RecentQuizzesCard,
@@ -100,6 +101,7 @@ function Dashboard({ name }: { name: string }) {
 				state={reportsState}
 				onRetry={() => reports.refetch()}
 			/>
+			<AgentsHomeCard />
 			<QuizDrawer
 				quizId={openQuizId ?? null}
 				onClose={() =>

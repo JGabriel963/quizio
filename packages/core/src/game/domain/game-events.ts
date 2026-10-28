@@ -20,6 +20,7 @@ export const GAME_EVENTS = {
 	hostBack: "host-back",
 	avatarChanged: "avatar-changed",
 	charactersChanged: "characters-changed",
+	optionsChanged: "options-changed",
 } as const;
 
 export interface PlayerJoinedPayload {
@@ -41,6 +42,13 @@ export interface AvatarChangedPayload {
 export interface CharactersChangedPayload {
 	on: boolean;
 }
+
+/**
+ * The game's options changed (spec 044, RN-34): an AI agent may turn a switch
+ * while the host's screen is open, so the screen asks for the game again. The
+ * options themselves are in its query; the devices ignore it (spec 012, RN-21).
+ */
+export type OptionsChangedPayload = Record<string, never>;
 
 export interface PlayerRemovedPayload {
 	playerId: string;
