@@ -1,6 +1,7 @@
 import { buttonVariants } from "@quizio/ui/components/button";
 import { Link } from "@tanstack/react-router";
 
+import { BrandMark } from "@/components/layout/brand-logo";
 import { PublicHeader } from "@/components/layout/public-header";
 
 /** What a visitor sees at `/` (spec 002, RN-01): what Quizio is, and how to get in. */
@@ -10,7 +11,8 @@ export function PublicLanding() {
 			<PublicHeader showSignIn={false} />
 			<main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-8 px-4 py-16 text-center">
 				<div className="flex flex-col gap-3">
-					<h1 className="font-black text-5xl text-brand tracking-tight">
+					<h1 className="flex flex-col items-center gap-4 font-black text-5xl text-brand tracking-tight">
+						<BrandMark className="size-[2em] rounded-[0.4em]" />
 						Quizio
 					</h1>
 					<p className="text-lg text-muted-foreground">
