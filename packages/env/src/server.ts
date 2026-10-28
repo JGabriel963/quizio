@@ -61,6 +61,22 @@ export const env = createEnv({
 			.min(1)
 			.max(365)
 			.default(90),
+		// AI agents on the MCP server (spec 044): requests a person may make in a
+		// minute (RN-33), access keys at once (RN-05), and days without use after
+		// which an authorized agent must connect again (RN-18).
+		AGENT_REQUESTS_PER_MINUTE: z.coerce
+			.number()
+			.int()
+			.min(10)
+			.max(10_000)
+			.default(120),
+		AGENT_MAX_ACCESS_KEYS: z.coerce.number().int().min(1).max(100).default(20),
+		AGENT_CONNECTION_IDLE_DAYS: z.coerce
+			.number()
+			.int()
+			.min(1)
+			.max(365)
+			.default(90),
 	},
 	runtimeEnv: process.env,
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

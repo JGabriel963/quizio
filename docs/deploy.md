@@ -52,10 +52,15 @@ As funções rodam em **São Paulo** (`"regions": ["gru1"]` em `apps/web/vercel.
 | `AI_API_KEY` / `AI_MODEL` | a chave e o id do modelo do provedor (ex.: `claude-sonnet-5-5`); obrigatórias com `AI_PROVIDER` |
 | `AI_GENERATIONS_PER_DAY` | criações por criador a cada 24 horas; padrão `20` |
 | `NOTIFICATION_READ_RETENTION_DAYS` | por quantos dias as notificações lidas continuam no sino; padrão `90` (de 1 a 365) |
+| `AGENT_REQUESTS_PER_MINUTE` | pedidos por minuto de cada pessoa ao servidor MCP, somando todos os agentes; padrão `120` (de 10 a 10000) |
+| `AGENT_MAX_ACCESS_KEYS` | chaves de acesso ativas por pessoa; padrão `20` (de 1 a 100) |
+| `AGENT_CONNECTION_IDLE_DAYS` | dias sem uso até uma autorização de agente cair (a pessoa conecta de novo); padrão `90` (de 1 a 365) |
 
 Não defina `PUSHER_HOST`, `PUSHER_PORT`, `VITE_PUSHER_HOST` nem `VITE_PUSHER_PORT` com o Pusher na nuvem. As `VITE_*` entram no pacote do navegador **no build**: mudou uma delas, faça um novo deploy.
 
 `BETTER_AUTH_URL` é a única origem aceita, então os endereços de preview (`*-git-*.vercel.app`) não fazem login nem upload. Use o domínio de produção.
+
+**Agentes de IA** (spec 044, ADR 0023). O servidor MCP responde em `{BETTER_AUTH_URL}/mcp`, e essa URL também é o emissor (`{BETTER_AUTH_URL}/api/auth`) e a audiência (`{BETTER_AUTH_URL}/mcp`) dos tokens dos agentes. Trocar o domínio de produção derruba todas as autorizações: cada pessoa conecta seus agentes de novo (as chaves de acesso continuam valendo). As chaves que assinam os tokens ficam na tabela `jwks`, criadas no primeiro uso. As rotas `/.well-known/*` precisam chegar ao app sem redirecionamento, porque é por elas que o agente descobre onde se conectar.
 
 `CLIENT_IP_HEADER` fica no padrão (`x-forwarded-for`): a Vercel sobrescreve esse cabeçalho, o cliente não consegue forjá-lo.
 
@@ -82,7 +87,7 @@ Para aplicar à mão, se precisar: `DATABASE_URL="<produção>" pnpm -F @quizio/
 
 ### 5. Conferência
 
-Depois do deploy: criar conta, criar um quiz com imagem de capa (testa o R2 e o CORS), publicar, organizar uma partida e entrar pelo celular com o PIN (testa o Pusher). Com o provedor de IA configurado: Criar → "Assunto > quiz", criar perguntas e adicioná-las (testa a chave e o tempo da função); e um PDF de poucas páginas (testa o envio ao bucket e a leitura no servidor).
+Depois do deploy: criar conta, criar um quiz com imagem de capa (testa o R2 e o CORS), publicar, organizar uma partida e entrar pelo celular com o PIN (testa o Pusher). Com o provedor de IA configurado: Criar → "Assunto > quiz", criar perguntas e adicioná-las (testa a chave e o tempo da função); e um PDF de poucas páginas (testa o envio ao bucket e a leitura no servidor). Para os agentes: em Configurações › Agentes de IA, conectar um agente pela autorização (por exemplo, `claude mcp add --transport http quizio {BETTER_AUTH_URL}/mcp` e `/mcp` no Claude Code) e pedir a lista dos quizzes; depois criar uma chave e repetir com ela.
 
 ## VPS (futuro)
 

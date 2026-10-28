@@ -3,9 +3,16 @@ import { createAiSdkQuestionGenerator } from "@quizio/ai/ai-sdk-question-generat
 import { createPdfLibPdfPages } from "@quizio/ai/pdf-lib-pdf-pages";
 import { auth, authSettings } from "@quizio/auth";
 import { createBetterAuthAccountCredentials } from "@quizio/auth/account-credentials";
+import {
+	createBetterAuthAgentTokenVerifier,
+	jwksFromHandler,
+} from "@quizio/auth/agent-token-verifier";
+import { mcpResourceOf } from "@quizio/auth/create-auth";
 import type { QuestionGenerator } from "@quizio/core/quiz/application/ports/question-generator";
 import { InMemoryQuestionGenerator } from "@quizio/core/quiz/testing/in-memory-question-generator";
 import { db } from "@quizio/db";
+import { createDrizzleAccessKeyRepository } from "@quizio/db/repositories/agents/drizzle-access-key-repository";
+import { createDrizzleAgentConnectionStore } from "@quizio/db/repositories/agents/drizzle-agent-connection-store";
 import { createDrizzleAnswerRepository } from "@quizio/db/repositories/game/drizzle-answer-repository";
 import { createDrizzleAssignmentLandingQuery } from "@quizio/db/repositories/game/drizzle-assignment-landing-query";
 import { createDrizzleAssignmentPreferencesRepository } from "@quizio/db/repositories/game/drizzle-assignment-preferences-repository";
@@ -50,9 +57,11 @@ import { createDrizzleThemeUploadRepository } from "@quizio/db/repositories/them
 import { env } from "@quizio/env/server";
 import { createHmacInboxChannels } from "@quizio/realtime/hmac-inbox-channels";
 import { createPusherRealtimePublisher } from "@quizio/realtime/pusher-realtime-publisher";
+import { createHttpRemoteFiles } from "@quizio/storage/http-remote-files";
 import { createS3ObjectStorage } from "@quizio/storage/s3-object-storage";
 
 import { type Adapters, type Container, createContainer } from "./container";
+import { createRandomAccessKeySecrets } from "./random-access-key-secrets";
 import { createRandomAssignmentPinGenerator } from "./random-assignment-pin-generator";
 import { createRandomGamePinGenerator } from "./random-game-pin-generator";
 import { createRandomInviteCodeGenerator } from "./random-invite-code-generator";
@@ -169,11 +178,43 @@ export function createAdaptersFromEnv(): Adapters {
 		notificationSettings: {
 			readRetentionDays: env.NOTIFICATION_READ_RETENTION_DAYS,
 		},
+		// AI agents (spec 044; ADR 0023): Better Auth signs their tokens for /mcp.
+		accessKeys: createDrizzleAccessKeyRepository(db),
+		accessKeySecrets: createRandomAccessKeySecrets(),
+		agentTokens: createBetterAuthAgentTokenVerifier({
+			fetchJwks: jwksFromHandler(auth, env.BETTER_AUTH_URL),
+			issuer: `${env.BETTER_AUTH_URL.replace(/\/$/, "")}/api/auth`,
+			audience: mcpResourceOf(env.BETTER_AUTH_URL),
+		}),
+		agentConnections: createDrizzleAgentConnectionStore(db),
+		agentSettings: {
+			requestsPerMinute: env.AGENT_REQUESTS_PER_MINUTE,
+			maxActiveKeys: env.AGENT_MAX_ACCESS_KEYS,
+			connectionIdleDays: env.AGENT_CONNECTION_IDLE_DAYS,
+		},
+		mcpServerUrl: mcpResourceOf(env.BETTER_AUTH_URL),
+		remoteFiles: createHttpRemoteFiles({
+			timeoutMs: REMOTE_FILE_TIMEOUT_MS,
+			maxRedirects: REMOTE_FILE_MAX_REDIRECTS,
+		}),
 	};
 }
 
+/** A file an agent gives by link must arrive in this long (spec 044, RN-24). */
+const REMOTE_FILE_TIMEOUT_MS = 10_000;
+const REMOTE_FILE_MAX_REDIRECTS = 3;
+
 /** The header the proxy in front of this instance reports the caller's address in. */
 export const clientIpHeader = env.CLIENT_IP_HEADER;
+
+/**
+ * The MCP server's public origin (spec 044): agents connect to `{publicUrl}/mcp`,
+ * which is also the audience of their tokens, and its answers link to the
+ * Quizio screens there.
+ */
+export const mcpSettings = {
+	publicUrl: env.BETTER_AUTH_URL.replace(/\/$/, ""),
+};
 
 let container: Container | undefined;
 

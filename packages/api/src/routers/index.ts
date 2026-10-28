@@ -1,5 +1,6 @@
 import { publicProcedure, router } from "../index";
 import { accountRouter } from "./account";
+import { agentRouter } from "./agent";
 import { authRouter } from "./auth";
 import { gameRouter } from "./game";
 import { groupRouter } from "./group";
@@ -15,6 +16,7 @@ export const appRouter = router({
 		return "OK";
 	}),
 	account: accountRouter,
+	agent: agentRouter,
 	auth: authRouter,
 	game: gameRouter,
 	group: groupRouter,

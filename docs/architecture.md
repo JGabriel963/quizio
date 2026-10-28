@@ -11,6 +11,7 @@ flowchart LR
   subgraph driving["Adapters de entrada (driving)"]
     WEB["apps/web<br/>rotas, componentes"]
     TRPC["packages/api<br/>routers tRPC"]
+    MCP["packages/mcp<br/>ferramentas MCP"]
   end
   subgraph core["packages/core (hexágono)"]
     APP["application<br/>casos de uso + portas"]
@@ -24,6 +25,7 @@ flowchart LR
     AI["packages/ai<br/>AI SDK + pdf-lib"]
   end
   WEB --> TRPC --> APP
+  WEB --> MCP --> APP
   DB -. implementa porta .-> APP
   ST -. implementa porta .-> APP
   RT -. implementa porta .-> APP
@@ -37,13 +39,14 @@ flowchart LR
 | --- | --- | --- |
 | `packages/core` | Domínio + aplicação (casos de uso, portas, fakes de teste) | **Nada** além de si mesmo. Sem `drizzle`, `pusher`, `@aws-sdk`, `react`, `zod`, env. |
 | `packages/db` | Adapter de saída: schema Drizzle, repositórios, harness PGlite | `core`, `env` |
-| `packages/storage` | Adapter de saída: `ObjectStorage` via S3 (R2) | `core` |
+| `packages/storage` | Adapter de saída: `ObjectStorage` via S3 (R2) e `RemoteFiles`, que lê um arquivo de um link público para um agente, com proteção contra SSRF ([ADR 0023](adr/0023-servidor-mcp-para-agentes.md)) | `core` |
 | `packages/realtime` | Adapter de saída (`RealtimePublisher`) e porta/adapter do cliente (`RealtimeSubscriber`) | `core` |
 | `packages/ai` | Adapters de saída do assistente de criação: `QuestionGenerator` sobre o AI SDK e `PdfPages` sobre o pdf-lib ([ADR 0012](adr/0012-geracao-de-perguntas-por-ia.md)) | `core` |
-| `packages/auth` | Subdomínio genérico (Better Auth), montado por `createAuth(...)` | `core` (regras de cadastro), `db`, `env` |
+| `packages/auth` | Subdomínio genérico (Better Auth), montado por `createAuth(...)`; também é o servidor de autorização OAuth 2.1 dos agentes de IA (plugins `jwt`, `mcp` e `cimd`) e verifica os tokens deles ([ADR 0023](adr/0023-servidor-mcp-para-agentes.md)) | `core` (regras de cadastro e agentes), `db`, `env` |
 | `packages/api` | Adapter de entrada (tRPC) + **composition root** | todos os anteriores |
+| `packages/mcp` | Adapter de entrada para agentes de IA: o servidor MCP (`createQuizioMcpServer`), suas ferramentas sobre os casos de uso do container e o handler HTTP montado em `/mcp` ([ADR 0023](adr/0023-servidor-mcp-para-agentes.md)) | `core`, `api` (tipos do container) |
 | `packages/ui` | Design system (sem regra de negócio) | — |
-| `apps/web` | Adapter de entrada (UI, rotas server) | `api` (tipos + handler), `core` (constantes e regras puras para validação no formulário), `ui`, `realtime` (cliente), `env` |
+| `apps/web` | Adapter de entrada (UI, rotas server) | `api` (tipos + handler), `mcp` (handler), `core` (constantes e regras puras para validação no formulário), `ui`, `realtime` (cliente), `env` |
 
 Regras:
 
@@ -62,6 +65,7 @@ Regras:
 | **Reports** | `core/src/reports` | Resultados consolidados por partida/jogador/pergunta | Relatórios |
 | **Media** | `core/src/media` | Política de mídia, upload direto ao storage | Imagens/fundos |
 | **Groups** | `core/src/groups` | Grupos, membros e papéis (administrador e membro), convite por link; nomes e e-mails lidos das contas por uma porta de leitura ([ADR 0015](adr/0015-grupos-e-convite-por-codigo.md)) | Grupos |
+| **Agents** | `core/src/agents` | Quem um agente de IA representa: chaves de acesso (guardadas só como hash), conexões autorizadas lidas do Better Auth, o limite de pedidos por minuto e a revogação ([ADR 0023](adr/0023-servidor-mcp-para-agentes.md)) | — (decisão do produto) |
 | **Identity** | `core/src/identity` (só regras) + Better Auth | Contas e sessões ficam no Better Auth; o core define apenas regras de cadastro (nome, senha, e-mail) e recebe `ownerId` nos demais contextos | Conta |
 
 Contextos se comunicam por **IDs** e por **casos de uso**, nunca importando o comportamento uns dos outros. Ex.: o Game recebe um *snapshot* do quiz no início da partida (a partida não muda se o quiz for editado depois — igual ao Kahoot).
@@ -117,6 +121,10 @@ sequenceDiagram
   U-->>B: { uploadUrl, publicUrl, headers }
   B->>A: PUT arquivo direto no R2 (não passa pela Vercel)
 ```
+
+### Pedido de um agente de IA
+
+`apps/web/src/routes/mcp.ts` entrega o pedido a `createQuizioMcpHandler` (`packages/mcp`). O handler lê o `Bearer` e pergunta a `admitAgentRequest` (core `agents`) quem é a pessoa: uma chave `qz_…` é procurada pelo hash, e um token de acesso é um JWT do Better Auth, conferido pelas chaves públicas (`/jwks`), pelo emissor e pela audiência `{BETTER_AUTH_URL}/mcp`, e só vale enquanto a autorização existir. Sem identidade, a resposta é `401` com `WWW-Authenticate` apontando para `/.well-known/oauth-protected-resource/mcp`, que é como o agente descobre onde se conectar. Com identidade, o limite de pedidos por minuto é conferido, e um `McpServer` é montado para esse pedido (sem estado entre pedidos, como na Vercel). Cada ferramenta chama **os mesmos casos de uso** dos routers, com o `userId` da identidade, e traduz o `DomainError` em uma recusa com `code`. Nenhuma regra de negócio mora no pacote `mcp`.
 
 ## Real-time em ambiente serverless
 

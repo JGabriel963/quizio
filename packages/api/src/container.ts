@@ -1,4 +1,33 @@
 import {
+	type AdmitAgentRequest,
+	createAdmitAgentRequest,
+} from "@quizio/core/agents/application/admit-agent-request";
+import {
+	type CreateAccessKey,
+	createCreateAccessKey,
+} from "@quizio/core/agents/application/create-access-key";
+import {
+	createDisconnectAgent,
+	type DisconnectAgent,
+} from "@quizio/core/agents/application/disconnect-agent";
+import {
+	createListAgentAccess,
+	type ListAgentAccess,
+} from "@quizio/core/agents/application/list-agent-access";
+import type { AccessKeyRepository } from "@quizio/core/agents/application/ports/access-key-repository";
+import type { AccessKeySecrets } from "@quizio/core/agents/application/ports/access-key-secrets";
+import type { AgentConnectionStore } from "@quizio/core/agents/application/ports/agent-connection-store";
+import type { AgentTokenVerifier } from "@quizio/core/agents/application/ports/agent-token-verifier";
+import {
+	createRevokeAccessKey,
+	type RevokeAccessKey,
+} from "@quizio/core/agents/application/revoke-access-key";
+import {
+	createRevokeAllAgentAccess,
+	type RevokeAllAgentAccess,
+} from "@quizio/core/agents/application/revoke-all-agent-access";
+import type { AgentSettings } from "@quizio/core/agents/domain/agent-settings";
+import {
 	type AdvanceAssignmentPlay,
 	createAdvanceAssignmentPlay,
 } from "@quizio/core/game/application/advance-assignment-play";
@@ -274,6 +303,7 @@ import {
 	createVisitGroup,
 	type VisitGroup,
 } from "@quizio/core/groups/application/visit-group";
+import { GROUP_PDF_MAX_BYTES } from "@quizio/core/groups/domain/group-file";
 import {
 	createDeleteAccount,
 	type DeleteAccount,
@@ -291,6 +321,10 @@ import {
 	createRemoveProfilePhoto,
 	type RemoveProfilePhoto,
 } from "@quizio/core/identity/application/remove-profile-photo";
+import {
+	createRenameCreator,
+	type RenameCreator,
+} from "@quizio/core/identity/application/rename-creator";
 import {
 	createRequestProfilePhotoUpload,
 	type RequestProfilePhotoUpload,
@@ -321,6 +355,12 @@ import {
 	createDiscardSource,
 	type DiscardSource,
 } from "@quizio/core/media/application/discard-source";
+import {
+	createImportRemoteFile,
+	type ImportRemoteFile,
+} from "@quizio/core/media/application/import-remote-file";
+import type { RemoteFileUploads } from "@quizio/core/media/application/ports/remote-file-uploads";
+import type { RemoteFiles } from "@quizio/core/media/application/ports/remote-files";
 import type { SourceUploadRepository } from "@quizio/core/media/application/ports/source-upload-repository";
 import {
 	createRequestMediaUpload,
@@ -330,6 +370,7 @@ import {
 	createRequestSourceUpload,
 	type RequestSourceUpload,
 } from "@quizio/core/media/application/request-source-upload";
+import { MAX_MEDIA_BYTES } from "@quizio/core/media/domain/media-policy";
 import {
 	createGetInboxSummary,
 	type GetInboxSummary,
@@ -367,6 +408,10 @@ import {
 	createAddQuestion,
 } from "@quizio/core/quiz/application/add-question";
 import {
+	type AddQuestions,
+	createAddQuestions,
+} from "@quizio/core/quiz/application/add-questions";
+import {
 	type ApplyTimeLimitToAll,
 	createApplyTimeLimitToAll,
 } from "@quizio/core/quiz/application/apply-time-limit-to-all";
@@ -398,6 +443,10 @@ import {
 	createDuplicateSharedQuiz,
 	type DuplicateSharedQuiz,
 } from "@quizio/core/quiz/application/duplicate-shared-quiz";
+import {
+	createEditQuestion,
+	type EditQuestion,
+} from "@quizio/core/quiz/application/edit-question";
 import {
 	createGenerateQuestions,
 	type GenerateQuestions,
@@ -620,6 +669,16 @@ export interface Adapters {
 	themeUploads: ThemeUploadRepository;
 	/** Which theme files the games copied (RN-28). */
 	themeFileUsage: ThemeFileUsage;
+	/** AI agents (spec 044; ADR 0023): access keys, OAuth connections, limits. */
+	accessKeys: AccessKeyRepository;
+	accessKeySecrets: AccessKeySecrets;
+	agentTokens: AgentTokenVerifier;
+	agentConnections: AgentConnectionStore;
+	agentSettings: AgentSettings;
+	/** Where agents connect, `{public origin}/mcp`, shown in Agentes de IA (RN-13). */
+	mcpServerUrl: string;
+	/** Files an agent gives by link (spec 044, RN-24). */
+	remoteFiles: RemoteFiles;
 }
 
 export interface Container extends Adapters {
@@ -743,6 +802,16 @@ export interface Container extends Adapters {
 		markInboxSeen: MarkInboxSeen;
 		markNotificationRead: MarkNotificationRead;
 		markAllNotificationsRead: MarkAllNotificationsRead;
+		admitAgentRequest: AdmitAgentRequest;
+		listAgentAccess: ListAgentAccess;
+		createAccessKey: CreateAccessKey;
+		revokeAccessKey: RevokeAccessKey;
+		disconnectAgent: DisconnectAgent;
+		revokeAllAgentAccess: RevokeAllAgentAccess;
+		addQuestions: AddQuestions;
+		editQuestion: EditQuestion;
+		importRemoteFile: ImportRemoteFile;
+		renameCreator: RenameCreator;
 	};
 }
 
@@ -852,10 +921,42 @@ export function createContainer(baseAdapters: Adapters): Container {
 		],
 	};
 
+	const requestMediaUpload = createRequestMediaUpload(adapters);
+	const requestGroupUpload = createRequestGroupUpload(adapters);
+	const requestThemeUpload = createRequestThemeUpload(themeDeps);
+	// A file an agent gives by link goes through the upload its target already
+	// has, with that upload's policy and pending row (spec 044, RN-24).
+	const remoteFileUploads: RemoteFileUploads = {
+		maxBytesFor: (target) =>
+			target.kind === "groupFile" ? GROUP_PDF_MAX_BYTES : MAX_MEDIA_BYTES,
+		keyFor: async ({ ownerId, target, contentType, sizeBytes, fileName }) => {
+			switch (target.kind) {
+				case "media":
+					return requestMediaUpload({ ownerId, contentType, sizeBytes });
+				case "groupFile": {
+					const upload = await requestGroupUpload({
+						userId: ownerId,
+						groupId: target.groupId,
+						type: contentType === "application/pdf" ? "pdf" : "image",
+						contentType,
+						sizeBytes,
+						fileName,
+					});
+					return {
+						key: upload.key,
+						contentDisposition: upload.headers["content-disposition"],
+					};
+				}
+				case "themeFile":
+					return requestThemeUpload({ ownerId, contentType, sizeBytes });
+			}
+		},
+	};
+
 	return {
 		...adapters,
 		useCases: {
-			requestMediaUpload: createRequestMediaUpload(adapters),
+			requestMediaUpload,
 			requestSourceUpload: createRequestSourceUpload(adapters),
 			discardSource: createDiscardSource(adapters),
 			getAssistantStatus: createGetAssistantStatus(adapters),
@@ -954,7 +1055,7 @@ export function createContainer(baseAdapters: Adapters): Container {
 			listSharedQuizzes: createListSharedQuizzes(adapters),
 			listSharedQuizIds: createListSharedQuizIds(adapters),
 			getSharedQuiz: createGetSharedQuiz(adapters),
-			requestGroupUpload: createRequestGroupUpload(adapters),
+			requestGroupUpload,
 			discardGroupUpload: createDiscardGroupUpload(adapters),
 			getGroupSettings: createGetGroupSettings(adapters),
 			setGroupPermission: createSetGroupPermission(adapters),
@@ -979,7 +1080,7 @@ export function createContainer(baseAdapters: Adapters): Container {
 			createCustomTheme: createCreateCustomTheme(themeDeps),
 			updateCustomTheme: createUpdateCustomTheme(themeDeps),
 			deleteCustomTheme: createDeleteCustomTheme(themeDeps),
-			requestThemeUpload: createRequestThemeUpload(themeDeps),
+			requestThemeUpload,
 			discardThemeUpload: createDiscardThemeUpload(themeDeps),
 			getGroupPost: createGetGroupPost(groupDeps),
 			getInboxSummary: createGetInboxSummary(adapters),
@@ -987,6 +1088,19 @@ export function createContainer(baseAdapters: Adapters): Container {
 			markInboxSeen: createMarkInboxSeen(adapters),
 			markNotificationRead: createMarkNotificationRead(adapters),
 			markAllNotificationsRead: createMarkAllNotificationsRead(adapters),
+			admitAgentRequest: createAdmitAgentRequest(adapters),
+			listAgentAccess: createListAgentAccess(adapters),
+			createAccessKey: createCreateAccessKey(adapters),
+			revokeAccessKey: createRevokeAccessKey(adapters),
+			disconnectAgent: createDisconnectAgent(adapters),
+			revokeAllAgentAccess: createRevokeAllAgentAccess(adapters),
+			addQuestions: createAddQuestions(adapters),
+			editQuestion: createEditQuestion(adapters),
+			importRemoteFile: createImportRemoteFile({
+				...adapters,
+				uploads: remoteFileUploads,
+			}),
+			renameCreator: createRenameCreator(adapters),
 		},
 	};
 }

@@ -7,6 +7,8 @@ export interface AccountRecord {
 
 export interface AccountRepository {
 	find(userId: string): Promise<AccountRecord | null>;
+	/** Writes the account's name, already checked (spec 044, RN-19). */
+	rename(userId: string, name: string): Promise<void>;
 	/**
 	 * Deletes the account row; the database cascades everything that points
 	 * at it (spec 039, RN-39; ADR 0019).

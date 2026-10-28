@@ -14,7 +14,7 @@ import { BrandLogo } from "@/components/layout/brand-logo";
 import Loader from "@/components/loader";
 import { getUser } from "@/functions/get-user";
 import { authClient } from "@/lib/auth-client";
-import { safeRedirect } from "@/lib/safe-redirect";
+import { afterSignInPath } from "@/lib/oauth-flow";
 import { useTRPC } from "@/utils/trpc";
 
 const loginSearchSchema = z.object({
@@ -23,28 +23,38 @@ const loginSearchSchema = z.object({
 	redirect: z.string().optional(),
 	/** Error code appended by a failed Google redirect. */
 	error: z.string().optional(),
+	/** An AI agent's authorization, to go on with after signing in (spec 044). */
+	agent: z.string().optional(),
 });
 
 export const Route = createFileRoute("/login")({
 	validateSearch: loginSearchSchema,
 	beforeLoad: async ({ search }) => {
 		if (await getUser()) {
-			throw redirect({ href: safeRedirect(search.redirect) });
+			throw redirect({ href: afterSignInPath(search) });
 		}
 	},
 	component: LoginPage,
 });
 
 function LoginPage() {
-	const { mode = "sign-in", redirect: redirectTo, error } = Route.useSearch();
+	const {
+		mode = "sign-in",
+		redirect: redirectTo,
+		error,
+		agent,
+	} = Route.useSearch();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const trpc = useTRPC();
 	const settings = useQuery(trpc.auth.settings.queryOptions());
-	const destination = safeRedirect(redirectTo);
+	const destination = afterSignInPath({ agent, redirect: redirectTo });
 
 	const switchMode = (next: "sign-in" | "sign-up") =>
-		navigate({ to: "/login", search: { mode: next, redirect: redirectTo } });
+		navigate({
+			to: "/login",
+			search: { mode: next, redirect: redirectTo, agent },
+		});
 
 	const enterApp = async () => {
 		await router.invalidate();
@@ -55,6 +65,9 @@ function LoginPage() {
 		const errorSearch = new URLSearchParams({ mode });
 		if (redirectTo) {
 			errorSearch.set("redirect", redirectTo);
+		}
+		if (agent) {
+			errorSearch.set("agent", agent);
 		}
 		authClient.signIn.social({
 			provider: "google",

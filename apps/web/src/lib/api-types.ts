@@ -126,3 +126,8 @@ export type NotificationData =
 	RouterOutputs["notification"]["list"]["items"][number];
 /** A post on its own page (spec 040, RN-19). */
 export type GroupPostPageData = RouterOutputs["group"]["posts"]["get"];
+
+/** Agentes de IA (spec 044): the server's address, the connections and the keys. */
+export type AgentAccessData = RouterOutputs["agent"]["access"];
+export type AgentConnectionData = AgentAccessData["connections"][number];
+export type AccessKeyData = AgentAccessData["keys"][number];

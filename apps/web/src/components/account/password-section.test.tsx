@@ -28,6 +28,16 @@ async function setup(
 	return { user, onChange };
 }
 
+describe("PasswordSection and the AI agents (spec 044, RN-17)", () => {
+	it("warns that changing the password disconnects the AI agents", async () => {
+		await setup();
+
+		expect(
+			screen.getByText("Alterar a senha também desconecta seus agentes de IA."),
+		).toBeInTheDocument();
+	});
+});
+
 async function fill(
 	user: ReturnType<typeof userEvent.setup>,
 	current: string,

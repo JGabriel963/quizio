@@ -50,6 +50,21 @@ describe("S3ObjectStorage against a real S3 server", () => {
 
 	beforeAll(ensureBucket);
 
+	it("put writes an object that read and exists see (spec 044, RN-24)", async () => {
+		const key = `media/int-test/${crypto.randomUUID()}.png`;
+		const body = new Uint8Array(128).fill(3);
+
+		await storage.put(key, body, "image/png");
+
+		expect(await storage.exists(key)).toBe(true);
+		expect(await storage.read(key)).toEqual(body);
+		const head = await clientFor().send(
+			new HeadObjectCommand({ Bucket: config.bucket, Key: key }),
+		);
+		expect(head.ContentType).toBe("image/png");
+		await storage.delete(key);
+	});
+
 	it("uploads through a presigned URL, then reports and deletes the object", async () => {
 		const key = `media/int-test/${crypto.randomUUID()}.png`;
 		const body = new Uint8Array(256).fill(7);

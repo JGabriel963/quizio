@@ -41,6 +41,11 @@ export function createPublishQuiz(deps: {
 		if (incomplete.length > 0) {
 			throw new IncompleteQuestionsError(
 				`${incomplete.length} question(s) of the quiz are incomplete`,
+				incomplete.map(({ question, position, issues }) => ({
+					questionId: question.id,
+					position,
+					issues,
+				})),
 			);
 		}
 		if (quiz.title === null) {

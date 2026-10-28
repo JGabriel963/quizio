@@ -64,8 +64,13 @@ export class InMemoryObjectStorage implements ObjectStorage {
 		this.put(key, new Uint8Array());
 	}
 
-	/** Test helper: an upload with its bytes. */
-	put(key: string, bytes: Uint8Array): void {
+	/** Also the test helper for an upload with its bytes; it is stored at once. */
+	async put(
+		key: string,
+		bytes: Uint8Array,
+		_contentType?: string,
+		_contentDisposition?: string,
+	) {
 		this.#objects.set(key, new Uint8Array(bytes));
 	}
 }

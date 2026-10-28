@@ -52,9 +52,27 @@ function answeredCount(question: QuizQuestion): number {
 	return question.choices.filter((choice) => choice.text !== null).length;
 }
 
-/** Publishing refuses a quiz with incomplete questions (spec 006, RN-09). */
+/**
+ * Publishing refuses a quiz with incomplete questions (spec 006, RN-09), and
+ * says which, so an AI agent can fix them (spec 044, RN-23).
+ */
 export class IncompleteQuestionsError extends DomainError {
 	readonly code = "QUIZ.INCOMPLETE_QUESTIONS";
+	constructor(
+		message: string,
+		readonly incomplete: readonly {
+			questionId: string;
+			position: number;
+			issues: QuestionIssue[];
+		}[] = [],
+	) {
+		super(message);
+	}
+
+	/** What a driving adapter may tell besides the message. */
+	get details() {
+		return { questions: this.incomplete };
+	}
 }
 
 /**

@@ -1,3 +1,6 @@
+import { cimd } from "@better-auth/cimd";
+import { fetchClientMetadataResource } from "@better-auth/cimd/node";
+import { mcp } from "@better-auth/mcp";
 import {
 	assertCreatorName,
 	InvalidCreatorNameError,
@@ -10,6 +13,7 @@ import type { Database } from "@quizio/db/types";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { jwt } from "better-auth/plugins";
 import type { GoogleOptions } from "better-auth/social-providers";
 
 export interface GoogleSignInOptions {
@@ -34,13 +38,75 @@ export interface CreateAuthOptions {
 	 * rate limit is keyed on it. Defaults to Better Auth's `x-forwarded-for`.
 	 */
 	clientIpHeader?: string;
+	/**
+	 * Turns Better Auth into the OAuth server AI agents connect through
+	 * (spec 044, ADR 0023). Left out, there is no OAuth at all.
+	 */
+	agents?: AgentAuthorizationOptions;
+	/**
+	 * Called after a password change succeeds, to disconnect the AI agents
+	 * (spec 044, RN-17).
+	 */
+	onPasswordChanged?: (userId: string) => Promise<void>;
 	plugins?: BetterAuthPlugin[];
+}
+
+export interface AgentAuthorizationOptions {
+	/** Where the agents' authorization screen lives (`/connect`). */
+	consentPage: string;
+	/** Where a visitor signs in first (`/login`). */
+	loginPage: string;
+	/** A connection unused this long can no longer refresh its tokens (RN-18). */
+	refreshTokenExpiresInSeconds: number;
+	/**
+	 * Tests only: replaces fetching a Client ID Metadata Document from the
+	 * agent's own address.
+	 */
+	fetchClientMetadataResource?: typeof fetchClientMetadataResource;
 }
 
 const EMAIL_CREDENTIAL_PATHS = new Set(["/sign-up/email", "/sign-in/email"]);
 
 /** Attempts allowed per client IP before a temporary block. */
 const SIGN_IN_RATE_LIMIT = { window: 60, max: 5 };
+
+/**
+ * Anyone may register an agent (RFC 7591), so registrations are kept few per
+ * address (spec 044, ADR 0023).
+ */
+const CLIENT_REGISTRATION_RATE_LIMIT = { window: 60, max: 10 };
+
+/** The MCP server's address, which every agent token is bound to (RFC 8707). */
+export function mcpResourceOf(baseURL: string): string {
+	return `${baseURL.replace(/\/$/, "")}/mcp`;
+}
+
+function agentPlugins(
+	baseURL: string,
+	agents: AgentAuthorizationOptions,
+): BetterAuthPlugin[] {
+	return [
+		jwt(),
+		mcp({
+			loginPage: agents.loginPage,
+			consentPage: agents.consentPage,
+			resource: mcpResourceOf(baseURL),
+			refreshTokenExpiresIn: agents.refreshTokenExpiresInSeconds,
+			// Client ID Metadata Documents first, dynamic registration as the
+			// fallback the MCP revision 2026-07-28 keeps.
+			allowDynamicClientRegistration: true,
+			allowUnauthenticatedClientRegistration: true,
+			// Agents on the person's computer (Claude Code, Codex, Gemini CLI…)
+			// return to a loopback address or their own scheme: native clients.
+			clientRegistrationDefaultApplicationType: "infer",
+		}),
+		cimd({
+			fetchClientMetadataResource:
+				agents.fetchClientMetadataResource ?? fetchClientMetadataResource,
+			metadataProfile: "mcp-2026-07-28",
+		}),
+	] as BetterAuthPlugin[];
+}
 
 /**
  * Builds the Better Auth instance from explicit options, so tests can run the
@@ -53,6 +119,8 @@ export function createAuth({
 	signUpEnabled,
 	google,
 	clientIpHeader,
+	agents,
+	onPasswordChanged,
 	plugins = [],
 }: CreateAuthOptions) {
 	return betterAuth({
@@ -116,6 +184,7 @@ export function createAuth({
 				"/sign-up/email": SIGN_IN_RATE_LIMIT,
 				// A wrong current password counts as a wrong sign-in (spec 039, RN-23).
 				"/change-password": SIGN_IN_RATE_LIMIT,
+				"/oauth2/register": CLIENT_REGISTRATION_RATE_LIMIT,
 			},
 		},
 		hooks: {
@@ -138,8 +207,20 @@ export function createAuth({
 					assertValidName(ctx.body.name);
 				}
 			}),
+			after: createAuthMiddleware(async (ctx) => {
+				// A new password also disconnects every AI agent (spec 044, RN-17).
+				const userId = ctx.context.session?.user.id;
+				if (
+					ctx.path === "/change-password" &&
+					onPasswordChanged &&
+					userId &&
+					!(ctx.context.returned instanceof APIError)
+				) {
+					await onPasswordChanged(userId);
+				}
+			}),
 		},
-		plugins,
+		plugins: [...(agents ? agentPlugins(baseURL, agents) : []), ...plugins],
 	});
 }
 

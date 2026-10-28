@@ -1,3 +1,4 @@
+import { Button } from "@quizio/ui/components/button";
 import { Skeleton } from "@quizio/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/components/account/profile-photo-dialog";
 import { ProfileSection } from "@/components/account/profile-section";
 import { SettingsLayout } from "@/components/account/settings-layout";
+import { AgentsSection } from "@/components/agents/agents-section";
 import { type AccountSection, accountSectionOf } from "@/lib/account-sections";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-error-messages";
@@ -68,6 +70,8 @@ function SettingsSection({
 			return <ProfileSettings account={account} />;
 		case "ai":
 			return <AiAccessSettings />;
+		case "agents":
+			return <AgentsSettings />;
 		case "password":
 			return (
 				<PasswordSection
@@ -152,6 +156,53 @@ function AiAccessSettings() {
 		<AiAccessSection status={status.data} />
 	) : (
 		<Skeleton className="h-32 w-full" />
+	);
+}
+
+/** Agentes de IA (spec 044, RN-12 to RN-16): every change refetches the section. */
+function AgentsSettings() {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const access = useQuery({
+		...trpc.agent.access.queryOptions(),
+		meta: { suppressErrorToast: true },
+	});
+	const refresh = () =>
+		queryClient.invalidateQueries({ queryKey: trpc.agent.pathKey() });
+	const createKey = useMutation(trpc.agent.createKey.mutationOptions());
+	const revokeKey = useMutation(trpc.agent.revokeKey.mutationOptions());
+	const disconnect = useMutation(trpc.agent.disconnect.mutationOptions());
+
+	if (access.isError) {
+		return (
+			<section className="flex flex-col items-start gap-3 rounded-lg bg-card p-6 shadow-sm">
+				<p>Não foi possível carregar seus agentes.</p>
+				<Button variant="outline" onClick={() => access.refetch()}>
+					Tentar de novo
+				</Button>
+			</section>
+		);
+	}
+	if (!access.data) {
+		return <Skeleton className="h-96 w-full" />;
+	}
+	return (
+		<AgentsSection
+			access={access.data}
+			onCreateKey={async (name) => {
+				const created = await createKey.mutateAsync({ name });
+				await refresh();
+				return created;
+			}}
+			onRevokeKey={async (keyId) => {
+				await revokeKey.mutateAsync({ keyId });
+				await refresh();
+			}}
+			onDisconnect={async (connectionId) => {
+				await disconnect.mutateAsync({ connectionId });
+				await refresh();
+			}}
+		/>
 	);
 }
 

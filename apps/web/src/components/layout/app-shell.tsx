@@ -8,6 +8,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
+import { AgentsSidebarNotice } from "@/components/agents/agents-sidebar-card";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { MainNav } from "@/components/layout/main-nav";
 import { TopBar } from "@/components/layout/top-bar";
@@ -46,8 +47,10 @@ export function AppShell({
 			/>
 
 			<div className="grid grid-cols-1 md:min-h-0 md:grid-cols-[15rem_1fr]">
-				<aside className="hidden border-border border-r bg-card px-3 py-4 md:block md:overflow-y-auto">
+				<aside className="hidden flex-col gap-6 border-border border-r bg-card px-3 py-4 md:flex md:overflow-y-auto">
 					<MainNav pathname={pathname} />
+					{/* At the foot, out of the way of the areas (spec 044). */}
+					<AgentsSidebarNotice className="mt-auto" />
 				</aside>
 
 				{/* On narrow screens the sidebar opens over the page from the left,
@@ -69,9 +72,13 @@ export function AppShell({
 								<BrandLogo />
 							</Link>
 						</SheetHeader>
-						<SheetBody className="px-3">
+						<SheetBody className="flex flex-col gap-6 px-3">
 							<MainNav
 								pathname={pathname}
+								onNavigate={() => setNavOpen(false)}
+							/>
+							<AgentsSidebarNotice
+								className="mt-auto"
 								onNavigate={() => setNavOpen(false)}
 							/>
 						</SheetBody>
