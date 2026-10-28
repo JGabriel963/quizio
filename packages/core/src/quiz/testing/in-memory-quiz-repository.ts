@@ -36,7 +36,11 @@ export class InMemoryQuizRepository implements QuizRepository {
 
 	async saveTheme(
 		id: string,
-		change: { themeId: ThemeId; updatedAt: Date },
+		change: {
+			themeId: ThemeId;
+			customThemeId: string | null;
+			updatedAt: Date;
+		},
 	): Promise<void> {
 		const quiz = this.#quizzes.get(id);
 		if (quiz) {

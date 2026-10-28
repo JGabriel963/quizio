@@ -41,10 +41,10 @@ export function createDrizzleQuizRepository(db: Database): QuizRepository {
 				.where(eq(quizTable.id, id));
 		},
 
-		async saveTheme(id, { themeId, updatedAt }) {
+		async saveTheme(id, { themeId, customThemeId, updatedAt }) {
 			await db
 				.update(quizTable)
-				.set({ themeId, updatedAt })
+				.set({ themeId, customThemeId, updatedAt })
 				.where(eq(quizTable.id, id));
 		},
 

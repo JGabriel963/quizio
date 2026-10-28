@@ -17,6 +17,7 @@ import {
 import { useHostGame } from "@/lib/game-mutations";
 import { useEditorActions } from "@/lib/question-mutations";
 import { SaveTrackerProvider, useSaveTracker } from "@/lib/save-tracker";
+import { useEditorThemes } from "@/lib/theme-mutations";
 import { useTRPC } from "@/utils/trpc";
 
 /** The quiz editor, full screen outside the creator shell (spec 003). */
@@ -45,6 +46,7 @@ function Creator({ quizId }: { quizId: string }) {
 	const navigate = Route.useNavigate();
 	const tracker = useSaveTracker();
 	const actions = useEditorActions(quizId);
+	const themes = useEditorThemes(quizId);
 	const hosting = useHostGame(quizId);
 	const assigning = useAssignQuiz();
 	const [settingsOpen, setSettingsOpen] = useState(false);
@@ -102,6 +104,7 @@ function Creator({ quizId }: { quizId: string }) {
 			<QuizEditor
 				data={editor.data}
 				actions={actions}
+				themes={themes}
 				titleRevision={titleRevision}
 				onOpenSettings={() => setSettingsOpen(true)}
 				// Sair, Pronto and "Deixar sem salvar" lead to the library, as in
@@ -131,6 +134,7 @@ function Creator({ quizId }: { quizId: string }) {
 			<OpeningGame
 				state={hosting.state}
 				themeId={editor.data?.quiz.themeId}
+				customTheme={editor.data?.customTheme}
 				onRetry={() => hosting.start()}
 				onCancel={hosting.cancel}
 			/>

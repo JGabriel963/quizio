@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
+import { InMemoryThemeStore } from "../../themes/testing/in-memory-theme-store";
 import {
 	InvalidQuestionImageError,
 	newQuestionImage,
@@ -48,6 +49,7 @@ describe("question images", () => {
 		clock: FixedClock;
 		ids: SequentialIdGenerator;
 		quizGames: RecordingQuizGames;
+		customThemes: InMemoryThemeStore;
 	};
 
 	beforeEach(async () => {
@@ -63,6 +65,7 @@ describe("question images", () => {
 			clock: new FixedClock("2026-06-01T12:00:00.000Z"),
 			ids: new SequentialIdGenerator("new"),
 			quizGames: new RecordingQuizGames(),
+			customThemes: new InMemoryThemeStore(quizzes),
 		};
 		storage.simulateUpload(PONTE);
 		storage.simulateUpload(MAPA);

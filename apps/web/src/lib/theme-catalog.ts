@@ -1,11 +1,16 @@
+import type { ThemeLookView } from "@quizio/core/shared/application/theme-look-view";
+import {
+	DARK_TEXT,
+	LIGHT_TEXT,
+	readableTextOn,
+} from "@quizio/core/shared/domain/contrast";
 import {
 	DEFAULT_THEME_ID,
 	knownThemeId,
 	type ThemeId,
 } from "@quizio/core/shared/domain/theme";
+import type { BackgroundPatternId } from "@quizio/core/shared/domain/theme-look";
 import type { CSSProperties } from "react";
-
-import { DARK_TEXT, LIGHT_TEXT, readableTextOn } from "./contrast";
 
 /**
  * The ready-made themes (spec 042, ADR 0021): the core knows the ids, this
@@ -151,23 +156,92 @@ export function themeTone(id: string | null | undefined): "light" | "dark" {
 }
 
 /**
+ * The theme a screen wears (spec 043): the ready-made id and, for a custom
+ * theme, its look as the server sent it. Without a look, the id is all.
+ */
+export interface ShownTheme {
+	themeId: ThemeId;
+	custom: ThemeLookView | null;
+}
+
+export function shownTheme(
+	themeId: ThemeId,
+	custom: ThemeLookView | null | undefined,
+): ShownTheme {
+	return { themeId, custom: custom ?? null };
+}
+
+/** The pattern art of custom themes, drawn over their color (RN-05). */
+export function patternImage(pattern: BackgroundPatternId): string {
+	return `/themes/patterns/${pattern}.svg`;
+}
+
+/**
  * What a game screen or the editor's canvas needs to wear the theme. Chips
  * and strips on the background (`bg-game-chip`) follow the tone: dark with
  * white text, or light with dark text, as Kahoot's light themes. Bars
  * (`bg-game-bar`, the host's header, the phone's footer) stay dark and get
  * darker over a light background, so white text keeps reading.
+ *
+ * A custom look (spec 043) works the same out of its own colors; over an
+ * image, the tone the browser measured stands for the colors (RN-12).
  */
-export function themeStyle(id: string | null | undefined): CSSProperties {
-	const theme = themeOf(id);
-	const light = themeTone(id) === "light";
+export function themeStyle(
+	theme: ShownTheme | string | null | undefined,
+): CSSProperties {
+	const shown =
+		typeof theme === "object" && theme !== null
+			? theme
+			: { themeId: knownThemeId(theme), custom: null };
+	const surface = shown.custom
+		? customSurface(shown.custom)
+		: catalogSurface(shown.themeId);
+	const light = surface.text === DARK_TEXT;
 	return {
-		"--game-bg-image": `url("${theme.image}")`,
-		"--game-base": theme.surfaces[0],
-		"--game-fg": theme.text,
-		"--game-accent": theme.accent,
-		"--game-accent-fg": theme.accentText,
+		"--game-bg-image": `url("${surface.image}")`,
+		"--game-base": surface.base,
+		"--game-fg": surface.text,
+		"--game-accent": surface.accent,
+		"--game-accent-fg": readableTextOn([surface.accent]),
 		"--game-chip": light ? "rgb(255 255 255 / 0.75)" : "rgb(0 0 0 / 0.4)",
 		"--game-chip-fg": light ? DARK_TEXT : LIGHT_TEXT,
 		"--game-bar": light ? "rgb(23 23 23 / 0.8)" : "rgb(0 0 0 / 0.4)",
 	} as CSSProperties;
+}
+
+interface Surface {
+	image: string;
+	base: string;
+	text: string;
+	accent: string;
+}
+
+function catalogSurface(id: ThemeId): Surface {
+	const theme = themeOf(id);
+	return {
+		image: theme.image,
+		base: theme.surfaces[0] ?? "#46178f",
+		text: theme.text,
+		accent: theme.accent,
+	};
+}
+
+function customSurface(look: ThemeLookView): Surface {
+	if (look.imageUrl) {
+		const light = look.imageTone === "light";
+		return {
+			image: look.imageUrl,
+			// Under the image while it loads.
+			base: light ? "#f2f2f2" : "#1f1f1f",
+			text: light ? DARK_TEXT : LIGHT_TEXT,
+			accent: look.accentColor,
+		};
+	}
+	const color = look.backgroundColor ?? "#46178f";
+	return {
+		image: patternImage(look.pattern ?? "waves"),
+		base: color,
+		text: readableTextOn([color]),
+		accent: look.accentColor,
+	};
 }

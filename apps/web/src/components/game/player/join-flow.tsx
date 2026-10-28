@@ -7,6 +7,7 @@ import {
 } from "@quizio/core/game/domain/game-events";
 import { parseGamePin, parseJoinPin } from "@quizio/core/game/domain/game-pin";
 import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
+import type { ThemeLookView } from "@quizio/core/shared/application/theme-look-view";
 import {
 	DEFAULT_THEME_ID,
 	type ThemeId,
@@ -58,6 +59,7 @@ export interface JoinApi {
 		pin: string;
 		mode: "live" | "assignment";
 		themeId: ThemeId;
+		customTheme: ThemeLookView | null;
 	}>;
 	enter(input: {
 		gameId: string;
@@ -89,6 +91,8 @@ interface FoundGame {
 	pin: string;
 	/** The screens after the PIN wear it (spec 042, RN-14). */
 	themeId: ThemeId;
+	/** A custom theme's look, without the logo (spec 043). */
+	customTheme: ThemeLookView | null;
 }
 
 /** The game after the lobby, as this device last knew it (spec 009). */
@@ -106,7 +110,13 @@ type Step =
 	/** A join link, a reload or the last game is being checked with the server. */
 	| { kind: "resolving" }
 	/** A game this browser's player left is still on: the way back (spec 008, RN-44a). */
-	| { kind: "rejoin"; pin: string; nickname: string; themeId: ThemeId }
+	| {
+			kind: "rejoin";
+			pin: string;
+			nickname: string;
+			themeId: ThemeId;
+			customTheme: ThemeLookView | null;
+	  }
 	| { kind: "nickname"; game: FoundGame; error: string | null }
 	/** An assignment's PIN: its own screen takes over (spec 029, RN-20). */
 	| { kind: "assignment"; gameId: string }
@@ -300,6 +310,7 @@ export function JoinFlow({
 							gameId: stored.gameId,
 							pin: parsed,
 							themeId: view.themeId,
+							customTheme: view.customTheme,
 						},
 						session: stored,
 						nickname: view.nickname,
@@ -327,10 +338,15 @@ export function JoinFlow({
 		}
 
 		try {
-			const { gameId, pin: foundPin, themeId } = await api.find(parsed);
+			const {
+				gameId,
+				pin: foundPin,
+				themeId,
+				customTheme,
+			} = await api.find(parsed);
 			return {
 				kind: "nickname",
-				game: { gameId, pin: foundPin, themeId },
+				game: { gameId, pin: foundPin, themeId, customTheme },
 				error: null,
 			};
 		} catch (error) {
@@ -399,6 +415,7 @@ export function JoinFlow({
 					pin: last.pin,
 					nickname: view.nickname,
 					themeId: view.themeId,
+					customTheme: view.customTheme,
 				};
 			}
 			// A finished game keeps its session: its link still shows the final screen.
@@ -462,6 +479,7 @@ export function JoinFlow({
 			pin: step.game.pin,
 			nickname: step.nickname,
 			themeId: step.game.themeId,
+			customTheme: step.game.customTheme,
 		});
 	}
 
@@ -788,14 +806,16 @@ export function JoinFlow({
 	}
 
 	// The PIN entry is standard; once the game is known, its theme (RN-14).
-	const themeId =
+	const theme =
 		step.kind === "nickname" || step.kind === "waiting"
-			? step.game.themeId
+			? step.game
 			: step.kind === "rejoin"
-				? step.themeId
-				: DEFAULT_THEME_ID;
+				? step
+				: { themeId: DEFAULT_THEME_ID, customTheme: null };
 	return (
-		<GameThemeProvider themeId={themeId}>{screenOf(step)}</GameThemeProvider>
+		<GameThemeProvider themeId={theme.themeId} custom={theme.customTheme}>
+			{screenOf(step)}
+		</GameThemeProvider>
 	);
 
 	function screenOf(step: Step) {

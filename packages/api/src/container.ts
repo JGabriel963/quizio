@@ -428,6 +428,7 @@ import {
 	type MoveQuizToTrash,
 } from "@quizio/core/quiz/application/move-quiz-to-trash";
 import type { AssistantPreferencesRepository } from "@quizio/core/quiz/application/ports/assistant-preferences-repository";
+import type { CustomThemeReads } from "@quizio/core/quiz/application/ports/custom-theme-reads";
 import type { GenerationQuota } from "@quizio/core/quiz/application/ports/generation-quota";
 import type { PdfPages } from "@quizio/core/quiz/application/ports/pdf-pages";
 import type { QuestionGenerator } from "@quizio/core/quiz/application/ports/question-generator";
@@ -504,6 +505,33 @@ import type { ObjectStorage } from "@quizio/core/shared/application/ports/object
 import type { QuizShareGrants } from "@quizio/core/shared/application/ports/quiz-share-grants";
 import type { RealtimePublisher } from "@quizio/core/shared/application/ports/realtime-publisher";
 import type { Shuffler } from "@quizio/core/shared/application/ports/shuffler";
+import {
+	type CreateCustomTheme,
+	createCreateCustomTheme,
+} from "@quizio/core/themes/application/create-custom-theme";
+import {
+	createDeleteCustomTheme,
+	type DeleteCustomTheme,
+} from "@quizio/core/themes/application/delete-custom-theme";
+import {
+	createDiscardThemeUpload,
+	type DiscardThemeUpload,
+} from "@quizio/core/themes/application/discard-theme-upload";
+import {
+	createListCustomThemes,
+	type ListCustomThemes,
+} from "@quizio/core/themes/application/list-custom-themes";
+import type { CustomThemeRepository } from "@quizio/core/themes/application/ports/custom-theme-repository";
+import type { ThemeFileUsage } from "@quizio/core/themes/application/ports/theme-file-usage";
+import type { ThemeUploadRepository } from "@quizio/core/themes/application/ports/theme-upload-repository";
+import {
+	createRequestThemeUpload,
+	type RequestThemeUpload,
+} from "@quizio/core/themes/application/request-theme-upload";
+import {
+	createUpdateCustomTheme,
+	type UpdateCustomTheme,
+} from "@quizio/core/themes/application/update-custom-theme";
 
 /** Instance settings of the assignments (spec 029, RN-08). */
 export interface AssignmentSettings {
@@ -587,6 +615,11 @@ export interface Adapters {
 	groupNotices: GroupNoticeRepository;
 	inboxChannels: InboxChannels;
 	notificationSettings: NotificationSettings;
+	/** The creators' custom themes (spec 043; ADR 0022), also read by the quiz. */
+	customThemes: CustomThemeRepository & CustomThemeReads;
+	themeUploads: ThemeUploadRepository;
+	/** Which theme files the games copied (RN-28). */
+	themeFileUsage: ThemeFileUsage;
 }
 
 export interface Container extends Adapters {
@@ -698,6 +731,12 @@ export interface Container extends Adapters {
 		getPublicQuiz: GetPublicQuiz;
 		setQuizVisibility: SetQuizVisibility;
 		setQuizTheme: SetQuizTheme;
+		listCustomThemes: ListCustomThemes;
+		createCustomTheme: CreateCustomTheme;
+		updateCustomTheme: UpdateCustomTheme;
+		deleteCustomTheme: DeleteCustomTheme;
+		requestThemeUpload: RequestThemeUpload;
+		discardThemeUpload: DiscardThemeUpload;
 		getGroupPost: GetGroupPost;
 		getInboxSummary: GetInboxSummary;
 		listNotifications: ListNotifications;
@@ -758,6 +797,12 @@ export function createContainer(baseAdapters: Adapters): Container {
 		maxDeadlineDays: adapters.assignmentSettings.maxDeadlineDays,
 	};
 	const createAssignment = createCreateAssignment(assignmentDeps);
+	// The themes context names its ports for itself (spec 043).
+	const themeDeps = {
+		...adapters,
+		themes: adapters.customThemes,
+		fileUsage: adapters.themeFileUsage,
+	};
 	// The groups reach "Criar uma tarefa" through their own port (spec 038).
 	const groupDeps = {
 		...adapters,
@@ -930,6 +975,12 @@ export function createContainer(baseAdapters: Adapters): Container {
 			getPublicQuiz: createGetPublicQuiz(adapters),
 			setQuizVisibility: createSetQuizVisibility(adapters),
 			setQuizTheme: createSetQuizTheme(adapters),
+			listCustomThemes: createListCustomThemes(themeDeps),
+			createCustomTheme: createCreateCustomTheme(themeDeps),
+			updateCustomTheme: createUpdateCustomTheme(themeDeps),
+			deleteCustomTheme: createDeleteCustomTheme(themeDeps),
+			requestThemeUpload: createRequestThemeUpload(themeDeps),
+			discardThemeUpload: createDiscardThemeUpload(themeDeps),
 			getGroupPost: createGetGroupPost(groupDeps),
 			getInboxSummary: createGetInboxSummary(adapters),
 			listNotifications: createListNotifications(adapters),

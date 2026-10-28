@@ -5,11 +5,12 @@ import type {
 import { UNTITLED_QUIZ_TITLE } from "@quizio/core/quiz/domain/quiz-details";
 import { parseVersionQuestions } from "@quizio/core/quiz/domain/quiz-version";
 import { knownThemeId } from "@quizio/core/shared/domain/theme";
+import { readThemeLook } from "@quizio/core/shared/domain/theme-look";
 import { and, desc, eq, isNotNull, isNull, type SQL } from "drizzle-orm";
-
 import { user } from "../../schema/auth";
 import { profilePhoto } from "../../schema/identity";
 import { quiz as quizTable, quizVersion } from "../../schema/quiz";
+import { customTheme } from "../../schema/themes";
 import type { Database } from "../../types";
 import { quizGameCounts } from "../game/quiz-game-counts";
 
@@ -30,8 +31,11 @@ export function createDrizzleCreatorProfileQuery(
 				coverImageKey: quizTable.coverImageKey,
 				questions: quizVersion.questions,
 				themeId: quizTable.themeId,
+				look: customTheme.look,
 			})
 			.from(quizTable)
+			// The owner's custom theme, for the game's opening (spec 043, RN-22).
+			.leftJoin(customTheme, eq(customTheme.id, quizTable.customThemeId))
 			.innerJoin(
 				quizVersion,
 				and(
@@ -69,6 +73,7 @@ export function createDrizzleCreatorProfileQuery(
 				description: row.description ?? "",
 				questions,
 				themeId: knownThemeId(row.themeId),
+				customTheme: readThemeLook(row.look),
 			};
 		});
 	}
@@ -100,6 +105,7 @@ export function createDrizzleCreatorProfileQuery(
 						description: row.description,
 						questions: row.questions,
 						themeId: row.themeId,
+						customTheme: row.customTheme,
 					}
 				: null;
 		},

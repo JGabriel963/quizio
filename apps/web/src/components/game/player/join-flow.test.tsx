@@ -2,6 +2,7 @@ import { type Avatar, knownAvatar } from "@quizio/core/game/domain/avatar";
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
 import { HOST_AWAY_AFTER_MS } from "@quizio/core/game/domain/host-presence";
 import type { PublicStage } from "@quizio/core/game/domain/public-stage";
+import type { ThemeLookView } from "@quizio/core/shared/application/theme-look-view";
 import type { ThemeId } from "@quizio/core/shared/domain/theme";
 import { InMemoryRealtimeSubscriber } from "@quizio/realtime/testing/in-memory-realtime-subscriber";
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -82,6 +83,8 @@ class FakeJoinApi implements JoinApi {
 	charactersOn = true;
 	/** The game's theme (spec 042). */
 	themeId: ThemeId = "standard";
+	/** The game's custom look (spec 043). */
+	customTheme: ThemeLookView | null = null;
 	/** What a change of avatar ends in, when it fails. */
 	avatarRefusal: Error | null = null;
 	/** The avatars each `enter` was sent. */
@@ -96,6 +99,7 @@ class FakeJoinApi implements JoinApi {
 				pin,
 				mode: "assignment" as const,
 				themeId: this.themeId,
+				customTheme: this.customTheme,
 			};
 		}
 		if (this.blocked) {
@@ -112,6 +116,7 @@ class FakeJoinApi implements JoinApi {
 			pin,
 			mode: "live" as const,
 			themeId: this.themeId,
+			customTheme: this.customTheme,
 		};
 	}
 
@@ -195,6 +200,7 @@ class FakeJoinApi implements JoinApi {
 		return {
 			gameId: GAME,
 			themeId: this.themeId,
+			customTheme: this.customTheme,
 			nickname: player.nickname,
 			avatar: this.charactersOn ? player.avatar : null,
 			canChangeAvatar:
@@ -494,6 +500,32 @@ describe("JoinFlow: the theme (spec 042, RN-14)", () => {
 
 		await screen.findByRole("button", { name: "Voltar como ACT" });
 		expect(shownTheme()).toBe("teal");
+	});
+
+	it("the game's custom look shows after the PIN (spec 043)", async () => {
+		const api = new FakeJoinApi();
+		api.customTheme = {
+			pattern: "tiles" as const,
+			backgroundColor: "#1b2a6b",
+			imageUrl: null,
+			imageTone: null,
+			accentColor: "#ffd84d",
+			logoUrl: null,
+		};
+		const flow = renderFlow({ api });
+
+		expect(shownTheme()).toBe("standard");
+		await flow.user.type(pinField(), PIN);
+		await flow.user.click(screen.getByRole("button", { name: "Entrar" }));
+		await screen.findByRole("textbox", { name: "Apelido" });
+		expect(shownTheme()).toBe("custom");
+
+		await flow.user.type(nicknameField(), "ACT");
+		await flow.user.click(
+			screen.getByRole("button", { name: "Ok, vamos lá!" }),
+		);
+		await screen.findByRole("heading", { name: "ACT" });
+		expect(shownTheme()).toBe("custom");
 	});
 });
 

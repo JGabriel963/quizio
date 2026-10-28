@@ -6,6 +6,7 @@ import {
 	mediaPrefixOf,
 	profilePhotoPrefixOf,
 	sourcesPrefixOf,
+	themesPrefixOf,
 } from "../../shared/domain/media-key";
 import {
 	type AccountDeletionConfirmation,
@@ -118,6 +119,8 @@ export function createDeleteAccount(deps: {
 			deps.storage.deletePrefix(mediaPrefixOf(userId)),
 			deps.storage.deletePrefix(sourcesPrefixOf(userId)),
 			deps.storage.deletePrefix(profilePhotoPrefixOf(userId)),
+			// The themes' rows went with the user's (spec 043, RN-30).
+			deps.storage.deletePrefix(themesPrefixOf(userId)),
 		]);
 	};
 }

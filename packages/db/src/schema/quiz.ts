@@ -18,6 +18,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { customTheme } from "./themes";
 
 /**
  * Postgres cannot drop an enum value, so "unlisted" (spec 001) stays in the
@@ -59,6 +60,13 @@ export const quiz = pgTable(
 		 * go without a migration, and an id that left reads as the default.
 		 */
 		themeId: text("theme_id").notNull().default("standard"),
+		/**
+		 * One of the owner's custom themes (spec 043, ADR 0022); while set,
+		 * `theme_id` is standard, which is what is left when the theme goes.
+		 */
+		customThemeId: text("custom_theme_id").references(() => customTheme.id, {
+			onDelete: "set null",
+		}),
 		/** Normalized display title (accents and case removed) for library search. */
 		searchTitle: text("search_title").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
@@ -71,6 +79,7 @@ export const quiz = pgTable(
 			table.trashedAt,
 			table.updatedAt,
 		),
+		index("quiz_custom_theme_idx").on(table.customThemeId),
 	],
 );
 

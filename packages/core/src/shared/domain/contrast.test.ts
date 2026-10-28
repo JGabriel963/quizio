@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	contrastRatio,
 	DARK_TEXT,
+	isLegibleColor,
 	LIGHT_TEXT,
 	readableTextOn,
 	relativeLuminance,
@@ -46,5 +47,20 @@ describe("readableTextOn (spec 042, RN-19)", () => {
 			Math.min(...colors.map((color) => contrastRatio(candidate, color)));
 		const other = text === LIGHT_TEXT ? DARK_TEXT : LIGHT_TEXT;
 		expect(worst(text)).toBeGreaterThan(worst(other));
+	});
+});
+
+describe("isLegibleColor (spec 043, RN-11)", () => {
+	it("is true when light or dark text reaches 4.5:1", () => {
+		expect(isLegibleColor("#46178f")).toBe(true);
+		expect(isLegibleColor("#ffd84d")).toBe(true);
+		expect(isLegibleColor("#ffffff")).toBe(true);
+	});
+
+	it("a mid color that neither text reaches 4.5:1 on is not legible", () => {
+		// Light text gets about 3.6:1 and dark text about 4.4:1 here.
+		expect(contrastRatio(LIGHT_TEXT, "#777777")).toBeLessThan(4.5);
+		expect(contrastRatio(DARK_TEXT, "#777777")).toBeLessThan(4.5);
+		expect(isLegibleColor("#777777")).toBe(false);
 	});
 });

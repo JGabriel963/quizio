@@ -44,6 +44,9 @@ import { createDrizzleReportReadGrants } from "@quizio/db/repositories/reports/d
 import { createDrizzleReportRepository } from "@quizio/db/repositories/reports/drizzle-report-repository";
 import { createDrizzleAttemptLimiter } from "@quizio/db/repositories/shared/drizzle-attempt-limiter";
 import { createDrizzleQuizShareGrants } from "@quizio/db/repositories/shared/drizzle-quiz-share-grants";
+import { createDrizzleCustomThemeRepository } from "@quizio/db/repositories/themes/drizzle-custom-theme-repository";
+import { createDrizzleThemeFileUsage } from "@quizio/db/repositories/themes/drizzle-theme-file-usage";
+import { createDrizzleThemeUploadRepository } from "@quizio/db/repositories/themes/drizzle-theme-upload-repository";
 import { env } from "@quizio/env/server";
 import { createHmacInboxChannels } from "@quizio/realtime/hmac-inbox-channels";
 import { createPusherRealtimePublisher } from "@quizio/realtime/pusher-realtime-publisher";
@@ -133,6 +136,9 @@ export function createAdaptersFromEnv(): Adapters {
 		groupPosts: createDrizzleGroupPostRepository(db),
 		groupFeed: createDrizzleGroupFeedQuery(db),
 		groupUploads: createDrizzleGroupUploadRepository(db),
+		customThemes: createDrizzleCustomThemeRepository(db),
+		themeUploads: createDrizzleThemeUploadRepository(db),
+		themeFileUsage: createDrizzleThemeFileUsage(db),
 		groupAssignmentQuery: createDrizzleGroupAssignmentQuery(db),
 		reportReadGrants: createDrizzleReportReadGrants(db),
 		groupSharedQuizzes: createDrizzleGroupSharedQuizRepository(db),

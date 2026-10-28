@@ -3,11 +3,12 @@ import { trashQuiz } from "@quizio/core/quiz/domain/quiz";
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
 import { aQuestion } from "@quizio/core/quiz/testing/a-question";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { A_THEME_LOOK } from "@quizio/core/shared/testing/a-theme-look";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-
 import { user } from "../../schema/auth";
 import { game as gameTable } from "../../schema/game";
 import { quiz as quizTable } from "../../schema/quiz";
+import { customTheme } from "../../schema/themes";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
 import { createDrizzleGameRepository } from "../game/drizzle-game-repository";
 import { createDrizzlePlayerRepository } from "../game/drizzle-player-repository";
@@ -161,6 +162,23 @@ describe("DrizzleCreatorProfileQuery (spec 039)", () => {
 		});
 		expect(await profiles.publicQuiz("ana", "private")).toBeNull();
 		expect(await profiles.publicQuiz("bia", "capitais")).toBeNull();
+	});
+
+	it("publicQuiz returns the owner's custom look (spec 043, RN-22)", async () => {
+		await testDb.db.insert(customTheme).values({
+			id: "theme-1",
+			ownerId: "ana",
+			name: "Escola Azul",
+			look: A_THEME_LOOK,
+			createdAt: new Date("2026-10-28T12:00:00.000Z"),
+			updatedAt: new Date("2026-10-28T12:00:00.000Z"),
+		});
+		await publish("capitais", { customThemeId: "theme-1" });
+		const profiles = createDrizzleCreatorProfileQuery(testDb.db);
+
+		expect((await profiles.publicQuiz("ana", "capitais"))?.customTheme).toEqual(
+			A_THEME_LOOK,
+		);
 	});
 
 	it("publicQuiz returns the quiz's theme (spec 042)", async () => {

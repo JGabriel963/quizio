@@ -3,15 +3,16 @@ import { endGame } from "@quizio/core/game/domain/game";
 import { removePlayer } from "@quizio/core/game/domain/player";
 import { aGame, aPlayer } from "@quizio/core/game/testing/a-game";
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { A_THEME_LOOK } from "@quizio/core/shared/testing/a-theme-look";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-
 import { user } from "../../schema/auth";
 import {
 	game as gameTable,
 	gamePlayer as playerTable,
 } from "../../schema/game";
 import { quiz as quizTable } from "../../schema/quiz";
+import { customTheme } from "../../schema/themes";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
 import { createDrizzleQuizRepository } from "../quiz/drizzle-quiz-repository";
 import { createDrizzleGameRepository } from "./drizzle-game-repository";
@@ -63,6 +64,24 @@ describe("game repositories (spec 008)", () => {
 			await games.create(game);
 
 			expect(await games.findById("game-1")).toEqual(game);
+		});
+
+		it("stores and reads the copied custom look (spec 043, RN-24)", async () => {
+			const game = aGame({ customTheme: A_THEME_LOOK });
+
+			await games.create(game);
+
+			expect(await games.findById("game-1")).toEqual(game);
+		});
+
+		it("a stored look the core does not read is no look (spec 043)", async () => {
+			await games.create(aGame());
+			await testDb.db
+				.update(gameTable)
+				.set({ customTheme: { kind: "sparkles" } })
+				.where(eq(gameTable.id, "game-1"));
+
+			expect((await games.findById("game-1"))?.customTheme).toBeNull();
 		});
 
 		it("a stored theme that left the catalog reads standard (spec 042, RN-05)", async () => {
@@ -432,10 +451,28 @@ describe("game repositories (spec 008)", () => {
 				version: 3,
 				trashed: false,
 				themeId: "teal",
+				customTheme: null,
 			});
 			expect(await query.find("draft")).toMatchObject({ version: null });
 			expect(await query.find("trashed")).toMatchObject({ trashed: true });
 			expect(await query.find("missing")).toBeNull();
+		});
+
+		it("joins the current custom look (spec 043, RN-24)", async () => {
+			const query = createDrizzlePlayableQuizQuery(testDb.db);
+			await testDb.db.insert(customTheme).values({
+				id: "theme-1",
+				ownerId: "user-1",
+				name: "Escola Azul",
+				look: A_THEME_LOOK,
+				createdAt: at("2026-05-01T00:00:00.000Z"),
+				updatedAt: at("2026-05-01T00:00:00.000Z"),
+			});
+			await quizzes.save(
+				aPublishedQuiz({ id: "quiz-1", customThemeId: "theme-1" }),
+			);
+
+			expect((await query.find("quiz-1"))?.customTheme).toEqual(A_THEME_LOOK);
 		});
 	});
 });

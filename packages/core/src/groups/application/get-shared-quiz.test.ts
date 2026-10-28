@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-
 import { aQuestion } from "../../quiz/testing/a-question";
+import {
+	A_THEME_LOOK,
+	aThemeLookView,
+} from "../../shared/testing/a-theme-look";
 import {
 	GroupNotFoundError,
 	SharedQuizNotFoundError,
@@ -70,11 +73,25 @@ describe("getSharedQuiz (spec 037, RN-16)", () => {
 			canUnshare: false,
 			// For the screen that opens a game from this page (spec 042, RN-13).
 			themeId: "red",
+			customTheme: null,
 		});
 		expect(
 			(await t.get({ userId: "ana", groupId: t.groupId, quizId: "capitais" }))
 				.ownedByViewer,
 		).toBe(true);
+	});
+
+	it("carries the owner's custom look without the logo (spec 043, RN-25)", async () => {
+		const t = await setup();
+		t.sharedQuizReads.updateQuiz("capitais", { customTheme: A_THEME_LOOK });
+
+		const view = await t.get({
+			userId: "carla",
+			groupId: t.groupId,
+			quizId: "capitais",
+		});
+
+		expect(view.customTheme).toEqual(aThemeLookView(false));
 	});
 
 	it("a quiz not shared or in the trash is GROUP.SHARED_QUIZ_NOT_FOUND (RN-23, RN-25)", async () => {

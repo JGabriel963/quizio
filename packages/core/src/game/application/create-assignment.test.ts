@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { A_THEME_LOOK } from "../../shared/testing/a-theme-look";
+
 import {
 	AssignmentDeadlinePassedError,
 	AssignmentDeadlineTooFarError,
@@ -45,6 +47,18 @@ describe("createAssignment theme (spec 042)", () => {
 		deps.quizzes[0] = aPlayableQuiz({ themeId: "light" });
 
 		expect((await deps.games.findById(gameId))?.themeId).toBe("blue");
+	});
+
+	it("copies the quiz's custom look, a shared quiz its owner's (spec 043, RN-24, RN-25)", async () => {
+		const deps = createGameDeps({
+			quizzes: [aPlayableQuiz({ customTheme: A_THEME_LOOK })],
+		});
+
+		const { gameId } = await createCreateAssignment(deps)(assign());
+
+		expect((await deps.games.findById(gameId))?.customTheme).toEqual(
+			A_THEME_LOOK,
+		);
 	});
 });
 

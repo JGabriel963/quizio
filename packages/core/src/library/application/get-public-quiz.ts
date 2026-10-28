@@ -4,6 +4,10 @@ import {
 	personView,
 } from "../../shared/application/person-view";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import {
+	type ThemeLookView,
+	themeLookView,
+} from "../../shared/application/theme-look-view";
 import type { ThemeId } from "../../shared/domain/theme";
 import { PublicQuizNotFoundError } from "../domain/profile-errors";
 import type { CreatorProfileQuery } from "./ports/creator-profile-query";
@@ -28,6 +32,8 @@ export interface PublicQuizView {
 	ownedByViewer: boolean;
 	/** For the screen that opens a game from this page (spec 042, RN-13). */
 	themeId: ThemeId;
+	/** The owner's custom look, without the logo (spec 043, RN-22). */
+	customTheme: ThemeLookView | null;
 }
 
 export type GetPublicQuiz = (input: {
@@ -70,6 +76,9 @@ export function createGetPublicQuiz(deps: {
 			imageUrls,
 			ownedByViewer: viewerId === ownerId,
 			themeId: detail.themeId,
+			customTheme: themeLookView(detail.customTheme, deps.storage, {
+				withLogo: false,
+			}),
 		};
 	};
 }

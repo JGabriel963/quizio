@@ -1,6 +1,7 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
 import type { ThemeId } from "../../shared/domain/theme";
+import type { ThemeLook } from "../../shared/domain/theme-look";
 import type { GameOptions } from "./game-options";
 import type { GameProgress } from "./game-progress";
 
@@ -87,6 +88,11 @@ export interface Game {
 	 * changes to the quiz never reach it, and nothing changes it.
 	 */
 	themeId: ThemeId;
+	/**
+	 * The look of the quiz's custom theme when the game was created (spec 043,
+	 * ADR 0022), or null: editing or deleting the theme never reaches it.
+	 */
+	customTheme: ThemeLook | null;
 }
 
 export class GameNotFoundError extends NotFoundError {
@@ -147,6 +153,8 @@ export function newGame(input: {
 	/** The ones the host saved, or the defaults (spec 012, RN-05, RN-07). */
 	options: GameOptions;
 	themeId: ThemeId;
+	/** The custom theme's look, copied as it is (spec 043, RN-24). */
+	customTheme?: ThemeLook | null;
 	now: Date;
 }): Game {
 	return {
@@ -172,6 +180,7 @@ export function newGame(input: {
 		// Whoever creates the game is on its screen.
 		hostSeenAt: input.now,
 		themeId: input.themeId,
+		customTheme: input.customTheme ?? null,
 	};
 }
 

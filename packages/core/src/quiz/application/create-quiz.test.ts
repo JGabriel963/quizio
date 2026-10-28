@@ -48,6 +48,7 @@ describe("createQuiz", () => {
 			publishedAt: null,
 			hasUnpublishedChanges: false,
 			themeId: "standard",
+			customThemeId: null,
 			questionCount: 1,
 			createdAt: clock.now(),
 			updatedAt: clock.now(),

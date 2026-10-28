@@ -110,6 +110,11 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Tema do quiz | `Quiz.themeId` | Tema escolhido no editor, salvo ao escolher e fora da versão jogável; Padrão quando não há outro (spec 042) | ✅ |
 | Tom do tema | `ThemeTone` | `dark` ou `light`; num tema claro o texto sobre o fundo fica escuro (spec 042) | ✅ |
 | Tema padrão | `standard` | O roxo de sempre do Quizio; vale para os quizzes e partidas de antes dos temas e para temas que saíram do catálogo (spec 042) | ✅ |
+| Tema personalizado | `CustomTheme` | Tema criado por um criador em "Seus temas": nome, fundo, cor de contraste e logotipo opcional; editá-lo muda os quizzes que o usam, não as partidas já criadas (spec 043) | ✅ |
+| Seus temas | — | Seção do painel "Temas" com os temas personalizados do criador e o "+" que abre "Crie seu tema" (spec 043) | ✅ |
+| Cor de contraste | `accentColor` | Cor de destaque de um tema personalizado, usada nos apelidos do lobby e nos blocos do pódio; precisa deixar o texto a 4,5:1 (spec 043) | ✅ |
+| Padrão de fundo | `BackgroundPattern` | Um dos 4 desenhos geométricos do Quizio para o fundo de um tema personalizado, pintado na cor do fundo escolhida (spec 043) | ✅ |
+| Logotipo do tema | `logo` | Imagem opcional de um tema personalizado, mostrada nas telas do anfitrião no lugar do nome do Quizio (spec 043) | ✅ |
 
 ## Game (partida ao vivo)
 

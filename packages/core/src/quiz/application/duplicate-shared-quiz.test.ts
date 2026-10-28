@@ -123,6 +123,17 @@ describe("duplicateSharedQuiz (spec 037, RN-21)", () => {
 		expect(copy.themeId).toBe("lilac");
 	});
 
+	it("a copy of someone else's quiz starts with standard (spec 043, RN-27)", async () => {
+		await quizzes.save(
+			aPublishedQuiz({ coverImageKey: COVER, customThemeId: "theme-1" }),
+		);
+
+		const copy = await duplicate({ userId: "carla", quizId: "quiz-1" });
+
+		expect(copy).toMatchObject({ themeId: "standard", customThemeId: null });
+		expect((await quizzes.findById(copy.id))?.customThemeId).toBeNull();
+	});
+
 	it("the copy of someone else's quiz is private (spec 039, RN-26)", async () => {
 		await quizzes.save(
 			aPublishedQuiz({ coverImageKey: COVER, visibility: "public" }),

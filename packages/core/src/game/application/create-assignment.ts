@@ -94,6 +94,7 @@ export function createCreateAssignment(deps: {
 				options,
 				questionCount: questions.length,
 				themeId: quiz.themeId,
+				customTheme: quiz.customTheme,
 				now,
 			});
 			if ((await deps.games.create(game)) === "created") {

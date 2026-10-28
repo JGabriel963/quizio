@@ -1,5 +1,9 @@
 import type { Clock } from "../../shared/application/ports/clock";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import {
+	type ThemeLookView,
+	themeLookView,
+} from "../../shared/application/theme-look-view";
 import type { ThemeId } from "../../shared/domain/theme";
 import { GameNotFoundError } from "../domain/game";
 import type { AssignmentLandingQuery } from "./ports/assignment-landing-query";
@@ -24,8 +28,15 @@ export type AssignmentCoverView =
 			questionCount: number;
 			/** Every screen of the assignment wears it (spec 042, RN-15). */
 			themeId: ThemeId;
+			/** The custom look it copied, without the logo (spec 043). */
+			customTheme: ThemeLookView | null;
 	  }
-	| { status: "ended"; name: string; themeId: ThemeId };
+	| {
+			status: "ended";
+			name: string;
+			themeId: ThemeId;
+			customTheme: ThemeLookView | null;
+	  };
 
 export type GetAssignmentCover = (input: {
 	gameId: string;
@@ -43,9 +54,17 @@ export function createGetAssignmentCover(deps: {
 			throw new GameNotFoundError("Assignment not found");
 		}
 		// A read model: past its deadline it is over, whoever stores that later.
+		const customTheme = themeLookView(record.customTheme, deps.storage, {
+			withLogo: false,
+		});
 		const remainingMs = record.expiresAt.getTime() - deps.clock.now().getTime();
 		if (record.endedAt !== null || remainingMs <= 0) {
-			return { status: "ended", name: record.name, themeId: record.themeId };
+			return {
+				status: "ended",
+				name: record.name,
+				themeId: record.themeId,
+				customTheme,
+			};
 		}
 		const participants = await deps.players.listActive(gameId);
 		return {
@@ -60,6 +79,7 @@ export function createGetAssignmentCover(deps: {
 				: null,
 			questionCount: record.questionCount,
 			themeId: record.themeId,
+			customTheme,
 		};
 	};
 }

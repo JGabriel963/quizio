@@ -1,9 +1,10 @@
 import { aPublishedQuiz, aQuiz } from "@quizio/core/quiz/testing/a-quiz";
+import { A_THEME_LOOK } from "@quizio/core/shared/testing/a-theme-look";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-
 import { user } from "../../schema/auth";
 import { quiz as quizTable } from "../../schema/quiz";
+import { customTheme } from "../../schema/themes";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
 import { createDrizzleQuizRepository } from "./drizzle-quiz-repository";
 
@@ -192,12 +193,43 @@ describe("DrizzleQuizRepository", () => {
 		await quizzes.save({ ...quiz, title: "Geografia" });
 		const later = new Date("2026-10-27T12:00:00.000Z");
 
-		await quizzes.saveTheme(quiz.id, { themeId: "teal", updatedAt: later });
+		await quizzes.saveTheme(quiz.id, {
+			themeId: "teal",
+			customThemeId: null,
+			updatedAt: later,
+		});
 
 		expect(await quizzes.findById(quiz.id)).toEqual({
 			...quiz,
 			title: "Geografia",
 			themeId: "teal",
+			updatedAt: later,
+		});
+	});
+
+	it("saveTheme writes the custom theme with the catalog id (spec 043)", async () => {
+		const quizzes = createDrizzleQuizRepository(testDb.db);
+		const quiz = aQuiz({ themeId: "red" });
+		await quizzes.save(quiz);
+		await testDb.db.insert(customTheme).values({
+			id: "theme-1",
+			ownerId: "user-1",
+			name: "Escola Azul",
+			look: A_THEME_LOOK,
+			createdAt: quiz.createdAt,
+			updatedAt: quiz.createdAt,
+		});
+		const later = new Date("2026-10-28T12:00:00.000Z");
+
+		await quizzes.saveTheme(quiz.id, {
+			themeId: "standard",
+			customThemeId: "theme-1",
+			updatedAt: later,
+		});
+
+		expect(await quizzes.findById(quiz.id)).toMatchObject({
+			themeId: "standard",
+			customThemeId: "theme-1",
 			updatedAt: later,
 		});
 	});

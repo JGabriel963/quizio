@@ -1,6 +1,5 @@
+import { worstContrast } from "@quizio/core/shared/domain/contrast";
 import { THEME_IDS } from "@quizio/core/shared/domain/theme";
-
-import { worstContrast } from "@/lib/contrast";
 import { themeOf, themeTone } from "@/lib/theme-catalog";
 
 import { GameScreen, Wordmark } from "./game-screen";

@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+
+import {
+	A_THEME_LOOK,
+	aThemeLookView,
+} from "../../shared/testing/a-theme-look";
 import { DEFAULT_ASSIGNMENT_OPTIONS } from "../domain/assignment";
 import { GamePinNotRecognizedError } from "../domain/game";
 import { PIN_ATTEMPT_WINDOW_MS } from "../domain/game-pin";
@@ -33,6 +38,18 @@ describe("findGameByPin theme (spec 042, RN-14)", () => {
 
 		expect(found.themeId).toBe("light-green");
 	});
+
+	it("returns the custom look without the logo (spec 043, RN-26)", async () => {
+		const deps = createGameDeps();
+		await deps.games.save(aGame({ customTheme: A_THEME_LOOK }));
+
+		const found = await createFindGameByPin(deps)({
+			pin: "265914",
+			clientKey: "ip",
+		});
+
+		expect(found.customTheme).toEqual(aThemeLookView(false));
+	});
 });
 
 describe("findGameByPin with assignments (spec 029, RN-20)", () => {
@@ -46,6 +63,7 @@ describe("findGameByPin with assignments (spec 029, RN-20)", () => {
 			pin: "04352236",
 			mode: "assignment",
 			themeId: "standard",
+			customTheme: null,
 		});
 	});
 
@@ -60,6 +78,7 @@ describe("findGameByPin with assignments (spec 029, RN-20)", () => {
 			pin: "04352236",
 			mode: "assignment",
 			themeId: "standard",
+			customTheme: null,
 		});
 		expect(
 			await deps.attempts.reserve(
@@ -98,6 +117,7 @@ describe("findGameByPin with assignments (spec 029, RN-20)", () => {
 			pin: "265914",
 			mode: "live",
 			themeId: "standard",
+			customTheme: null,
 		});
 	});
 });

@@ -1,5 +1,5 @@
-import type { ThemeId } from "@quizio/core/shared/domain/theme";
 import { Sheet, SheetContent, SheetTitle } from "@quizio/ui/components/sheet";
+import type { ComponentProps } from "react";
 
 import { ThemesPanel } from "./themes-panel";
 
@@ -14,10 +14,7 @@ export function ThemesSheet({
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	themeId: ThemeId;
-	savingId: ThemeId | null;
-	onSelect: (themeId: ThemeId) => void;
-}) {
+} & Omit<ComponentProps<typeof ThemesPanel>, "onClose" | "className">) {
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent

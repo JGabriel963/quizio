@@ -115,6 +115,7 @@ export function testSharedQuizReads(deps: {
 				participants: 0,
 				questions: version?.questions ?? [],
 				themeId: quiz.themeId,
+				customTheme: null,
 			};
 		},
 	};

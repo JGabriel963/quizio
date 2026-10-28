@@ -1,6 +1,7 @@
 import type { Question } from "../../../quiz/domain/question";
 import type { QuizVisibility } from "../../../quiz/domain/quiz-details";
 import type { ThemeId } from "../../../shared/domain/theme";
+import type { ThemeLook } from "../../../shared/domain/theme-look";
 import type { SharedQuizSort } from "../../domain/shared-quiz";
 
 /**
@@ -33,6 +34,8 @@ export interface SharedQuizDetail extends SharedQuizCard {
 	questions: Question[];
 	/** The quiz's theme, for the screen that opens a game (spec 042, RN-13). */
 	themeId: ThemeId;
+	/** The look of the owner's custom theme, or null (spec 043, RN-25). */
+	customTheme: ThemeLook | null;
 }
 
 /** Read model over the quiz, game and account tables. */

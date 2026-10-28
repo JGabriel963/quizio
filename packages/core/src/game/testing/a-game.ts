@@ -32,6 +32,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 		progress: null,
 		hostSeenAt: createdAt,
 		themeId: "standard",
+		customTheme: null,
 		...overrides,
 	};
 }

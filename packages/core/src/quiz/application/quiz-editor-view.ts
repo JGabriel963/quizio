@@ -1,4 +1,5 @@
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import type { ThemeLookView } from "../../shared/application/theme-look-view";
 import { copyQuestion, type Question } from "../domain/question";
 import type { Quiz } from "../domain/quiz";
 import type { QuizVersion } from "../domain/quiz-version";
@@ -23,6 +24,8 @@ export interface QuizEditorView {
 	 * key: questions carry keys only (spec 007).
 	 */
 	imageUrls: Record<string, string>;
+	/** The look of the quiz's custom theme, for the canvas (spec 043). */
+	customTheme: ThemeLookView | null;
 }
 
 /** A detached copy, so callers never share the aggregate's arrays. */
@@ -35,8 +38,10 @@ export function toQuizEditorView(
 	questions: readonly Question[],
 	version: QuizVersion | null,
 	storage: Pick<ObjectStorage, "getPublicUrl">,
+	customTheme: ThemeLookView | null,
 ): QuizEditorView {
 	return {
+		customTheme,
 		quiz: toQuizDetailsView(quiz, storage, questions.length),
 		questions: questions.map(toQuestionView),
 		publishedQuestions: version?.questions.map(toQuestionView) ?? null,

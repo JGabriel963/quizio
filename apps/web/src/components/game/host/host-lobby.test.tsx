@@ -26,6 +26,7 @@ const empty: HostGameData = {
 		gameCharacters: true,
 	},
 	themeId: "standard",
+	customTheme: null,
 	players: [],
 	questionCount: 0,
 	autoStart: null,

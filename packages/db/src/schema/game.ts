@@ -68,6 +68,12 @@ export const game = pgTable(
 		gameCharacters: boolean("game_characters").notNull().default(true),
 		/** The quiz's theme when the game was created; never changes (spec 042). */
 		themeId: text("theme_id").notNull().default("standard"),
+		/**
+		 * The custom theme's look as it was when the game was created (spec 043,
+		 * ADR 0022); not a foreign key, so editing or deleting the theme never
+		 * reaches the game.
+		 */
+		customTheme: jsonb("custom_theme"),
 		/** "Timer da pergunta": always on live; an assignment may turn it off (spec 029). */
 		questionTimer: boolean("question_timer").notNull().default(true),
 		/**

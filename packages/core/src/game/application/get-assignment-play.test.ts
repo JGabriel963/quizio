@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import {
+	A_THEME_LOOK,
+	aThemeLookView,
+} from "../../shared/testing/a-theme-look";
+
 import { DEFAULT_ASSIGNMENT_OPTIONS } from "../domain/assignment";
 import { GameNotFoundError } from "../domain/game";
 import { anAnswer } from "../testing/a-game-question";
@@ -61,6 +66,17 @@ describe("getAssignmentPlay theme (spec 042, RN-15)", () => {
 		await deps.games.save({ ...game, themeId: "teal" });
 
 		expect((await play()).themeId).toBe("teal");
+	});
+
+	it("the play view has the custom look without the logo (spec 043)", async () => {
+		const { deps, gameId, play } = await playing();
+		const game = await deps.games.findById(gameId);
+		if (!game) {
+			throw new Error("The assignment should exist");
+		}
+		await deps.games.save({ ...game, customTheme: A_THEME_LOOK });
+
+		expect((await play()).customTheme).toEqual(aThemeLookView(false));
 	});
 });
 

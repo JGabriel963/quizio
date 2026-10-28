@@ -1,4 +1,5 @@
 import type { ThemeId } from "../../../shared/domain/theme";
+import type { ThemeLook } from "../../../shared/domain/theme-look";
 /** What the activity's screen shows of an assignment (spec 029, RN-46, RN-47). */
 export interface AssignmentLandingRecord {
 	gameId: string;
@@ -15,6 +16,8 @@ export interface AssignmentLandingRecord {
 	questionCount: number;
 	/** Copied from the quiz when it was created (spec 042). */
 	themeId: ThemeId;
+	/** Copied from the quiz's custom theme when it was created (spec 043). */
+	customTheme: ThemeLook | null;
 }
 
 /**

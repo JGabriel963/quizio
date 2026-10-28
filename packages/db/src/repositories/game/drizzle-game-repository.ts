@@ -2,6 +2,7 @@ import type { GameRepository } from "@quizio/core/game/application/ports/game-re
 import type { Game } from "@quizio/core/game/domain/game";
 import { definedOptions } from "@quizio/core/game/domain/game-options";
 import { knownThemeId } from "@quizio/core/shared/domain/theme";
+import { readThemeLook } from "@quizio/core/shared/domain/theme-look";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { game as gameTable } from "../../schema/game";
@@ -29,6 +30,7 @@ function toGame(row: GameRow): Game {
 	return {
 		...game,
 		themeId: knownThemeId(game.themeId),
+		customTheme: readThemeLook(game.customTheme),
 		options: {
 			showQuestionsOnDevices,
 			randomizeQuestions,

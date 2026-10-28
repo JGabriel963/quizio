@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import type { Question } from "../../quiz/domain/question";
 import {
 	aPuzzleQuestion,
@@ -8,6 +7,10 @@ import {
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
 } from "../../quiz/testing/a-question";
+import {
+	A_THEME_LOOK,
+	aThemeLookView,
+} from "../../shared/testing/a-theme-look";
 import { aGame, aPlayer } from "../testing/a-game";
 import {
 	createGameDeps,
@@ -45,6 +48,16 @@ describe("getHostGame theme (spec 042)", () => {
 		const view = await createGetHostGame(deps)(mine);
 
 		expect(view.themeId).toBe("light-yellow");
+		expect(view.customTheme).toBeNull();
+	});
+
+	it("the host's view has the custom look with the logo (spec 043, RN-26)", async () => {
+		const deps = createGameDeps();
+		await deps.games.create(aGame({ customTheme: A_THEME_LOOK }));
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.customTheme).toEqual(aThemeLookView(true));
 	});
 });
 

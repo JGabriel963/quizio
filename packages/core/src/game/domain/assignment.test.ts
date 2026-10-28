@@ -39,6 +39,17 @@ describe("newAssignment", () => {
 	it("keeps the theme it was given (spec 042)", () => {
 		expect(anAssignment({ themeId: "beige" }).themeId).toBe("beige");
 	});
+
+	it("copies the custom look (spec 043, RN-24)", () => {
+		const look = {
+			background: { kind: "image", key: "themes/user-1/bg.jpg", tone: "light" },
+			accentColor: "#1368ce",
+			logoKey: null,
+		} as const;
+
+		expect(anAssignment({ customTheme: look }).customTheme).toEqual(look);
+		expect(anAssignment().customTheme).toBeNull();
+	});
 });
 
 describe("assignment deadline (spec 029, RN-08)", () => {

@@ -45,6 +45,12 @@ export interface Quiz {
 	 * part of the playable version: saved when chosen, like the visibility.
 	 */
 	themeId: ThemeId;
+	/**
+	 * One of the owner's custom themes (spec 043, ADR 0022), or null. While it
+	 * is set, `themeId` is `standard`, which is what is left when the theme is
+	 * deleted and the database clears this column (RN-19).
+	 */
+	customThemeId: string | null;
 	createdAt: Date;
 	updatedAt: Date;
 	trashedAt: Date | null;
@@ -80,6 +86,11 @@ export class UnknownThemeError extends DomainError {
 }
 
 /** Only themes of the catalog are chosen (spec 042, RN-05). */
+/** What the editor's "Temas" chooses (spec 042; spec 043). */
+export type QuizThemeChoice =
+	| { kind: "catalog"; themeId: string }
+	| { kind: "custom"; customThemeId: string };
+
 export function parseThemeId(value: string): ThemeId {
 	if (!isThemeId(value)) {
 		throw new UnknownThemeError(`Unknown theme: ${value}`);
@@ -106,6 +117,7 @@ export function newQuiz(input: {
 		publishedAt: null,
 		hasUnpublishedChanges: false,
 		themeId: DEFAULT_THEME_ID,
+		customThemeId: null,
 		createdAt: input.now,
 		updatedAt: input.now,
 		trashedAt: null,
@@ -258,8 +270,11 @@ export function copyQuiz(
 			coverImageKey: copy.coverImageKey,
 			now: copy.now,
 		}),
-		// Every copy keeps the look (spec 042, RN-08).
+		// Every copy keeps a ready-made look (spec 042, RN-08); a custom theme
+		// is its owner's, so only their own copy keeps it (spec 043, RN-27).
 		themeId: source.themeId,
+		customThemeId:
+			copy.ownerId === source.ownerId ? source.customThemeId : null,
 	};
 }
 

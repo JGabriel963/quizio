@@ -70,6 +70,15 @@ describe("duplicateQuiz", () => {
 		expect((await quizzes.findById(copy.id))?.themeId).toBe("lilac");
 	});
 
+	it("a copy of one's own quiz keeps the custom theme (spec 043, RN-27)", async () => {
+		await quizzes.save(aQuiz({ customThemeId: "theme-1" }));
+
+		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(copy.customThemeId).toBe("theme-1");
+		expect((await quizzes.findById(copy.id))?.customThemeId).toBe("theme-1");
+	});
+
 	it("copies quizzes without a cover without touching storage", async () => {
 		await quizzes.save(aQuiz());
 

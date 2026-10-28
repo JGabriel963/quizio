@@ -22,6 +22,7 @@ function editorWith(...ids: string[]): QuizEditorData {
 		questions: ids.map(question),
 		publishedQuestions: null,
 		imageUrls: {},
+		customTheme: null,
 	};
 }
 

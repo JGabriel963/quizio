@@ -3,10 +3,12 @@ import type { ObjectStorage } from "../../shared/application/ports/object-storag
 import { copyQuestion } from "../domain/question";
 import { markQuizChanges, QuizNotPublishedError } from "../domain/quiz";
 import { loadCurrentVersion, loadEditableQuiz } from "./editable-quiz";
+import type { CustomThemeReads } from "./ports/custom-theme-reads";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
 import type { QuizVersionRepository } from "./ports/quiz-version-repository";
 import { releaseUnusedImages } from "./question-images";
+import { quizCustomLook } from "./quiz-custom-look";
 import { type QuizEditorView, toQuizEditorView } from "./quiz-editor-view";
 import type { QuizReference } from "./quiz-reference";
 
@@ -20,6 +22,7 @@ export type DiscardQuizChanges = (
 
 export function createDiscardQuizChanges(deps: {
 	quizzes: QuizRepository;
+	customThemes: CustomThemeReads;
 	questions: QuestionRepository;
 	versions: Pick<QuizVersionRepository, "find" | "listByQuiz">;
 	storage: Pick<ObjectStorage, "getPublicUrl" | "delete">;
@@ -46,6 +49,12 @@ export function createDiscardQuizChanges(deps: {
 		// Images only the discarded draft used go away (spec 007, RN-36).
 		await releaseUnusedImages(deps, quiz.id, discarded, questions);
 
-		return toQuizEditorView(settled, questions, version, deps.storage);
+		return toQuizEditorView(
+			settled,
+			questions,
+			version,
+			deps.storage,
+			await quizCustomLook(deps, settled),
+		);
 	};
 }
