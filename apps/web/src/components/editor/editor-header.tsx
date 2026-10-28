@@ -3,6 +3,7 @@ import { Button } from "@quizio/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { LoaderCircleIcon, SettingsIcon } from "lucide-react";
 
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { QuizStatusBadge } from "@/components/quiz/quiz-status-badge";
 import { useSaveStatus, useSaveTracker } from "@/lib/save-tracker";
 
@@ -56,7 +57,7 @@ export function EditorHeader({
 					void afterSaving(() => onExit("home"));
 				}}
 			>
-				Quizio
+				<BrandLogo />
 			</Link>
 
 			<div className="flex min-w-0 items-center rounded-md border border-input bg-card pr-1">

@@ -40,6 +40,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 				rel: "stylesheet",
 				href: appCss,
 			},
+			// Versioned: browsers keep the 404 of the old /favicon.ico (and a
+			// replaced icon) for a long time. Bump it when the logo changes.
+			{ rel: "icon", href: "/favicon.ico?v=1" },
+			{ rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+			{ rel: "manifest", href: "/manifest.webmanifest" },
 		],
 	}),
 

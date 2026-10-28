@@ -2,6 +2,7 @@ import { Button } from "@quizio/ui/components/button";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { MenuIcon, PlusIcon } from "lucide-react";
 import AccountMenu from "@/components/account/account-menu";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { useCreateQuiz } from "@/components/layout/create-quiz-context";
 import { GlobalSearch } from "@/components/layout/global-search";
 
@@ -38,11 +39,13 @@ export function TopBar({
 					<MenuIcon />
 				</Button>
 
+				{/* The mark alone while the sidebar is hidden, so Criar and the
+				    account stay on the first row. */}
 				<Link
 					to="/"
 					className="shrink-0 font-black text-brand text-xl tracking-tight"
 				>
-					Quizio
+					<BrandLogo nameClassName="max-md:sr-only" />
 				</Link>
 
 				<div className="order-last flex w-full min-w-0 justify-center sm:order-none sm:w-auto sm:flex-1">

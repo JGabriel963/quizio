@@ -30,6 +30,14 @@
 
 A classe `.dark` define superfícies roxas para as telas de partida (lobby, pergunta, pódio). O app em si é claro, como o Kahoot.
 
+### Logo e favicon
+
+O original fica em `docs/brand/logo-original.webp`: um balão branco sobre fundo transparente, que **só aparece sobre superfície escura**. Por isso, nas telas claras ele vai sempre num quadrado com o gradiente `brand` → `brand-strong`:
+
+- **No app**: `BrandMark` (o quadrado, do tamanho do texto em volta) e `BrandLogo` (quadrado + "Quizio"), em `components/layout/brand-logo.tsx`, sobre `apps/web/public/logo-mark.webp` (o desenho recortado, 256 px). O nome acessível continua "Quizio".
+- **Favicon e ícones** (`apps/web/public`): `favicon.ico` (16, 32 e 48 px, cantos arredondados; nos tamanhos pequenos o desenho ocupa mais do quadrado), `apple-touch-icon.png` (180 px, quadrado inteiro: o iOS arredonda sozinho) e `icon-192.png`/`icon-512.png` do `manifest.webmanifest`. São gerados a partir do original; ao trocar a logo, gere todos de novo e suba o `?v=` do favicon em `routes/__root.tsx`, porque o navegador guarda o ícone (e o 404 de quando não havia um) pelo endereço.
+- As telas de jogo continuam com o `Wordmark` ("Quizio!" ou a logo do tema).
+
 ### Temas das telas de jogo (spec 042)
 
 O fundo das telas de jogo e do centro do editor vem do **tema** do quiz (`lib/theme-catalog.ts`, arte em `apps/web/public/themes`). O `GameScreen` escreve o tema em variáveis CSS, e o que fica **direto sobre o fundo** usa estes tokens, nunca `text-white` ou `bg-brand-strong`:

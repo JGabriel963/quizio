@@ -7,6 +7,7 @@ import {
 	ConnectAgentScreen,
 	type ConnectAgentState,
 } from "@/components/agents/connect-agent-screen";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { readAgentConnectRequest } from "@/functions/agent-connect-request";
 import { getUser } from "@/functions/get-user";
 import { authClient } from "@/lib/auth-client";
@@ -82,7 +83,7 @@ function ConnectPage() {
 			/>
 			<header className="px-4 py-3">
 				<Link to="/" className="font-black text-2xl text-brand tracking-tight">
-					Quizio
+					<BrandLogo />
 				</Link>
 			</header>
 			<main className="flex flex-1 flex-col items-center px-4 pt-6 pb-16 sm:pt-[10vh]">

@@ -9,6 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 import { AgentsSidebarNotice } from "@/components/agents/agents-sidebar-card";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { MainNav } from "@/components/layout/main-nav";
 import { TopBar } from "@/components/layout/top-bar";
 
@@ -68,7 +69,7 @@ export function AppShell({
 								onClick={() => setNavOpen(false)}
 								className="font-black text-brand text-xl tracking-tight"
 							>
-								Quizio
+								<BrandLogo />
 							</Link>
 						</SheetHeader>
 						<SheetBody className="flex flex-col gap-6 px-3">
