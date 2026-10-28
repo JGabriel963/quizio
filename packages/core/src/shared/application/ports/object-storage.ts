@@ -13,6 +13,17 @@ export interface ObjectStorage {
 	exists(key: string): Promise<boolean>;
 	/** The object's bytes, or null when it is missing (spec 027: the assistant reads a PDF). */
 	read(key: string): Promise<Uint8Array | null>;
+	/**
+	 * Writes an object from the server: only a file an AI agent gave by link,
+	 * the one case where bytes pass through a function (spec 044, ADR 0023).
+	 */
+	put(
+		key: string,
+		bytes: Uint8Array,
+		contentType: string,
+		/** Served with it, as a presigned upload would sign it (ADR 0017). */
+		contentDisposition?: string,
+	): Promise<void>;
 	/** Idempotent: deleting a missing object succeeds. */
 	delete(key: string): Promise<void>;
 	/** Server-side copy, so two owners of the same image can delete independently. */

@@ -216,7 +216,7 @@ function parseSliderValue(value: number | null): number | null {
 	return parseSliderNumber(String(value));
 }
 
-function parseAnswerMargin(margin: string) {
+export function parseAnswerMargin(margin: string) {
 	if (!(ANSWER_MARGINS as readonly string[]).includes(margin)) {
 		throw new InvalidAnswerMarginError(
 			`Answer margin "${margin}" is not supported`,
@@ -383,7 +383,10 @@ function setSliderNumber(
  * examples: 600 → 580 to 630, 430 → 420 to 470, 10 → 0 to 50. Counted in
  * hundredths, so 20.5 starts at 20, not one interval lower.
  */
-function sliderRangeAround(answer: number): { min: number; max: number } {
+export function sliderRangeAround(answer: number): {
+	min: number;
+	max: number;
+} {
 	const hundredths = Math.round(answer * 100);
 	const min = (Math.floor((hundredths - 1) / 2000) * 2000) / 100;
 	return { min, max: min + 50 };

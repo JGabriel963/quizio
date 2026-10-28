@@ -99,6 +99,20 @@ export function createS3ObjectStorage(
 			return `${publicBaseUrl}/${encodeKey(key)}`;
 		},
 
+		/** A file an AI agent gave by link (spec 044, RN-24; ADR 0023). */
+		async put(key, bytes, contentType, contentDisposition) {
+			await client.send(
+				new PutObjectCommand({
+					Bucket: config.bucket,
+					Key: key,
+					Body: bytes,
+					ContentType: contentType,
+					ContentLength: bytes.byteLength,
+					ContentDisposition: contentDisposition,
+				}),
+			);
+		},
+
 		async exists(key) {
 			try {
 				await client.send(

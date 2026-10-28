@@ -1,6 +1,25 @@
 import { Progress } from "@quizio/ui/components/progress";
+import { Link } from "@tanstack/react-router";
 
 import { timeUntil } from "@/lib/time-until";
+
+/** The person's own agent does the same through Quizio's tools (spec 044). */
+function OwnAgentHint() {
+	return (
+		<p className="border-border border-t pt-3 text-muted-foreground text-sm">
+			Prefere usar seu próprio agente de IA? Conecte o ChatGPT, o Claude ou
+			outro em{" "}
+			<Link
+				to="/settings"
+				search={{ section: "agents" }}
+				className="font-semibold text-primary hover:underline"
+			>
+				Agentes de IA
+			</Link>
+			.
+		</p>
+	);
+}
 
 /**
  * Acesso à IA (spec 039, RN-17 to RN-19): read only. The quota is the
@@ -18,8 +37,9 @@ export function AiAccessSection({
 }) {
 	if (!status.enabled) {
 		return (
-			<section className="rounded-lg bg-card p-6 shadow-sm">
+			<section className="flex flex-col gap-3 rounded-lg bg-card p-6 shadow-sm">
 				<p>O assistente de criação não está disponível neste Quizio.</p>
+				<OwnAgentHint />
 			</section>
 		);
 	}
@@ -47,6 +67,7 @@ export function AiAccessSection({
 					.
 				</p>
 			)}
+			<OwnAgentHint />
 		</section>
 	);
 }

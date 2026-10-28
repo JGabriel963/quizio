@@ -432,6 +432,56 @@ describe("createAuth", () => {
 			expect(statuses[5]).toBe(429);
 		});
 
+		it("changing the password calls onPasswordChanged with the user (spec 044, RN-17)", async () => {
+			const changedFor: string[] = [];
+			const watched = httpClient(
+				createAuth(
+					options({
+						onPasswordChanged: async (userId) => {
+							changedFor.push(userId);
+						},
+					}),
+				),
+			);
+			const signUp = await watched.signUp(ana);
+			const cookie = sessionCookie(signUp);
+
+			const wrong = await watched.post(
+				"/change-password",
+				{ currentPassword: "errada123", newPassword: "novasenha1" },
+				cookie,
+			);
+			expect(wrong.status).toBe(400);
+			expect(changedFor).toEqual([]);
+
+			const changed = await watched.post(
+				"/change-password",
+				{ currentPassword: ana.password, newPassword: "novasenha1" },
+				cookie,
+			);
+
+			expect(changed.status).toBe(200);
+			expect(changedFor).toEqual([signUp.body?.user?.id]);
+		});
+
+		it("signing out does not call onPasswordChanged", async () => {
+			const changedFor: string[] = [];
+			const watched = httpClient(
+				createAuth(
+					options({
+						onPasswordChanged: async (userId) => {
+							changedFor.push(userId);
+						},
+					}),
+				),
+			);
+			const cookie = sessionCookie(await watched.signUp(ana));
+
+			await watched.post("/sign-out", {}, cookie);
+
+			expect(changedFor).toEqual([]);
+		});
+
 		it("signing up again with a deleted account's email starts empty", async () => {
 			await client.signUp(ana);
 			await testDb.db.delete(user);

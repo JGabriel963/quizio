@@ -84,6 +84,7 @@ test.describe("conta e perfil (spec 039)", () => {
 		const menu = await openAccountMenu(page, name);
 		await expect(menu.getByRole("menuitem")).toHaveText([
 			"Ver perfil",
+			"Agentes de IA",
 			"Configurações",
 			"Encerrar sessão",
 		]);

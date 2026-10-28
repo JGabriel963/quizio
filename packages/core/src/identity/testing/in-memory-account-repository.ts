@@ -15,6 +15,13 @@ export class InMemoryAccountRepository implements AccountRepository {
 		return account ? { ...account } : null;
 	}
 
+	async rename(userId: string, name: string): Promise<void> {
+		const account = this.#accounts.get(userId);
+		if (account) {
+			account.name = name;
+		}
+	}
+
 	async delete(userId: string): Promise<void> {
 		this.#accounts.delete(userId);
 	}

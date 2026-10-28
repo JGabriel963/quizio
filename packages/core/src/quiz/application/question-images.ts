@@ -17,6 +17,17 @@ export async function assertUsableImage(
 	}
 }
 
+/** Every image of the questions is a usable upload of the owner (spec 044, RN-24). */
+export async function assertUsableImages(
+	storage: Pick<ObjectStorage, "exists">,
+	questions: readonly Question[],
+	ownerId: string,
+): Promise<void> {
+	for (const key of imageKeysOf(questions)) {
+		await assertUsableImage(storage, key, ownerId);
+	}
+}
+
 /** The distinct image files a question list uses. */
 export function imageKeysOf(questions: readonly Question[]): string[] {
 	return [

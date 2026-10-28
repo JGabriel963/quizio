@@ -23,9 +23,14 @@ export function SettingsLayout({
 		<div className="flex flex-col gap-6 lg:-mx-4 lg:-my-6 lg:min-h-[calc(100%+3rem)] lg:flex-row lg:gap-0">
 			<nav
 				aria-label="Configurações"
-				className="shrink-0 overflow-x-auto border-border border-b lg:w-56 lg:border-r lg:border-b-0 lg:bg-card lg:px-3 lg:py-4"
+				className="shrink-0 border-border border-b max-lg:overflow-x-auto lg:w-56 lg:border-r lg:border-b-0 lg:bg-card lg:px-3 lg:py-4"
 			>
-				<ul className="flex gap-1 lg:flex-col">
+				{/* Stays in view while the section scrolls, as the groups' column:
+				    sticky counts from inside the content's 1.5rem padding, which
+				    this layout takes back, so -0.5rem keeps the column's 1rem.
+				    Only the narrow row of tabs scrolls sideways: an overflow on
+				    the column would make it the box the list sticks in. */}
+				<ul className="flex gap-1 lg:sticky lg:-top-2 lg:flex-col">
 					{ACCOUNT_SECTIONS.map((item) => {
 						const current = item === section;
 						return (

@@ -17,8 +17,12 @@
 		"@quizio/core": "workspace:*",
 		"@quizio/db": "workspace:*",
 		"@quizio/env": "workspace:*",
+		"@better-auth/cimd": "catalog:",
+		"@better-auth/mcp": "catalog:",
+		"@better-auth/oauth-provider": "catalog:",
 		"@tanstack/react-start": "catalog:",
 		"better-auth": "catalog:",
+		"jose": "^6.2.12",
 		"dotenv": "catalog:",
 		"zod": "catalog:"
 	},

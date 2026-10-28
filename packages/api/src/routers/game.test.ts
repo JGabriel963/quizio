@@ -1108,7 +1108,7 @@ describe("game router: avatars (spec 028)", () => {
 				secret: player.secret,
 			}),
 		).toMatchObject({ avatar: null, canChangeAvatar: false });
-		expect(api.realtime.messages.at(-1)).toMatchObject({
+		expect(api.realtime.messages).toContainEqual({
 			channel: gameChannel(gameId),
 			event: GAME_EVENTS.charactersChanged,
 			payload: { on: false },

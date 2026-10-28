@@ -10,7 +10,7 @@ import {
 import { Skeleton } from "@quizio/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { LogOutIcon, SettingsIcon } from "lucide-react";
+import { BotIcon, LogOutIcon, SettingsIcon } from "lucide-react";
 
 import { UserAvatar } from "@/components/account/user-avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -26,8 +26,8 @@ interface MenuAccount {
 
 /**
  * The account menu, opened by the photo in the top bar (spec 039, RN-01,
- * RN-02): the photo, the name, the email and Ver perfil, then Configurações
- * and Encerrar sessão. Nothing about plans.
+ * RN-02): the photo, the name, the email and Ver perfil, then Agentes de IA
+ * (spec 044), Configurações and Encerrar sessão. Nothing about plans.
  */
 export function AccountMenuView({
 	account,
@@ -73,6 +73,12 @@ export function AccountMenuView({
 					</DropdownMenuItem>
 				</div>
 				<DropdownMenuGroup className="p-1">
+					<DropdownMenuItem
+						render={<Link to="/settings" search={{ section: "agents" }} />}
+					>
+						<BotIcon />
+						Agentes de IA
+					</DropdownMenuItem>
 					<DropdownMenuItem
 						render={<Link to="/settings" search={{ section: "profile" }} />}
 					>
