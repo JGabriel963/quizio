@@ -25,12 +25,15 @@ export interface GroupFeedQuery {
 		page?: { limit: number; after: GroupFeedCursor | null },
 	): Promise<GroupPostRecord[]>;
 	/**
-	 * The group's assignment posts only, newest first, at most `limit`: the
-	 * Atribuições tab reads these, so no number of messages slows it (audit L9).
+	 * The posts whose assignment is still open at `now` (not ended, its
+	 * deadline ahead, as `isAssignmentOpen` says), newest first, at most
+	 * `limit`: the Atribuições tab reads these, so neither messages nor
+	 * assignments that are over take an open one's place (audit L9).
 	 */
-	listAssignmentPosts(
+	listOpenAssignmentPosts(
 		groupId: string,
 		viewerId: string,
+		now: Date,
 		limit: number,
 	): Promise<GroupPostRecord[]>;
 	/** One post of the group, for its own page (spec 040, RN-19). */

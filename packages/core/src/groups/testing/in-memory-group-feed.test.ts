@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { GroupPost } from "../domain/group-post";
 import { adminOf, aGroup } from "./a-group";
+import { InMemoryGroupAssignments } from "./in-memory-group-assignments";
 import { InMemoryGroupStore } from "./in-memory-group-store";
 
 const at = (minute: number) =>
@@ -79,31 +80,49 @@ describe("InMemoryGroupStore, the feed (spec 038)", () => {
 		]);
 	});
 
-	it("lists only the assignment posts, newest first, up to the limit (audit L9)", async () => {
+	it("lists the posts of the assignments still open, newest first, up to the limit (audit L9)", async () => {
 		const store = await setup();
+		const assignments = new InMemoryGroupAssignments();
+		store.readAssignmentsWith(assignments);
+		const record = (gameId: string, expiresAt: Date, endedAt: Date | null) =>
+			assignments.put({
+				gameId,
+				ownerId: "ana",
+				ownerName: "Ana",
+				name: gameId,
+				questionCount: 5,
+				coverImageKey: null,
+				expiresAt,
+				endedAt,
+			});
+		const now = at(30);
+		record("game-open-old", at(59), null);
+		record("game-open-new", at(59), null);
+		record("game-expired", at(10), null);
+		record("game-ended", at(59), at(20));
+		for (const [id, gameId, minute] of [
+			["open-old", "game-open-old", 1],
+			["open-new", "game-open-new", 2],
+			["expired", "game-expired", 3],
+			["ended", "game-ended", 4],
+		] as const) {
+			await store.createPost(aPost({ id, gameId, createdAt: at(minute) }));
+		}
 		await store.createPost(
-			aPost({ id: "a1", gameId: "game-a1", createdAt: at(1) }),
-		);
-		await store.createPost(
-			aPost({
-				id: "m1",
-				kind: "message",
-				gameId: null,
-				message: "Oi",
-				createdAt: at(2),
-			}),
-		);
-		await store.createPost(
-			aPost({ id: "a2", gameId: "game-a2", createdAt: at(3) }),
-		);
-		await store.createPost(
-			aPost({ id: "a3", gameId: "game-a3", createdAt: at(4) }),
+			aPost({ id: "message", kind: "message", gameId: null, createdAt: at(5) }),
 		);
 
-		const listed = await store.listAssignmentPosts("g1", "bruno", 2);
-
-		expect(listed.map((post) => post.id)).toEqual(["a3", "a2"]);
-		expect(listed[0]).toMatchObject({ authorName: "Ana", likeCount: 0 });
+		// The newer posts whose assignment is over never take an open one's place.
+		expect(
+			(await store.listOpenAssignmentPosts("g1", "bruno", now, 1)).map(
+				(post) => post.id,
+			),
+		).toEqual(["open-new"]);
+		expect(
+			(await store.listOpenAssignmentPosts("g1", "bruno", now, 5)).map(
+				(post) => post.id,
+			),
+		).toEqual(["open-new", "open-old"]);
 	});
 
 	it("deleting a post or the group takes its likes", async () => {

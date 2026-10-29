@@ -15,6 +15,7 @@ import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-pl
 import { InMemoryReviewResultsWriter } from "@quizio/core/game/testing/in-memory-review-results-writer";
 import { SequentialAssignmentPinGenerator } from "@quizio/core/game/testing/sequential-assignment-pin-generator";
 import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
+import type { GroupAssignmentQuery } from "@quizio/core/groups/application/ports/group-assignments";
 import { InMemoryGroupStore } from "@quizio/core/groups/testing/in-memory-group-store";
 import { SequentialInviteCodeGenerator } from "@quizio/core/groups/testing/sequential-invite-code-generator";
 import { FakeAccountCredentials } from "@quizio/core/identity/testing/fake-account-credentials";
@@ -145,6 +146,34 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const mediaUploads = new InMemoryMediaUploads();
 	const assignmentLanding = new InMemoryAssignmentLandingQuery(games, players);
 	const groups = new InMemoryGroupStore();
+	// Reads the games above, as the database adapter reads its tables.
+	const groupAssignmentQuery: GroupAssignmentQuery = {
+		findAssignments: async (gameIds) => {
+			const records = await Promise.all(
+				gameIds.map(async (gameId) => {
+					const game = await games.findById(gameId);
+					if (game?.mode !== "assignment") {
+						return [];
+					}
+					const quiz = await quizzes.findById(game.quizId);
+					return [
+						{
+							gameId: game.id,
+							ownerId: game.ownerId,
+							ownerName: groups.userName(game.ownerId),
+							name: game.title,
+							questionCount: game.questionCount,
+							coverImageKey: quiz?.coverImageKey ?? null,
+							expiresAt: game.expiresAt,
+							endedAt: game.endedAt,
+						},
+					];
+				}),
+			);
+			return records.flat();
+		},
+	};
+	groups.readAssignmentsWith(groupAssignmentQuery);
 	const accounts = new InMemoryAccountRepository();
 	const credentials = new FakeAccountCredentials();
 	const profilePhotos = new InMemoryProfilePhotoRepository();
@@ -221,33 +250,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		groupPosts: groups,
 		groupFeed: groups,
 		groupUploads: groups,
-		// Reads the games above, as the database adapter reads its tables.
-		groupAssignmentQuery: {
-			findAssignments: async (gameIds) => {
-				const records = await Promise.all(
-					gameIds.map(async (gameId) => {
-						const game = await games.findById(gameId);
-						if (game?.mode !== "assignment") {
-							return [];
-						}
-						const quiz = await quizzes.findById(game.quizId);
-						return [
-							{
-								gameId: game.id,
-								ownerId: game.ownerId,
-								ownerName: groups.userName(game.ownerId),
-								name: game.title,
-								questionCount: game.questionCount,
-								coverImageKey: quiz?.coverImageKey ?? null,
-								expiresAt: game.expiresAt,
-								endedAt: game.endedAt,
-							},
-						];
-					}),
-				);
-				return records.flat();
-			},
-		},
+		groupAssignmentQuery,
 		groupSharedQuizzes: groups,
 		sharedQuizReads: testSharedQuizReads({ quizzes, versions, groups, games }),
 		quizShareGrants: testQuizShareGrants(groups, quizzes),

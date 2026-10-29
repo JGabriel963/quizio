@@ -41,6 +41,7 @@ export function groupsTestDeps() {
 		});
 	}
 	// Quizzes the groups may share and read (spec 037).
+	store.readAssignmentsWith(assignments);
 	const sharedQuizReads = new InMemorySharedQuizReads(store);
 	const inbox = new RecordingGroupInbox();
 	const deps = {

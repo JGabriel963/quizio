@@ -36,9 +36,10 @@ export function createListGroupAssignments(
 ): ListGroupAssignments {
 	return async ({ sort, ...input }) => {
 		const { membership } = await requireMembership(deps, input);
-		const posts = await deps.groupFeed.listAssignmentPosts(
+		const posts = await deps.groupFeed.listOpenAssignmentPosts(
 			input.groupId,
 			input.userId,
+			deps.clock.now(),
 			GROUP_ASSIGNMENTS_READ_LIMIT,
 		);
 		const views = await postViewsOf(deps, posts, membership);
