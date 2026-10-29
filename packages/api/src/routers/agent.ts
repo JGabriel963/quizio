@@ -24,7 +24,7 @@ export const agentRouter = router({
 		),
 
 	revokeKey: protectedProcedure
-		.input(z.object({ keyId: z.string().min(1) }))
+		.input(z.object({ keyId: z.string().min(1).max(10_000) }))
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.revokeAccessKey({
 				ownerId: ctx.session.user.id,
@@ -33,7 +33,7 @@ export const agentRouter = router({
 		),
 
 	disconnect: protectedProcedure
-		.input(z.object({ connectionId: z.string().min(1) }))
+		.input(z.object({ connectionId: z.string().min(1).max(10_000) }))
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.disconnectAgent({
 				ownerId: ctx.session.user.id,

@@ -79,6 +79,33 @@ describe("InMemoryGroupStore, the feed (spec 038)", () => {
 		]);
 	});
 
+	it("lists only the assignment posts, newest first, up to the limit (audit L9)", async () => {
+		const store = await setup();
+		await store.createPost(
+			aPost({ id: "a1", gameId: "game-a1", createdAt: at(1) }),
+		);
+		await store.createPost(
+			aPost({
+				id: "m1",
+				kind: "message",
+				gameId: null,
+				message: "Oi",
+				createdAt: at(2),
+			}),
+		);
+		await store.createPost(
+			aPost({ id: "a2", gameId: "game-a2", createdAt: at(3) }),
+		);
+		await store.createPost(
+			aPost({ id: "a3", gameId: "game-a3", createdAt: at(4) }),
+		);
+
+		const listed = await store.listAssignmentPosts("g1", "bruno", 2);
+
+		expect(listed.map((post) => post.id)).toEqual(["a3", "a2"]);
+		expect(listed[0]).toMatchObject({ authorName: "Ana", likeCount: 0 });
+	});
+
 	it("deleting a post or the group takes its likes", async () => {
 		const store = await setup();
 		await store.createPost(aPost());

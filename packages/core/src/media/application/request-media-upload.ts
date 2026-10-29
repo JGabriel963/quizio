@@ -1,11 +1,16 @@
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import {
+	reserveUpload,
+	type UploadLimitDeps,
+} from "../../shared/application/upload-limit";
 import { mediaKeyFor } from "../../shared/domain/media-key";
 import {
 	assertMediaContentType,
 	assertMediaSize,
 	MEDIA_EXTENSIONS,
 } from "../domain/media-policy";
+import { type MediaUploadDeps, recordMediaUpload } from "./media-uploads";
 
 const UPLOAD_URL_TTL_SECONDS = 300;
 
@@ -30,21 +35,27 @@ export type RequestMediaUpload = (
 /**
  * Validates an upload against the media policy and returns a presigned URL so
  * the browser uploads straight to object storage — file bytes never pass
- * through our serverless functions.
+ * through our serverless functions. Each upload counts against the person's
+ * hour and is recorded, so one nothing used is deleted a day later (audit L4).
  */
-export function createRequestMediaUpload(deps: {
-	storage: ObjectStorage;
-	ids: IdGenerator;
-}): RequestMediaUpload {
+export function createRequestMediaUpload(
+	deps: {
+		storage: ObjectStorage;
+		ids: IdGenerator;
+	} & MediaUploadDeps &
+		UploadLimitDeps,
+): RequestMediaUpload {
 	return async ({ ownerId, contentType, sizeBytes }) => {
 		const mediaType = assertMediaContentType(contentType);
 		assertMediaSize(sizeBytes);
+		await reserveUpload(deps, ownerId);
 
 		const key = mediaKeyFor(
 			ownerId,
 			deps.ids.generate(),
 			MEDIA_EXTENSIONS[mediaType],
 		);
+		await recordMediaUpload(deps, { key, ownerId });
 		const upload = await deps.storage.createPresignedUpload({
 			key,
 			contentType: mediaType,

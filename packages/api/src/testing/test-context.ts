@@ -24,11 +24,13 @@ import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/l
 import { InMemoryCreatorProfileQuery } from "@quizio/core/library/testing/in-memory-creator-profile-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
 import { FakeRemoteFiles } from "@quizio/core/media/testing/fake-remote-files";
+import { InMemoryMediaUploads } from "@quizio/core/media/testing/in-memory-media-uploads";
 import { InMemorySourceUploadRepository } from "@quizio/core/media/testing/in-memory-source-upload-repository";
 import { FixedInboxChannels } from "@quizio/core/notifications/testing/fixed-inbox-channels";
 import { InMemoryGroupNoticeRepository } from "@quizio/core/notifications/testing/in-memory-group-notice-repository";
 import { InMemoryNotificationInbox } from "@quizio/core/notifications/testing/in-memory-notification-inbox";
 import { InMemoryNotificationQuery } from "@quizio/core/notifications/testing/in-memory-notification-query";
+import { DEFAULT_CREDIT_PRICING } from "@quizio/core/quiz/domain/generation-credits";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
 import { quizSearchText } from "@quizio/core/quiz/domain/quiz-details";
 import { FakePdfPages } from "@quizio/core/quiz/testing/fake-pdf-pages";
@@ -81,6 +83,8 @@ export interface TestApi {
 	/** The assistant's model, answering with three valid questions by default. */
 	generator: InMemoryQuestionGenerator;
 	sourceUploads: InMemorySourceUploadRepository;
+	/** Images and photos sent; `use(key)` marks one in use (audit L4). */
+	mediaUploads: InMemoryMediaUploads;
 	/** Reads the games above; the reports' and creators' names are set here. */
 	assignmentLanding: InMemoryAssignmentLandingQuery;
 	/** Every groups port; add the accounts the screens name with `addUser`. */
@@ -138,6 +142,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const clock = new FixedClock("2026-06-01T12:00:00.000Z");
 	const generator = new InMemoryQuestionGenerator();
 	const sourceUploads = new InMemorySourceUploadRepository();
+	const mediaUploads = new InMemoryMediaUploads();
 	const assignmentLanding = new InMemoryAssignmentLandingQuery(games, players);
 	const groups = new InMemoryGroupStore();
 	const accounts = new InMemoryAccountRepository();
@@ -201,7 +206,13 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		generationQuota: new InMemoryGenerationQuota(),
 		assistantPreferences: new InMemoryAssistantPreferencesRepository(),
 		sourceUploads,
-		assistantSettings: { generationsPerDay: 20 },
+		mediaUploads,
+		mediaUsage: mediaUploads,
+		assistantSettings: {
+			creditsPerDay: 20,
+			instanceCreditsPerDay: 1000,
+			pricing: DEFAULT_CREDIT_PRICING,
+		},
 		groups,
 		groupMembers: groups,
 		groupVisits: groups,
@@ -297,6 +308,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		clock,
 		generator,
 		sourceUploads,
+		mediaUploads,
 		assignmentLanding,
 		groups,
 		accounts,

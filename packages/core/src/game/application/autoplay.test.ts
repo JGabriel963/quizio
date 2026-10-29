@@ -26,7 +26,7 @@ async function lobby(autoplay = true) {
 		}),
 	);
 	const join = (nickname: string) =>
-		createJoinGame(deps)({ gameId: "game-1", nickname });
+		createJoinGame(deps)({ clientKey: "ip", gameId: "game-1", nickname });
 	const view = () => createGetHostGame(deps)(mine);
 	return { deps, join, view };
 }

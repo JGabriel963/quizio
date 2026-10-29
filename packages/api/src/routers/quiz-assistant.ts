@@ -8,14 +8,14 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../index";
 
 // Shapes only: limits, allowed counts and every question rule are the core's.
-const quizReference = z.object({ quizId: z.string().min(1) });
+const quizReference = z.object({ quizId: z.string().min(1).max(10_000) });
 
 const source = z.discriminatedUnion("kind", [
 	// A little above the 20,000 graphemes the core allows, which can be more code units.
 	z.object({ kind: z.literal("topic"), text: z.string().max(100_000) }),
 	z.object({
 		kind: z.literal("pdf"),
-		key: z.string().min(1),
+		key: z.string().min(1).max(10_000),
 		pages: z.array(z.number().int()).max(60),
 	}),
 ]);
@@ -31,14 +31,14 @@ const options = z.object({
 const generatedQuestion = z.discriminatedUnion("type", [
 	z.object({
 		type: z.literal("quiz"),
-		text: z.string(),
+		text: z.string().max(10_000),
 		choices: z
-			.array(z.object({ text: z.string(), correct: z.boolean() }))
+			.array(z.object({ text: z.string().max(10_000), correct: z.boolean() }))
 			.max(16),
 	}),
 	z.object({
 		type: z.literal("trueFalse"),
-		text: z.string(),
+		text: z.string().max(10_000),
 		correct: z.boolean(),
 	}),
 ]);

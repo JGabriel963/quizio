@@ -1,6 +1,8 @@
+import type { AttemptLimiter } from "../../shared/application/ports/attempt-limiter";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import { reserveUpload } from "../../shared/application/upload-limit";
 import { sourceKeyFor } from "../../shared/domain/media-key";
 import {
 	assertSourceContentType,
@@ -42,10 +44,13 @@ export function createRequestSourceUpload(deps: {
 	sourceUploads: SourceUploadRepository;
 	ids: IdGenerator;
 	clock: Clock;
+	attempts: AttemptLimiter;
 }): RequestSourceUpload {
 	return async ({ ownerId, contentType, sizeBytes }) => {
 		const mediaType = assertSourceContentType(contentType);
 		assertSourceSize(sizeBytes);
+		// One more of the person's uploads of the hour (audit L4).
+		await reserveUpload(deps, ownerId);
 
 		const now = deps.clock.now();
 		const expired = await deps.sourceUploads.takeExpired(

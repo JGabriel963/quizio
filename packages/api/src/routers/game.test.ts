@@ -2,6 +2,7 @@ import {
 	AUTOPLAY_ADVANCE_MS,
 	AUTOPLAY_START_MS,
 } from "@quizio/core/game/domain/autoplay";
+import { JOIN_LIMIT_PER_NETWORK } from "@quizio/core/game/domain/game";
 import { GAME_EVENTS, gameChannel } from "@quizio/core/game/domain/game-events";
 import { PIN_ATTEMPT_LIMIT } from "@quizio/core/game/domain/game-pin";
 import { QUESTION_INTRO_MS } from "@quizio/core/game/domain/game-progress";
@@ -266,6 +267,38 @@ describe("game router: the player (spec 008)", () => {
 		await expect(
 			api.callerFor(null, "198.51.100.8").game.join.find({ pin }),
 		).resolves.toMatchObject({ pin });
+	});
+
+	it("limits the players a network creates in a game (spec 008, RN-45a)", async () => {
+		const { api, gameId } = await hosted();
+		const sameNetwork = api.callerFor(null, "198.51.100.7");
+		for (let index = 0; index < JOIN_LIMIT_PER_NETWORK; index++) {
+			await sameNetwork.game.join.enter({ gameId, nickname: `P${index}` });
+		}
+
+		await expect(
+			sameNetwork.game.join.enter({ gameId, nickname: "ACT" }),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { code: "GAME.TOO_MANY_JOINS" },
+		});
+		await expect(
+			api
+				.callerFor(null, "198.51.100.8")
+				.game.join.enter({ gameId, nickname: "ACT" }),
+		).resolves.toMatchObject({ nickname: "ACT" });
+	});
+
+	it("lets the join link through a network out of attempts (spec 008, RN-39a)", async () => {
+		const { api, gameId, pin } = await hosted();
+		const sameNetwork = api.callerFor(null, "198.51.100.7");
+		for (let attempt = 0; attempt < PIN_ATTEMPT_LIMIT; attempt++) {
+			await sameNetwork.game.join.find({ pin: "111111" }).catch(() => {});
+		}
+
+		await expect(
+			sameNetwork.game.join.find({ pin, gameId }),
+		).resolves.toMatchObject({ gameId, pin });
 	});
 
 	it("rejects oversized input before any use case runs", async () => {
@@ -1305,21 +1338,43 @@ describe("game router: playing an assignment (spec 030)", () => {
 		return { api, visitor, gameId, participant };
 	}
 
-	it("assignment.resume takes the participant back up by nickname, anywhere", async () => {
-		const { visitor, gameId, participant } = await assignedTo();
+	it("assignment.join limits the participants a network creates (RN-04a)", async () => {
+		const { api, gameId } = await assignedTo();
+		const sameNetwork = api.callerFor(null, "198.51.100.7");
+		for (let index = 0; index < JOIN_LIMIT_PER_NETWORK; index++) {
+			await sameNetwork.game.assignment.join({ gameId, nickname: `P${index}` });
+		}
 
-		expect(
-			await visitor.game.assignment.resume({ gameId, nickname: "john" }),
-		).toEqual({
-			playerId: participant.playerId,
-			secret: participant.secret,
-			nickname: "John",
-		});
 		await expect(
-			visitor.game.assignment.resume({ gameId, nickname: "Bia" }),
+			sameNetwork.game.assignment.join({ gameId, nickname: "Mary" }),
+		).rejects.toMatchObject({ cause: { code: "GAME.TOO_MANY_JOINS" } });
+	});
+
+	it("assignment.resume goes on only with the pair the browser kept (RN-20, M5)", async () => {
+		const { visitor, participant } = await assignedTo();
+
+		await expect(
+			visitor.game.assignment.resume(participant),
+		).resolves.toBeUndefined();
+		await expect(
+			visitor.game.assignment.resume({ ...participant, secret: "guess" }),
 		).rejects.toMatchObject({
 			code: "NOT_FOUND",
-			cause: { code: "ASSIGNMENT.PARTICIPANT_NOT_FOUND" },
+			cause: { code: "GAME.NOT_FOUND" },
+		});
+	});
+
+	it("assignment.resume no longer takes a nickname (RN-20, M5)", async () => {
+		const { visitor, gameId } = await assignedTo();
+
+		await expect(
+			visitor.game.assignment.resume(
+				// @ts-expect-error The procedure takes the pair, never a nickname.
+				{ gameId, nickname: "john" },
+			),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			cause: { name: "ZodError" },
 		});
 	});
 

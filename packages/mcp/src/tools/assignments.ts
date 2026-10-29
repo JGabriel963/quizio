@@ -6,6 +6,7 @@ import { deadline } from "../schemas/deadline";
 
 const gameId = z
 	.string()
+	.max(10_000)
 	.describe("The assignment's id, from create_assignment.");
 
 /** "Mais opções" (spec 029, RN-14); what is not sent is the person's last choice. */
@@ -51,7 +52,7 @@ export const assignmentTools = [
 			"Assigns a published quiz (the person's own, one shared in their group, or a public one) until a deadline: each participant plays it at their own pace, with the link or the 8-digit PIN. Later edits of the quiz do not reach it. Options not sent are the person's last choices. Its report fills as people play.",
 		kind: "write",
 		input: z.object({
-			quizId: z.string(),
+			quizId: z.string().max(10_000),
 			deadline,
 			options: assignmentOptionsInput,
 		}),
@@ -119,7 +120,7 @@ export const assignmentTools = [
 		kind: "write",
 		input: z.object({
 			gameId,
-			groupIds: z.array(z.string()).min(1).max(50),
+			groupIds: z.array(z.string().max(10_000)).min(1).max(50),
 		}),
 		run: async ({ gameId: id, groupIds }, context) => {
 			const userId = context.identity.userId;

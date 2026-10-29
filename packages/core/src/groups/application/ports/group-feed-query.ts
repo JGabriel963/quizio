@@ -24,6 +24,15 @@ export interface GroupFeedQuery {
 		viewerId: string,
 		page?: { limit: number; after: GroupFeedCursor | null },
 	): Promise<GroupPostRecord[]>;
+	/**
+	 * The group's assignment posts only, newest first, at most `limit`: the
+	 * Atribuições tab reads these, so no number of messages slows it (audit L9).
+	 */
+	listAssignmentPosts(
+		groupId: string,
+		viewerId: string,
+		limit: number,
+	): Promise<GroupPostRecord[]>;
 	/** One post of the group, for its own page (spec 040, RN-19). */
 	findPostRecord(
 		groupId: string,

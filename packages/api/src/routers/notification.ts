@@ -3,7 +3,10 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../index";
 
 const notificationCursor = z.object({
-	at: z.iso.datetime({ offset: true }).transform((value) => new Date(value)),
+	at: z.iso
+		.datetime({ offset: true })
+		.max(64)
+		.transform((value) => new Date(value)),
 	id: z.string().min(1).max(300),
 });
 

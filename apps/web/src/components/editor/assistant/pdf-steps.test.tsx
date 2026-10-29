@@ -107,6 +107,7 @@ function renderPages(overrides: Partial<PdfPagesStepProps> = {}) {
 		pages: [],
 		extract: false,
 		createDisabledReason: null,
+		creditsNote: null,
 		onTogglePage: vi.fn(),
 		onSelectAll: vi.fn(),
 		onExtractChange: vi.fn(),

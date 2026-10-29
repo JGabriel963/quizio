@@ -75,6 +75,14 @@ export function createDrizzleGroupFeedQuery(db: Database): GroupFeedQuery {
 			);
 		},
 
+		async listAssignmentPosts(groupId, viewerId, limit) {
+			return records(
+				and(eq(groupPost.groupId, groupId), isNotNull(groupPost.gameId)),
+				viewerId,
+				limit,
+			);
+		},
+
 		async findPostRecord(groupId, postId, viewerId) {
 			const [record] = await records(
 				and(eq(groupPost.groupId, groupId), eq(groupPost.id, postId)),

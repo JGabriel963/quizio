@@ -113,24 +113,23 @@ test.describe("jogar a atribuição (spec 030)", () => {
 		await expect(ana.getByText(/^\+ \d+$/)).toBeVisible();
 		await ana.getByRole("button", { name: "Próximo" }).click();
 
-		// Bia by the PIN: Ana is listed, and her nickname asks "Você é…?" (CA-02, CA-03).
+		// Bia by the PIN: Ana is listed only to see, and her nickname is no way
+		// into her place from another browser (CA-02, CA-03).
 		const bia = await newParticipant(browser);
 		await bia.goto("/join");
 		await bia.getByRole("textbox", { name: "PIN" }).fill(pin);
 		await bia.getByRole("button", { name: "Entrar" }).click();
 		await expect(bia).toHaveURL(new RegExp(`/assignment/${gameId}$`));
 		await bia.getByRole("button", { name: "Iniciar" }).click();
-		await expect(
-			bia
-				.getByRole("list", { name: "Quem já entrou" })
-				.getByRole("button", { name: "Ana P" }),
-		).toBeVisible();
+		const joined = bia.getByRole("list", { name: "Quem já entrou" });
+		await expect(joined.getByText("Ana P")).toBeVisible();
+		await expect(joined.getByRole("button")).toHaveCount(0);
 		await bia.getByRole("textbox", { name: "Insira um apelido" }).fill("ana p");
 		await bia.getByRole("button", { name: "Ok, vamos lá!" }).click();
-		await expect(
-			bia.getByRole("heading", { name: "Você é Ana P?" }),
-		).toBeVisible();
-		await bia.getByRole("button", { name: "Não" }).click();
+		await expect(bia.getByRole("alert")).toHaveText(
+			"Esse apelido já está em uso. Escolha outro.",
+		);
+		await expect(bia.getByRole("heading", { name: /Você é/ })).toHaveCount(0);
 		await bia.getByRole("textbox", { name: "Insira um apelido" }).fill("Bia");
 		await bia.getByRole("button", { name: "Ok, vamos lá!" }).click();
 		// Wrong answer, second (CA-15, CA-23).

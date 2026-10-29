@@ -22,8 +22,8 @@ function OwnAgentHint() {
 }
 
 /**
- * Acesso à IA (spec 039, RN-17 to RN-19): read only. The quota is the
- * instance's (spec 027) and is not changed here.
+ * Acesso à IA (spec 039, RN-17 to RN-19): read only, in credits (spec 045,
+ * RN-17). The budget is the instance's and is not changed here.
  */
 export function AiAccessSection({
 	status,
@@ -48,23 +48,22 @@ export function AiAccessSection({
 		<section className="flex flex-col gap-3 rounded-lg bg-card p-6 shadow-sm">
 			<p className="font-semibold">O assistente de criação está disponível.</p>
 			<p>
-				{status.used} de {status.limit} criações nas últimas 24 horas
+				{status.used} de {status.limit} créditos nas últimas 24 horas
 			</p>
 			<Progress
-				aria-label="Criações usadas"
+				aria-label="Créditos usados"
 				value={Math.round(
 					(Math.min(status.used, status.limit) / status.limit) * 100,
 				)}
 			/>
 			{usedUp && (
 				<p className="text-sm">
-					Você usou todas as criações das últimas 24 horas.
+					Você usou todos os créditos das últimas 24 horas.
 				</p>
 			)}
 			{status.nextFreeInMs !== null && (
 				<p className="text-muted-foreground text-sm">
-					A próxima criação volta a ficar livre {timeUntil(status.nextFreeInMs)}
-					.
+					Os próximos créditos voltam {timeUntil(status.nextFreeInMs)}.
 				</p>
 			)}
 			<OwnAgentHint />

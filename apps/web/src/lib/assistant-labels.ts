@@ -55,14 +55,38 @@ export function countLabel(count: number): string {
 	return `Cerca de ${count} perguntas`;
 }
 
-export function remainingLabel(remaining: number): string {
-	if (remaining === 0) {
-		return "Nenhuma criação restante";
-	}
-	return remaining === 1 ? "Resta 1 criação" : `Restam ${remaining} criações`;
+function credits(count: number): string {
+	return count === 1 ? "1 crédito" : `${count} créditos`;
 }
 
-/** RN-32: the time in the browser's own zone. */
+/** Spec 045, RN-16. */
+export function remainingLabel(remaining: number): string {
+	if (remaining === 0) {
+		return "Nenhum crédito restante";
+	}
+	return remaining === 1 ? "Resta 1 crédito" : `Restam ${remaining} créditos`;
+}
+
+/** The most this creation may cost, before Crie (spec 045, RN-06). */
+export function estimateLabel(estimate: number): string {
+	return `Esta criação usa até ${credits(estimate)}`;
+}
+
+/** Why Crie is unavailable when the estimate does not fit (spec 045, RN-08). */
+export function notEnoughCreditsReason(
+	estimate: number,
+	remaining: number,
+): string {
+	const left = remaining === 1 ? "resta 1" : `restam ${remaining}`;
+	return `Esta criação precisa de até ${credits(estimate)} e ${left}. Escolha menos páginas ou menos perguntas.`;
+}
+
+/** What the creation was charged, with its results (spec 045, RN-09). */
+export function creditsUsedLabel(used: number): string {
+	return `Esta criação usou ${credits(used)}.`;
+}
+
+/** Spec 045, RN-16: the time in the browser's own zone. */
 export function nextAvailableMessage(
 	limit: number,
 	nextAvailableAt: Date | string,
@@ -71,7 +95,7 @@ export function nextAvailableMessage(
 		hour: "2-digit",
 		minute: "2-digit",
 	});
-	return `Você usou as ${limit} criações das últimas 24 horas. A próxima fica disponível às ${time}.`;
+	return `Você usou os ${limit} créditos das últimas 24 horas. Os próximos voltam às ${time}.`;
 }
 
 /** Why the checked questions cannot be added, or null (RN-27). */

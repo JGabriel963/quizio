@@ -116,7 +116,12 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Duração da criação | `questionCount` | Quantidade aproximada de perguntas pedidas: cerca de 5, 10, 20 (padrão) ou 30 (spec 027) | ✅ |
 | Pergunta criada | `GeneratedQuestion` | Pergunta Quiz ou Verdadeiro ou falso devolvida pela IA, válida pelas regras do editor; fica no assistente até ser adicionada (spec 027) | ✅ |
 | Feita com IA | `aiGenerated` | Marca de uma pergunta adicionada pelo assistente, mostrada com um ícone de brilho na lista; fica ao editar e ao duplicar, não vai para a partida (spec 027) | ✅ |
-| Cota de criações | `GenerationQuota` | Criações com IA permitidas por criador a cada 24 horas (janela móvel), 20 por padrão, configurável; falhas não contam (spec 027) | ✅ |
+| Cota de criações | `GenerationQuota` | Criações com IA permitidas por criador a cada 24 horas (janela móvel), 20 por padrão, configurável, mais um teto para a instância inteira; só não contam as falhas em que o provedor não respondeu (spec 027). A spec 045 a troca por créditos | ✅ |
+| Crédito de IA | `credits` (`creditsOf`) | Unidade do custo de uma criação, calculada do uso real informado pelo provedor (entrada e saída, a saída pesando mais); com os pesos padrão, uma criação curta por assunto custa cerca de 1 (spec 045) | ✅ |
+| Orçamento de créditos | `AssistantSettings.creditsPerDay` | Créditos de cada criador a cada 24 horas (janela móvel), 20 por padrão, configurável; os de uma criação voltam 24 horas depois dela (spec 045) | ✅ |
+| Estimativa da criação | `CreditEstimate` (`estimateGeneration`) | O máximo que uma criação pode cobrar, mostrado antes do Crie e reservado ao criar; a cobrança é o uso real, nunca acima dela (spec 045) | ✅ |
+| Teto da instância | `AssistantSettings.instanceCreditsPerDay` | Créditos de todos os criadores juntos a cada 24 horas, 200 por padrão, configurável; soma o uso real e só aparece quando é atingido (spec 045) | ✅ |
+| Pesos dos créditos | `CreditPricing` | Créditos por mil tokens de entrada e de saída, configuráveis pela instância conforme o preço do modelo (spec 045) | ✅ |
 | Tema | `Theme` | Aparência das telas de jogo e do centro do editor: fundo, cor de destaque e tom; os prontos vêm de um catálogo próprio, gratuito (spec 042) | ✅ |
 | Tema do quiz | `Quiz.themeId` | Tema escolhido no editor, salvo ao escolher e fora da versão jogável; Padrão quando não há outro (spec 042) | ✅ |
 | Tom do tema | `ThemeTone` | `dark` ou `light`; num tema claro o texto sobre o fundo fica escuro (spec 042) | ✅ |

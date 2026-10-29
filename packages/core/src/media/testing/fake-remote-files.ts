@@ -10,6 +10,8 @@ import {
 /** Answers the links served here by hand; any other does not answer. */
 export class FakeRemoteFiles implements RemoteFiles {
 	readonly #files = new Map<string, RemoteFile | Error>();
+	/** Every link asked for, in order. */
+	readonly fetched: string[] = [];
 
 	serve(
 		url: string,
@@ -28,6 +30,7 @@ export class FakeRemoteFiles implements RemoteFiles {
 	}
 
 	async fetch(url: string, maxBytes: number): Promise<RemoteFile> {
+		this.fetched.push(url);
 		const file = this.#files.get(url);
 		if (!file) {
 			throw new FileUrlUnreachableError(`${url} did not answer.`);

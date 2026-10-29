@@ -2,6 +2,7 @@ import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import { AlreadyAssignedToGroupError } from "../domain/group-errors";
 import { assertCanAssign } from "../domain/group-permissions";
+import { type GroupPostLimitDeps, reserveGroupPost } from "./group-post-limit";
 import { type InboxSignalDeps, signalOtherMembers } from "./inbox-signals";
 import { requireShareableAssignment } from "./list-assignable-groups";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
@@ -22,13 +23,14 @@ export type AssignToGroups = (input: {
  * group, by the database's unique index.
  */
 export function createAssignToGroups(
-	deps: GroupStoreDeps & {
-		groupAssignmentQuery: GroupAssignmentQuery;
-		groupFeed: GroupFeedQuery;
-		groupPosts: GroupPostRepository;
-		ids: IdGenerator;
-		clock: Clock;
-	} & InboxSignalDeps,
+	deps: GroupStoreDeps &
+		GroupPostLimitDeps & {
+			groupAssignmentQuery: GroupAssignmentQuery;
+			groupFeed: GroupFeedQuery;
+			groupPosts: GroupPostRepository;
+			ids: IdGenerator;
+			clock: Clock;
+		} & InboxSignalDeps,
 ): AssignToGroups {
 	return async ({ userId, gameId, groupIds }) => {
 		await requireShareableAssignment(deps, { userId, gameId });
@@ -44,6 +46,10 @@ export function createAssignToGroups(
 			(await deps.groupFeed.groupsWithAssignment(gameId, unique)).length > 0
 		) {
 			throw new AlreadyAssignedToGroupError();
+		}
+		// One post in each group, each one counted (audit L9).
+		for (const _groupId of unique) {
+			await reserveGroupPost(deps, userId);
 		}
 		const now = deps.clock.now();
 		let assigned = 0;

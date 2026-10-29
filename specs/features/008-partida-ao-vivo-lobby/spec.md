@@ -119,7 +119,8 @@ O criador aciona "Organizar ao vivo" num quiz publicado e vê o lobby, com o PIN
 | RN-36 | O campo do PIN abre o teclado numérico, aceita só dígitos e ignora espaços. Entrar sem nada digitado não envia. | referência visual do Kahoot · decisão do produto |
 | RN-37 | O **link de entrada** (`/join/{PIN}`) e o QR code pulam a digitação do PIN e abrem direto na etapa do apelido. | kahoot-reference §6.3, §9 |
 | RN-38 | Um PIN que não corresponde a uma partida aberta (inexistente, encerrada ou vencida) deixa o campo em vermelho e mostra **"Não foi possível reconhecer o PIN do jogo. Verifique-o e tente de novo."** A mensagem é a mesma nos três casos. Um link de entrada com PIN assim abre a entrada do PIN com essa mensagem. | referência visual do Kahoot |
-| RN-39 | Os **PINs errados são limitados a 30 por minuto por endereço de rede (IP)**. Acima disso, a página mostra "Muitas tentativas. Aguarde um momento e tente de novo.", até o minuto virar. PINs certos não contam. | decisão do produto (2026-10-01), contra a adivinhação de PINs |
+| RN-39 | Os **PINs digitados errados são limitados a 30 por minuto por endereço de rede (IP)**. Acima disso, a página mostra **"Muitas tentativas. Aguarde um momento ou entre pelo QR code ou pelo link do jogo."**, até o minuto virar. PINs certos não contam. | decisão do produto (2026-10-01), contra a adivinhação de PINs · auditoria de segurança (2026-10-29, M8) |
+| RN-39a | O **link de entrada** e o **QR code** levam, além do PIN, o identificador da partida, que não dá para adivinhar. Por eles, a entrada **não conta nem esbarra no limite** de RN-39: quando alguém da mesma rede esgota as tentativas com PINs errados, o resto da turma entra pelo QR code. Um link de uma partida que não está mais aberta vale como o PIN digitado. | auditoria de segurança (2026-10-29, M8) · decisão do usuário (2026-10-29) |
 | RN-40 | A etapa do **apelido** mostra o campo "Apelido" ("Insira seu apelido"), o botão **"Ok, vamos lá!"** e o aviso **"Não use seu nome verdadeiro"**. | referência visual do Kahoot |
 | RN-41 | O **apelido (`Nickname`)** tem de **1 a 15 caracteres** percebidos, depois de tirar os espaços das pontas e juntar espaços repetidos. Vazio não envia; o campo não aceita digitar além do limite. | kahoot-reference §9 (15 caracteres, terceiros) · spec 004, RN-04 |
 | RN-42 | O apelido é **único na partida**, sem diferenciar maiúsculas, minúsculas e acentos ("José" e "jose" são o mesmo). Um apelido em uso, ou bloqueado por remoção (RN-30), mostra **"Esse apelido já está em uso. Escolha outro."**, e o jogador continua na etapa do apelido. | kahoot-reference §9 · decisão do produto (2026-10-01) |
@@ -127,6 +128,7 @@ O criador aciona "Organizar ao vivo" num quiz publicado e vê o lobby, com o PIN
 | RN-44 | O jogador é **anônimo** e pertence àquele navegador naquela partida: recarregar a página, ou abrir de novo o link ou o PIN no mesmo navegador, volta à tela de espera com o mesmo apelido, sem criar outro jogador. | kahoot-reference §9 (recomendação) · constituição, artigo VIII |
 | RN-44a | Quem volta à **entrada do PIN** (`/join`, sem PIN no endereço) com uma partida **ainda aberta** naquele navegador (no lobby ou em andamento) vê, no lugar do PIN, o botão **"Voltar como {apelido}"** e a opção **"Entrar com outro PIN"**. O botão leva de volta à partida como o mesmo jogador (RN-44). A oferta só aparece depois de o servidor confirmar que a partida está aberta e que o jogador continua nela; se a partida terminou ou foi encerrada, ou se ele foi removido, aparece a entrada do PIN comum, sem mensagem. | referência do Kahoot (descrição do usuário, 2026-10-02) |
 | RN-45 | Uma partida aceita no máximo **200 jogadores**. Cheia, quem tenta entrar vê "Este jogo está cheio." O limite é técnico (tamanho das mensagens em tempo real e da tela do anfitrião) e configurável; não há limite por plano. | kahoot-reference §6.3 · constituição, artigo VI |
+| RN-45a | Cada endereço de rede (IP) **cria no máximo 60 jogadores por minuto** em cada partida. Acima disso, quem tenta entrar vê **"Muitas entradas por esta rede agora. Aguarde um momento e tente de novo."** e continua na etapa do apelido. Uma entrada recusada (apelido em uso, jogo cheio ou bloqueado) não conta. Uma turma inteira atrás do mesmo IP entra sem esperar; um script precisa de mais de 3 minutos para ocupar as 200 vagas, tempo de o anfitrião bloquear a entrada (RN-23). | auditoria de segurança (2026-10-29, M7) · decisão do usuário (2026-10-29) |
 | RN-46 | O que o jogador vê depende do servidor: se ele foi removido ou a partida foi encerrada enquanto estava sem conexão, ao voltar ou recarregar ele vê a entrada do PIN com a mensagem correspondente (RN-29, RN-32). | constituição, artigos V e VIII |
 
 ## Critérios de aceite
@@ -383,7 +385,13 @@ O criador aciona "Organizar ao vivo" num quiz publicado e vê o lobby, com o PIN
 
 - **Dado** uma rede de onde o PIN foi errado 30 vezes no último minuto
 - **Quando** tenta mais uma vez
-- **Então** vê "Muitas tentativas. Aguarde um momento e tente de novo.", mesmo que o PIN esteja certo
+- **Então** vê "Muitas tentativas. Aguarde um momento ou entre pelo QR code ou pelo link do jogo.", mesmo que o PIN esteja certo
+
+#### CA-38a — QR code numa rede sem tentativas
+
+- **Dado** uma rede de onde o PIN foi errado 30 vezes no último minuto, e uma partida aberta
+- **Quando** um jogador dessa rede escaneia o QR code da partida, ou abre o link de entrada
+- **Então** vê a etapa do apelido
 
 #### CA-39 — Apelido aceito
 
@@ -422,6 +430,13 @@ O criador aciona "Organizar ao vivo" num quiz publicado e vê o lobby, com o PIN
 - **Dado** uma partida com 200 jogadores
 - **Quando** mais alguém tenta entrar
 - **Então** vê "Este jogo está cheio." e não entra
+
+#### CA-44a — Muitas entradas pela mesma rede
+
+- **Dado** uma partida em que 60 jogadores entraram, no último minuto, pelo mesmo endereço de rede
+- **Quando** mais um jogador dessa rede digita um apelido livre e aciona "Ok, vamos lá!"
+- **Então** vê "Muitas entradas por esta rede agora. Aguarde um momento e tente de novo." e continua na etapa do apelido
+- **E** passado o minuto, consegue entrar
 
 #### CA-45 — Removido enquanto estava sem conexão
 
@@ -524,3 +539,4 @@ As telas da partida usam o tema escuro do Quizio, em roxo, com as cores e a tipo
 - 2026-10-06 — spec 015: as partidas iniciadas deixam de ser apagadas junto com o quiz excluído de vez; elas ficam como relatórios.
 - 2026-10-06 — revisão da PR (Codex), sem mudar as regras, só o que as garante quando dois pedidos chegam ao mesmo tempo: uma partida aberta por quiz (RN-07) passou a ser garantida pelo banco, e quem pede por último fica com a partida; a tentativa de PIN (RN-39) é reservada antes da consulta e devolvida quando o PIN está certo, então uma rajada de palpites não passa do limite; a vaga (RN-45) é contada junto com a entrada, e dois jogadores não ocupam a última.
 - 2026-10-15 — spec 028: os jogadores ganham avatar (personagem e acessório), e a divergência "Sem avatar" deixa de valer enquanto a chave "Personagens dos jogadores" estiver ligada.
+- 2026-10-29 — por decisão do usuário, depois da auditoria de segurança (achados M7 e M8): o link de entrada e o QR code levam o identificador da partida e não passam pelo limite de PINs errados, e a mensagem de muitas tentativas aponta para eles (RN-39, RN-39a, CA-38, CA-38a), porque uma pessoa errando PINs de propósito bloqueava a turma inteira que sai pelo mesmo IP; cada rede cria no máximo 60 jogadores por minuto numa partida (RN-45a, CA-44a), contra scripts que ocupam as 200 vagas. Deixar um PIN certo passar com o limite esgotado foi descartado: quem tenta adivinhar também saberia quais PINs estão certos. Remover jogadores depois do lobby continua fora (spec 013) e virou um item do roadmap.

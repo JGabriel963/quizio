@@ -41,6 +41,7 @@ const imageInput = z
 			),
 		altText: z
 			.string()
+			.max(10_000)
 			.nullish()
 			.describe(
 				`A description for screen readers, up to ${IMAGE_ALT_TEXT_MAX_LENGTH} characters.`,
@@ -64,6 +65,7 @@ const questionShape = {
 		),
 	text: z
 		.string()
+		.max(10_000)
 		.nullish()
 		.describe(`The statement, up to ${QUESTION_TEXT_MAX_LENGTH} characters.`),
 	timeLimitSeconds: z
@@ -83,6 +85,7 @@ const questionShape = {
 			z.object({
 				text: z
 					.string()
+					.max(10_000)
 					.nullable()
 					.describe(`Up to ${CHOICE_TEXT_MAX_LENGTH} characters.`),
 				correct: z.boolean(),
@@ -104,7 +107,7 @@ const questionShape = {
 		.nullish()
 		.describe("trueFalse only: whether the statement is true."),
 	acceptedAnswers: z
-		.array(z.string().nullable())
+		.array(z.string().max(10_000).nullable())
 		.max(8)
 		.optional()
 		.describe(
@@ -117,6 +120,7 @@ const questionShape = {
 			answer: z.number().nullish(),
 			unit: z
 				.string()
+				.max(10_000)
 				.nullish()
 				.describe(
 					`Up to ${SLIDER_UNIT_MAX_LENGTH} characters, shown under the number.`,
@@ -133,7 +137,7 @@ const questionShape = {
 			"slider only: numbers with up to 2 decimals; the answer between min and max. An answer alone gets a range around it.",
 		),
 	items: z
-		.array(z.string().nullable())
+		.array(z.string().max(10_000).nullable())
 		.max(8)
 		.optional()
 		.describe(

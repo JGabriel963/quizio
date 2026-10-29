@@ -2,7 +2,7 @@ import { createRevokeAllAgentAccess } from "@quizio/core/agents/application/revo
 import { createDb } from "@quizio/db";
 import { createDrizzleAccessKeyRepository } from "@quizio/db/repositories/agents/drizzle-access-key-repository";
 import { createDrizzleAgentConnectionStore } from "@quizio/db/repositories/agents/drizzle-agent-connection-store";
-import { env } from "@quizio/env/server";
+import { clientIpHeader, env } from "@quizio/env/server";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import { createAuth, type GoogleSignInOptions } from "./create-auth";
@@ -49,7 +49,7 @@ export const auth = createAuth({
 	secret: env.BETTER_AUTH_SECRET,
 	signUpEnabled: env.AUTH_SIGN_UP_ENABLED,
 	google,
-	clientIpHeader: env.CLIENT_IP_HEADER,
+	clientIpHeader,
 	// AI agents connect through OAuth (spec 044, ADR 0023).
 	// Through server routes that wrap the signed query whole, since the router
 	// would rewrite its repeated keys (apps/web/src/lib/oauth-flow.ts).

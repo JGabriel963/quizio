@@ -7,6 +7,7 @@ import {
 	assertPostHasContent,
 	parseOptionalPostMessage,
 } from "../domain/group-post";
+import { type GroupPostLimitDeps, reserveGroupPost } from "./group-post-limit";
 import { type InboxSignalDeps, signalOtherMembers } from "./inbox-signals";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
 import type { GroupPostRepository } from "./ports/group-post-repository";
@@ -31,11 +32,13 @@ export function createCreateGroupPost(
 		storage: ObjectStorage;
 		ids: IdGenerator;
 		clock: Clock;
-	} & InboxSignalDeps,
+	} & InboxSignalDeps &
+		GroupPostLimitDeps,
 ): CreateGroupPost {
 	return async ({ message: rawMessage, uploadKey, ...input }) => {
 		const { group } = await requireMembership(deps, input);
 		const message = parseOptionalPostMessage(rawMessage);
+		await reserveGroupPost(deps, input.userId);
 		const post = {
 			id: deps.ids.generate(),
 			groupId: group.id,

@@ -10,6 +10,7 @@ function renderBar(overrides: Partial<SourceBarProps> = {}) {
 		topic: "",
 		pdfName: null,
 		createDisabledReason: null,
+		creditsNote: null,
 		busy: false,
 		layout: "grid",
 		onSourceChange: vi.fn(),
@@ -45,13 +46,13 @@ describe("SourceBar (spec 027)", () => {
 	it("tells why Crie is not available", () => {
 		renderBar({
 			topic: "Sistema solar",
-			createDisabledReason: "Você usou as 20 criações das últimas 24 horas.",
+			createDisabledReason: "Você usou os 20 créditos das últimas 24 horas.",
 		});
 
 		expect(
 			screen.getByRole("button", { name: "Crie" }),
 		).toHaveAccessibleDescription(
-			"Você usou as 20 criações das últimas 24 horas.",
+			"Você usou os 20 créditos das últimas 24 horas.",
 		);
 	});
 

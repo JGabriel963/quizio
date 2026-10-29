@@ -127,7 +127,7 @@ describe("group posts (spec 036)", () => {
 		const { api, ana, groupId } = await setup();
 		for (let index = 0; index < 21; index++) {
 			await ana.group.post({ groupId, message: `#${index}` });
-			api.clock.advanceBy(1000);
+			api.clock.advanceBy(3000);
 		}
 
 		const first = await ana.group.feed({ groupId });

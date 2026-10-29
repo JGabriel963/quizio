@@ -31,7 +31,7 @@ function AssignmentPage() {
 			resume: (input) => client.game.assignment.resume.mutate(input),
 			// Without an answer in time, the device takes the connection as lost
 			// (spec 013): the server refuses a step that already happened.
-			play: (input) => withTimeout(client.game.assignment.play.query(input)),
+			play: (input) => withTimeout(client.game.assignment.play.mutate(input)),
 			start: (input) => withTimeout(client.game.assignment.start.mutate(input)),
 			answer: (input) =>
 				withTimeout(client.game.assignment.answer.mutate(input)),

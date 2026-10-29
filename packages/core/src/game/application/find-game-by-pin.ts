@@ -24,6 +24,11 @@ import type { GameRepository } from "./ports/game-repository";
 
 export type FindGameByPin = (input: {
 	pin: string;
+	/**
+	 * The game the join link or the QR code names, besides the PIN (RN-39a):
+	 * nobody can guess it, so it skips the limit on wrong PINs.
+	 */
+	gameId?: string | null;
 	/** Who is trying, for the limit on wrong PINs: the client's network address. */
 	clientKey: string;
 }) => Promise<{
@@ -37,14 +42,14 @@ export type FindGameByPin = (input: {
 }>;
 
 /**
- * The first step of joining (spec 008, RN-35 to RN-39). Eight digits are an
+ * The first step of joining (spec 008, RN-35 to RN-39a). Eight digits are an
  * assignment's PIN, which leads to the activity's screen, open or ended
  * (spec 029, RN-20, CA-42).
  */
 export function createFindGameByPin(deps: {
 	games: Pick<
 		GameRepository,
-		"findUnendedByPin" | "findLatestAssignmentByPin" | "save"
+		"findById" | "findUnendedByPin" | "findLatestAssignmentByPin" | "save"
 	>;
 	attempts: AttemptLimiter;
 	storage: Pick<ObjectStorage, "getPublicUrl">;
@@ -62,7 +67,44 @@ export function createFindGameByPin(deps: {
 			: null;
 	}
 
-	return async ({ pin: rawPin, clientKey }) => {
+	/** The open game a link names, when its PIN is the one in the link. */
+	async function findByLink(
+		gameId: string,
+		pin: string,
+		mode: GameMode,
+	): Promise<Game | null> {
+		const stored = await deps.games.findById(gameId);
+		const game = stored ? await settleGame(deps, stored) : null;
+		return game && isGameOpen(game) && game.pin === pin && game.mode === mode
+			? game
+			: null;
+	}
+
+	function found(game: Game): Awaited<ReturnType<FindGameByPin>> {
+		if (game.mode === "live") {
+			assertJoinable(game);
+		}
+		return {
+			gameId: game.id,
+			pin: game.pin,
+			mode: game.mode,
+			themeId: game.themeId,
+			customTheme: themeLookView(game.customTheme, deps.storage, {
+				withLogo: false,
+			}),
+		};
+	}
+
+	return async ({ pin: rawPin, gameId, clientKey }) => {
+		const parsed = parseJoinPin(rawPin);
+		const linked =
+			parsed && gameId
+				? await findByLink(gameId, parsed.pin, parsed.mode)
+				: null;
+		if (linked) {
+			return found(linked);
+		}
+
 		const now = deps.clock.now();
 		const attemptKey = `pin:${clientKey}`;
 		// The attempt is taken before the PIN is looked up, so a burst of
@@ -77,24 +119,12 @@ export function createFindGameByPin(deps: {
 			throw new TooManyPinAttemptsError("Too many wrong PINs; wait a moment");
 		}
 
-		const parsed = parseJoinPin(rawPin);
 		const game = parsed ? await findByPin(parsed.pin, parsed.mode) : null;
 		if (!game) {
 			throw new GamePinNotRecognizedError("No open game has this PIN");
 		}
 		// Only wrong PINs count: a whole classroom shares one address.
 		await deps.attempts.release(attemptKey, PIN_ATTEMPT_WINDOW_MS, now);
-		if (game.mode === "live") {
-			assertJoinable(game);
-		}
-		return {
-			gameId: game.id,
-			pin: game.pin,
-			mode: game.mode,
-			themeId: game.themeId,
-			customTheme: themeLookView(game.customTheme, deps.storage, {
-				withLogo: false,
-			}),
-		};
+		return found(game);
 	};
 }

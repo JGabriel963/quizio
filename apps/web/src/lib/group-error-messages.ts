@@ -40,6 +40,10 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"GROUP.QUIZ_ALREADY_SHARED": "Um dos kahoots já está no grupo.",
 	"GROUP.SHARED_QUIZ_NOT_FOUND": "Este quiz não está mais disponível no grupo.",
 	"GROUP.UNSHARE_NOT_ALLOWED": "Você não pode remover este kahoot.",
+	"GROUP.TOO_MANY_POSTS":
+		"Você publicou muitas vezes seguidas. Aguarde um momento e tente de novo.",
+	"UPLOAD.TOO_MANY":
+		"Você enviou muitos arquivos na última hora. Tente de novo mais tarde.",
 };
 
 /** Portuguese message for a failed group call, based on its domain code (spec 034). */

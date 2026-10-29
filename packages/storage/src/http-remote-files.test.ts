@@ -59,4 +59,23 @@ describe("isPublicAddress (spec 044, RN-24)", () => {
 		}
 		expect(isPublicAddress("::ffff:808:808")).toBe(true);
 	});
+
+	it("refuses the IPv6 transition ranges, which carry an IPv4 address inside (L13)", () => {
+		for (const ip of [
+			// NAT64 for local use (RFC 8215), around the well-known prefix.
+			"64:ff9b:1::a9fe:a9fe",
+			// 6to4 of 127.0.0.1 and of 169.254.169.254.
+			"2002:7f00:1::1",
+			"2002:a9fe:a9fe::",
+			// Teredo.
+			"2001:0:4136:e378:8000:63bf:3fff:fdd2",
+			// IPv4-translated (RFC 2765).
+			"::ffff:0:7f00:1",
+			// Documentation (RFC 9637) and other addresses outside 2000::/3.
+			"3fff::1",
+			"4000::1",
+		]) {
+			expect(isPublicAddress(ip), ip).toBe(false);
+		}
+	});
 });

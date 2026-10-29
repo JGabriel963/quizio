@@ -15,9 +15,11 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"GAME.PIN_NOT_RECOGNIZED":
 		"Não foi possível reconhecer o PIN do jogo. Verifique-o e tente de novo.",
 	"GAME.TOO_MANY_PIN_ATTEMPTS":
-		"Muitas tentativas. Aguarde um momento e tente de novo.",
+		"Muitas tentativas. Aguarde um momento ou entre pelo QR code ou pelo link do jogo.",
 	"GAME.LOCKED":
 		"Este jogo está bloqueado. Peça ao anfitrião para desbloquear.",
+	"GAME.TOO_MANY_JOINS":
+		"Muitas entradas por esta rede agora. Aguarde um momento e tente de novo.",
 	"GAME.FULL": "Este jogo está cheio.",
 	"GAME.INVALID_NICKNAME": `O apelido deve ter de 1 a ${NICKNAME_MAX_LENGTH} caracteres.`,
 	"GAME.NICKNAME_TAKEN": "Esse apelido já está em uso. Escolha outro.",

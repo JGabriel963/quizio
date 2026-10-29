@@ -1,5 +1,4 @@
 import type { Avatar } from "@quizio/core/game/domain/avatar";
-import { nicknameKeyOf } from "@quizio/core/game/domain/nickname";
 import type { ParticipantPhase } from "@quizio/core/game/domain/participant-progress";
 import { DEFAULT_THEME_ID } from "@quizio/core/shared/domain/theme";
 import {
@@ -63,11 +62,8 @@ export interface AssignmentPlayApi {
 	setAvatar(
 		input: StoredAssignmentSession & { avatar: Avatar },
 	): Promise<{ avatar: Avatar }>;
-	/** "Sim" to "Você é {apelido}?" (RN-20). */
-	resume(input: {
-		gameId: string;
-		nickname: string;
-	}): Promise<{ playerId: string; secret: string; nickname: string }>;
+	/** "Sim" to "Você é {apelido}?", with the pair this browser kept (RN-20). */
+	resume(session: StoredAssignmentSession): Promise<void>;
 }
 
 /** How often the activity's cover asks again: the deadline may change or end (spec 029, RN-37). */
@@ -86,8 +82,13 @@ type CoverState =
 type Step =
 	| { kind: "cover" }
 	| { kind: "nickname"; notice: string | null }
-	/** "Você é {apelido}?": coming back, or a nickname already in (RN-03, RN-20). */
-	| { kind: "confirm"; nickname: string; notice: string | null }
+	/** "Você é {apelido}?": coming back to the participant this browser kept (RN-20). */
+	| {
+			kind: "confirm";
+			session: StoredAssignmentSession;
+			nickname: string;
+			notice: string | null;
+	  }
 	| { kind: "play"; session: StoredAssignmentSession };
 
 interface PlayState {
@@ -135,7 +136,7 @@ export function AssignmentPlayFlow({
 		}
 		// Older sessions kept no nickname: they go straight back in.
 		return session.nickname
-			? { kind: "confirm", nickname: session.nickname, notice: null }
+			? { kind: "confirm", session, nickname: session.nickname, notice: null }
 			: { kind: "play", session };
 	});
 	const [resuming, setResuming] = useState(false);
@@ -294,53 +295,32 @@ export function AssignmentPlayFlow({
 			store.save(stored);
 			setStep({ kind: "play", session: stored });
 		} catch (error) {
-			setStep(
-				gameErrorCode(error) === "GAME.NICKNAME_TAKEN"
-					? { kind: "confirm", nickname: knownAs(nickname), notice: null }
-					: { kind: "nickname", notice: gameErrorMessage(error) },
-			);
+			// A nickname in use is no way in: only the browser that joined goes on (RN-03).
+			setStep({ kind: "nickname", notice: gameErrorMessage(error) });
 		} finally {
 			setJoining(false);
 		}
 	}
 
-	/** The nickname as its participant wrote it, when the cover lists it. */
-	function knownAs(typed: string): string {
-		const key = nicknameKeyOf(typed.trim());
-		const participants =
-			coverState.kind === "ready" && coverState.cover.status === "open"
-				? coverState.cover.participants
-				: [];
-		return (
-			participants.find((nickname) => nicknameKeyOf(nickname) === key) ??
-			typed.trim()
-		);
-	}
-
-	/** "Sim": that participant, where they were (RN-20 to RN-22). */
-	async function resume(nickname: string) {
+	/** "Sim": the participant this browser kept, where they were (RN-20 to RN-22). */
+	async function resume(confirm: Extract<Step, { kind: "confirm" }>) {
+		const { session: kept } = confirm;
 		setResuming(true);
 		try {
-			const resumed = await api.resume({ gameId, nickname });
-			const stored = {
-				gameId,
-				playerId: resumed.playerId,
-				secret: resumed.secret,
-				nickname: resumed.nickname,
-			};
-			store.save(stored);
+			await api.resume({
+				gameId: kept.gameId,
+				playerId: kept.playerId,
+				secret: kept.secret,
+			});
 			entering.current = true;
-			setStep({ kind: "play", session: stored });
+			setStep({ kind: "play", session: kept });
 		} catch (error) {
-			const code = gameErrorCode(error);
-			if (code === "ASSIGNMENT.PARTICIPANT_NOT_FOUND") {
-				store.clear(gameId);
-				setStep({ kind: "nickname", notice: null });
-			} else if (code === "GAME.NOT_FOUND") {
+			if (gameErrorCode(error) === "GAME.NOT_FOUND") {
+				// That participant is not there anymore: the cover, as a new arrival.
 				store.clear(gameId);
 				setStep({ kind: "cover" });
 			} else {
-				setStep({ kind: "confirm", nickname, notice: gameErrorMessage(error) });
+				setStep({ ...confirm, notice: gameErrorMessage(error) });
 			}
 		} finally {
 			setResuming(false);
@@ -371,7 +351,7 @@ export function AssignmentPlayFlow({
 				nickname={step.nickname}
 				busy={resuming}
 				notice={step.notice}
-				onYes={() => void resume(step.nickname)}
+				onYes={() => void resume(step)}
 				onNo={startOver}
 			/>,
 		);
@@ -402,9 +382,6 @@ export function AssignmentPlayFlow({
 					busy={joining}
 					notice={step.notice}
 					onSubmit={(nickname) => void join(nickname)}
-					onPick={(nickname) =>
-						setStep({ kind: "confirm", nickname, notice: null })
-					}
 				/>
 			) : (
 				<AssignmentCover

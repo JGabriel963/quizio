@@ -13,13 +13,13 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../index";
 
 // Shapes only: list rules and text limits are enforced by the quiz use cases.
-const quizReference = z.object({ quizId: z.string().min(1) });
+const quizReference = z.object({ quizId: z.string().min(1).max(10_000) });
 const questionReference = quizReference.extend({
-	questionId: z.string().min(1),
+	questionId: z.string().min(1).max(10_000),
 });
 const position = z.number().int().min(0);
 const seconds = z.number().int();
-const choiceId = z.string().min(1);
+const choiceId = z.string().min(1).max(10_000);
 
 /** The type-specific part of a question, as clients send it back in a type change (spec 005). */
 const content = z.discriminatedUnion("type", [
@@ -27,7 +27,12 @@ const content = z.discriminatedUnion("type", [
 		type: z.literal("quiz"),
 		selection: z.enum(SELECTION_MODES),
 		choices: z
-			.array(z.object({ text: z.string().nullable(), correct: z.boolean() }))
+			.array(
+				z.object({
+					text: z.string().max(10_000).nullable(),
+					correct: z.boolean(),
+				}),
+			)
 			.max(16),
 	}),
 	z.object({ type: z.literal("trueFalse"), correct: z.boolean().nullable() }),
@@ -54,7 +59,10 @@ const acceptedAnswerIndex = z.number().int().min(0).max(7);
 const puzzleSlot = z.number().int().min(0).max(3);
 
 const change = z.discriminatedUnion("kind", [
-	z.object({ kind: z.literal("text"), text: z.string().nullable() }),
+	z.object({
+		kind: z.literal("text"),
+		text: z.string().max(10_000).nullable(),
+	}),
 	z.object({ kind: z.literal("timeLimit"), seconds }),
 	z.object({ kind: z.literal("points"), points: z.enum(QUESTION_POINTS) }),
 	z.object({
@@ -64,7 +72,7 @@ const change = z.discriminatedUnion("kind", [
 	z.object({
 		kind: z.literal("choiceText"),
 		choiceId,
-		text: z.string().nullable(),
+		text: z.string().max(10_000).nullable(),
 	}),
 	z.object({
 		kind: z.literal("choiceCorrect"),
@@ -111,7 +119,10 @@ const change = z.discriminatedUnion("kind", [
 		remembered: content.nullable(),
 	}),
 	// Spec 007: the image key comes from `media.requestUpload`.
-	z.object({ kind: z.literal("image"), key: z.string().min(1).nullable() }),
+	z.object({
+		kind: z.literal("image"),
+		key: z.string().min(1).max(10_000).nullable(),
+	}),
 	z.object({
 		kind: z.literal("imagePlacement"),
 		placement: z.enum(IMAGE_PLACEMENTS),
@@ -125,7 +136,10 @@ const change = z.discriminatedUnion("kind", [
 			y: z.number(),
 		}),
 	}),
-	z.object({ kind: z.literal("imageAltText"), altText: z.string().nullable() }),
+	z.object({
+		kind: z.literal("imageAltText"),
+		altText: z.string().max(10_000).nullable(),
+	}),
 ]);
 
 /** Question list and autosave of the editor (specs 003 to 005), mounted as `quiz.questions`. */
@@ -133,7 +147,7 @@ export const quizQuestionsRouter = router({
 	add: protectedProcedure
 		.input(
 			quizReference.extend({
-				afterQuestionId: z.string().min(1).nullable(),
+				afterQuestionId: z.string().min(1).max(10_000).nullable(),
 				type: z.enum(QUESTION_TYPES),
 			}),
 		)

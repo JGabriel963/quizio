@@ -11,8 +11,11 @@ import {
 	toQuestionPatch,
 } from "../schemas/question-input";
 
-const quizId = z.string().describe("The quiz's id.");
-const questionId = z.string().describe("The question's id, from get_quiz.");
+const quizId = z.string().max(10_000).describe("The quiz's id.");
+const questionId = z
+	.string()
+	.max(10_000)
+	.describe("The question's id, from get_quiz.");
 
 async function imageUrlsOf(quizIdValue: string, context: ToolContext) {
 	return (
@@ -34,6 +37,7 @@ export const questionTools = [
 			quizId,
 			afterQuestionId: z
 				.string()
+				.max(10_000)
 				.nullish()
 				.describe("Insert right after this question; at the end when missing."),
 			questions: z.array(questionInput).min(1).max(QUIZ_MAX_QUESTIONS),

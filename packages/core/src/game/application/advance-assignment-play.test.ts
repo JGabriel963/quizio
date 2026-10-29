@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_ASSIGNMENT_OPTIONS } from "../domain/assignment";
+import {
+	AVATAR_CHANGE_LIMIT,
+	TooManyAvatarChangesError,
+} from "../domain/avatar";
 import { ParticipantNotAtStageError } from "../domain/participant-progress";
 import { AvatarFixedError } from "../domain/player";
 import { createGameDeps } from "../testing/game-deps";
@@ -21,7 +25,11 @@ async function playing(options = {}) {
 		deadline: new Date(deps.clock.now().getTime() + 3 * DAY_MS),
 		options: { ...DEFAULT_ASSIGNMENT_OPTIONS, ...options },
 	});
-	const john = await createJoinAssignment(deps)({ gameId, nickname: "John" });
+	const john = await createJoinAssignment(deps)({
+		clientKey: "ip",
+		gameId,
+		nickname: "John",
+	});
 	const participant = { gameId, playerId: john.playerId, secret: john.secret };
 	const advance = (questionIndex: number, phase: "results" | "scoreboard") =>
 		createAdvanceAssignmentPlay(deps)({
@@ -112,6 +120,24 @@ describe("startAssignmentPlay and changeAssignmentAvatar (spec 030, RN-06)", () 
 			character: "fox",
 			accessory: "crown",
 		});
+	});
+
+	it("the same character again writes nothing, and changes are limited (L7)", async () => {
+		const { deps, participant } = await playing({ gameCharacters: true });
+		const change = createChangeAssignmentAvatar(deps);
+		const fox = { character: "fox", accessory: null };
+		const koala = { character: "koala", accessory: null };
+
+		for (let tap = 0; tap < AVATAR_CHANGE_LIMIT * 2; tap++) {
+			await change({ ...participant, avatar: fox });
+		}
+		for (let tap = 1; tap < AVATAR_CHANGE_LIMIT; tap++) {
+			await change({ ...participant, avatar: tap % 2 ? koala : fox });
+		}
+
+		await expect(
+			change({ ...participant, avatar: AVATAR_CHANGE_LIMIT % 2 ? koala : fox }),
+		).rejects.toThrow(TooManyAvatarChangesError);
 	});
 
 	it("refuses once playing", async () => {

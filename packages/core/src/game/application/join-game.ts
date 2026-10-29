@@ -1,3 +1,4 @@
+import type { AttemptLimiter } from "../../shared/application/ports/attempt-limiter";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
@@ -19,6 +20,7 @@ import { parseNickname } from "../domain/nickname";
 import { firstQuestionFor, newPlayer } from "../domain/player";
 import { loadLiveGame, publishToGame } from "./game-lifecycle";
 import { toLobbyPlayerView } from "./host-game-view";
+import { reserveJoin } from "./join-limit";
 import type { GameRepository } from "./ports/game-repository";
 import type { PlayerRepository } from "./ports/player-repository";
 
@@ -27,6 +29,8 @@ export type JoinGame = (input: {
 	nickname: string;
 	/** The one this browser chose last (spec 028, RN-08); drawn without it. */
 	avatar?: AvatarInput | null;
+	/** Who is joining, for the limit per network (RN-45a): the client's network address. */
+	clientKey: string;
 }) => Promise<{
 	playerId: string;
 	secret: string;
@@ -47,11 +51,18 @@ export function createJoinGame(deps: {
 	clock: Clock;
 	realtime: RealtimePublisher;
 	shuffler: Shuffler;
+	attempts: AttemptLimiter;
 }): JoinGame {
-	return async ({ gameId, nickname: rawNickname, avatar: remembered }) => {
+	return async ({
+		gameId,
+		nickname: rawNickname,
+		avatar: remembered,
+		clientKey,
+	}) => {
 		const game = await loadLiveGame(deps, gameId);
 		assertJoinable(game);
 		const nickname = parseNickname(rawNickname);
+		const now = deps.clock.now();
 		const player = newPlayer({
 			id: deps.ids.generate(),
 			gameId: game.id,
@@ -60,10 +71,19 @@ export function createJoinGame(deps: {
 			firstQuestionIndex: firstQuestionFor(game),
 			// One that left the catalog is no error: a new one is drawn (RN-07, RN-08).
 			avatar: knownAvatar(remembered ?? null) ?? drawAvatar(deps.shuffler),
-			now: deps.clock.now(),
+			now,
 		});
+		const releaseJoin = await reserveJoin(
+			deps.attempts,
+			game.id,
+			clientKey,
+			now,
+		);
 		// The place and the nickname are taken with the insert itself.
 		const added = await deps.players.add(player, GAME_MAX_PLAYERS);
+		if (added !== "added") {
+			await releaseJoin();
+		}
 		if (added === "full") {
 			throw new GameFullError("The game is full");
 		}

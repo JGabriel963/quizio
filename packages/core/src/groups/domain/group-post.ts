@@ -94,3 +94,11 @@ export function postHeadlineOf(
 	}
 	return post.file.type === "image" ? "image" : "file";
 }
+
+/**
+ * Posts a person may make in a minute and in a day, of every kind together:
+ * messages, files, shared quizzes and assignments (audit L9). Each one tells
+ * every member, so a flood would fill the feed, the tab and the bells.
+ */
+export const GROUP_POSTS_PER_MINUTE = 20;
+export const GROUP_POSTS_PER_DAY = 500;

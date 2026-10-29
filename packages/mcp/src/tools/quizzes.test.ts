@@ -37,7 +37,7 @@ interface QuizResult {
 }
 
 describe("quiz tools (spec 044, RN-20, RN-22, RN-23)", () => {
-	it("create_quiz with the five question types, then publish_quiz, gives a published quiz in order, all made with AI, the quota untouched and the editor and quiz links (CA-11)", async () => {
+	it("create_quiz with the five question types, then publish_quiz, gives a published quiz in order, all made with AI, no credit spent and the editor and quiz links (CA-11; spec 045, CA-21)", async () => {
 		const { api, ok } = await connectTestClient({ userId: "ana" });
 		const quotaBefore = await api.container.useCases.getAssistantStatus({
 			ownerId: "ana",

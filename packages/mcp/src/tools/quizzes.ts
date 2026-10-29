@@ -15,7 +15,7 @@ import {
 } from "../schemas/question-input";
 import { themeChoice, toThemeChoice } from "../schemas/theme-choice";
 
-const quizId = z.string().describe("The quiz's id.");
+const quizId = z.string().max(10_000).describe("The quiz's id.");
 const visibility = z
 	.enum(["private", "public"])
 	.describe(
@@ -53,8 +53,8 @@ export const quizTools = [
 		description: `Creates a quiz in the person's library, as a draft, with its questions in one call (every question an agent adds is marked as made with AI). Title up to ${QUIZ_TITLE_MAX_LENGTH} characters, description up to ${QUIZ_DESCRIPTION_MAX_LENGTH}, up to ${QUIZ_MAX_QUESTIONS} questions. Incomplete questions are kept; get_quiz says what each still needs, and publish_quiz makes it playable.`,
 		kind: "write",
 		input: z.object({
-			title: z.string().nullish(),
-			description: z.string().nullish(),
+			title: z.string().max(10_000).nullish(),
+			description: z.string().max(10_000).nullish(),
 			visibility: visibility.optional(),
 			cover: fileSource.optional().describe("The cover image."),
 			theme: themeChoice.optional(),
@@ -94,8 +94,8 @@ export const quizTools = [
 		kind: "idempotent",
 		input: z.object({
 			quizId,
-			title: z.string().nullish(),
-			description: z.string().nullish(),
+			title: z.string().max(10_000).nullish(),
+			description: z.string().max(10_000).nullish(),
 			visibility: visibility.optional(),
 			cover: fileSource
 				.nullish()
@@ -231,8 +231,12 @@ export const quizTools = [
 		kind: "write",
 		input: z.object({
 			quizId,
-			title: z.string().nullish().describe("When the quiz has no title yet."),
-			description: z.string().nullish(),
+			title: z
+				.string()
+				.max(10_000)
+				.nullish()
+				.describe("When the quiz has no title yet."),
+			description: z.string().max(10_000).nullish(),
 		}),
 		run: async ({ quizId: id, title, description }, context) => {
 			const quiz = await context.useCases.publishQuiz({

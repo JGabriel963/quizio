@@ -136,7 +136,11 @@ export async function createStartedGame(
 
 	/** Someone gets in with the game on (spec 012); the session to ask with. */
 	async function join(nickname: string) {
-		const joined = await createJoinGame(deps)({ gameId: "game-1", nickname });
+		const joined = await createJoinGame(deps)({
+			clientKey: "ip",
+			gameId: "game-1",
+			nickname,
+		});
 		return {
 			gameId: "game-1",
 			playerId: joined.playerId,

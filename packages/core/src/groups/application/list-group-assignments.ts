@@ -1,5 +1,6 @@
 import type { PersonView } from "../../shared/application/person-view";
 import {
+	GROUP_ASSIGNMENTS_READ_LIMIT,
 	type GroupAssignmentSort,
 	sortGroupAssignments,
 } from "../domain/group-assignment";
@@ -26,13 +27,20 @@ export type ListGroupAssignments = (input: {
 	sort: GroupAssignmentSort;
 }) => Promise<{ items: GroupAssignmentView[] }>;
 
-/** The group's open assignments, as "Classificar por" says (RN-22, RN-23). */
+/**
+ * The group's open assignments, as "Classificar por" says (RN-22, RN-23): read
+ * from its newest assignment posts alone, never the whole feed (audit L9).
+ */
 export function createListGroupAssignments(
 	deps: GroupStoreDeps & GroupPostViewDeps & { groupFeed: GroupFeedQuery },
 ): ListGroupAssignments {
 	return async ({ sort, ...input }) => {
 		const { membership } = await requireMembership(deps, input);
-		const posts = await deps.groupFeed.listPosts(input.groupId, input.userId);
+		const posts = await deps.groupFeed.listAssignmentPosts(
+			input.groupId,
+			input.userId,
+			GROUP_ASSIGNMENTS_READ_LIMIT,
+		);
 		const views = await postViewsOf(deps, posts, membership);
 		const items = views.flatMap((view) =>
 			view.attachment

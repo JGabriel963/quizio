@@ -14,31 +14,41 @@ async function show(status: Parameters<typeof AiAccessSection>[0]["status"]) {
 	return view;
 }
 
-describe("AiAccessSection (spec 039, RN-17 to RN-19)", () => {
-	it("usage bar and next free time", async () => {
+describe("AiAccessSection (spec 039, RN-17 to RN-19; spec 045, RN-17)", () => {
+	it("tells the credits used of the budget in the last 24 hours", async () => {
 		await show({ enabled: true, used: 3, limit: 20, nextFreeInMs: 5 * HOUR });
 
 		expect(
 			screen.getByText("O assistente de criação está disponível."),
 		).toBeVisible();
 		expect(
-			screen.getByText("3 de 20 criações nas últimas 24 horas"),
+			screen.getByText("3 de 20 créditos nas últimas 24 horas"),
 		).toBeVisible();
-		expect(screen.getByRole("progressbar")).toHaveAttribute(
-			"aria-valuenow",
-			"15",
-		);
 		expect(
-			screen.getByText("A próxima criação volta a ficar livre em 5 horas."),
+			screen.getByRole("progressbar", { name: "Créditos usados" }),
+		).toHaveAttribute("aria-valuenow", "15");
+	});
+
+	it("tells when the next credits come back", async () => {
+		await show({ enabled: true, used: 3, limit: 20, nextFreeInMs: 5 * HOUR });
+
+		expect(
+			screen.getByText("Os próximos créditos voltam em 5 horas."),
 		).toBeVisible();
 	});
 
-	it("used up", async () => {
+	it("says the budget is used up", async () => {
 		await show({ enabled: true, used: 20, limit: 20, nextFreeInMs: HOUR });
 
 		expect(
-			screen.getByText("Você usou todas as criações das últimas 24 horas."),
+			screen.getByText("Você usou todos os créditos das últimas 24 horas."),
 		).toBeVisible();
+	});
+
+	it("never mentions the instance's ceiling (spec 045, RN-14)", async () => {
+		await show({ enabled: true, used: 20, limit: 20, nextFreeInMs: HOUR });
+
+		expect(screen.queryByText(/instância/)).toBeNull();
 	});
 
 	it("not available", async () => {

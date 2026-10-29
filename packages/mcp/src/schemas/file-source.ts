@@ -13,6 +13,7 @@ export const fileSource = z
 		z.object({
 			url: z
 				.string()
+				.max(10_000)
 				.describe(
 					"A public http(s) link to the file. Quizio downloads it; private and internal addresses are refused.",
 				),
@@ -20,6 +21,7 @@ export const fileSource = z
 		z.object({
 			uploadKey: z
 				.string()
+				.max(10_000)
 				.describe(
 					"The uploadKey request_upload returned, after you PUT the file to its uploadUrl.",
 				),

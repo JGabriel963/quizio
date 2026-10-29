@@ -4,31 +4,40 @@ import {
 	GENERATION_QUOTA_WINDOW_MS,
 	type GenerationOptions,
 } from "../domain/generation";
+import type { CreditPricing } from "../domain/generation-credits";
 import type { AssistantPreferencesRepository } from "./ports/assistant-preferences-repository";
 import type { GenerationQuota } from "./ports/generation-quota";
 import type { QuestionGenerator } from "./ports/question-generator";
 
-/** The instance's quota (RN-31): configurable, 20 by default. */
+/** The instance's credits (spec 045), all configurable. */
 export interface AssistantSettings {
-	generationsPerDay: number;
+	/** Each creator's budget every 24 hours (RN-03): 20 by default. */
+	creditsPerDay: number;
+	/** Every creator's credits together, so free accounts cannot add up a bill (RN-13). */
+	instanceCreditsPerDay: number;
+	/** How the provider's usage becomes credits (RN-04). */
+	pricing: CreditPricing;
 }
 
 export interface AssistantStatus {
 	/** False when the instance has no AI provider (RN-01). */
 	enabled: boolean;
+	/** The creator's credits every 24 hours (spec 045, RN-03). */
 	limit: number;
-	/** Generations in the last 24 hours ("Acesso à IA", spec 039, RN-17). */
+	/** Credits in the last 24 hours ("Acesso à IA", spec 045, RN-17). */
 	used: number;
 	remaining: number;
-	/** When the quota is used up, when the next generation frees up (RN-32). */
+	/** With no credit left, when the oldest creation's credits come back (spec 045, RN-16). */
 	nextAvailableAt: Date | null;
 	/**
-	 * With any generation in the window, how long until the oldest leaves it
-	 * (spec 039, RN-17); a duration, never an instant for the device's clock.
+	 * With any credit spent in the window, how long until the oldest leaves it
+	 * (spec 045, RN-17); a duration, never an instant for the device's clock.
 	 */
 	nextFreeInMs: number | null;
 	/** The options the creator last generated with, or the defaults (RN-07). */
 	options: GenerationOptions;
+	/** The instance's weights, so the screen shows the same estimate the server reserves (spec 045, RN-06). */
+	pricing: CreditPricing;
 }
 
 export type GetAssistantStatus = (input: {
@@ -43,7 +52,7 @@ export function createGetAssistantStatus(deps: {
 	clock: Clock;
 }): GetAssistantStatus {
 	return async ({ ownerId }) => {
-		const limit = deps.assistantSettings.generationsPerDay;
+		const limit = deps.assistantSettings.creditsPerDay;
 		const now = deps.clock.now();
 		const [usage, options] = await Promise.all([
 			deps.generationQuota.usage(ownerId, GENERATION_QUOTA_WINDOW_MS, now),
@@ -67,6 +76,7 @@ export function createGetAssistantStatus(deps: {
 					? Math.max(0, oldestLeavesAt - now.getTime())
 					: null,
 			options: options ?? DEFAULT_GENERATION_OPTIONS,
+			pricing: deps.assistantSettings.pricing,
 		};
 	};
 }

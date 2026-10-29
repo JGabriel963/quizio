@@ -141,24 +141,31 @@ export const quizVersion = pgTable(
 );
 
 /**
- * One row per generation with the creation assistant (spec 027, RN-31): the
- * quota counts the owner's rows of the last 24 hours. A failed generation's
- * row is deleted (RN-33).
+ * One row per generation with the creation assistant (spec 045): the budget
+ * sums the owner's `credits` of the last 24 hours, and the instance's ceiling
+ * everybody's `instance_credits`. Both start as the estimate and are settled
+ * with what the creation cost; a generation the provider did not charge is
+ * deleted. A row stored before the credits counts 1 (RN-18). Deleting the
+ * account only unlinks its rows: they still count for the instance, or a
+ * deleted account would give its credits back.
  */
 export const generationUsage = pgTable(
 	"generation_usage",
 	{
 		id: text("id").primaryKey(),
-		ownerId: text("owner_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
+		ownerId: text("owner_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+		credits: integer("credits").notNull().default(1),
+		instanceCredits: integer("instance_credits").notNull().default(1),
 	},
 	(table) => [
 		index("generation_usage_owner_created_idx").on(
 			table.ownerId,
 			table.createdAt,
 		),
+		index("generation_usage_created_idx").on(table.createdAt),
 	],
 );
 

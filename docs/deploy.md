@@ -17,7 +17,7 @@ Para testar a saída da Vercel na sua máquina: `NITRO_PRESET=vercel pnpm -F web
 - **Cloudflare R2**: um bucket com acesso público de leitura (domínio próprio ou `r2.dev`) e um token de API com leitura e escrita. O navegador envia as imagens direto para o bucket, então ele precisa de uma regra de CORS liberando `PUT` e `GET` para a origem do app (`BETTER_AUTH_URL`), com o cabeçalho `content-type`. Detalhes no [ADR 0003](adr/0003-storage-r2.md).
 - **Pusher Channels**: um app, de preferência no cluster `sa1` (São Paulo). O plano gratuito limita conexões simultâneas; cada jogador e cada anfitrião usa uma.
 - **Google OAuth** (opcional): cliente do tipo "Web application" com a redirect URI `{BETTER_AUTH_URL}/api/auth/callback/google`.
-- **Provedor de IA** (opcional, assistente de criação da spec 027): uma chave da Anthropic, da OpenAI ou do Google, de um modelo que leia PDF. Sem ele, o assistente some da interface. Cada criação é cobrada pelo provedor; a cota por criador (`AI_GENERATIONS_PER_DAY`) limita o gasto ([ADR 0012](adr/0012-geracao-de-perguntas-por-ia.md)).
+- **Provedor de IA** (opcional, assistente de criação da spec 027): uma chave da Anthropic, da OpenAI ou do Google, de um modelo que leia PDF. Sem ele, o assistente some da interface. Cada criação é cobrada pelo provedor; cada criação gasta créditos pelo uso real (spec 045), e o orçamento por criador (`AI_CREDITS_PER_DAY`) e o teto da instância (`AI_INSTANCE_CREDITS_PER_DAY`) limitam o gasto ([ADR 0012](adr/0012-geracao-de-perguntas-por-ia.md)). Defina também um limite de gasto no painel do provedor.
 
 ### 2. Projeto
 
@@ -50,7 +50,9 @@ As funções rodam em **São Paulo** (`"regions": ["gru1"]` em `apps/web/vercel.
 | `VITE_PUSHER_USE_TLS` | `true` |
 | `AI_PROVIDER` | `anthropic`, `openai` ou `google`; sem ela, o assistente de criação fica desligado. Nunca `fake` (só para os testes) |
 | `AI_API_KEY` / `AI_MODEL` | a chave e o id do modelo do provedor (ex.: `claude-sonnet-5-5`); obrigatórias com `AI_PROVIDER` |
-| `AI_GENERATIONS_PER_DAY` | criações por criador a cada 24 horas; padrão `20` |
+| `AI_CREDITS_PER_DAY` | créditos de cada criador a cada 24 horas; padrão `20` (na falta dela, vale `AI_GENERATIONS_PER_DAY`) |
+| `AI_INSTANCE_CREDITS_PER_DAY` | créditos de todos os criadores juntos a cada 24 horas, o teto do gasto da instância; padrão `200` (na falta dela, vale `AI_INSTANCE_GENERATIONS_PER_DAY`) |
+| `AI_CREDITS_PER_1K_INPUT_TOKENS` / `AI_CREDITS_PER_1K_OUTPUT_TOKENS` | créditos por mil tokens de entrada e de saída; padrão `0.1` e `0.25`. Ajuste ao preço do seu modelo para que uma criação curta por assunto custe cerca de 1 crédito |
 | `NOTIFICATION_READ_RETENTION_DAYS` | por quantos dias as notificações lidas continuam no sino; padrão `90` (de 1 a 365) |
 | `AGENT_REQUESTS_PER_MINUTE` | pedidos por minuto de cada pessoa ao servidor MCP, somando todos os agentes; padrão `120` (de 10 a 10000) |
 | `AGENT_MAX_ACCESS_KEYS` | chaves de acesso ativas por pessoa; padrão `20` (de 1 a 100) |
@@ -62,7 +64,9 @@ Não defina `PUSHER_HOST`, `PUSHER_PORT`, `VITE_PUSHER_HOST` nem `VITE_PUSHER_PO
 
 **Agentes de IA** (spec 044, ADR 0023). O servidor MCP responde em `{BETTER_AUTH_URL}/mcp`, e essa URL também é o emissor (`{BETTER_AUTH_URL}/api/auth`) e a audiência (`{BETTER_AUTH_URL}/mcp`) dos tokens dos agentes. Trocar o domínio de produção derruba todas as autorizações: cada pessoa conecta seus agentes de novo (as chaves de acesso continuam valendo). As chaves que assinam os tokens ficam na tabela `jwks`, criadas no primeiro uso. As rotas `/.well-known/*` precisam chegar ao app sem redirecionamento, porque é por elas que o agente descobre onde se conectar.
 
-`CLIENT_IP_HEADER` fica no padrão (`x-forwarded-for`): a Vercel sobrescreve esse cabeçalho, o cliente não consegue forjá-lo.
+`CLIENT_IP_HEADER` pode ficar vazio: na Vercel o padrão é `x-forwarded-for`, que ela sobrescreve, e o cliente não consegue forjá-lo.
+
+**Cabeçalhos de segurança.** Toda resposta sai com `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`, `X-Content-Type-Options: nosniff` e `Referrer-Policy: strict-origin-when-cross-origin` (`apps/web/src/start.ts`), na Vercel e na VPS. O HSTS vem da Vercel. A CSP completa ainda não existe: antes, ela precisa rodar em modo *report-only*, porque o Pusher, o bucket e o Google têm de estar na lista.
 
 **Tempo das funções.** Uma criação com o assistente pode levar um ou dois minutos. O `vite.config.ts` pede `maxDuration: 300` às funções da Vercel (`nitro({ vercel: { functions } })`), o que exige o Fluid compute (padrão nos projetos novos); a criação desiste sozinha em 120 s e devolve a criação à cota.
 
@@ -95,6 +99,17 @@ Nada no código prende o app à Vercel. Numa VPS:
 
 - `pnpm install && pnpm -F web build`, depois `pnpm -F web start` (porta em `PORT`, padrão 3000) atrás de um proxy com TLS (Caddy, nginx, Traefik).
 - **Migrations**: o `vercel.json` não vale aqui. Rode `pnpm -F @quizio/db db:migrate:deploy` no script de deploy, antes de reiniciar o app.
-- **`CLIENT_IP_HEADER`**: defina com o cabeçalho que o **seu proxy** escreve e sobrescreve (ex.: `x-real-ip`). Sem isso, um cliente pode mandar o próprio `x-forwarded-for` e escapar dos limites de tentativas de login e de PIN.
+- **`CLIENT_IP_HEADER`**: defina com o cabeçalho que o **seu proxy** escreve e sobrescreve, de preferência com um valor só (ex.: nginx `proxy_set_header X-Real-IP $remote_addr` e `CLIENT_IP_HEADER=x-real-ip`). Em produção fora da Vercel, **o app não sobe sem ele**: com o padrão, um cliente mandaria o próprio `x-forwarded-for` e escaparia dos limites de login, de PIN, de entradas e de envios. Se ficar `x-forwarded-for`, o Quizio lê a **última** entrada, a que o proxy acrescentou; o limite de login do Better Auth, porém, só aceita um cabeçalho de valor único. Endereços IPv6 contam por /64.
+- **Limite de corpo**: o app recusa com 413 qualquer requisição acima de 1 MB em `/api/trpc`, `/api/auth` e `/mcp` (os arquivos vão direto para o armazenamento). Vale manter um limite também no proxy (`client_max_body_size` no nginx).
 - As variáveis `VITE_*` precisam existir na hora do build; as demais, na hora de rodar.
 - Postgres, armazenamento e tempo real podem continuar na nuvem ou ir para a mesma máquina: o `docker-compose.yml` já descreve Postgres, RustFS (S3) e Soketi (Pusher), que usam `STORAGE_FORCE_PATH_STYLE=true` e as variáveis `*_HOST`/`*_PORT`.
+
+## Expor a máquina local por um túnel (ngrok)
+
+Para conectar agentes de IA ao Quizio da sua máquina, **não exponha o servidor de dev** (`pnpm dev`): quem descobre a URL do túnel recebe o código do monorepo em `/@fs/`, stack traces, cadastro aberto e a sua chave de IA. Use o build de produção:
+
+```bash
+pnpm -F web build
+```
+
+e rode `pnpm -F web start` com `BETTER_AUTH_URL` igual à URL do túnel, `AUTH_SIGN_UP_ENABLED=false` (entre com uma conta que já existe) e `CLIENT_IP_HEADER=x-forwarded-for` (o ngrok acrescenta o endereço de quem chamou).

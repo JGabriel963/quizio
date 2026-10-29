@@ -1,53 +1,86 @@
 import type { GenerationQuota } from "@quizio/core/quiz/application/ports/generation-quota";
-import { and, count, eq, gt, lte, min, sql } from "drizzle-orm";
+import { and, eq, gt, lte, min, type SQL, sql, sum } from "drizzle-orm";
 
 import { generationUsage as usageTable } from "../../schema/quiz";
 import type { Database } from "../../types";
 
-function inWindow(ownerId: string, windowMs: number, now: Date) {
-	return and(
-		eq(usageTable.ownerId, ownerId),
+function inWindow(ownerId: string | null, windowMs: number, now: Date) {
+	const conditions: SQL[] = [
 		gt(usageTable.createdAt, new Date(now.getTime() - windowMs)),
 		lte(usageTable.createdAt, now),
-	);
-}
-
-async function usageOf(
-	db: Pick<Database, "select">,
-	ownerId: string,
-	windowMs: number,
-	now: Date,
-) {
-	const [row] = await db
-		.select({ used: count(), oldestAt: min(usageTable.createdAt) })
-		.from(usageTable)
-		.where(inWindow(ownerId, windowMs, now));
-	return { used: row?.used ?? 0, oldestAt: row?.oldestAt ?? null };
+	];
+	if (ownerId !== null) {
+		conditions.push(eq(usageTable.ownerId, ownerId));
+	}
+	return and(...conditions);
 }
 
 /**
- * The creation assistant's quota (spec 027, RN-31 to RN-33), one row per use.
- * A reservation counts and inserts under a lock on the owner, so two requests
- * at the same time cannot both take the last use.
+ * The credits in the window: the owner's `credits`, or everybody's
+ * `instance_credits` with null; and when the oldest use was taken.
+ */
+async function usageOf(
+	db: Pick<Database, "select">,
+	ownerId: string | null,
+	windowMs: number,
+	now: Date,
+) {
+	const column =
+		ownerId === null ? usageTable.instanceCredits : usageTable.credits;
+	const [row] = await db
+		.select({ used: sum(column), oldestAt: min(usageTable.createdAt) })
+		.from(usageTable)
+		.where(inWindow(ownerId, windowMs, now));
+	return { used: Number(row?.used ?? 0), oldestAt: row?.oldestAt ?? null };
+}
+
+/**
+ * The creation assistant's credits (spec 045), one row per creation. A
+ * reservation sums and inserts under one lock for the whole instance, so two
+ * requests at the same time cannot both take the last credits, the owner's or
+ * everybody's; creations are few, so they can wait for each other here.
  */
 export function createDrizzleGenerationQuota(db: Database): GenerationQuota {
 	return {
-		async reserve(ownerId, limit, windowMs, now) {
+		async reserve(ownerId, credits, limits, windowMs, now) {
 			return db.transaction(async (tx) => {
 				await tx.execute(
-					sql`select pg_advisory_xact_lock(hashtext(${`generation:${ownerId}`}))`,
+					sql`select pg_advisory_xact_lock(hashtext(${"generation"}))`,
 				);
-				const { used, oldestAt } = await usageOf(tx, ownerId, windowMs, now);
-				if (used >= limit) {
+				const everybody = await usageOf(tx, null, windowMs, now);
+				const owner = await usageOf(tx, ownerId, windowMs, now);
+				const limited =
+					everybody.used + credits > limits.instance
+						? { usage: everybody, limitedBy: "instance" as const }
+						: owner.used + credits > limits.perOwner
+							? { usage: owner, limitedBy: "owner" as const }
+							: null;
+				if (limited) {
 					return {
 						reserved: false as const,
-						nextAvailableAt: new Date((oldestAt ?? now).getTime() + windowMs),
+						nextAvailableAt: new Date(
+							(limited.usage.oldestAt ?? now).getTime() + windowMs,
+						),
+						limitedBy: limited.limitedBy,
 					};
 				}
 				const id = crypto.randomUUID();
-				await tx.insert(usageTable).values({ id, ownerId, createdAt: now });
+				await tx.insert(usageTable).values({
+					id,
+					ownerId,
+					createdAt: now,
+					credits,
+					instanceCredits: credits,
+				});
 				return { reserved: true as const, id };
 			});
+		},
+
+		async settle(id, { charged, spent }) {
+			await db
+				.update(usageTable)
+				.set({ credits: charged, instanceCredits: spent })
+				.where(eq(usageTable.id, id));
 		},
 
 		async release(id) {

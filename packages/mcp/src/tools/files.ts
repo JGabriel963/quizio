@@ -50,13 +50,15 @@ export const fileTools = [
 					),
 				contentType: z
 					.string()
+					.max(10_000)
 					.describe(
 						"image/png, image/jpeg, image/gif, image/webp or application/pdf.",
 					),
 				sizeBytes: z.number().int().positive(),
-				groupId: z.string().optional().describe("groupFile only."),
+				groupId: z.string().max(10_000).optional().describe("groupFile only."),
 				fileName: z
 					.string()
+					.max(10_000)
 					.optional()
 					.describe("groupFile only: the name it downloads with."),
 			})

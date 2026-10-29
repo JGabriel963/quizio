@@ -1,6 +1,8 @@
+import type { AttemptLimiter } from "../../shared/application/ports/attempt-limiter";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import { reserveUpload } from "../../shared/application/upload-limit";
 import { groupFileKeyFor } from "../../shared/domain/media-key";
 import { type GroupFileType, parseGroupFile } from "../domain/group-file";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
@@ -38,11 +40,14 @@ export function createRequestGroupUpload(
 		storage: ObjectStorage;
 		ids: IdGenerator;
 		clock: Clock;
+		attempts: AttemptLimiter;
 	},
 ): RequestGroupUpload {
 	return async ({ userId, groupId, ...file }) => {
 		await requireMembership(deps, { userId, groupId });
 		const parsed = parseGroupFile(file);
+		// One more of the person's uploads of the hour (audit L4).
+		await reserveUpload(deps, userId);
 
 		const now = deps.clock.now();
 		const expired = await deps.groupUploads.takeExpiredUploads(

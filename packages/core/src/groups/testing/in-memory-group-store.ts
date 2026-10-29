@@ -364,6 +364,15 @@ export class InMemoryGroupStore
 		}));
 	}
 
+	async listAssignmentPosts(
+		groupId: string,
+		viewerId: string,
+		limit: number,
+	): Promise<GroupPostRecord[]> {
+		const posts = await this.listPosts(groupId, viewerId);
+		return posts.filter((post) => post.gameId !== null).slice(0, limit);
+	}
+
 	async findPostRecord(
 		groupId: string,
 		postId: string,

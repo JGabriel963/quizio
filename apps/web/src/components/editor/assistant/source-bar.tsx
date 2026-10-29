@@ -46,8 +46,10 @@ export interface SourceBarProps {
 	topic: string;
 	/** The file in use, or null before one is sent. */
 	pdfName: string | null;
-	/** Why Crie cannot run now (quota, creating...), or null. */
+	/** Why Crie cannot run now (credits, creating...), or null. */
 	createDisabledReason: string | null;
+	/** What the creation may cost, or why it does not fit (spec 045, RN-06, RN-08). */
+	creditsNote: string | null;
 	busy: boolean;
 	layout: AssistantLayout;
 	onSourceChange: (source: AssistantSource) => void;
@@ -67,6 +69,7 @@ export function SourceBar({
 	topic,
 	pdfName,
 	createDisabledReason,
+	creditsNote,
 	busy,
 	layout,
 	onSourceChange,
@@ -182,6 +185,9 @@ export function SourceBar({
 					))}
 				</fieldset>
 			</div>
+			{creditsNote && (
+				<p className="text-muted-foreground text-xs">{creditsNote}</p>
+			)}
 			{source === "pdf" && pdfName !== null && (
 				<p className="text-muted-foreground text-xs">{PERSONAL_DATA_NOTICE}</p>
 			)}

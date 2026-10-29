@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { UnknownAvatarError } from "../domain/avatar";
+import {
+	AVATAR_CHANGE_LIMIT,
+	AVATAR_CHANGE_WINDOW_MS,
+	TooManyAvatarChangesError,
+	UnknownAvatarError,
+} from "../domain/avatar";
 import { GameNotFoundError } from "../domain/game";
 import { GAME_EVENTS, gameChannel } from "../domain/game-events";
 import { AvatarFixedError } from "../domain/player";
@@ -15,7 +20,11 @@ const fox = { character: "fox", accessory: "crown" } as const;
 async function joined(nickname = "Ana") {
 	const deps = createGameDeps();
 	await deps.games.save(aGame({ createdAt: deps.clock.now() }));
-	const player = await createJoinGame(deps)({ gameId: "game-1", nickname });
+	const player = await createJoinGame(deps)({
+		clientKey: "ip",
+		gameId: "game-1",
+		nickname,
+	});
 	return {
 		deps,
 		session: {
@@ -27,6 +36,40 @@ async function joined(nickname = "Ana") {
 }
 
 describe("changeAvatar (spec 028)", () => {
+	it("the avatar the player already has writes and publishes nothing (L7)", async () => {
+		const { deps, session } = await joined();
+		const change = createChangeAvatar(deps);
+		await change({ ...session, avatar: fox });
+		const published = deps.realtime.messagesOn(gameChannel("game-1")).length;
+
+		for (let tap = 0; tap < AVATAR_CHANGE_LIMIT * 2; tap++) {
+			await expect(change({ ...session, avatar: fox })).resolves.toEqual({
+				avatar: fox,
+			});
+		}
+
+		expect(deps.realtime.messagesOn(gameChannel("game-1"))).toHaveLength(
+			published,
+		);
+	});
+
+	it("takes 10 changes every 5 seconds from a player (L7)", async () => {
+		const { deps, session } = await joined();
+		const change = createChangeAvatar(deps);
+		const avatars = [fox, { character: "koala", accessory: null } as const];
+		for (let tap = 0; tap < AVATAR_CHANGE_LIMIT; tap++) {
+			await change({ ...session, avatar: avatars[tap % 2] ?? fox });
+		}
+
+		await expect(
+			change({ ...session, avatar: avatars[AVATAR_CHANGE_LIMIT % 2] ?? fox }),
+		).rejects.toThrow(TooManyAvatarChangesError);
+		deps.clock.advanceBy(AVATAR_CHANGE_WINDOW_MS);
+		await expect(
+			change({ ...session, avatar: avatars[AVATAR_CHANGE_LIMIT % 2] ?? fox }),
+		).resolves.toBeDefined();
+	});
+
 	it("saves the avatar and publishes avatar-changed", async () => {
 		const { deps, session } = await joined();
 
@@ -60,6 +103,7 @@ describe("changeAvatar (spec 028)", () => {
 	it("two players may have the same avatar", async () => {
 		const { deps, session } = await joined();
 		const other = await createJoinGame(deps)({
+			clientKey: "ip",
 			gameId: "game-1",
 			nickname: "Bia",
 		});

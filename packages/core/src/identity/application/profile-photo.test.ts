@@ -1,10 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
-
+import { MEDIA_UPLOAD_TTL_MS } from "../../media/application/media-uploads";
 import {
 	InvalidMediaSizeError,
 	MAX_MEDIA_BYTES,
 	UnsupportedMediaTypeError,
 } from "../../media/domain/media-policy";
+import { InMemoryMediaUploads } from "../../media/testing/in-memory-media-uploads";
+import { reserveUpload } from "../../shared/application/upload-limit";
+import {
+	TooManyUploadsError,
+	UPLOAD_LIMIT,
+} from "../../shared/domain/upload-limit";
+import { FixedClock } from "../../shared/testing/fixed-clock";
+import { InMemoryAttemptLimiter } from "../../shared/testing/in-memory-attempt-limiter";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { InMemoryProfilePhotoRepository } from "../../shared/testing/in-memory-profile-photo-repository";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
@@ -16,15 +24,49 @@ import { createSetProfilePhoto } from "./set-profile-photo";
 describe("profile photo", () => {
 	let storage: InMemoryObjectStorage;
 	let photos: InMemoryProfilePhotoRepository;
+	let mediaUploads: InMemoryMediaUploads;
+	let attempts: InMemoryAttemptLimiter;
+	let clock: FixedClock;
 	const deps = () => ({
 		storage,
 		profilePhotos: photos,
 		ids: new SequentialIdGenerator("photo"),
+		mediaUploads,
+		mediaUsage: mediaUploads,
+		attempts,
+		clock,
 	});
 
 	beforeEach(() => {
 		storage = new InMemoryObjectStorage();
 		photos = new InMemoryProfilePhotoRepository();
+		mediaUploads = new InMemoryMediaUploads();
+		attempts = new InMemoryAttemptLimiter();
+		clock = new FixedClock();
+	});
+
+	const aPhoto = { userId: "user-1", contentType: "image/webp", sizeBytes: 9 };
+
+	it("requestProfilePhotoUpload records the photo, and one never set is deleted a day on (L4)", async () => {
+		const request = createRequestProfilePhotoUpload(deps());
+		const abandoned = await request(aPhoto);
+		await storage.put(abandoned.key, new Uint8Array([1]), "image/webp");
+
+		clock.advanceBy(MEDIA_UPLOAD_TTL_MS + 1);
+		const next = await request(aPhoto);
+
+		expect(await storage.exists(abandoned.key)).toBe(false);
+		expect(mediaUploads.keys()).toEqual([next.key]);
+	});
+
+	it("requestProfilePhotoUpload counts against the person's uploads of the hour (L4)", async () => {
+		for (let upload = 0; upload < UPLOAD_LIMIT; upload++) {
+			await reserveUpload({ attempts, clock }, "user-1");
+		}
+
+		await expect(
+			createRequestProfilePhotoUpload(deps())(aPhoto),
+		).rejects.toThrow(TooManyUploadsError);
 	});
 
 	it("requestProfilePhotoUpload presigns a key under profiles/{userId}/", async () => {

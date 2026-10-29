@@ -65,11 +65,13 @@ export function JoinCard({
 export function JoinQrDialog({
 	origin,
 	pin,
+	gameId,
 	open,
 	onOpenChange,
 }: {
 	origin: string;
 	pin: string;
+	gameId: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
@@ -83,7 +85,7 @@ export function JoinQrDialog({
 				<JoinCard origin={origin} pin={pin} large />
 				<div className="relative rounded-md bg-white p-3 shadow-lg">
 					<QRCodeSVG
-						value={joinLink(origin, pin)}
+						value={joinLink(origin, pin, gameId)}
 						size={480}
 						className="size-[min(60svh,80vw)]"
 						title="Código QR do link de entrada"

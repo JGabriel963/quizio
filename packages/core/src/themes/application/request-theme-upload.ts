@@ -3,9 +3,11 @@ import {
 	assertMediaSize,
 	MEDIA_EXTENSIONS,
 } from "../../media/domain/media-policy";
+import type { AttemptLimiter } from "../../shared/application/ports/attempt-limiter";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { IdGenerator } from "../../shared/application/ports/id-generator";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import { reserveUpload } from "../../shared/application/upload-limit";
 import { themeFileKeyFor } from "../../shared/domain/media-key";
 import type { ThemeFileUsage } from "./ports/theme-file-usage";
 import type { ThemeUploadRepository } from "./ports/theme-upload-repository";
@@ -41,10 +43,13 @@ export function createRequestThemeUpload(deps: {
 	storage: ObjectStorage;
 	ids: IdGenerator;
 	clock: Clock;
+	attempts: AttemptLimiter;
 }): RequestThemeUpload {
 	return async ({ ownerId, contentType, sizeBytes }) => {
 		const mediaType = assertMediaContentType(contentType);
 		assertMediaSize(sizeBytes);
+		// One more of the person's uploads of the hour (audit L4).
+		await reserveUpload(deps, ownerId);
 
 		const now = deps.clock.now();
 		const expired = await deps.themeUploads.takeExpiredThemeUploads(

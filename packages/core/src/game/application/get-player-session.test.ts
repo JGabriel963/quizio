@@ -678,9 +678,10 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 		});
 		await reach("answering");
 
-		// "Brasília" went to the last shape; its id is still the right one.
-		await answer(1, "choice-1");
-		await answer(2, "choice-4");
+		// "Brasília" went to the last shape, and is named after it (L8):
+		// the editor's "choice-1" is now another answer.
+		await answer(1, "choice-4");
+		await answer(2, "choice-1");
 
 		const getPlayerSession = createGetPlayerSession(deps);
 		expect((await getPlayerSession(player(1))).stage?.outcome?.result).toBe(

@@ -255,6 +255,7 @@ import {
 	createListSharedQuizzes,
 	type ListSharedQuizzes,
 } from "@quizio/core/groups/application/list-shared-quizzes";
+import { requireMembership } from "@quizio/core/groups/application/load-group";
 import type { GroupAssignmentQuery } from "@quizio/core/groups/application/ports/group-assignments";
 import type { GroupFeedQuery } from "@quizio/core/groups/application/ports/group-feed-query";
 import type { GroupInbox } from "@quizio/core/groups/application/ports/group-inbox";
@@ -359,6 +360,10 @@ import {
 	createImportRemoteFile,
 	type ImportRemoteFile,
 } from "@quizio/core/media/application/import-remote-file";
+import type {
+	MediaUploadRepository,
+	MediaUsage,
+} from "@quizio/core/media/application/ports/media-upload-repository";
 import type { RemoteFileUploads } from "@quizio/core/media/application/ports/remote-file-uploads";
 import type { RemoteFiles } from "@quizio/core/media/application/ports/remote-files";
 import type { SourceUploadRepository } from "@quizio/core/media/application/ports/source-upload-repository";
@@ -630,6 +635,9 @@ export interface Adapters {
 	generationQuota: GenerationQuota;
 	assistantPreferences: AssistantPreferencesRepository;
 	sourceUploads: SourceUploadRepository;
+	/** Images and photos sent, swept when nothing used them (audit L4). */
+	mediaUploads: MediaUploadRepository;
+	mediaUsage: MediaUsage;
 	assistantSettings: AssistantSettings;
 	/** Groups and their members (spec 034). */
 	groups: GroupRepository;
@@ -927,6 +935,16 @@ export function createContainer(baseAdapters: Adapters): Container {
 	// A file an agent gives by link goes through the upload its target already
 	// has, with that upload's policy and pending row (spec 044, RN-24).
 	const remoteFileUploads: RemoteFileUploads = {
+		// Only a group's file needs a check of its own: the person's media and
+		// themes are theirs (audit L4).
+		authorize: async ({ ownerId, target }) => {
+			if (target.kind === "groupFile") {
+				await requireMembership(groupDeps, {
+					userId: ownerId,
+					groupId: target.groupId,
+				});
+			}
+		},
 		maxBytesFor: (target) =>
 			target.kind === "groupFile" ? GROUP_PDF_MAX_BYTES : MAX_MEDIA_BYTES,
 		keyFor: async ({ ownerId, target, contentType, sizeBytes, fileName }) => {

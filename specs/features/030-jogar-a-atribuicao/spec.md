@@ -50,8 +50,9 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 | --- | --- | --- |
 | RN-01 | O link da atribuição abre a **capa** da atividade: a capa do quiz (ou a imagem padrão), o número de perguntas ("5 perguntas"), o nome da atividade (spec 029, RN-28) e **"Iniciar"**, que leva à tela do apelido. O PIN de 8 dígitos (spec 029, RN-20) leva à mesma capa. | vídeo Desktop (2026-10-19) |
 | RN-02 | A tela do apelido é a da spec 029 (RN-46), agora funcionando: **"Insira um apelido"**, **"Ok, vamos lá!"** e "Não use seu nome verdadeiro". Ela deixa de mostrar "Em breve". | spec 029, RN-46 · vídeo Desktop |
-| RN-03 | O apelido segue as regras da partida ao vivo (spec 008): de 1 a 15 caracteres sem os espaços das pontas, e **único na atividade**, sem diferenciar maiúsculas, minúsculas e acentos. A tela do apelido mostra os apelidos de quem já entrou. Um apelido em uso (digitado ou tocado na lista) pergunta **"Você é {apelido}?"** ("Um jogador com esse apelido já começou o jogo. Se foi você, continue jogando de onde parou ou comece a jogar com um apelido diferente."): **"Sim"** retoma esse participante (RN-20) e **"Não"** volta ao apelido para escolher outro. | spec 008 · kahoot-reference §8.1, §9 · captura do Kahoot (2026-10-20) |
+| RN-03 | O apelido segue as regras da partida ao vivo (spec 008): de 1 a 15 caracteres sem os espaços das pontas, e **único na atividade**, sem diferenciar maiúsculas, minúsculas e acentos. A tela do apelido mostra os apelidos de quem já entrou, **só para ver**: tocar num deles não faz nada. Um apelido em uso mostra **"Esse apelido já está em uso. Escolha outro."**, como na partida ao vivo, e a pessoa continua na tela do apelido. | spec 008 · kahoot-reference §8.1, §9 · captura do Kahoot (2026-10-20) · observação do usuário no Kahoot (2026-10-29) |
 | RN-04 | Entra quem chega enquanto a atribuição está **aberta**, até o limite técnico de **200 participantes** por atividade (spec 008, RN-45), sem nenhuma menção a plano. Encerrada (prazo ou "Encerrar agora"), a capa e o apelido dão lugar a "Esta atividade foi encerrada" (spec 029, RN-47). | spec 008, RN-45 · spec 029 · constituição, artigo VI |
+| RN-04a | Cada endereço de rede (IP) **cria no máximo 60 participantes por minuto** em cada atividade, como na partida ao vivo (spec 008, RN-45a), com a mesma mensagem: **"Muitas entradas por esta rede agora. Aguarde um momento e tente de novo."** Retomar um participante (RN-20) não cria ninguém e não conta. | auditoria de segurança (2026-10-29, M7) · decisão do usuário (2026-10-29) |
 | RN-05 | Ao entrar, a tela mostra por um instante o número de participantes já com o apelido de quem entrou, e **a primeira pergunta começa sozinha**: não há lobby nem anfitrião. | vídeos Desktop e Mobile |
 | RN-06 | Com **Personagens** ligada na atribuição (spec 029, RN-13), o participante recebe um personagem sorteado ao entrar e pode trocá-lo **antes de começar**, numa tela com o editor da spec 028 e o botão **"Começar"**; o personagem aparece no placar e na tela final. Desligada, não há personagem nem essa tela. | spec 028 · spec 029, RN-13 · decisão do produto (2026-10-19) |
 
@@ -87,7 +88,7 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 
 | ID | Regra | Fonte |
 | --- | --- | --- |
-| RN-20 | O aparelho guarda quem o participante é na atividade. Voltar ao link ou ao PIN no mesmo navegador pergunta **"Você é {apelido}?"**: "Sim" leva aonde ele estava (à pergunta, ao resultado, a Pontuações ou ao fim) e "Não" começa outro participante, com outro apelido; quem já jogou continua no placar. Em outro navegador, o participante se retoma pelo apelido (RN-03). Como no Kahoot, o apelido basta para retomar: a atividade é anônima. | kahoot-reference §8.1, §9 · spec 008, RN-44a · decisão do usuário (2026-10-20) |
+| RN-20 | O aparelho guarda quem o participante é na atividade, e **só esse navegador o continua**. Voltar ao link ou ao PIN nele pergunta **"Você é {apelido}?"** ("Um jogador com esse apelido já começou o jogo. Se foi você, continue jogando de onde parou ou comece a jogar com um apelido diferente."): "Sim" leva aonde ele estava (à pergunta, ao resultado, a Pontuações ou ao fim) e "Não" esquece o participante nesse navegador e vai ao apelido, para entrar como outro; quem já jogou continua no placar. Em outro navegador, ou depois de limpar os dados do navegador, o participante não é retomado: a pessoa entra com outro apelido. Como no Kahoot, o apelido não é uma porta de entrada, e quem conhece o apelido de alguém não joga por ele. | kahoot-reference §8.1, §9 · spec 008, RN-44a · decisão do usuário (2026-10-20) · observação do usuário no Kahoot e auditoria de segurança (2026-10-29, M5) |
 | RN-21 | Quem **abandona** a partida no meio de uma pergunta e volta (RN-20) recomeça **essa pergunta**, com o tempo inteiro, se não a respondeu; se já a respondeu, segue para a próxima tela. Quem estava no aparelho quando o tempo acabou vê o resultado ("Tempo esgotado") e a pergunta conta como não respondida. Com o timer desligado, a pergunta o espera. | captura do Kahoot · decisão do usuário (2026-10-20) |
 | RN-22 | Quem terminou não joga de novo a mesma atividade: voltar e dizer "Sim" leva direto ao fim (RN-16), **sem ← para rever as perguntas**; a revisão é de quem acabou de terminar. | kahoot-reference §8.1 · captura do Kahoot (2026-10-20) |
 | RN-23 | Quando a atribuição **acaba** (prazo ou "Encerrar agora", spec 029) com o participante no meio, as respostas seguintes são recusadas e o aparelho mostra o fim com o que ele fez, com o aviso "Esta atividade foi encerrada". As perguntas que faltavam contam como não respondidas. | spec 029, RN-39, RN-40 · decisão do produto (2026-10-19) |
@@ -128,15 +129,21 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 #### CA-03 — Apelido em uso
 
 - **Dado** que "John" já entrou na atividade
-- **Quando** alguém abre a tela do apelido e digita "john" (ou toca em "John" na lista de quem entrou)
-- **Então** vê "Você é John?" com "Sim" e "Não"
-- **E** "Não" volta à tela do apelido, e "Sim" leva aonde John estava
+- **Quando** alguém, noutro navegador, digita "john" na tela do apelido e aciona "Ok, vamos lá!"
+- **Então** vê "Esse apelido já está em uso. Escolha outro." e continua na tela do apelido
+- **E** tocar em "John" na lista de quem entrou não faz nada
 
 #### CA-04 — Atividade cheia ou encerrada
 
 - **Dado** uma atribuição com 200 participantes, ou uma encerrada
 - **Quando** alguém tenta entrar
 - **Então** é recusado com o motivo, e na encerrada vê "Esta atividade foi encerrada"
+
+#### CA-04a — Muitas entradas pela mesma rede
+
+- **Dado** uma atividade aberta em que 60 participantes entraram, no último minuto, pelo mesmo endereço de rede
+- **Quando** mais alguém dessa rede escolhe um apelido livre e aciona "Ok, vamos lá!"
+- **Então** vê "Muitas entradas por esta rede agora. Aguarde um momento e tente de novo." e continua na tela do apelido
 
 #### CA-05 — Personagem antes de começar
 
@@ -242,10 +249,16 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 - **Quando** abre o link e responde "Não" a "Você é John?"
 - **Então** vai ao apelido e entra como outra pessoa, e John continua em Pontuações
 
+#### CA-20a — Outro navegador não retoma
+
+- **Dado** John, que começou a atividade no celular
+- **Quando** abre o link no computador
+- **Então** vê a capa e só entra com outro apelido, sem "Você é John?"
+
 #### CA-21 — Quem terminou não joga de novo
 
 - **Dado** John, que chegou ao fim
-- **Quando** abre o link de novo, em qualquer navegador, e responde "Sim" a "Você é John?"
+- **Quando** abre o link de novo no mesmo navegador e responde "Sim" a "Você é John?"
 - **Então** vê o fim, com a classificação de agora, sem ← para rever as perguntas
 
 #### CA-22 — Encerrada no meio
@@ -324,3 +337,5 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 - 2026-10-20 — por decisão do usuário, a partir do Kahoot: depois da animação do resultado, Pontuações vem sozinha; ← volta só aos resultados das perguntas respondidas, nunca a uma Pontuações anterior (RN-12, CA-10, CA-11).
 - 2026-10-20 — por decisão do usuário, a partir do Kahoot: voltar pergunta "Você é {apelido}?" e o participante se retoma pelo apelido, em qualquer navegador; quem abandonou recomeça a pergunta que não respondeu, com o tempo inteiro; quem terminou volta ao fim sem rever as perguntas; a tela do apelido lista quem já entrou (RN-03, RN-20 a RN-22, CA-03, CA-19 a CA-21).
 - 2026-10-21 — por decisão do usuário, a partir do Kahoot: Pontuações mostra os pontos de cada um até a pergunta que ela segue, não o total atual; a seta de subida compara com a pergunta anterior (RN-14).
+- 2026-10-29 — por decisão do usuário, depois da auditoria de segurança (achado M7): cada rede cria no máximo 60 participantes por minuto numa atividade (RN-04a, CA-04a), como na partida ao vivo (spec 008, RN-45a). Remover participantes da atividade continua fora e virou um item do roadmap.
+- 2026-10-29 — por decisão do usuário, depois de observar o Kahoot e da auditoria de segurança (achado M5): só o navegador que guardou o participante o continua (RN-20, CA-19 a CA-21). A lista de quem entrou fica só para ver, e um apelido em uso mostra "Esse apelido já está em uso. Escolha outro." (RN-03, CA-03). Antes, o apelido bastava para retomar em qualquer navegador, e o servidor entregava o segredo do participante a quem dissesse "Sim": dava para responder no lugar de outra pessoa. Em troca, quem muda de aparelho ou limpa o navegador entra de novo com outro apelido.

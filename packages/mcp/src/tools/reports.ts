@@ -6,11 +6,13 @@ import { z } from "zod";
 
 import { defineTool } from "../define-tool";
 import { ToolInputError } from "../tool-input-error";
+import { WRITTEN_BY_PLAYERS } from "./groups";
 
 const gameId = z
 	.string()
+	.max(10_000)
 	.describe("The report's id: the game's or the assignment's.");
-const gameIds = z.array(z.string()).min(1).max(200);
+const gameIds = z.array(z.string().max(10_000)).min(1).max(200);
 
 /** Reports: a reading of each game that started (spec 044, RN-28). */
 export const reportTools = [
@@ -26,7 +28,11 @@ export const reportTools = [
 				.optional()
 				.describe("reports by default."),
 			search: z.string().max(200).optional(),
-			quizId: z.string().optional().describe("Only the games of this quiz."),
+			quizId: z
+				.string()
+				.max(10_000)
+				.optional()
+				.describe("Only the games of this quiz."),
 			limit: z
 				.number()
 				.int()
@@ -58,8 +64,7 @@ export const reportTools = [
 	defineTool({
 		name: "get_report",
 		title: "Read a report",
-		description:
-			"A report as its screen shows it: the summary, the participants with their accuracy and points, and the questions with their accuracy. Below 35% is a difficult question or a participant who needs help. A group admin also reads the reports of members' assignments posted in the group, read-only.",
+		description: `A report as its screen shows it: the summary, the participants with their accuracy and points, and the questions with their accuracy. Below 35% is a difficult question or a participant who needs help. A group admin also reads the reports of members' assignments posted in the group, read-only. ${WRITTEN_BY_PLAYERS}`,
 		kind: "read",
 		input: z.object({ gameId }),
 		run: async ({ gameId: id }, context) => ({
@@ -73,12 +78,11 @@ export const reportTools = [
 	defineTool({
 		name: "get_report_detail",
 		title: "Read a report's detail",
-		description:
-			"One participant's answers (participantId, from get_report) or one question's answers (questionPosition, counting from 1). Send one of the two.",
+		description: `One participant's answers (participantId, from get_report) or one question's answers (questionPosition, counting from 1). Send one of the two. ${WRITTEN_BY_PLAYERS}`,
 		kind: "read",
 		input: z.object({
 			gameId,
-			participantId: z.string().optional(),
+			participantId: z.string().max(10_000).optional(),
 			questionPosition: z.number().int().min(1).optional(),
 		}),
 		run: async ({ gameId: id, participantId, questionPosition }, context) => {
@@ -108,7 +112,7 @@ export const reportTools = [
 		title: "Rename a report",
 		description: `Renames a report, up to ${REPORT_NAME_MAX_LENGTH} characters. The quiz keeps its title.`,
 		kind: "idempotent",
-		input: z.object({ gameId, name: z.string() }),
+		input: z.object({ gameId, name: z.string().max(10_000) }),
 		run: async ({ gameId: id, name }, context) =>
 			context.useCases.renameReport({
 				ownerId: context.identity.userId,

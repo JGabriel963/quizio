@@ -192,3 +192,11 @@ export class UnshareNotAllowedError extends DomainError {
 		super("Only who shared it and the admin may remove this quiz.");
 	}
 }
+
+/** The person posted as often as they may for now (audit L9). */
+export class TooManyGroupPostsError extends DomainError {
+	readonly code = "GROUP.TOO_MANY_POSTS";
+	constructor() {
+		super("Too many posts in a row; wait a moment.");
+	}
+}

@@ -157,6 +157,59 @@ describe("Better Auth as the agents' OAuth server (spec 044, ADR 0023)", () => {
 		expect(await read("client_id=x", headers)).toBeNull();
 	});
 
+	it("registration refuses a return address a browser would read another way", async () => {
+		// The browser goes to evil.example; a reader splitting at `@` sees claude.ai.
+		const spoofing = agent({
+			clientName: "Claude",
+			redirectUri: "https://evil.example\\@claude.ai/cb",
+		});
+
+		const registered = await spoofing.register();
+
+		expect(registered.status).toBe(400);
+		expect(registered.body).toMatchObject({ error: "invalid_redirect_uri" });
+	});
+
+	it("the consent screen does not take a request whose return address a browser would read another way", async () => {
+		const spoofed = "https://evil.example\\@claude.ai/cb";
+		auth = build({
+			agents: {
+				loginPage: "/api/agents/login",
+				consentPage: "/api/agents/connect",
+				refreshTokenExpiresInSeconds: 90 * 24 * 60 * 60,
+				fetchClientMetadataResource: async () =>
+					Response.json({
+						client_id: CIMD_CLIENT,
+						client_name: "Claude",
+						redirect_uris: [spoofed],
+						token_endpoint_auth_method: "none",
+						grant_types: ["authorization_code", "refresh_token"],
+						response_types: ["code"],
+					}),
+			},
+		});
+		const { cookie } = await signedIn("hugo@exemplo.com");
+		const spoofing = agent({ redirectUri: spoofed });
+		const authorization = await spoofing.authorize(
+			cookie,
+			CIMD_CLIENT,
+			spoofing.pkce().challenge,
+		);
+		const read = createConnectRequestReader(auth, {
+			secret: "a-test-secret-with-at-least-32-characters",
+			baseURL: BASE_URL,
+		});
+
+		const request = authorization.location?.startsWith("/api/agents/connect?")
+			? await read(
+					authorization.location.split("?")[1] ?? "",
+					new Headers({ cookie }),
+				)
+			: null;
+
+		expect(request).toBeNull();
+	});
+
 	it("a client identified by a metadata document URL is accepted", async () => {
 		const { cookie, userId } = await signedIn("carla@exemplo.com");
 		const vscode = agent({ redirectUri: "http://127.0.0.1:33418/callback" });

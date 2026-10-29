@@ -110,11 +110,7 @@ function fakeApi(overrides: Partial<AssignmentPlayApi> = {}) {
 			}),
 		),
 		setAvatar: vi.fn(async ({ avatar }) => ({ avatar })),
-		resume: vi.fn(async () => ({
-			playerId: "me",
-			secret: "s3cret",
-			nickname: "John",
-		})),
+		resume: vi.fn(async () => {}),
 		...overrides,
 	};
 	return api;
@@ -285,7 +281,8 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 		expect(
 			await screen.findByRole("list", { name: "Pontuações" }),
 		).toBeInTheDocument();
-		expect(api.resume).toHaveBeenCalledWith({ gameId: GAME, nickname: "John" });
+		// Only the pair this browser kept goes on (RN-20).
+		expect(api.resume).toHaveBeenCalledWith(SESSION);
 		await user.click(screen.getByRole("button", { name: "Próximo" }));
 		expect(api.advance).toHaveBeenCalledWith({
 			...SESSION,
@@ -309,7 +306,7 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 		expect(api.resume).not.toHaveBeenCalled();
 	});
 
-	it("a nickname in use asks Você é…? and Sim resumes it", async () => {
+	it("a nickname in use asks for another, never Você é…? (RN-03, M5)", async () => {
 		const api = fakeApi({
 			join: vi.fn(async () => {
 				throw Object.assign(new Error("taken"), {
@@ -325,15 +322,37 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 			"john",
 		);
 		await user.click(screen.getByRole("button", { name: "Ok, vamos lá!" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Esse apelido já está em uso. Escolha outro.",
+		);
+		expect(
+			screen.getByRole("textbox", { name: "Insira um apelido" }),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: /Você é/ })).toBeNull();
+		expect(api.resume).not.toHaveBeenCalled();
+		expect(store.load(GAME)).toBeNull();
+	});
+
+	it("a kept participant that is gone sends the browser back to the cover", async () => {
+		const api = fakeApi({
+			resume: vi.fn(async () => {
+				throw Object.assign(new Error("gone"), {
+					data: { domainCode: "GAME.NOT_FOUND" },
+				});
+			}),
+		});
+		const { store, user } = renderFlow(
+			api,
+			memoryStore({ ...SESSION, nickname: "John" }),
+		);
+
 		await user.click(await screen.findByRole("button", { name: "Sim" }));
 
-		expect(api.resume).toHaveBeenCalledWith({ gameId: GAME, nickname: "john" });
 		expect(
-			await screen.findByRole("heading", {
-				name: "Qual é a capital do Brasil?",
-			}),
+			await screen.findByRole("button", { name: "Iniciar" }),
 		).toBeInTheDocument();
-		expect(store.load(GAME)).toEqual({ ...SESSION, nickname: "John" });
+		expect(store.load(GAME)).toBeNull();
 	});
 
 	it("a finished participant who comes back sees the end, without ←", async () => {

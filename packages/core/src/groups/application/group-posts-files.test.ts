@@ -37,7 +37,7 @@ describe("the paged feed (spec 036, RN-18)", () => {
 		const ids: string[] = [];
 		for (let index = 0; index < 25; index++) {
 			ids.unshift((await t.post("bruno", `#${index}`)).postId);
-			t.clock.advanceBy(1000);
+			t.clock.advanceBy(3000);
 		}
 
 		const first = await t.feed("ana");

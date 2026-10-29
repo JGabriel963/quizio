@@ -1,4 +1,5 @@
 import { DEFAULT_GENERATION_OPTIONS } from "@quizio/core/quiz/domain/generation";
+import { DEFAULT_CREDIT_PRICING } from "@quizio/core/quiz/domain/generation-credits";
 import { aQuestion } from "@quizio/core/quiz/testing/a-question";
 import { aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { fakePdf } from "@quizio/core/quiz/testing/fake-pdf-pages";
@@ -31,7 +32,7 @@ describe("quiz.assistant router", () => {
 		expect(status).toMatchObject({ enabled: false });
 	});
 
-	it("status tells the quota and the options", async () => {
+	it("status carries the credits and the weights (spec 045)", async () => {
 		const status = await api.callerFor("user-1").quiz.assistant.status();
 
 		expect(status).toEqual({
@@ -42,7 +43,16 @@ describe("quiz.assistant router", () => {
 			nextAvailableAt: null,
 			nextFreeInMs: null,
 			options: DEFAULT_GENERATION_OPTIONS,
+			pricing: DEFAULT_CREDIT_PRICING,
 		});
+	});
+
+	it("generate returns the credits used (spec 045, RN-09)", async () => {
+		await api.quizzes.save(aQuiz());
+
+		const result = await api.callerFor("user-1").quiz.assistant.generate(topic);
+
+		expect(result).toMatchObject({ creditsUsed: 1, remaining: 19 });
 	});
 
 	it("requires a session", async () => {
@@ -77,7 +87,12 @@ describe("quiz.assistant router", () => {
 
 	it("maps the quota error with its domain code", async () => {
 		const limited = createTestApi({
-			assistantSettings: { generationsPerDay: 1 },
+			// A topic is estimated at 2 credits and charged 1: the second does not fit.
+			assistantSettings: {
+				creditsPerDay: 2,
+				instanceCreditsPerDay: 1000,
+				pricing: DEFAULT_CREDIT_PRICING,
+			},
 		});
 		await limited.quizzes.save(aQuiz());
 		const caller = limited.callerFor("user-1");
@@ -88,8 +103,8 @@ describe("quiz.assistant router", () => {
 			cause: { code: "QUIZ.GENERATION_QUOTA_EXCEEDED" },
 		});
 		expect(await caller.quiz.assistant.status()).toMatchObject({
-			remaining: 0,
-			nextAvailableAt: new Date("2026-06-02T12:00:00.000Z"),
+			remaining: 1,
+			nextAvailableAt: null,
 		});
 	});
 

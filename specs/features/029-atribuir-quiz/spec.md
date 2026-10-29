@@ -80,7 +80,7 @@ O criador atribui um quiz publicado com um prazo e as opções que quiser, receb
 | --- | --- | --- |
 | RN-18 | Cada atribuição tem um **PIN da atribuição** de **8 dígitos**, que pode começar com zero, **único entre as atribuições abertas** e diferente, pelo tamanho, do PIN de 6 dígitos da partida ao vivo (spec 008). Ele vale **até a atribuição acabar** (prazo ou "Encerrar agora"). | kahoot-reference §2 (PIN), §6.3 · referência visual do Kahoot ("04352236") |
 | RN-19 | A atribuição tem um **link** que abre direto a tela da atividade (RN-46), sem digitar o PIN, e um **código QR** com esse link. | kahoot-reference §6.3, §8.1 · referência visual do Kahoot |
-| RN-20 | A **entrada por PIN** (spec 008) passa a aceitar também os 8 dígitos da atribuição: um PIN de atribuição aberta leva à tela da atividade. Um PIN de 8 dígitos que não é de nenhuma atribuição aberta é **um PIN errado** como os outros, com as mesmas mensagens e o mesmo limite de tentativas por endereço (spec 008). | spec 008 · decisão do produto (2026-10-19) |
+| RN-20 | A **entrada por PIN** (spec 008) passa a aceitar também os 8 dígitos da atribuição: um PIN de atribuição aberta leva à tela da atividade. Um PIN de 8 dígitos que não é de nenhuma atribuição aberta é **um PIN errado** como os outros, com as mesmas mensagens e o mesmo limite de tentativas por endereço (spec 008). Numa rede que esgotou as tentativas, o link da atividade continua levando à capa, porque não passa pelo PIN (spec 008, RN-39a). | spec 008 · decisão do produto (2026-10-19) |
 
 ### Compartilhar
 
@@ -482,3 +482,4 @@ O criador atribui um quiz publicado com um prazo e as opções que quiser, receb
 - 2026-10-19 — pedido do usuário, com capturas do Kahoot: com atribuições abertas, "Atribuir" mostra antes "atividades em andamento", para compartilhar uma delas ou "Criar novo" (RN-05a, CA-21a, CA-21b). Corrigido o banco local, onde o `db:push` deixou o índice "uma partida aberta por quiz" sem o filtro do modo e a segunda atribuição do mesmo quiz falhava; a migration `0003` já recria o índice certo.
 - 2026-10-26 — os grupos existem desde a spec 034; "Atribuir a grupos" continua "Em breve" até a spec 038.
 - 2026-10-26 — spec 038: "Atribuir a grupos" (RN-21) deixa de ser "Em breve" para o criador enquanto a atribuição está aberta; "Atribuir por e-mail" continua "Em breve".
+- 2026-10-29 — spec 008, depois da auditoria de segurança (achado M8): a mensagem de muitas tentativas passa a apontar para o QR code e o link, que não esbarram no limite de PINs errados; o link da atividade nunca passou pelo PIN (RN-20).

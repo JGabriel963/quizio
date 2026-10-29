@@ -8,6 +8,7 @@ import {
 	normalizeEmail,
 	PASSWORD_LENGTH,
 } from "@quizio/core/identity/domain/sign-up-rules";
+import { isUnambiguousAddress } from "@quizio/core/shared/domain/web-address";
 import * as authSchema from "@quizio/db/schema/auth";
 import type { Database } from "@quizio/db/types";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
@@ -193,6 +194,10 @@ export function createAuth({
 					checkUserUpdate(ctx.body);
 					return;
 				}
+				if (ctx.path === "/oauth2/register" && ctx.body) {
+					checkRedirectUris(ctx.body);
+					return;
+				}
 				if (!EMAIL_CREDENTIAL_PATHS.has(ctx.path) || !ctx.body) {
 					return;
 				}
@@ -242,6 +247,25 @@ function checkUserUpdate(body: Record<string, unknown>): void {
 		const name = normalizeCreatorName(body.name);
 		assertValidName(name);
 		body.name = name;
+	}
+}
+
+/**
+ * "Conectar ao Quizio" shows where the agent returns (spec 044, RN-04), so a
+ * return address the browser would read another way is refused: with
+ * `https://evil.example\@claude.ai/cb` the screen would say claude.ai.
+ */
+function checkRedirectUris(body: Record<string, unknown>): void {
+	const uris = body.redirect_uris;
+	if (
+		Array.isArray(uris) &&
+		uris.some((uri) => typeof uri === "string" && !isUnambiguousAddress(uri))
+	) {
+		throw new APIError("BAD_REQUEST", {
+			error: "invalid_redirect_uri",
+			error_description:
+				"Redirect URIs must not contain backslashes, spaces or control characters",
+		});
 	}
 }
 

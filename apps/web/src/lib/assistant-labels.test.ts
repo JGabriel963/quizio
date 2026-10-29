@@ -4,27 +4,49 @@ import {
 	addLimitReason,
 	countLabel,
 	createdMessage,
+	creditsUsedLabel,
+	estimateLabel,
 	nextAvailableMessage,
+	notEnoughCreditsReason,
 	pdfFileProblem,
 	remainingLabel,
 } from "./assistant-labels";
 
 describe("assistant labels", () => {
-	it("formats the next available time", () => {
+	it("nextAvailableMessage tells when the next credits come back (spec 045, RN-16)", () => {
 		const nextAt = new Date(2026, 9, 16, 9, 10);
 
 		expect(nextAvailableMessage(20, nextAt)).toBe(
-			"Você usou as 20 criações das últimas 24 horas. A próxima fica disponível às 09:10.",
+			"Você usou os 20 créditos das últimas 24 horas. Os próximos voltam às 09:10.",
 		);
 		expect(nextAvailableMessage(50, nextAt.toISOString())).toContain(
-			"as 50 criações",
+			"os 50 créditos",
 		);
 	});
 
-	it("tells the remaining uses", () => {
-		expect(remainingLabel(5)).toBe("Restam 5 criações");
-		expect(remainingLabel(1)).toBe("Resta 1 criação");
-		expect(remainingLabel(0)).toBe("Nenhuma criação restante");
+	it("remainingLabel counts credits", () => {
+		expect(remainingLabel(5)).toBe("Restam 5 créditos");
+		expect(remainingLabel(1)).toBe("Resta 1 crédito");
+		expect(remainingLabel(0)).toBe("Nenhum crédito restante");
+	});
+
+	it("estimateLabel says up to N credits, singular for 1 (spec 045, RN-06)", () => {
+		expect(estimateLabel(4)).toBe("Esta criação usa até 4 créditos");
+		expect(estimateLabel(1)).toBe("Esta criação usa até 1 crédito");
+	});
+
+	it("notEnoughCreditsReason tells what it needs and what is left (spec 045, RN-08)", () => {
+		expect(notEnoughCreditsReason(9, 4)).toBe(
+			"Esta criação precisa de até 9 créditos e restam 4. Escolha menos páginas ou menos perguntas.",
+		);
+		expect(notEnoughCreditsReason(2, 1)).toBe(
+			"Esta criação precisa de até 2 créditos e resta 1. Escolha menos páginas ou menos perguntas.",
+		);
+	});
+
+	it("creditsUsedLabel tells what the creation used (spec 045, RN-09)", () => {
+		expect(creditsUsedLabel(1)).toBe("Esta criação usou 1 crédito.");
+		expect(creditsUsedLabel(3)).toBe("Esta criação usou 3 créditos.");
 	});
 
 	it("explains how many questions still fit", () => {

@@ -94,10 +94,11 @@ describe("OptionsPanel (spec 027)", () => {
 		expect(select("Duração do quiz")).toHaveTextContent("Auto");
 	});
 
-	it("shows the remaining uses", () => {
+	it("shows the credits left and never the instance's ceiling (spec 045, RN-14, RN-16)", () => {
 		renderPanel({ remaining: 7 });
 
-		expect(screen.getByText("Restam 7 criações")).toBeInTheDocument();
+		expect(screen.getByText("Restam 7 créditos")).toBeInTheDocument();
+		expect(screen.queryByText(/instância/)).toBeNull();
 	});
 
 	it("add is disabled with nothing checked; add all adds every card", async () => {

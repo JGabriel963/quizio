@@ -110,6 +110,11 @@ export class GenerationQuotaExceededError extends DomainError {
 }
 
 /** The provider failed, took too long or answered outside the format (RN-33). */
+/** The instance's generations of the last 24 hours are used up (RN-31). */
+export class GenerationInstanceLimitError extends DomainError {
+	readonly code = "QUIZ.GENERATION_INSTANCE_LIMIT";
+}
+
 export class GenerationFailedError extends DomainError {
 	readonly code = "QUIZ.GENERATION_FAILED";
 }

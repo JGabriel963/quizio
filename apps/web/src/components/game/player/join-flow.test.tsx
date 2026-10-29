@@ -77,6 +77,8 @@ class FakeJoinApi implements JoinApi {
 		}
 	>();
 	readonly finds: string[] = [];
+	/** The game each `find` named, from a join link (RN-39a). */
+	readonly linkedFinds: (string | null | undefined)[] = [];
 	/** Open assignments, by their eight-digit PIN (spec 029). */
 	readonly assignments = new Map<string, string>();
 	/** "Personagens dos jogadores" (spec 028). */
@@ -89,9 +91,12 @@ class FakeJoinApi implements JoinApi {
 	avatarRefusal: Error | null = null;
 	/** The avatars each `enter` was sent. */
 	readonly entered: (StoredAvatar | null | undefined)[] = [];
+	/** The network created as many players as it may for now (spec 008, RN-45a). */
+	tooManyJoins = false;
 
-	async find(pin: string) {
+	async find(pin: string, gameId?: string | null) {
 		this.finds.push(pin);
+		this.linkedFinds.push(gameId);
 		const assignment = this.assignments.get(pin);
 		if (assignment) {
 			return {
@@ -102,7 +107,7 @@ class FakeJoinApi implements JoinApi {
 				customTheme: this.customTheme,
 			};
 		}
-		if (this.blocked) {
+		if (this.blocked && gameId !== GAME) {
 			throw refusal("GAME.TOO_MANY_PIN_ATTEMPTS");
 		}
 		if (pin !== PIN || this.ended || this.finished) {
@@ -131,6 +136,9 @@ class FakeJoinApi implements JoinApi {
 		this.entered.push(avatar);
 		if (this.ended) {
 			throw refusal("GAME.PIN_NOT_RECOGNIZED");
+		}
+		if (this.tooManyJoins) {
+			throw refusal("GAME.TOO_MANY_JOINS");
 		}
 		if (this.locked) {
 			throw refusal("GAME.LOCKED");
@@ -279,6 +287,7 @@ function memoryStore() {
 function renderFlow(
 	options: {
 		pin?: string | null;
+		linkedGameId?: string | null;
 		api?: FakeJoinApi;
 		store?: ReturnType<typeof memoryStore>;
 	} = {},
@@ -295,6 +304,7 @@ function renderFlow(
 		<RealtimeProvider createSubscriber={() => subscriber}>
 			<JoinFlow
 				pin={pin}
+				linkedGameId={options.linkedGameId ?? null}
 				api={api}
 				store={store}
 				onPinChange={onPinChange}
@@ -417,7 +427,7 @@ describe("JoinFlow: the PIN (spec 008)", () => {
 		await typePin(user, PIN);
 
 		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"Muitas tentativas. Aguarde um momento e tente de novo.",
+			"Muitas tentativas. Aguarde um momento ou entre pelo QR code ou pelo link do jogo.",
 		);
 	});
 });
@@ -430,6 +440,26 @@ describe("JoinFlow: the join link (spec 008)", () => {
 			await screen.findByRole("textbox", { name: "Apelido" }),
 		).toBeInTheDocument();
 		expect(api.finds).toEqual([PIN]);
+	});
+
+	it("sends the game the link names, which gets past a network out of attempts (RN-39a)", async () => {
+		const api = new FakeJoinApi();
+		api.blocked = true;
+		renderFlow({ api, pin: PIN, linkedGameId: GAME });
+
+		expect(
+			await screen.findByRole("textbox", { name: "Apelido" }),
+		).toBeInTheDocument();
+		expect(api.linkedFinds).toEqual([GAME]);
+	});
+
+	it("a typed PIN names no game", async () => {
+		const { api, user } = renderFlow();
+
+		await typePin(user, PIN);
+
+		await screen.findByRole("textbox", { name: "Apelido" });
+		expect(api.linkedFinds).toEqual([null]);
 	});
 
 	it("a link with an unknown PIN lands on the PIN step with the message", async () => {
@@ -564,6 +594,23 @@ describe("JoinFlow: the nickname (spec 008)", () => {
 
 		expect(api.players.size).toBe(0);
 		expect(nicknameField()).toBeInTheDocument();
+	});
+
+	it("too many joins from the network keep the player on the nickname (RN-45a)", async () => {
+		const api = new FakeJoinApi();
+		api.tooManyJoins = true;
+		const { user } = renderFlow({ api, pin: PIN });
+
+		await user.type(
+			await screen.findByRole("textbox", { name: "Apelido" }),
+			"ACT",
+		);
+		await user.click(screen.getByRole("button", { name: "Ok, vamos lá!" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Muitas entradas por esta rede agora. Aguarde um momento e tente de novo.",
+		);
+		expect(nicknameField()).toHaveValue("ACT");
 	});
 
 	it("a nickname in use asks for another", async () => {

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import {
 	createdMessage,
+	creditsUsedLabel,
 	NOTHING_USABLE_MESSAGE,
 	READY_MESSAGE,
 	REVIEW_NOTICE,
@@ -120,7 +121,12 @@ function Results({
 			{bannerOpen && (
 				<div className="flex items-center gap-2 bg-success px-4 py-2 font-bold text-sm text-success-foreground motion-safe:animate-pop-in">
 					<CheckIcon aria-hidden="true" className="size-5 shrink-0" />
-					<p className="flex-1">{READY_MESSAGE}</p>
+					<p className="flex-1">
+						{READY_MESSAGE}{" "}
+						<span className="font-normal">
+							{creditsUsedLabel(generation.creditsUsed)}
+						</span>
+					</p>
 					<button
 						type="button"
 						aria-label="Fechar aviso"

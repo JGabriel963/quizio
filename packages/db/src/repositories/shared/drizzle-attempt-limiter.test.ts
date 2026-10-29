@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { attemptWindow } from "../../schema/shared";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
 import { createDrizzleAttemptLimiter } from "./drizzle-attempt-limiter";
 
@@ -30,6 +31,27 @@ describe("DrizzleAttemptLimiter", () => {
 		expect(await limiter.reserve("pin:a", MINUTE, 2, now)).toBe(false);
 		// Another key has its own count.
 		expect(await limiter.reserve("pin:b", MINUTE, 2, now)).toBe(true);
+	});
+
+	it("now and then deletes windows that ended days ago (audit L2)", async () => {
+		const limiter = createDrizzleAttemptLimiter(testDb.db, { sweepEvery: 1 });
+		const daysAgo = new Date(now.getTime() - 3 * 24 * 60 * MINUTE);
+		await createDrizzleAttemptLimiter(testDb.db).reserve(
+			"pin:old",
+			MINUTE,
+			5,
+			daysAgo,
+		);
+		await limiter.reserve("pin:recent", MINUTE, 5, now);
+
+		await limiter.reserve("pin:other", MINUTE, 5, now);
+
+		const keys = (await testDb.db.select().from(attemptWindow)).map(
+			(row) => row.key,
+		);
+		expect(keys).not.toContain("pin:old");
+		expect(keys).toContain("pin:recent");
+		expect(keys).toContain("pin:other");
 	});
 
 	it("starts over in the next window", async () => {

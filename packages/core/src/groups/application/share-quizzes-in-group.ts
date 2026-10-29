@@ -11,6 +11,7 @@ import {
 	type SharedQuiz,
 	sharedQuizzesPostKind,
 } from "../domain/shared-quiz";
+import { type GroupPostLimitDeps, reserveGroupPost } from "./group-post-limit";
 import { type InboxSignalDeps, signalOtherMembers } from "./inbox-signals";
 import { type GroupStoreDeps, requireMembership } from "./load-group";
 import type { GroupSharedQuizRepository } from "./ports/group-shared-quiz-repository";
@@ -29,16 +30,18 @@ export type ShareQuizzesInGroup = (input: {
  * and their post go in together, or nothing does (RN-06).
  */
 export function createShareQuizzesInGroup(
-	deps: GroupStoreDeps & {
-		groupSharedQuizzes: GroupSharedQuizRepository;
-		sharedQuizReads: SharedQuizReads;
-		ids: IdGenerator;
-		clock: Clock;
-	} & InboxSignalDeps,
+	deps: GroupStoreDeps &
+		GroupPostLimitDeps & {
+			groupSharedQuizzes: GroupSharedQuizRepository;
+			sharedQuizReads: SharedQuizReads;
+			ids: IdGenerator;
+			clock: Clock;
+		} & InboxSignalDeps,
 ): ShareQuizzesInGroup {
 	return async ({ quizIds, message: rawMessage, ...input }) => {
 		const { group, membership } = await requireMembership(deps, input);
 		assertCanShare(group, membership);
+		await reserveGroupPost(deps, input.userId);
 		const message =
 			rawMessage === undefined ? null : parseOptionalPostMessage(rawMessage);
 		const wanted = [...new Set(quizIds)];

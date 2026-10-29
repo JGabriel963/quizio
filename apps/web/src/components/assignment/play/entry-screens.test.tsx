@@ -43,30 +43,23 @@ describe("AssignmentCover (spec 030, RN-01)", () => {
 describe("NicknameStep (spec 030, RN-02 to RN-04)", () => {
 	function renderStep(notice: string | null = null) {
 		const onSubmit = vi.fn();
-		const onPick = vi.fn();
 		render(
 			<NicknameStep
 				cover={cover}
 				busy={false}
 				notice={notice}
 				onSubmit={onSubmit}
-				onPick={onPick}
 			/>,
 		);
-		return { onSubmit, onPick, user: userEvent.setup() };
+		return { onSubmit, user: userEvent.setup() };
 	}
 
-	it("lists who joined, and a tap on one asks Você é…? (RN-03)", async () => {
-		const { onPick, user } = renderStep();
+	it("lists who joined only to see: a name is no way in (RN-03, M5)", () => {
+		renderStep();
 
-		await user.click(
-			within(screen.getByRole("list", { name: "Quem já entrou" })).getByRole(
-				"button",
-				{ name: "John" },
-			),
-		);
-
-		expect(onPick).toHaveBeenCalledWith("John");
+		const joined = screen.getByRole("list", { name: "Quem já entrou" });
+		expect(within(joined).getByText("John")).toBeInTheDocument();
+		expect(within(joined).queryByRole("button")).toBeNull();
 	});
 
 	it("Ok, vamos lá! sends the nickname", async () => {

@@ -48,8 +48,8 @@ describe("live game tools (spec 044, RN-26)", () => {
 			gameId: string;
 		};
 		const { joinGame } = ana.api.container.useCases;
-		const bia = await joinGame({ gameId, nickname: "Bia" });
-		await joinGame({ gameId, nickname: "Caio" });
+		const bia = await joinGame({ gameId, nickname: "Bia", clientKey: "ip" });
+		await joinGame({ gameId, nickname: "Caio", clientKey: "ip" });
 		ana.api.realtime.messages.length = 0;
 
 		const updated = await ana.ok("update_live_game", {

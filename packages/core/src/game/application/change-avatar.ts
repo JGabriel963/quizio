@@ -1,9 +1,16 @@
+import type { AttemptLimiter } from "../../shared/application/ports/attempt-limiter";
 import type { Clock } from "../../shared/application/ports/clock";
 import type { RealtimePublisher } from "../../shared/application/ports/realtime-publisher";
-import { type Avatar, type AvatarInput, parseAvatar } from "../domain/avatar";
+import {
+	type Avatar,
+	type AvatarInput,
+	parseAvatar,
+	sameAvatar,
+} from "../domain/avatar";
 import { GameNotFoundError } from "../domain/game";
 import { type AvatarChangedPayload, GAME_EVENTS } from "../domain/game-events";
 import { changePlayerAvatar, hasPlayerSecret } from "../domain/player";
+import { reserveAvatarChange } from "./avatar-change-limit";
 import { loadLiveGame, publishToGame } from "./game-lifecycle";
 import type { GameRepository } from "./ports/game-repository";
 import type { PlayerRepository } from "./ports/player-repository";
@@ -20,12 +27,15 @@ export type ChangeAvatar = (input: {
  * at once and the host's lobby is told. Whether the player still waits is
  * read before the write; a change that crosses the start of the question by
  * a moment is accepted, because the avatar weighs on nothing of the game.
+ * The avatar the player already has changes nothing and tells nobody, and a
+ * player changes it at most 10 times every 5 seconds (RN-12a).
  */
 export function createChangeAvatar(deps: {
 	games: GameRepository;
 	players: Pick<PlayerRepository, "findById" | "saveAvatar">;
 	clock: Clock;
 	realtime: RealtimePublisher;
+	attempts: AttemptLimiter;
 }): ChangeAvatar {
 	return async ({ gameId, playerId, secret, avatar: input }) => {
 		const game = await loadLiveGame(deps, gameId);
@@ -40,6 +50,10 @@ export function createChangeAvatar(deps: {
 		}
 		const avatar = parseAvatar(input);
 		changePlayerAvatar(game, player, avatar);
+		if (sameAvatar(player.avatar, avatar)) {
+			return { avatar };
+		}
+		await reserveAvatarChange(deps, player.id);
 		await deps.players.saveAvatar(player.id, avatar);
 		await publishToGame<AvatarChangedPayload>(
 			deps.realtime,

@@ -85,6 +85,12 @@ export function createDrizzleQuestionRepository(
 		async saveList(quizId, questions) {
 			const ids = questions.map((question) => question.id);
 			await db.transaction(async (tx) => {
+				// One list at a time per quiz: two at once would each drop only what
+				// the other had not written yet, and keep both sets of new
+				// questions, past the 200 each was checked against (audit L5).
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtext(${`question-list:${quizId}`}))`,
+				);
 				await tx
 					.delete(questionTable)
 					.where(

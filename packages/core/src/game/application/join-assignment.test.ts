@@ -5,7 +5,10 @@ import {
 	GameEndedError,
 	GameFullError,
 	GameNotFoundError,
+	JOIN_LIMIT_PER_NETWORK,
+	JOIN_WINDOW_MS,
 	NicknameTakenError,
+	TooManyJoinsError,
 } from "../domain/game";
 import { aGame, aPlayer } from "../testing/a-game";
 import { createGameDeps } from "../testing/game-deps";
@@ -30,7 +33,7 @@ describe("joinAssignment (spec 030, RN-02 to RN-07)", () => {
 	it("joins and starts answering the first question", async () => {
 		const { deps, gameId, join } = await withAssignment();
 
-		const joined = await join({ gameId, nickname: " John " });
+		const joined = await join({ clientKey: "ip", gameId, nickname: " John " });
 
 		expect(joined).toEqual({
 			playerId: expect.any(String),
@@ -55,7 +58,11 @@ describe("joinAssignment (spec 030, RN-02 to RN-07)", () => {
 			gameCharacters: true,
 		});
 
-		const { playerId } = await join({ gameId, nickname: "John" });
+		const { playerId } = await join({
+			clientKey: "ip",
+			gameId,
+			nickname: "John",
+		});
 
 		expect(await deps.players.findById(playerId)).toMatchObject({
 			progress: { phase: "ready" },
@@ -69,6 +76,7 @@ describe("joinAssignment (spec 030, RN-02 to RN-07)", () => {
 		});
 
 		const { playerId } = await join({
+			clientKey: "ip",
 			gameId,
 			nickname: "John",
 			avatar: { character: "fox", accessory: null },
@@ -85,7 +93,11 @@ describe("joinAssignment (spec 030, RN-02 to RN-07)", () => {
 			randomizeAnswers: true,
 		});
 
-		const { playerId } = await join({ gameId, nickname: "John" });
+		const { playerId } = await join({
+			clientKey: "ip",
+			gameId,
+			nickname: "John",
+		});
 
 		expect((await deps.players.findById(playerId))?.choiceOrder).toEqual([
 			["choice-4", "choice-3", "choice-2", "choice-1"],
@@ -95,11 +107,11 @@ describe("joinAssignment (spec 030, RN-02 to RN-07)", () => {
 
 	it("a nickname in use is refused, ignoring case and accents", async () => {
 		const { gameId, join } = await withAssignment();
-		await join({ gameId, nickname: "João" });
+		await join({ clientKey: "ip", gameId, nickname: "João" });
 
-		await expect(join({ gameId, nickname: "joao" })).rejects.toThrow(
-			NicknameTakenError,
-		);
+		await expect(
+			join({ clientKey: "ip", gameId, nickname: "joao" }),
+		).rejects.toThrow(NicknameTakenError);
 	});
 
 	it("an activity with 200 participants is full", async () => {
@@ -115,26 +127,56 @@ describe("joinAssignment (spec 030, RN-02 to RN-07)", () => {
 			);
 		}
 
-		await expect(join({ gameId, nickname: "John" })).rejects.toThrow(
-			GameFullError,
-		);
+		await expect(
+			join({ clientKey: "ip", gameId, nickname: "John" }),
+		).rejects.toThrow(GameFullError);
+	});
+
+	it("takes 60 participants a minute from one network (RN-04a)", async () => {
+		const { deps, gameId, join } = await withAssignment();
+		for (let index = 0; index < JOIN_LIMIT_PER_NETWORK; index++) {
+			await join({ gameId, nickname: `P${index}`, clientKey: "ip" });
+		}
+
+		await expect(
+			join({ gameId, nickname: "John", clientKey: "ip" }),
+		).rejects.toThrow(TooManyJoinsError);
+		await expect(
+			join({ gameId, nickname: "John", clientKey: "other" }),
+		).resolves.toBeDefined();
+		deps.clock.advanceBy(JOIN_WINDOW_MS);
+		await expect(
+			join({ gameId, nickname: "Mary", clientKey: "ip" }),
+		).resolves.toBeDefined();
+	});
+
+	it("a nickname in use does not count as a join (RN-04a)", async () => {
+		const { gameId, join } = await withAssignment();
+		await join({ gameId, nickname: "John", clientKey: "ip" });
+		for (let attempt = 0; attempt < JOIN_LIMIT_PER_NETWORK; attempt++) {
+			await join({ gameId, nickname: "john", clientKey: "ip" }).catch(() => {});
+		}
+
+		await expect(
+			join({ gameId, nickname: "Mary", clientKey: "ip" }),
+		).resolves.toBeDefined();
 	});
 
 	it("an ended activity refuses", async () => {
 		const { deps, gameId, join } = await withAssignment();
 		await createEndAssignment(deps)({ ownerId: "user-1", gameId });
 
-		await expect(join({ gameId, nickname: "John" })).rejects.toThrow(
-			GameEndedError,
-		);
+		await expect(
+			join({ clientKey: "ip", gameId, nickname: "John" }),
+		).rejects.toThrow(GameEndedError);
 	});
 
 	it("a live game is missing", async () => {
 		const { deps, join } = await withAssignment();
 		await deps.games.save(aGame({ id: "live", pin: "111111", quizId: "q-2" }));
 
-		await expect(join({ gameId: "live", nickname: "John" })).rejects.toThrow(
-			GameNotFoundError,
-		);
+		await expect(
+			join({ clientKey: "ip", gameId: "live", nickname: "John" }),
+		).rejects.toThrow(GameNotFoundError);
 	});
 });

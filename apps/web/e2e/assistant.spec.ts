@@ -83,6 +83,39 @@ test.describe("creation assistant (spec 027)", () => {
 		).toBeHidden();
 	});
 
+	test("shows the credits left and the credits a creation used (spec 045)", async ({
+		page,
+		isMobile,
+	}) => {
+		await signUp(page);
+		await openNewQuiz(page);
+
+		await page.getByRole("button", { name: /Assunto > quiz/ }).click();
+		const options = assistant(page).getByRole("complementary", {
+			name: "Opções da criação",
+		});
+		if (isMobile) {
+			// On a phone the options start folded (spec 027).
+			await options.getByRole("button", { name: "Opções da criação" }).click();
+		}
+		await expect(options.getByText("Restam 20 créditos")).toBeVisible();
+		await assistant(page)
+			.getByRole("textbox", { name: "Assunto" })
+			.fill("Sistema solar");
+		// About 20 questions on a short topic.
+		await expect(
+			assistant(page).getByText("Esta criação usa até 3 créditos"),
+		).toBeVisible();
+
+		await assistant(page).getByRole("button", { name: "Crie" }).click();
+
+		// The fake provider reports what a short creation uses: 1 credit.
+		await expect(
+			assistant(page).getByText("Esta criação usou 1 crédito."),
+		).toBeVisible();
+		await expect(options.getByText("Restam 19 créditos")).toBeVisible();
+	});
+
 	test("extracts questions from a PDF", async ({ page }) => {
 		await signUp(page);
 		await openNewQuiz(page);

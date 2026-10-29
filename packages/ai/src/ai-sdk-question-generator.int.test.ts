@@ -1,11 +1,21 @@
 import { acceptGeneratedQuestions } from "@quizio/core/quiz/domain/accept-generated";
 import { DEFAULT_GENERATION_OPTIONS } from "@quizio/core/quiz/domain/generation";
 import { generationBrief } from "@quizio/core/quiz/domain/generation-brief";
+import {
+	creditsOf,
+	DEFAULT_CREDIT_PRICING,
+	estimateGeneration,
+} from "@quizio/core/quiz/domain/generation-credits";
 import { asQuiz } from "@quizio/core/quiz/testing/a-question";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
-import { AI_PROVIDERS, type AiProvider, createLanguageModel } from "./ai-model";
+import {
+	AI_PROVIDERS,
+	type AiProvider,
+	createLanguageModel,
+	generationProviderOptions,
+} from "./ai-model";
 import { createAiSdkQuestionGenerator } from "./ai-sdk-question-generator";
 
 const provider = process.env.AI_PROVIDER as AiProvider | undefined;
@@ -26,12 +36,14 @@ describe.runIf(configured)(
 					model: model as string,
 				}),
 				timeoutMs: 120_000,
+				maxOutputTokens: 32_000,
 			});
 			const options = { ...DEFAULT_GENERATION_OPTIONS, count: 5 as const };
 
-			const drafts = await generator.generate({
+			const { drafts } = await generator.generate({
 				brief: generationBrief(options, "topic"),
 				source: { kind: "topic", text: "O sistema solar" },
+				maxOutputTokens: 32_000,
 			});
 
 			let next = 0;
@@ -41,6 +53,42 @@ describe.runIf(configured)(
 				() => `q-${++next}`,
 			);
 			expect(questions.length).toBeGreaterThanOrEqual(3);
+		});
+
+		it("a topic's real usage stays within its estimate (spec 045, RN-06)", async () => {
+			const generator = createAiSdkQuestionGenerator({
+				model: createLanguageModel({
+					provider: provider as AiProvider,
+					apiKey: apiKey as string,
+					model: model as string,
+				}),
+				timeoutMs: 120_000,
+				maxOutputTokens: 32_000,
+				providerOptions: generationProviderOptions(provider as AiProvider),
+			});
+			const options = { ...DEFAULT_GENERATION_OPTIONS, count: 10 as const };
+			const text = "O sistema solar";
+			const estimate = estimateGeneration(
+				{ kind: "topic", characters: text.length },
+				options,
+				DEFAULT_CREDIT_PRICING,
+			);
+
+			const { usage } = await generator.generate({
+				brief: generationBrief(options, "topic"),
+				source: { kind: "topic", text },
+				maxOutputTokens: estimate.maxOutputTokens,
+			});
+
+			// Calibrates the constants of generation-credits.ts with the real model.
+			console.info("usage of a 10-question topic", usage, estimate);
+			expect(usage).not.toBeNull();
+			expect(
+				creditsOf(
+					usage ?? { inputTokens: 0, outputTokens: 0 },
+					DEFAULT_CREDIT_PRICING,
+				),
+			).toBeLessThanOrEqual(estimate.credits);
 		});
 
 		it("extracts the questions of a PDF with their answer key", async () => {
@@ -63,6 +111,7 @@ describe.runIf(configured)(
 					model: model as string,
 				}),
 				timeoutMs: 120_000,
+				maxOutputTokens: 32_000,
 			});
 			const options = {
 				format: "extract",
@@ -71,9 +120,10 @@ describe.runIf(configured)(
 				count: 30,
 			} as const;
 
-			const drafts = await generator.generate({
+			const { drafts } = await generator.generate({
 				brief: generationBrief(options, "pdf"),
 				source: { kind: "pdf", document: await document.save() },
+				maxOutputTokens: 32_000,
 			});
 
 			let next = 0;

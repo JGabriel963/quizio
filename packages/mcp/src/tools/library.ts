@@ -16,7 +16,7 @@ export const libraryTools = [
 				.enum(LIBRARY_SECTIONS)
 				.optional()
 				.describe("recent by default."),
-			search: z.string().optional(),
+			search: z.string().max(10_000).optional(),
 		}),
 		run: async (
 			{ section = "recent", search },
@@ -43,9 +43,9 @@ export const libraryTools = [
 		kind: "read",
 		input: z
 			.object({
-				quizId: z.string(),
-				groupId: z.string().optional(),
-				ownerId: z.string().optional(),
+				quizId: z.string().max(10_000),
+				groupId: z.string().max(10_000).optional(),
+				ownerId: z.string().max(10_000).optional(),
 			})
 			.refine((input) => input.groupId || input.ownerId, {
 				message: "Give groupId for a shared quiz or ownerId for a public one.",

@@ -71,3 +71,9 @@ export function sortGroupAssignments<
 	};
 	return [...items].sort(compare[sort]);
 }
+
+/**
+ * The newest assignment posts the Atribuições tab reads (audit L9): an
+ * assignment is open for 28 days by default, so the open ones are among them.
+ */
+export const GROUP_ASSIGNMENTS_READ_LIMIT = 500;

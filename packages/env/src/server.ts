@@ -2,6 +2,8 @@ import "dotenv/config";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+import { resolveClientIpHeader } from "./client-ip-header";
+
 export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().min(1),
@@ -15,8 +17,9 @@ export const env = createEnv({
 		GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 		// Header the proxy in front of the app reports the client address in; it
 		// keys the rate limits, so it must be one a client cannot set. Vercel
-		// overwrites x-forwarded-for; behind your own proxy use what it sets.
-		CLIENT_IP_HEADER: z.string().min(1).default("x-forwarded-for"),
+		// overwrites x-forwarded-for; behind your own proxy use what it sets,
+		// which production outside Vercel requires (see `clientIpHeader`).
+		CLIENT_IP_HEADER: z.string().min(1).optional(),
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),
@@ -45,8 +48,21 @@ export const env = createEnv({
 		AI_PROVIDER: z.enum(["anthropic", "openai", "google", "fake"]).optional(),
 		AI_API_KEY: z.string().min(1).optional(),
 		AI_MODEL: z.string().min(1).optional(),
-		// Generations per creator in any 24 hours (RN-31).
+		// Credits per creator in any 24 hours (spec 045, RN-03).
+		AI_CREDITS_PER_DAY: z.coerce.number().int().min(0).optional(),
+		// Every creator's credits together in any 24 hours (spec 045, RN-13):
+		// what the instance may spend at the provider, however many accounts.
+		AI_INSTANCE_CREDITS_PER_DAY: z.coerce.number().int().min(0).optional(),
+		// The names of before spec 045, read when the new ones are not set.
 		AI_GENERATIONS_PER_DAY: z.coerce.number().int().min(0).default(20),
+		AI_INSTANCE_GENERATIONS_PER_DAY: z.coerce
+			.number()
+			.int()
+			.min(0)
+			.default(200),
+		// Credits per thousand tokens, for the instance's model (spec 045, RN-04).
+		AI_CREDITS_PER_1K_INPUT_TOKENS: z.coerce.number().positive().optional(),
+		AI_CREDITS_PER_1K_OUTPUT_TOKENS: z.coerce.number().positive().optional(),
 		// How far ahead an assignment's deadline may be (spec 029, RN-08).
 		ASSIGNMENT_MAX_DEADLINE_DAYS: z.coerce
 			.number()
@@ -81,4 +97,11 @@ export const env = createEnv({
 	runtimeEnv: process.env,
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 	emptyStringAsUndefined: true,
+});
+
+/** CLIENT_IP_HEADER, or x-forwarded-for where that is safe (audit L2). */
+export const clientIpHeader = resolveClientIpHeader(env.CLIENT_IP_HEADER, {
+	nodeEnv: env.NODE_ENV,
+	onVercel: !!process.env.VERCEL,
+	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

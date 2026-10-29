@@ -164,7 +164,10 @@ export function toGameQuestion(
 
 /**
  * Hands the question's positions out again among its answers: the colors and
- * shapes on the screen stay the same, each with another answer (spec 012, RN-23).
+ * shapes on the screen stay the same, each with another answer (spec 012,
+ * RN-23). Each answer is renamed after its new place: the editor's ids are the
+ * same in every game of the quiz, and one learned from an assignment's results
+ * would tell which shape is right (audit L8).
  */
 function withShuffledChoices(
 	question: GameQuestion,
@@ -176,10 +179,10 @@ function withShuffledChoices(
 	return {
 		...question,
 		choices: question.choices
-			.map((choice, index) => ({
-				...choice,
-				shapeIndex: positions[index] ?? choice.shapeIndex,
-			}))
+			.map((choice, index) => {
+				const shapeIndex = positions[index] ?? choice.shapeIndex;
+				return { ...choice, id: choiceIdAt(shapeIndex), shapeIndex };
+			})
 			.sort((a, b) => a.shapeIndex - b.shapeIndex),
 	};
 }

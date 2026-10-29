@@ -1,5 +1,4 @@
 import { DomainError } from "../../shared/domain/domain-error";
-import { NotFoundError } from "../../shared/domain/not-found-error";
 import type { Game } from "./game";
 import type { GameQuestion } from "./game-question";
 
@@ -29,11 +28,6 @@ export interface ParticipantProgress {
 }
 
 /** An answer or an advance from a screen the participant is not on (RN-12, RN-13). */
-/** Nobody in the activity has the nickname given to resume (spec 030, RN-20). */
-export class ParticipantNotFoundError extends NotFoundError {
-	readonly code = "ASSIGNMENT.PARTICIPANT_NOT_FOUND";
-}
-
 export class ParticipantNotAtStageError extends DomainError {
 	readonly code = "ASSIGNMENT.NOT_AT_STAGE";
 }

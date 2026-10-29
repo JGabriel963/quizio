@@ -8,9 +8,9 @@ describe("join link (spec 008)", () => {
 		expect(joinAddress("http://localhost:3001")).toBe("localhost:3001/join");
 	});
 
-	it("carries the PIN in the link", () => {
-		expect(joinLink("https://quizio.app", "265914")).toBe(
-			"https://quizio.app/join/265914",
+	it("carries the PIN and the game in the link (RN-37, RN-39a)", () => {
+		expect(joinLink("https://quizio.app", "265914", "game-1")).toBe(
+			"https://quizio.app/join/265914?game=game-1",
 		);
 	});
 });
