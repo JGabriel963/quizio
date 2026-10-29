@@ -12,7 +12,12 @@ function renderHeader(props: Partial<Parameters<typeof GameHeader>[0]> = {}) {
 	return { user, header: screen.getByRole("banner") };
 }
 
-const open = { origin: ORIGIN, pin: "265914", locked: false };
+const open = {
+	origin: ORIGIN,
+	pin: "265914",
+	gameId: "game-1",
+	locked: false,
+};
 
 describe("GameHeader (spec 012)", () => {
 	it("has the settings button in the lobby and during the game", async () => {

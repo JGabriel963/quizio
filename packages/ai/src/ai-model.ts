@@ -14,6 +14,29 @@ export interface LanguageModelConfig {
 	model: string;
 }
 
+/** Options for the provider's own SDK, as `generateText` takes them. */
+export type GenerationProviderOptions = Record<
+	string,
+	Record<string, string | number | boolean>
+>;
+
+/**
+ * Reasoning counts as output, so a model that thinks a lot would hit the cap
+ * each creation gets for its questions (spec 045, RN-07). OpenAI is asked to
+ * think little; the others reason only when asked to.
+ */
+export function generationProviderOptions(
+	provider: AiProvider,
+): GenerationProviderOptions | undefined {
+	switch (provider) {
+		case "openai":
+			return { openai: { reasoningEffort: "low" } };
+		case "anthropic":
+		case "google":
+			return undefined;
+	}
+}
+
 /** The only place that knows the provider SDKs; the composition root picks one. */
 export function createLanguageModel(
 	config: LanguageModelConfig,

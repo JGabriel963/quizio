@@ -7,8 +7,9 @@ export abstract class DomainError extends Error {
 	/** Stable, machine-readable identifier, e.g. `MEDIA.UNSUPPORTED_TYPE`. */
 	abstract readonly code: string;
 
-	constructor(message: string) {
-		super(message);
+	/** `cause` keeps what failed underneath for the server's log, never for the client. */
+	constructor(message: string, options?: { cause?: unknown }) {
+		super(message, options);
 		this.name = new.target.name;
 	}
 }

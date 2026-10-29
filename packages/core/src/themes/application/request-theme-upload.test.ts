@@ -4,6 +4,11 @@ import {
 	InvalidMediaSizeError,
 	UnsupportedMediaTypeError,
 } from "../../media/domain/media-policy";
+import { reserveUpload } from "../../shared/application/upload-limit";
+import {
+	TooManyUploadsError,
+	UPLOAD_LIMIT,
+} from "../../shared/domain/upload-limit";
 import { themesTestDeps } from "../testing/themes-test-deps";
 import { createDiscardThemeUpload } from "./discard-theme-upload";
 import { createRequestThemeUpload } from "./request-theme-upload";
@@ -116,5 +121,22 @@ describe("discardThemeUpload (spec 043, CA-10)", () => {
 
 		expect(t.store.pendingUploadKeys()).toEqual([key]);
 		expect(await t.storage.exists(key)).toBe(true);
+	});
+});
+
+describe("requestThemeUpload limit (audit L4)", () => {
+	it("counts against the person's uploads of the hour", async () => {
+		const t = themesTestDeps();
+		for (let upload = 0; upload < UPLOAD_LIMIT; upload++) {
+			await reserveUpload(t.deps, "owner-1");
+		}
+
+		await expect(
+			createRequestThemeUpload(t.deps)({
+				ownerId: "owner-1",
+				contentType: "image/png",
+				sizeBytes: 1000,
+			}),
+		).rejects.toThrow(TooManyUploadsError);
 	});
 });

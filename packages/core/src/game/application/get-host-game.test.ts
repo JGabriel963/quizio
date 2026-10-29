@@ -767,6 +767,7 @@ describe("getHostGame: avatars (spec 028)", () => {
 			}),
 		);
 		const { playerId } = await createJoinGame(deps)({
+			clientKey: "ip",
 			gameId: "game-1",
 			nickname: "Ana",
 		});

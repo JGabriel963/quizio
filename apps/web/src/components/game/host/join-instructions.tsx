@@ -19,11 +19,14 @@ import { JoinCard, JoinQrDialog } from "./join-qr";
 export function JoinInstructions({
 	origin,
 	pin,
+	gameId,
 	locked,
 }: {
 	/** The site's origin: the address shown and the link in the QR code come from it. */
 	origin: string;
 	pin: string;
+	/** The link and the QR code name the game too (RN-39a). */
+	gameId: string;
 	locked: boolean;
 }) {
 	if (locked) {
@@ -38,10 +41,18 @@ export function JoinInstructions({
 		);
 	}
 
-	return <OpenInstructions origin={origin} pin={pin} />;
+	return <OpenInstructions origin={origin} pin={pin} gameId={gameId} />;
 }
 
-function OpenInstructions({ origin, pin }: { origin: string; pin: string }) {
+function OpenInstructions({
+	origin,
+	pin,
+	gameId,
+}: {
+	origin: string;
+	pin: string;
+	gameId: string;
+}) {
 	const [expanded, setExpanded] = useState(false);
 
 	return (
@@ -58,11 +69,12 @@ function OpenInstructions({ origin, pin }: { origin: string; pin: string }) {
 				<QrCode
 					origin={origin}
 					pin={pin}
+					gameId={gameId}
 					expanded={expanded}
 					onExpandedChange={setExpanded}
 				/>
 			</div>
-			<CopyJoinLink link={joinLink(origin, pin)} />
+			<CopyJoinLink link={joinLink(origin, pin, gameId)} />
 		</div>
 	);
 }
@@ -75,15 +87,17 @@ function OpenInstructions({ origin, pin }: { origin: string; pin: string }) {
 function QrCode({
 	origin,
 	pin,
+	gameId,
 	expanded,
 	onExpandedChange,
 }: {
 	origin: string;
 	pin: string;
+	gameId: string;
 	expanded: boolean;
 	onExpandedChange: (expanded: boolean) => void;
 }) {
-	const link = joinLink(origin, pin);
+	const link = joinLink(origin, pin, gameId);
 
 	return (
 		<>
@@ -118,6 +132,7 @@ function QrCode({
 			<JoinQrDialog
 				origin={origin}
 				pin={pin}
+				gameId={gameId}
 				open={expanded}
 				onOpenChange={onExpandedChange}
 			/>

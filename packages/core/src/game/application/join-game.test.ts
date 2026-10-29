@@ -7,7 +7,10 @@ import {
 	GameLockedError,
 	GameNotFoundError,
 	GamePinNotRecognizedError,
+	JOIN_LIMIT_PER_NETWORK,
+	JOIN_WINDOW_MS,
 	NicknameTakenError,
+	TooManyJoinsError,
 	TooManyPinAttemptsError,
 } from "../domain/game";
 import { GAME_EVENTS, gameChannel } from "../domain/game-events";
@@ -149,6 +152,74 @@ describe("findGameByPin (spec 008)", () => {
 		});
 	});
 
+	it("the link and the QR code get past a network out of attempts (RN-39a)", async () => {
+		const deps = await lobby();
+		const find = createFindGameByPin(deps);
+		for (let attempt = 0; attempt < PIN_ATTEMPT_LIMIT; attempt++) {
+			await find({ pin: "111111", clientKey: "ip" }).catch(() => {});
+		}
+
+		await expect(
+			find({ pin: "265914", gameId: "game-1", clientKey: "ip" }),
+		).resolves.toMatchObject({ gameId: "game-1", mode: "live" });
+		await expect(find({ pin: "265914", clientKey: "ip" })).rejects.toThrow(
+			TooManyPinAttemptsError,
+		);
+	});
+
+	it("a link takes no attempt, and still tells a locked game apart", async () => {
+		const deps = await lobby({ locked: true });
+		const find = createFindGameByPin(deps);
+
+		await expect(
+			find({ pin: "265914", gameId: "game-1", clientKey: "ip" }),
+		).rejects.toThrow(GameLockedError);
+		expect(
+			await deps.attempts.reserve(
+				"pin:ip",
+				PIN_ATTEMPT_WINDOW_MS,
+				1,
+				deps.clock.now(),
+			),
+		).toBe(true);
+	});
+
+	it.each([
+		["another game's PIN", { pin: "111111", gameId: "game-1" }],
+		["a game that is not there", { pin: "265914", gameId: "missing" }],
+	])("a link with %s counts as the typed PIN", async (_name, link) => {
+		const deps = await lobby();
+		const find = createFindGameByPin(deps);
+		for (let attempt = 0; attempt < PIN_ATTEMPT_LIMIT; attempt++) {
+			await find({ pin: "111111", clientKey: "ip" }).catch(() => {});
+		}
+
+		await expect(find({ ...link, clientKey: "ip" })).rejects.toThrow(
+			TooManyPinAttemptsError,
+		);
+	});
+
+	it("the link of an ended game counts as its PIN typed", async () => {
+		const deps = await lobby();
+		await createEndGame(deps)(mine);
+
+		await expect(
+			createFindGameByPin(deps)({
+				pin: "265914",
+				gameId: "game-1",
+				clientKey: "ip",
+			}),
+		).rejects.toThrow(GamePinNotRecognizedError);
+		expect(
+			await deps.attempts.reserve(
+				"pin:ip",
+				PIN_ATTEMPT_WINDOW_MS,
+				1,
+				deps.clock.now(),
+			),
+		).toBe(false);
+	});
+
 	it("right PINs and locked games do not count as attempts", async () => {
 		const deps = await lobby();
 		const find = createFindGameByPin(deps);
@@ -168,6 +239,7 @@ describe("joinGame (spec 008)", () => {
 		const deps = await lobby();
 
 		const joined = await createJoinGame(deps)({
+			clientKey: "ip",
 			gameId: "game-1",
 			nickname: "  ACT  ",
 		});
@@ -195,7 +267,7 @@ describe("joinGame (spec 008)", () => {
 		const join = createJoinGame(deps);
 
 		for (const nickname of ["Ana", "Bia", "Caio"]) {
-			await join({ gameId: "game-1", nickname });
+			await join({ clientKey: "ip", gameId: "game-1", nickname });
 		}
 
 		expect(
@@ -211,7 +283,7 @@ describe("joinGame (spec 008)", () => {
 			const deps = await lobby();
 
 			await expect(
-				createJoinGame(deps)({ gameId: "game-1", nickname }),
+				createJoinGame(deps)({ clientKey: "ip", gameId: "game-1", nickname }),
 			).rejects.toThrow(InvalidNicknameError);
 		},
 	);
@@ -219,25 +291,29 @@ describe("joinGame (spec 008)", () => {
 	it("refuses a nickname in use, whatever the case and accents", async () => {
 		const deps = await lobby();
 		const join = createJoinGame(deps);
-		await join({ gameId: "game-1", nickname: "José" });
+		await join({ clientKey: "ip", gameId: "game-1", nickname: "José" });
 
-		await expect(join({ gameId: "game-1", nickname: "jose" })).rejects.toThrow(
-			NicknameTakenError,
-		);
+		await expect(
+			join({ clientKey: "ip", gameId: "game-1", nickname: "jose" }),
+		).rejects.toThrow(NicknameTakenError);
 		expect(await deps.players.countActive("game-1")).toBe(1);
 	});
 
 	it("a removed nickname stays blocked, and another one gets in", async () => {
 		const deps = await lobby();
 		const join = createJoinGame(deps);
-		const { playerId } = await join({ gameId: "game-1", nickname: "ACT" });
+		const { playerId } = await join({
+			clientKey: "ip",
+			gameId: "game-1",
+			nickname: "ACT",
+		});
 		await createRemovePlayer(deps)({ ...mine, playerId });
 
-		await expect(join({ gameId: "game-1", nickname: "act" })).rejects.toThrow(
-			NicknameTakenError,
-		);
 		await expect(
-			join({ gameId: "game-1", nickname: "ACT2" }),
+			join({ clientKey: "ip", gameId: "game-1", nickname: "act" }),
+		).rejects.toThrow(NicknameTakenError);
+		await expect(
+			join({ clientKey: "ip", gameId: "game-1", nickname: "ACT2" }),
 		).resolves.toMatchObject({ nickname: "ACT2" });
 	});
 
@@ -245,7 +321,11 @@ describe("joinGame (spec 008)", () => {
 		const deps = await lobby({ locked: true });
 
 		await expect(
-			createJoinGame(deps)({ gameId: "game-1", nickname: "ACT" }),
+			createJoinGame(deps)({
+				clientKey: "ip",
+				gameId: "game-1",
+				nickname: "ACT",
+			}),
 		).rejects.toThrow(GameLockedError);
 	});
 
@@ -254,12 +334,12 @@ describe("joinGame (spec 008)", () => {
 		await createEndGame(deps)(mine);
 		const join = createJoinGame(deps);
 
-		await expect(join({ gameId: "game-1", nickname: "ACT" })).rejects.toThrow(
-			GamePinNotRecognizedError,
-		);
-		await expect(join({ gameId: "missing", nickname: "ACT" })).rejects.toThrow(
-			GamePinNotRecognizedError,
-		);
+		await expect(
+			join({ clientKey: "ip", gameId: "game-1", nickname: "ACT" }),
+		).rejects.toThrow(GamePinNotRecognizedError);
+		await expect(
+			join({ clientKey: "ip", gameId: "missing", nickname: "ACT" }),
+		).rejects.toThrow(GamePinNotRecognizedError);
 	});
 
 	it("refuses a full game, and takes someone in when a place opens", async () => {
@@ -271,14 +351,85 @@ describe("joinGame (spec 008)", () => {
 		}
 		const join = createJoinGame(deps);
 
-		await expect(join({ gameId: "game-1", nickname: "ACT" })).rejects.toThrow(
-			GameFullError,
-		);
+		await expect(
+			join({ clientKey: "ip", gameId: "game-1", nickname: "ACT" }),
+		).rejects.toThrow(GameFullError);
 
 		await createRemovePlayer(deps)({ ...mine, playerId: "p0" });
 		await expect(
-			join({ gameId: "game-1", nickname: "ACT" }),
+			join({ clientKey: "ip", gameId: "game-1", nickname: "ACT" }),
 		).resolves.toBeDefined();
+	});
+
+	it("takes 60 players a minute from one network, then more after the minute (RN-45a)", async () => {
+		const deps = await lobby();
+		const join = createJoinGame(deps);
+		for (let index = 0; index < JOIN_LIMIT_PER_NETWORK; index++) {
+			await join({ gameId: "game-1", nickname: `P${index}`, clientKey: "ip" });
+		}
+
+		await expect(
+			join({ gameId: "game-1", nickname: "ACT", clientKey: "ip" }),
+		).rejects.toThrow(TooManyJoinsError);
+		await expect(
+			join({ gameId: "game-1", nickname: "Bia", clientKey: "other" }),
+		).resolves.toBeDefined();
+		deps.clock.advanceBy(JOIN_WINDOW_MS);
+		await expect(
+			join({ gameId: "game-1", nickname: "ACT", clientKey: "ip" }),
+		).resolves.toBeDefined();
+	});
+
+	it("counts the joins of each game apart (RN-45a)", async () => {
+		const deps = await lobby();
+		await deps.games.save(
+			aGame({ id: "game-2", pin: "111111", quizId: "quiz-2" }),
+		);
+		const join = createJoinGame(deps);
+		for (let index = 0; index < JOIN_LIMIT_PER_NETWORK; index++) {
+			await join({ gameId: "game-1", nickname: `P${index}`, clientKey: "ip" });
+		}
+
+		await expect(
+			join({ gameId: "game-2", nickname: "ACT", clientKey: "ip" }),
+		).resolves.toBeDefined();
+	});
+
+	it("a refused join does not count (RN-45a)", async () => {
+		const deps = await lobby();
+		const join = createJoinGame(deps);
+		await join({ gameId: "game-1", nickname: "ACT", clientKey: "ip" });
+		for (let attempt = 0; attempt < JOIN_LIMIT_PER_NETWORK; attempt++) {
+			await join({ gameId: "game-1", nickname: "act", clientKey: "ip" }).catch(
+				() => {},
+			);
+		}
+
+		await expect(
+			join({ gameId: "game-1", nickname: "Bia", clientKey: "ip" }),
+		).resolves.toBeDefined();
+	});
+
+	it("joins sent at the same time do not get past the limit (RN-45a)", async () => {
+		const deps = await lobby();
+		const join = createJoinGame(deps);
+
+		const burst = await Promise.allSettled(
+			Array.from({ length: JOIN_LIMIT_PER_NETWORK + 10 }, (_, index) =>
+				join({ gameId: "game-1", nickname: `P${index}`, clientKey: "ip" }),
+			),
+		);
+
+		expect(
+			burst.filter((result) => result.status === "fulfilled"),
+		).toHaveLength(JOIN_LIMIT_PER_NETWORK);
+		expect(
+			burst.filter(
+				(result) =>
+					result.status === "rejected" &&
+					result.reason instanceof TooManyJoinsError,
+			),
+		).toHaveLength(10);
 	});
 
 	it("two players racing for the last place: one gets it", async () => {
@@ -291,8 +442,8 @@ describe("joinGame (spec 008)", () => {
 		const join = createJoinGame(deps);
 
 		const race = await Promise.allSettled([
-			join({ gameId: "game-1", nickname: "Ana" }),
-			join({ gameId: "game-1", nickname: "Bia" }),
+			join({ clientKey: "ip", gameId: "game-1", nickname: "Ana" }),
+			join({ clientKey: "ip", gameId: "game-1", nickname: "Bia" }),
 		]);
 
 		expect(race.map((result) => result.status).sort()).toEqual([
@@ -310,6 +461,7 @@ describe("getPlayerSession (spec 008)", () => {
 	async function joined() {
 		const deps = await lobby();
 		const player = await createJoinGame(deps)({
+			clientKey: "ip",
 			gameId: "game-1",
 			nickname: "ACT",
 		});
@@ -372,7 +524,7 @@ describe("getPlayerSession (spec 008)", () => {
 
 describe("joining a game in progress (spec 012)", () => {
 	const find = { pin: "265914", clientKey: "ip" };
-	const caio = { gameId: "game-1", nickname: "Caio" };
+	const caio = { gameId: "game-1", nickname: "Caio", clientKey: "ip" };
 
 	it("finds a game in progress", async () => {
 		const { deps, reach } = await createStartedGame();
@@ -461,7 +613,11 @@ describe("joining a game in progress (spec 012)", () => {
 		await reach("answering");
 
 		await expect(
-			createJoinGame(deps)({ gameId: "game-1", nickname: "ana" }),
+			createJoinGame(deps)({
+				clientKey: "ip",
+				gameId: "game-1",
+				nickname: "ana",
+			}),
 		).rejects.toThrow(NicknameTakenError);
 	});
 
@@ -483,7 +639,11 @@ describe("joining a game in progress (spec 012)", () => {
 		await markRemoved(deps, "p2");
 
 		await expect(
-			createJoinGame(deps)({ gameId: "game-1", nickname: "Bia" }),
+			createJoinGame(deps)({
+				clientKey: "ip",
+				gameId: "game-1",
+				nickname: "Bia",
+			}),
 		).rejects.toThrow(NicknameTakenError);
 	});
 
@@ -519,6 +679,7 @@ describe("joining with an avatar (spec 028)", () => {
 		const deps = await lobby();
 
 		const joined = await createJoinGame(deps)({
+			clientKey: "ip",
 			gameId: "game-1",
 			nickname: "Ana",
 		});
@@ -533,6 +694,7 @@ describe("joining with an avatar (spec 028)", () => {
 		const deps = await lobby();
 
 		const joined = await createJoinGame(deps)({
+			clientKey: "ip",
 			gameId: "game-1",
 			nickname: "Ana",
 			avatar: fox,
@@ -546,6 +708,7 @@ describe("joining with an avatar (spec 028)", () => {
 		const deps = await lobby();
 
 		const joined = await createJoinGame(deps)({
+			clientKey: "ip",
 			gameId: "game-1",
 			nickname: "Ana",
 			avatar: { character: "dinosaur", accessory: null },
@@ -560,6 +723,7 @@ describe("joining with an avatar (spec 028)", () => {
 		});
 
 		const joined = await createJoinGame(deps)({
+			clientKey: "ip",
 			gameId: "game-1",
 			nickname: "Ana",
 			avatar: fox,

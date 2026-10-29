@@ -92,15 +92,12 @@ export function NicknameStep({
 	busy,
 	notice,
 	onSubmit,
-	onPick,
 }: {
 	cover: OpenAssignmentCoverData;
 	busy: boolean;
 	/** Why the server refused the last nickname; null otherwise. */
 	notice: string | null;
 	onSubmit: (nickname: string) => void;
-	/** A tap on who already joined: "Você é {apelido}?" (RN-03). */
-	onPick: (nickname: string) => void;
 }) {
 	const id = useId();
 	const [nickname, setNickname] = useState("");
@@ -121,20 +118,18 @@ export function NicknameStep({
 				{cover.participantCount}{" "}
 				{cover.participantCount === 1 ? "participante" : "participantes"}
 			</p>
+			{/* Only to see: a nickname is no way in (RN-03). */}
 			{cover.participants.length > 0 && (
 				<ul
 					aria-label="Quem já entrou"
 					className="flex max-w-xl flex-wrap justify-center gap-2"
 				>
 					{cover.participants.map((nickname) => (
-						<li key={nickname}>
-							<button
-								type="button"
-								onClick={() => onPick(nickname)}
-								className="rounded-md bg-game-chip px-4 py-2 font-black text-game-chip-fg text-lg shadow-press-sm outline-none transition-opacity hover:opacity-85 focus-visible:ring-4 focus-visible:ring-white/70"
-							>
-								{nickname}
-							</button>
+						<li
+							key={nickname}
+							className="rounded-md bg-game-chip px-4 py-2 font-black text-game-chip-fg text-lg shadow-press-sm"
+						>
+							{nickname}
 						</li>
 					))}
 				</ul>

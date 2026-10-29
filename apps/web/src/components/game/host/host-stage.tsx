@@ -230,7 +230,12 @@ export function HostStage({
 			<GameHeader
 				playerCount={game.players.length}
 				onExit={() => setEnding(true)}
-				join={{ origin, pin: game.pin, locked: game.locked }}
+				join={{
+					origin,
+					pin: game.pin,
+					gameId: game.gameId,
+					locked: game.locked,
+				}}
 				onOpenSettings={() => setSettingsOpen(true)}
 			/>
 

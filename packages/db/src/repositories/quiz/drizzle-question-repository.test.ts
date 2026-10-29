@@ -121,6 +121,24 @@ describe("DrizzleQuestionRepository", () => {
 		expect(await questions.listByQuiz("quiz-1")).toEqual([]);
 	});
 
+	it("two lists saved at the same time leave one of them, never both (L5)", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		await questions.saveList("quiz-1", [a]);
+		const mine = [a, aQuestion({ id: "m1" }), aQuestion({ id: "m2" })];
+		const theirs = [a, aQuestion({ id: "t1" }), aQuestion({ id: "t2" })];
+
+		await Promise.all([
+			questions.saveList("quiz-1", mine),
+			questions.saveList("quiz-1", theirs),
+		]);
+
+		// Each list was checked against the limit alone; the quiz keeps one.
+		const ids = (await questions.listByQuiz("quiz-1")).map(({ id }) => id);
+		expect(
+			[mine, theirs].map((list) => list.map(({ id }) => id)),
+		).toContainEqual(ids);
+	});
+
 	it("saveList rewrites positions in a single transaction", async () => {
 		const questions = createDrizzleQuestionRepository(testDb.db);
 		await questions.saveList("quiz-1", [a, b, c]);

@@ -1,4 +1,7 @@
-import { createLanguageModel } from "@quizio/ai/ai-model";
+import {
+	createLanguageModel,
+	generationProviderOptions,
+} from "@quizio/ai/ai-model";
 import { createAiSdkQuestionGenerator } from "@quizio/ai/ai-sdk-question-generator";
 import { createPdfLibPdfPages } from "@quizio/ai/pdf-lib-pdf-pages";
 import { auth, authSettings } from "@quizio/auth";
@@ -37,6 +40,10 @@ import { createDrizzleAccountRepository } from "@quizio/db/repositories/identity
 import { createDrizzleProfilePhotoRepository } from "@quizio/db/repositories/identity/drizzle-profile-photo-repository";
 import { createDrizzleCreatorProfileQuery } from "@quizio/db/repositories/library/drizzle-creator-profile-query";
 import { createDrizzleLibraryQuizQuery } from "@quizio/db/repositories/library/drizzle-library-quiz-query";
+import {
+	createDrizzleMediaUploadRepository,
+	createDrizzleMediaUsage,
+} from "@quizio/db/repositories/media/drizzle-media-uploads";
 import { createDrizzleSourceUploadRepository } from "@quizio/db/repositories/media/drizzle-source-upload-repository";
 import { createDrizzleGroupNoticeRepository } from "@quizio/db/repositories/notifications/drizzle-group-notice-repository";
 import { createDrizzleNotificationInbox } from "@quizio/db/repositories/notifications/drizzle-notification-inbox";
@@ -59,7 +66,7 @@ import { createHmacInboxChannels } from "@quizio/realtime/hmac-inbox-channels";
 import { createPusherRealtimePublisher } from "@quizio/realtime/pusher-realtime-publisher";
 import { createHttpRemoteFiles } from "@quizio/storage/http-remote-files";
 import { createS3ObjectStorage } from "@quizio/storage/s3-object-storage";
-
+import { assistantSettingsOf } from "./assistant-settings";
 import { type Adapters, type Container, createContainer } from "./container";
 import { createRandomAccessKeySecrets } from "./random-access-key-secrets";
 import { createRandomAssignmentPinGenerator } from "./random-assignment-pin-generator";
@@ -67,8 +74,14 @@ import { createRandomGamePinGenerator } from "./random-game-pin-generator";
 import { createRandomInviteCodeGenerator } from "./random-invite-code-generator";
 import { createRandomShuffler } from "./random-shuffler";
 
-/** A creation taking longer than this fails and gives the use back (spec 027, RN-33). */
+/** A creation taking longer than this fails; the use is kept, as the provider worked (spec 027, RN-33). */
 const GENERATION_TIMEOUT_MS = 120_000;
+
+/**
+ * The most one creation may write, reasoning included: 30 questions take
+ * well under a tenth of it, and it bounds what one creation can cost.
+ */
+const GENERATION_MAX_OUTPUT_TOKENS = 32_000;
 
 /** The creation assistant's model, or null to turn the assistant off (spec 027, RN-01). */
 function questionGeneratorFromEnv(): QuestionGenerator | null {
@@ -90,6 +103,8 @@ function questionGeneratorFromEnv(): QuestionGenerator | null {
 	return createAiSdkQuestionGenerator({
 		model: createLanguageModel({ provider, apiKey, model }),
 		timeoutMs: GENERATION_TIMEOUT_MS,
+		maxOutputTokens: GENERATION_MAX_OUTPUT_TOKENS,
+		providerOptions: generationProviderOptions(provider),
 	});
 }
 
@@ -164,7 +179,9 @@ export function createAdaptersFromEnv(): Adapters {
 		generationQuota: createDrizzleGenerationQuota(db),
 		assistantPreferences: createDrizzleAssistantPreferencesRepository(db),
 		sourceUploads: createDrizzleSourceUploadRepository(db),
-		assistantSettings: { generationsPerDay: env.AI_GENERATIONS_PER_DAY },
+		mediaUploads: createDrizzleMediaUploadRepository(db),
+		mediaUsage: createDrizzleMediaUsage(db),
+		assistantSettings: assistantSettingsOf(env),
 		accounts: createDrizzleAccountRepository(db),
 		accountCredentials: createBetterAuthAccountCredentials(auth),
 		profilePhotos: createDrizzleProfilePhotoRepository(db),
@@ -205,7 +222,7 @@ const REMOTE_FILE_TIMEOUT_MS = 10_000;
 const REMOTE_FILE_MAX_REDIRECTS = 3;
 
 /** The header the proxy in front of this instance reports the caller's address in. */
-export const clientIpHeader = env.CLIENT_IP_HEADER;
+export { clientIpHeader } from "@quizio/env/server";
 
 /**
  * The MCP server's public origin (spec 044): agents connect to `{publicUrl}/mcp`,

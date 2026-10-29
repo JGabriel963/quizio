@@ -3,8 +3,12 @@ import { GAME_MAX_PLAYERS } from "@quizio/core/game/domain/game";
 import { z } from "zod";
 
 import { defineTool, type ToolContext } from "../define-tool";
+import { WRITTEN_BY_PLAYERS } from "./groups";
 
-const gameId = z.string().describe("The game's id, from host_live_game.");
+const gameId = z
+	.string()
+	.max(10_000)
+	.describe("The game's id, from host_live_game.");
 
 /** What the agent needs of the host's view: no answers, no theme. */
 function liveGameOutput(view: HostGameView) {
@@ -54,7 +58,7 @@ export const liveGameTools = [
 		title: "Host a live game",
 		description: `Opens a live game of a published quiz (the person's own, one shared in their group, or a public one) and gives its 6-digit PIN, the link players join by and the link of the host screen. Hosting the same quiz again ends this person's previous game of it. Up to ${GAME_MAX_PLAYERS} players. The person must open the host screen and project it: it starts the game and moves through the questions; you cannot.`,
 		kind: "write",
-		input: z.object({ quizId: z.string() }),
+		input: z.object({ quizId: z.string().max(10_000) }),
 		run: async ({ quizId }, context) => {
 			const { gameId: id } = await context.useCases.hostGame({
 				ownerId: context.identity.userId,
@@ -70,8 +74,7 @@ export const liveGameTools = [
 	defineTool({
 		name: "get_live_game",
 		title: "Read a live game",
-		description:
-			"The game's state: lobby, playing (with the question and phase on the host screen), finished (with the standings) or ended; the players, the lock and the options.",
+		description: `The game's state: lobby, playing (with the question and phase on the host screen), finished (with the standings) or ended; the players, the lock and the options. ${WRITTEN_BY_PLAYERS}`,
 		kind: "read",
 		input: z.object({ gameId }),
 		run: async ({ gameId: id }, context) => gameAnswer(id, context),
@@ -79,8 +82,7 @@ export const liveGameTools = [
 	defineTool({
 		name: "update_live_game",
 		title: "Change a live game",
-		description:
-			"Locks or unlocks joining, and turns the game options on or off; send only what changes. The random orders are drawn when the game starts, so they change only in the lobby. Every option except the lock is kept for the person's next games. The open host screen shows the change in a few seconds.",
+		description: `Locks or unlocks joining, and turns the game options on or off; send only what changes. The random orders are drawn when the game starts, so they change only in the lobby. Every option except the lock is kept for the person's next games. The open host screen shows the change in a few seconds. ${WRITTEN_BY_PLAYERS}`,
 		kind: "idempotent",
 		input: z.object({
 			gameId,
@@ -125,12 +127,11 @@ export const liveGameTools = [
 	defineTool({
 		name: "remove_player",
 		title: "Remove a player",
-		description:
-			"Takes a player out of the lobby (only before the game starts). They may join again unless joining is locked. Confirm with the person first.",
+		description: `Takes a player out of the lobby (only before the game starts). They may join again unless joining is locked. Confirm with the person first. ${WRITTEN_BY_PLAYERS}`,
 		kind: "destructive",
 		input: z.object({
 			gameId,
-			playerId: z.string().describe("From the game's players."),
+			playerId: z.string().max(10_000).describe("From the game's players."),
 		}),
 		run: async ({ gameId: id, playerId }, context) => {
 			await context.useCases.removePlayer({

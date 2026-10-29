@@ -91,7 +91,8 @@ const liveUseCases: [
 	],
 	[
 		"joinGame",
-		(deps, gameId) => createJoinGame(deps)({ gameId, nickname: "Bia" }),
+		(deps, gameId) =>
+			createJoinGame(deps)({ clientKey: "ip", gameId, nickname: "Bia" }),
 	],
 	[
 		"getPlayerSession",

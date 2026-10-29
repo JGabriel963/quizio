@@ -40,18 +40,23 @@ for (const [network, prefix] of [
 	NOT_PUBLIC.addSubnet(network, prefix, "ipv4");
 }
 for (const [network, prefix] of [
-	// Unspecified and IPv4-compatible (deprecated): never a public address.
-	["::", 96],
-	["::1", 128],
-	["64:ff9b::", 96],
-	["100::", 64],
+	// IETF protocol assignments, Teredo (2001::/32) among them.
+	["2001::", 23],
 	["2001:db8::", 32],
-	["fc00::", 7],
-	["fe80::", 10],
-	["ff00::", 8],
+	// 6to4: an IPv4 address inside, which may be a private one.
+	["2002::", 16],
+	["3fff::", 20],
 ] as const) {
 	NOT_PUBLIC.addSubnet(network, prefix, "ipv6");
 }
+
+/**
+ * The only IPv6 addresses on the public internet (audit L13): outside it are
+ * loopback, link-local, unique-local, multicast, NAT64 and the ones that carry
+ * an IPv4 address, whatever the network does with them.
+ */
+const GLOBAL_UNICAST = new BlockList();
+GLOBAL_UNICAST.addSubnet("2000::", 3, "ipv6");
 
 /**
  * An IPv4-mapped IPv6 address is the IPv4 one it carries, in any spelling: a
@@ -78,7 +83,11 @@ export function isPublicAddress(ip: string): boolean {
 	if (v4) {
 		return !NOT_PUBLIC.check(v4, "ipv4");
 	}
-	return isIP(ip) === 6 && !NOT_PUBLIC.check(ip, "ipv6");
+	return (
+		isIP(ip) === 6 &&
+		GLOBAL_UNICAST.check(ip, "ipv6") &&
+		!NOT_PUBLIC.check(ip, "ipv6")
+	);
 }
 
 function fileNameOf(

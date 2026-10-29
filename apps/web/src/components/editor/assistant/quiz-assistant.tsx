@@ -22,9 +22,12 @@ import type {
 	GeneratedQuestionData,
 	GenerationResultData,
 } from "@/lib/api-types";
+import { assistantEstimate } from "@/lib/assistant-credits";
 import {
+	estimateLabel,
 	GENERATION_FAILED_MESSAGE,
 	nextAvailableMessage,
+	notEnoughCreditsReason,
 	TOPIC_SUGGESTIONS,
 } from "@/lib/assistant-labels";
 import {
@@ -123,9 +126,18 @@ export function QuizAssistant({
 			? null
 			: status.nextAvailableAt
 				? nextAvailableMessage(status.limit, status.nextAvailableAt)
-				: `Você usou as ${status.limit} criações das últimas 24 horas.`;
+				: `Você usou os ${status.limit} créditos das últimas 24 horas.`;
+	// The same estimate the server reserves (spec 045, RN-06, RN-08).
+	const estimate = assistantEstimate(state, status.pricing);
+	const notEnoughReason =
+		estimate && !quotaReason && estimate.credits > status.remaining
+			? notEnoughCreditsReason(estimate.credits, status.remaining)
+			: null;
+	const creditsReason = quotaReason ?? notEnoughReason;
+	const creditsNote =
+		notEnoughReason ?? (estimate ? estimateLabel(estimate.credits) : null);
 	const createDisabledReason =
-		quotaReason ??
+		creditsReason ??
 		(generating ? CREATING_REASON : null) ??
 		(state.source === "pdf" && state.pdf && state.pages.length === 0
 			? NO_PAGES_REASON
@@ -133,7 +145,7 @@ export function QuizAssistant({
 
 	async function create(from: AssistantState, confirmed = false) {
 		// The panel and the pages screen say why; the server would refuse anyway.
-		if (quotaReason || generating) {
+		if (creditsReason || generating) {
 			return;
 		}
 		const intent = createIntent(from, { confirmed });
@@ -254,7 +266,8 @@ export function QuizAssistant({
 								document={documentRef.current}
 								pages={state.pages}
 								extract={state.options.format === "extract"}
-								createDisabledReason={quotaReason}
+								createDisabledReason={creditsReason}
+								creditsNote={creditsNote}
 								onTogglePage={(page) => dispatch({ type: "pageToggled", page })}
 								onSelectAll={() => dispatch({ type: "allPagesSelected" })}
 								onExtractChange={(extract) =>
@@ -277,6 +290,7 @@ export function QuizAssistant({
 									topic={state.topic}
 									pdfName={state.pdf?.name ?? null}
 									createDisabledReason={createDisabledReason}
+									creditsNote={creditsNote}
 									busy={generating}
 									layout={state.layout}
 									onSourceChange={(source) =>

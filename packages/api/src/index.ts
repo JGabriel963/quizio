@@ -6,6 +6,16 @@ import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({
 	errorFormatter({ shape, error }) {
+		if (error.code === "INTERNAL_SERVER_ERROR") {
+			// A bug's message can carry SQL, its parameters or a provider's answer:
+			// the client gets none of it, the server's log keeps it.
+			const { stack: _stack, ...data } = shape.data;
+			return {
+				...shape,
+				message: "Internal server error",
+				data: { ...data, domainCode: null },
+			};
+		}
 		return {
 			...shape,
 			data: {

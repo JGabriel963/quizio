@@ -103,7 +103,7 @@ O criador tem uma conta que é dele: põe uma foto, que passa a aparecer onde ap
 
 | ID | Regra | Fonte |
 | --- | --- | --- |
-| RN-17 | **Acesso à IA** mostra, numa instância com o assistente de criação, "O assistente de criação está disponível.", o uso da **cota**: **"{usadas} de {cota} criações nas últimas 24 horas"** com uma barra de progresso e, quando há criações na janela, **"A próxima criação volta a ficar livre {em quanto tempo}"** (a da criação mais antiga da janela). Com a cota esgotada, o texto diz "Você usou todas as criações das últimas 24 horas.". | decisão do usuário (2026-10-27) · spec 027 (cota diária) |
+| RN-17 | **Acesso à IA** mostra, numa instância com o assistente de criação, "O assistente de criação está disponível.", o uso da **cota**: **"{usadas} de {cota} criações nas últimas 24 horas"** com uma barra de progresso e, quando há criações na janela, **"A próxima criação volta a ficar livre {em quanto tempo}"** (a da criação mais antiga da janela). Com a cota esgotada, o texto diz "Você usou todas as criações das últimas 24 horas.". | decisão do usuário (2026-10-27) · spec 027 (cota diária) · **alterada pela [spec 045](../045-creditos-de-ia/spec.md)**: em créditos |
 | RN-18 | Numa instância **sem** o assistente, a seção diz "O assistente de criação não está disponível neste Quizio." e não mostra cota. | spec 027, RN-01 |
 | RN-19 | A seção é **só leitura**: a cota é da instância e não se muda aqui. | constituição, artigo VI · spec 027 |
 
@@ -440,3 +440,5 @@ O criador tem uma conta que é dele: põe uma foto, que passa a aparecer onde ap
   - "Acesso à IA" lê o status do assistente que já existia (spec 027), agora com o uso e o tempo até a próxima criação livre;
   - o perfil e o quiz público que não existem respondem `LIBRARY.PROFILE_NOT_FOUND` e `LIBRARY.PUBLIC_QUIZ_NOT_FOUND`;
   - a página do quiz público é a do quiz compartilhado (spec 037) sem "Compartilhado por".
+- 2026-10-29 — a [spec 045](../045-creditos-de-ia/spec.md) passa o Acesso à IA (RN-17) para créditos: "{usados} de {orçamento} créditos nas últimas 24 horas" e "Os próximos créditos voltam {em quanto tempo}".
+- 2026-10-29 — auditoria de segurança (achado L4): a foto enviada e nunca definida como foto de perfil é apagada depois de 24 horas, e conta no limite de envios da pessoa (spec 007, RN-35a).

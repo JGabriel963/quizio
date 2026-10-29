@@ -18,12 +18,14 @@ const gameId = z.string().min(1).max(100);
 /** An instant with its zone, as the browser's `toISOString()` sends it. */
 const deadline = z.iso
 	.datetime({ offset: true })
+	.max(64)
 	.transform((value) => new Date(value));
 
 /** Where the next page of the feed starts, as `group.feed` sent it. */
 const feedCursor = z.object({
 	createdAt: z.iso
 		.datetime({ offset: true })
+		.max(64)
 		.transform((value) => new Date(value)),
 	id: z.string().min(1).max(100),
 });

@@ -1,4 +1,5 @@
 import { DEFAULT_GENERATION_OPTIONS } from "@quizio/core/quiz/domain/generation";
+import { DEFAULT_CREDIT_PRICING } from "@quizio/core/quiz/domain/generation-credits";
 import { blankQuestion } from "@quizio/core/quiz/domain/question";
 import { newQuestionImage } from "@quizio/core/quiz/domain/question-image";
 import { DARK_TEXT } from "@quizio/core/shared/domain/contrast";
@@ -1210,6 +1211,7 @@ describe("QuizEditor question image (spec 007)", () => {
 				nextAvailableAt: null,
 				nextFreeInMs: null,
 				options: DEFAULT_GENERATION_OPTIONS,
+				pricing: DEFAULT_CREDIT_PRICING,
 			},
 			generate: vi.fn(async () => ({
 				questions: [
@@ -1222,6 +1224,7 @@ describe("QuizEditor question image (spec 007)", () => {
 				],
 				discarded: 0,
 				remaining: 19,
+				creditsUsed: 1,
 			})),
 			uploadSource: vi.fn(async () => "sources/user-1/doc.pdf"),
 			discardSource: vi.fn(),

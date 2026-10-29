@@ -24,7 +24,9 @@ const look = z.object({
 	logoKey: fileKey.nullable(),
 });
 
-const themeReference = z.object({ themeId: z.string().min(1).max(64) });
+const themeReference = z.object({
+	themeId: z.string().min(1).max(64),
+});
 
 /** "Seus temas" and "Crie seu tema" (spec 043; ADR 0022). */
 export const themeRouter = router({
@@ -59,7 +61,9 @@ export const themeRouter = router({
 
 	/** A logo or a background: a presigned PUT, then the key goes with the theme. */
 	requestUpload: protectedProcedure
-		.input(z.object({ contentType: z.string(), sizeBytes: z.number() }))
+		.input(
+			z.object({ contentType: z.string().max(10_000), sizeBytes: z.number() }),
+		)
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.requestThemeUpload({
 				ownerId: ctx.session.user.id,

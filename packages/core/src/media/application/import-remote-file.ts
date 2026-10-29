@@ -1,4 +1,8 @@
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
+import {
+	reserveRemoteFile,
+	type UploadLimitDeps,
+} from "../../shared/application/upload-limit";
 import { isHttpAddress } from "../../shared/domain/web-address";
 import { type SniffedFileType, sniffFileType } from "../domain/file-signature";
 import { UnsupportedMediaTypeError } from "../domain/media-policy";
@@ -38,15 +42,20 @@ function assertHttpUrl(raw: string): void {
  * Takes a file from a public link and stores it where the target's own upload
  * would (spec 044, RN-24; ADR 0023): the bytes say what it is, and the
  * target's upload applies its policy and records its pending row. Nothing is
- * stored when any of it refuses.
+ * stored when any of it refuses. Who may not upload there, and who already
+ * had 60 links fetched in the hour, are refused before the download (audit L4).
  */
-export function createImportRemoteFile(deps: {
-	remoteFiles: RemoteFiles;
-	storage: Pick<ObjectStorage, "put">;
-	uploads: RemoteFileUploads;
-}): ImportRemoteFile {
+export function createImportRemoteFile(
+	deps: {
+		remoteFiles: RemoteFiles;
+		storage: Pick<ObjectStorage, "put">;
+		uploads: RemoteFileUploads;
+	} & UploadLimitDeps,
+): ImportRemoteFile {
 	return async ({ ownerId, url, target }) => {
 		assertHttpUrl(url);
+		await deps.uploads.authorize({ ownerId, target });
+		await reserveRemoteFile(deps, ownerId);
 		const file = await deps.remoteFiles.fetch(
 			url,
 			deps.uploads.maxBytesFor(target),

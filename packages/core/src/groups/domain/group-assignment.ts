@@ -71,3 +71,10 @@ export function sortGroupAssignments<
 	};
 	return [...items].sort(compare[sort]);
 }
+
+/**
+ * The most open assignments the Atribuições tab reads, the newest ones
+ * (audit L9): only open ones are counted, so one that is over never takes an
+ * open one's place.
+ */
+export const GROUP_ASSIGNMENTS_READ_LIMIT = 500;

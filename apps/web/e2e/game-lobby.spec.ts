@@ -172,6 +172,47 @@ test.describe("lobby da partida ao vivo (spec 008)", () => {
 		);
 	});
 
+	test("uma rede sem tentativas de PIN entra pelo QR code (CA-38, CA-38a)", async ({
+		page: host,
+		browser,
+	}) => {
+		await signUp(host);
+		await publishQuiz(host, "Redes");
+		await readyDialog(host)
+			.getByRole("button", { name: /Organizar ao vivo/ })
+			.click();
+		const pin = await lobbyPin(host);
+		const gameId = new URL(host.url()).pathname.split("/").at(-1);
+
+		// Someone on the classroom's network spends its wrong PINs (RN-39). The
+		// address is this run's own: a retry must not find the window ending.
+		const octet = () => Math.floor(Math.random() * 250);
+		const network = {
+			"x-forwarded-for": `10.${process.pid % 250}.${octet()}.${octet()}`,
+		};
+		const context = await browser.newContext({ extraHTTPHeaders: network });
+		for (let attempt = 0; attempt < 30; attempt++) {
+			await context.request.post("/api/trpc/game.join.find", {
+				headers: network,
+				data: { pin: "111111" },
+			});
+		}
+
+		const player = await context.newPage();
+		await player.goto(`/join/${pin}`);
+		await expect(notice(player)).toHaveText(
+			"Muitas tentativas. Aguarde um momento ou entre pelo QR code ou pelo link do jogo.",
+		);
+
+		// The QR code's link names the game too, and gets in (RN-39a).
+		await player.goto(`/join/${pin}?game=${gameId}`);
+		await enterNickname(player, "ACT");
+		await expectWaiting(player, "ACT");
+		await expect(
+			players(host).getByRole("button", { name: /ACT/ }),
+		).toBeVisible();
+	});
+
 	test("organizar pela página do quiz e reabrir a partida", async ({
 		page: host,
 		browser,

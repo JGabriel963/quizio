@@ -1,4 +1,5 @@
 import { DEFAULT_GENERATION_OPTIONS } from "@quizio/core/quiz/domain/generation";
+import { DEFAULT_CREDIT_PRICING } from "@quizio/core/quiz/domain/generation-credits";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -39,6 +40,7 @@ const status: AssistantStatusData = {
 	nextAvailableAt: null,
 	nextFreeInMs: null,
 	options: DEFAULT_GENERATION_OPTIONS,
+	pricing: DEFAULT_CREDIT_PRICING,
 };
 
 function renderAssistant(overrides: Partial<QuizAssistantProps> = {}) {
@@ -50,6 +52,7 @@ function renderAssistant(overrides: Partial<QuizAssistantProps> = {}) {
 			],
 			discarded: 0,
 			remaining: 19,
+			creditsUsed: 1,
 		})),
 		uploadSource: vi.fn(async () => "sources/user-1/doc.pdf"),
 		discardSource: vi.fn(),
@@ -160,7 +163,7 @@ describe("QuizAssistant (spec 027)", () => {
 		expect(topicField()).toHaveValue("Sistema solar");
 	});
 
-	it("quota exhausted disables Crie and shows the next time", async () => {
+	it("tells when the budget is used up (spec 045, RN-16)", async () => {
 		const { user } = renderAssistant({
 			status: {
 				...status,
@@ -172,8 +175,57 @@ describe("QuizAssistant (spec 027)", () => {
 
 		expect(createButton()).toHaveAttribute("aria-disabled", "true");
 		expect(createButton()).toHaveAccessibleDescription(
-			"Você usou as 20 criações das últimas 24 horas. A próxima fica disponível às 09:10.",
+			"Você usou os 20 créditos das últimas 24 horas. Os próximos voltam às 09:10.",
 		);
+	});
+
+	it("shows the estimate before Crie (spec 045, RN-06)", async () => {
+		const { user } = renderAssistant();
+
+		expect(screen.queryByText(/Esta criação usa até/)).toBeNull();
+		await user.type(topicField(), "Sistema solar");
+
+		// About 20 questions on a short topic.
+		expect(
+			screen.getByText("Esta criação usa até 3 créditos"),
+		).toBeInTheDocument();
+	});
+
+	it("Crie is unavailable when the estimate does not fit, and comes back when it does (spec 045, RN-08)", async () => {
+		const notEnough =
+			"Esta criação precisa de até 3 créditos e restam 2. Escolha menos páginas ou menos perguntas.";
+		const { user } = renderAssistant({ status: { ...status, remaining: 2 } });
+		await user.type(topicField(), "Sistema solar");
+
+		expect(createButton()).toHaveAttribute("aria-disabled", "true");
+		expect(createButton()).toHaveAccessibleDescription(notEnough);
+		// Besides the button's hidden description, a line anyone can read.
+		expect(
+			screen
+				.getAllByText(notEnough)
+				.filter((element) => !element.closest("[hidden]")),
+		).toHaveLength(1);
+
+		await user.click(screen.getByRole("combobox", { name: "Duração do quiz" }));
+		await user.click(
+			await screen.findByRole("option", { name: "Cerca de 5 perguntas" }),
+		);
+
+		expect(createButton()).not.toHaveAttribute("aria-disabled");
+		expect(
+			screen.getByText("Esta criação usa até 1 crédito"),
+		).toBeInTheDocument();
+	});
+
+	it("tells the credits a creation used (spec 045, RN-09)", async () => {
+		const { user } = renderAssistant();
+		await user.type(topicField(), "Sistema solar");
+
+		await user.click(createButton());
+
+		expect(
+			await screen.findByText("Esta criação usou 1 crédito."),
+		).toBeInTheDocument();
 	});
 
 	it("asks before discarding generated questions on close", async () => {

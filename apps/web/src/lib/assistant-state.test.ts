@@ -189,7 +189,11 @@ describe("assistant state", () => {
 			{ type: "generationStarted" },
 			{
 				type: "generationSucceeded",
-				result: { questions: generated(["a", "b", "c"]), discarded: 1 },
+				result: {
+					questions: generated(["a", "b", "c"]),
+					discarded: 1,
+					creditsUsed: 1,
+				},
 			},
 			{ type: "questionToggled", id: "a" },
 			{ type: "questionToggled", id: "c" },
@@ -207,7 +211,7 @@ describe("assistant state", () => {
 			{ type: "topicChanged", topic: "Planetas" },
 			{
 				type: "generationSucceeded",
-				result: { questions: generated(["a"]), discarded: 0 },
+				result: { questions: generated(["a"]), discarded: 0, creditsUsed: 1 },
 			},
 		);
 		expect(createIntent(done)).toMatchObject({ kind: "generate" });
@@ -232,7 +236,7 @@ describe("assistant state", () => {
 
 		const done = run(start, {
 			type: "generationSucceeded",
-			result: { questions: generated(["a"]), discarded: 0 },
+			result: { questions: generated(["a"]), discarded: 0, creditsUsed: 1 },
 		});
 		const asked = run(done, { type: "closeRequested" });
 		expect(asked).toMatchObject({ closing: false, confirm: "close" });

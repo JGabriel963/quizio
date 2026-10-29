@@ -96,3 +96,19 @@ describe("groupErrorMessage (spec 034)", () => {
 		expect(isNotGroupAdmin(failure("GROUP.NOT_FOUND"))).toBe(false);
 	});
 });
+
+describe("groupErrorMessage: too many uploads (audit L4)", () => {
+	it("tells the person to wait for the hour", () => {
+		expect(groupErrorMessage({ data: { domainCode: "UPLOAD.TOO_MANY" } })).toBe(
+			"Você enviou muitos arquivos na última hora. Tente de novo mais tarde.",
+		);
+	});
+});
+
+describe("groupErrorMessage: too many posts (audit L9)", () => {
+	it("tells the person to wait a moment", () => {
+		expect(groupErrorMessage(failure("GROUP.TOO_MANY_POSTS"))).toBe(
+			"Você publicou muitas vezes seguidas. Aguarde um momento e tente de novo.",
+		);
+	});
+});

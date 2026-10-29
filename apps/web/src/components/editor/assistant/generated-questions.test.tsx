@@ -58,6 +58,7 @@ const done = (requested: number | null = 2): Generation => ({
 	questions: [quiz, trueFalse],
 	discarded: 0,
 	requested,
+	creditsUsed: 2,
 });
 
 describe("GeneratedQuestions (spec 027)", () => {
@@ -83,6 +84,14 @@ describe("GeneratedQuestions (spec 027)", () => {
 				"Suas perguntas estão prontas! Revise-as antes de prosseguir.",
 			),
 		).not.toBeInTheDocument();
+	});
+
+	it("the ready banner tells the credits used (spec 045, RN-09)", () => {
+		renderGrid(done());
+
+		expect(
+			screen.getByText("Esta criação usou 2 créditos."),
+		).toBeInTheDocument();
 	});
 
 	it("marks the correct answer with a check", () => {
@@ -131,7 +140,13 @@ describe("GeneratedQuestions (spec 027)", () => {
 	});
 
 	it("shows the nothing-usable message", () => {
-		renderGrid({ status: "done", questions: [], discarded: 3, requested: 10 });
+		renderGrid({
+			status: "done",
+			questions: [],
+			discarded: 3,
+			requested: 10,
+			creditsUsed: 1,
+		});
 
 		expect(
 			screen.getByText(

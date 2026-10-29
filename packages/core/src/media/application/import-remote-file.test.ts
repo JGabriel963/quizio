@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { reserveRemoteFile } from "../../shared/application/upload-limit";
+import {
+	REMOTE_FILE_LIMIT,
+	TooManyUploadsError,
+} from "../../shared/domain/upload-limit";
+import { FixedClock } from "../../shared/testing/fixed-clock";
+import { InMemoryAttemptLimiter } from "../../shared/testing/in-memory-attempt-limiter";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { UnsupportedMediaTypeError } from "../domain/media-policy";
@@ -9,6 +16,7 @@ import {
 	InvalidFileUrlError,
 } from "../domain/remote-file-errors";
 import { FakeRemoteFiles } from "../testing/fake-remote-files";
+import { InMemoryMediaUploads } from "../testing/in-memory-media-uploads";
 import {
 	createImportRemoteFile,
 	type ImportRemoteFile,
@@ -30,20 +38,39 @@ describe("importRemoteFile (spec 044, RN-24, CA-16)", () => {
 	let storage: InMemoryObjectStorage;
 	let remote: FakeRemoteFiles;
 	let asked: Parameters<RemoteFileUploads["keyFor"]>[0][];
+	let attempts: InMemoryAttemptLimiter;
+	let clock: FixedClock;
+	/** Who is refused by the target before anything is fetched. */
+	let outsiders: Set<string>;
 	let importFile: ImportRemoteFile;
 
 	beforeEach(() => {
 		storage = new InMemoryObjectStorage();
 		remote = new FakeRemoteFiles();
 		asked = [];
+		attempts = new InMemoryAttemptLimiter();
+		clock = new FixedClock();
+		outsiders = new Set();
+		const mediaUploads = new InMemoryMediaUploads();
 		const requestMediaUpload = createRequestMediaUpload({
 			storage,
 			ids: new SequentialIdGenerator("file"),
+			mediaUploads,
+			mediaUsage: mediaUploads,
+			attempts,
+			clock,
 		});
 		importFile = createImportRemoteFile({
 			remoteFiles: remote,
 			storage,
+			attempts,
+			clock,
 			uploads: {
+				authorize: async ({ ownerId }) => {
+					if (outsiders.has(ownerId)) {
+						throw new InvalidFileUrlError();
+					}
+				},
 				maxBytesFor: (target) =>
 					target.kind === "groupFile" ? 20 * 1024 * 1024 : 10 * 1024 * 1024,
 				// Media goes through its real policy; the others only record.
@@ -61,6 +88,36 @@ describe("importRemoteFile (spec 044, RN-24, CA-16)", () => {
 				},
 			},
 		});
+	});
+
+	it("asks the target first, so a refused person makes Quizio fetch nothing (L4)", async () => {
+		remote.serve("https://example.com/big.pdf", { bytes: pdf() });
+		outsiders.add("eve");
+
+		await expect(
+			importFile({
+				ownerId: "eve",
+				url: "https://example.com/big.pdf",
+				target: { kind: "groupFile", groupId: "group-1" },
+			}),
+		).rejects.toThrow(InvalidFileUrlError);
+		expect(remote.fetched).toEqual([]);
+	});
+
+	it("fetches at most 60 links an hour for a person, before fetching (L4)", async () => {
+		remote.serve("https://example.com/capa.png", { bytes: png() });
+		for (let file = 0; file < REMOTE_FILE_LIMIT; file++) {
+			await reserveRemoteFile({ attempts, clock }, "ana");
+		}
+
+		await expect(
+			importFile({
+				ownerId: "ana",
+				url: "https://example.com/capa.png",
+				target: { kind: "media" },
+			}),
+		).rejects.toThrow(TooManyUploadsError);
+		expect(remote.fetched).toEqual([]);
 	});
 
 	it("imports a public PNG as the owner's media and returns its key", async () => {

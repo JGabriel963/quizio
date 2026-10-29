@@ -15,6 +15,7 @@ import { InMemoryPlayerRepository } from "@quizio/core/game/testing/in-memory-pl
 import { InMemoryReviewResultsWriter } from "@quizio/core/game/testing/in-memory-review-results-writer";
 import { SequentialAssignmentPinGenerator } from "@quizio/core/game/testing/sequential-assignment-pin-generator";
 import { SequentialGamePinGenerator } from "@quizio/core/game/testing/sequential-game-pin-generator";
+import type { GroupAssignmentQuery } from "@quizio/core/groups/application/ports/group-assignments";
 import { InMemoryGroupStore } from "@quizio/core/groups/testing/in-memory-group-store";
 import { SequentialInviteCodeGenerator } from "@quizio/core/groups/testing/sequential-invite-code-generator";
 import { FakeAccountCredentials } from "@quizio/core/identity/testing/fake-account-credentials";
@@ -24,11 +25,13 @@ import type { LibraryQuizRecord } from "@quizio/core/library/application/ports/l
 import { InMemoryCreatorProfileQuery } from "@quizio/core/library/testing/in-memory-creator-profile-query";
 import { InMemoryLibraryQuizQuery } from "@quizio/core/library/testing/in-memory-library-quiz-query";
 import { FakeRemoteFiles } from "@quizio/core/media/testing/fake-remote-files";
+import { InMemoryMediaUploads } from "@quizio/core/media/testing/in-memory-media-uploads";
 import { InMemorySourceUploadRepository } from "@quizio/core/media/testing/in-memory-source-upload-repository";
 import { FixedInboxChannels } from "@quizio/core/notifications/testing/fixed-inbox-channels";
 import { InMemoryGroupNoticeRepository } from "@quizio/core/notifications/testing/in-memory-group-notice-repository";
 import { InMemoryNotificationInbox } from "@quizio/core/notifications/testing/in-memory-notification-inbox";
 import { InMemoryNotificationQuery } from "@quizio/core/notifications/testing/in-memory-notification-query";
+import { DEFAULT_CREDIT_PRICING } from "@quizio/core/quiz/domain/generation-credits";
 import type { Quiz } from "@quizio/core/quiz/domain/quiz";
 import { quizSearchText } from "@quizio/core/quiz/domain/quiz-details";
 import { FakePdfPages } from "@quizio/core/quiz/testing/fake-pdf-pages";
@@ -81,6 +84,8 @@ export interface TestApi {
 	/** The assistant's model, answering with three valid questions by default. */
 	generator: InMemoryQuestionGenerator;
 	sourceUploads: InMemorySourceUploadRepository;
+	/** Images and photos sent; `use(key)` marks one in use (audit L4). */
+	mediaUploads: InMemoryMediaUploads;
 	/** Reads the games above; the reports' and creators' names are set here. */
 	assignmentLanding: InMemoryAssignmentLandingQuery;
 	/** Every groups port; add the accounts the screens name with `addUser`. */
@@ -138,8 +143,37 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 	const clock = new FixedClock("2026-06-01T12:00:00.000Z");
 	const generator = new InMemoryQuestionGenerator();
 	const sourceUploads = new InMemorySourceUploadRepository();
+	const mediaUploads = new InMemoryMediaUploads();
 	const assignmentLanding = new InMemoryAssignmentLandingQuery(games, players);
 	const groups = new InMemoryGroupStore();
+	// Reads the games above, as the database adapter reads its tables.
+	const groupAssignmentQuery: GroupAssignmentQuery = {
+		findAssignments: async (gameIds) => {
+			const records = await Promise.all(
+				gameIds.map(async (gameId) => {
+					const game = await games.findById(gameId);
+					if (game?.mode !== "assignment") {
+						return [];
+					}
+					const quiz = await quizzes.findById(game.quizId);
+					return [
+						{
+							gameId: game.id,
+							ownerId: game.ownerId,
+							ownerName: groups.userName(game.ownerId),
+							name: game.title,
+							questionCount: game.questionCount,
+							coverImageKey: quiz?.coverImageKey ?? null,
+							expiresAt: game.expiresAt,
+							endedAt: game.endedAt,
+						},
+					];
+				}),
+			);
+			return records.flat();
+		},
+	};
+	groups.readAssignmentsWith(groupAssignmentQuery);
 	const accounts = new InMemoryAccountRepository();
 	const credentials = new FakeAccountCredentials();
 	const profilePhotos = new InMemoryProfilePhotoRepository();
@@ -201,7 +235,13 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		generationQuota: new InMemoryGenerationQuota(),
 		assistantPreferences: new InMemoryAssistantPreferencesRepository(),
 		sourceUploads,
-		assistantSettings: { generationsPerDay: 20 },
+		mediaUploads,
+		mediaUsage: mediaUploads,
+		assistantSettings: {
+			creditsPerDay: 20,
+			instanceCreditsPerDay: 1000,
+			pricing: DEFAULT_CREDIT_PRICING,
+		},
 		groups,
 		groupMembers: groups,
 		groupVisits: groups,
@@ -210,33 +250,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		groupPosts: groups,
 		groupFeed: groups,
 		groupUploads: groups,
-		// Reads the games above, as the database adapter reads its tables.
-		groupAssignmentQuery: {
-			findAssignments: async (gameIds) => {
-				const records = await Promise.all(
-					gameIds.map(async (gameId) => {
-						const game = await games.findById(gameId);
-						if (game?.mode !== "assignment") {
-							return [];
-						}
-						const quiz = await quizzes.findById(game.quizId);
-						return [
-							{
-								gameId: game.id,
-								ownerId: game.ownerId,
-								ownerName: groups.userName(game.ownerId),
-								name: game.title,
-								questionCount: game.questionCount,
-								coverImageKey: quiz?.coverImageKey ?? null,
-								expiresAt: game.expiresAt,
-								endedAt: game.endedAt,
-							},
-						];
-					}),
-				);
-				return records.flat();
-			},
-		},
+		groupAssignmentQuery,
 		groupSharedQuizzes: groups,
 		sharedQuizReads: testSharedQuizReads({ quizzes, versions, groups, games }),
 		quizShareGrants: testQuizShareGrants(groups, quizzes),
@@ -297,6 +311,7 @@ export function createTestApi(overrides: Partial<Adapters> = {}): TestApi {
 		clock,
 		generator,
 		sourceUploads,
+		mediaUploads,
 		assignmentLanding,
 		groups,
 		accounts,

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { defineTool, type ToolContext } from "../define-tool";
 import { fileSource, resolveFile } from "../schemas/file-source";
 
-const hexColor = z.string().describe("#RRGGBB.");
+const hexColor = z.string().max(10_000).describe("#RRGGBB.");
 
 const background = z
 	.union([
@@ -97,7 +97,7 @@ export const themeTools = [
 		description:
 			"A theme of the person's own: a name of 1 to 30 characters, a background (pattern in a color, or an image), an accent color and an optional logo. Colors must keep text legible (4.5:1).",
 		kind: "write",
-		input: z.object({ name: z.string(), ...themeFields }),
+		input: z.object({ name: z.string().max(10_000), ...themeFields }),
 		run: async ({ name, ...look }, context) => ({
 			theme: withoutView(
 				await context.useCases.createCustomTheme({
@@ -115,8 +115,8 @@ export const themeTools = [
 			"Changes only what is sent. The quizzes using the theme change with it; games already created keep their look.",
 		kind: "idempotent",
 		input: z.object({
-			themeId: z.string(),
-			name: z.string().optional(),
+			themeId: z.string().max(10_000),
+			name: z.string().max(10_000).optional(),
 			background: background.optional(),
 			accentColor: hexColor.optional(),
 			logo: themeFields.logo,
@@ -173,7 +173,7 @@ export const themeTools = [
 		description:
 			"Deletes one of the person's themes; the quizzes using it go back to the standard theme. Cannot be undone: confirm with the person first.",
 		kind: "destructive",
-		input: z.object({ themeId: z.string() }),
+		input: z.object({ themeId: z.string().max(10_000) }),
 		run: async ({ themeId }, { useCases, identity }) => {
 			await useCases.deleteCustomTheme({ ownerId: identity.userId, themeId });
 			return { deleted: themeId };

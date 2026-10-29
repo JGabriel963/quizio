@@ -26,7 +26,10 @@ export const notificationTools = [
 		kind: "read",
 		input: z.object({
 			cursor: z
-				.object({ at: z.iso.datetime({ offset: true }), id: z.string() })
+				.object({
+					at: z.iso.datetime({ offset: true }).max(64),
+					id: z.string().max(10_000),
+				})
 				.nullish()
 				.describe("The nextCursor of the page before."),
 		}),
@@ -57,7 +60,7 @@ export const notificationTools = [
 			"Marks the given notifications as read (ids from list_notifications), or every one with all: true.",
 		kind: "idempotent",
 		input: z.object({
-			ids: z.array(z.string()).min(1).max(100).optional(),
+			ids: z.array(z.string().max(10_000)).min(1).max(100).optional(),
 			all: z.boolean().optional(),
 		}),
 		run: async ({ ids, all }, context) => {

@@ -1,4 +1,9 @@
-import { ClientOnly, createFileRoute, useParams } from "@tanstack/react-router";
+import {
+	ClientOnly,
+	createFileRoute,
+	useParams,
+	useSearch,
+} from "@tanstack/react-router";
 import { useMemo } from "react";
 import { type JoinApi, JoinFlow } from "@/components/game/player/join-flow";
 import { JoinLoading } from "@/components/game/player/join-forms";
@@ -19,15 +24,17 @@ export const Route = createFileRoute("/join")({
 
 function JoinPage() {
 	const { pin } = useParams({ strict: false });
+	const { game: linkedGameId } = useSearch({ strict: false });
 	const navigate = Route.useNavigate();
 	const client = useTRPCClient();
 	const api = useMemo<JoinApi>(
 		() => ({
-			find: (gamePin) => client.game.join.find.mutate({ pin: gamePin }),
+			find: (gamePin, gameId) =>
+				client.game.join.find.mutate({ pin: gamePin, gameId }),
 			enter: (input) => client.game.join.enter.mutate(input),
 			// Without an answer in time, the device takes the connection as lost
 			// (spec 013): both are safe to ask again.
-			session: (input) => withTimeout(client.game.join.session.query(input)),
+			session: (input) => withTimeout(client.game.join.session.mutate(input)),
 			answer: (input) => withTimeout(client.game.join.answer.mutate(input)),
 			setAvatar: (input) =>
 				withTimeout(client.game.join.setAvatar.mutate(input)),
@@ -42,6 +49,7 @@ function JoinPage() {
 		<ClientOnly fallback={<JoinLoading />}>
 			<JoinFlow
 				pin={pin ?? null}
+				linkedGameId={linkedGameId ?? null}
 				api={api}
 				store={store}
 				onAssignment={(gameId) =>

@@ -9,7 +9,10 @@ import { fileSource, resolveFile } from "../schemas/file-source";
 import { assignmentOptionsFor, assignmentOptionsInput } from "./assignments";
 import { groupId, WRITTEN_BY_PEOPLE } from "./groups";
 
-const postId = z.string().describe("The post's id, from list_group_feed.");
+const postId = z
+	.string()
+	.max(10_000)
+	.describe("The post's id, from list_group_feed.");
 
 const attachment = z
 	.union([
@@ -20,7 +23,7 @@ const attachment = z
 		}),
 		z.object({
 			assignment: z.object({
-				quizId: z.string(),
+				quizId: z.string().max(10_000),
 				deadline,
 				options: assignmentOptionsInput,
 			}),
@@ -29,6 +32,7 @@ const attachment = z
 			sharedQuiz: z.object({
 				quizId: z
 					.string()
+					.max(10_000)
 					.describe(
 						"One of the person's published quizzes, not yet in the group.",
 					),
@@ -67,8 +71,8 @@ export const groupPostTools = [
 			groupId,
 			cursor: z
 				.object({
-					createdAt: z.iso.datetime({ offset: true }),
-					id: z.string(),
+					createdAt: z.iso.datetime({ offset: true }).max(64),
+					id: z.string().max(10_000),
 				})
 				.nullish()
 				.describe("The nextCursor of the page before."),
@@ -106,7 +110,7 @@ export const groupPostTools = [
 		kind: "write",
 		input: z.object({
 			groupId,
-			message: z.string().optional(),
+			message: z.string().max(10_000).optional(),
 			attachment: attachment.optional(),
 		}),
 		run: async ({ groupId: group, message, attachment: attached }, context) => {
@@ -192,7 +196,7 @@ export const groupPostTools = [
 		kind: "write",
 		input: z.object({
 			groupId,
-			quizIds: z.array(z.string()).min(1).max(50),
+			quizIds: z.array(z.string().max(10_000)).min(1).max(50),
 		}),
 		run: async ({ groupId: group, quizIds }, context) => {
 			const { postId: id } = await context.useCases.shareQuizzesInGroup({
@@ -209,7 +213,7 @@ export const groupPostTools = [
 		description:
 			"Takes a shared quiz out of the group (who shared it, or the admin). The quiz stays with its owner; its post no longer shows it. Cannot be undone: confirm with the person first.",
 		kind: "destructive",
-		input: z.object({ groupId, quizId: z.string() }),
+		input: z.object({ groupId, quizId: z.string().max(10_000) }),
 		run: async ({ groupId: group, quizId }, context) => {
 			await context.useCases.unshareQuiz({
 				userId: context.identity.userId,

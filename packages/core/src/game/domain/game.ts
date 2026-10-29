@@ -37,6 +37,14 @@ export const GAME_TTL_MS = 8 * 60 * 60 * 1000;
 /** Technical limit, not a plan (RN-45). */
 export const GAME_MAX_PLAYERS = 200;
 
+/**
+ * Players a network address may create in a game in each window (spec 008,
+ * RN-45a; spec 030, RN-04a): a classroom behind one address gets in at once,
+ * and a script needs minutes to fill a game.
+ */
+export const JOIN_LIMIT_PER_NETWORK = 60;
+export const JOIN_WINDOW_MS = 60_000;
+
 /** A live game of a quiz (spec 008; ADR 0009). */
 export interface Game {
 	id: string;
@@ -116,6 +124,11 @@ export class GamePinNotRecognizedError extends DomainError {
 
 export class TooManyPinAttemptsError extends DomainError {
 	readonly code = "GAME.TOO_MANY_PIN_ATTEMPTS";
+}
+
+/** The network created as many players as it may in this game for now (RN-45a). */
+export class TooManyJoinsError extends DomainError {
+	readonly code = "GAME.TOO_MANY_JOINS";
 }
 
 export class GameLockedError extends DomainError {

@@ -54,7 +54,11 @@ import { PlayerStage } from "./player-stage";
 
 /** What the player's flow asks of the API; the route wires it to tRPC (specs 008, 009). */
 export interface JoinApi {
-	find(pin: string): Promise<{
+	/** `gameId` is the game a join link names with its PIN (spec 008, RN-39a). */
+	find(
+		pin: string,
+		gameId?: string | null,
+	): Promise<{
 		gameId: string;
 		pin: string;
 		mode: "live" | "assignment";
@@ -230,6 +234,7 @@ function mergePlay(
  */
 export function JoinFlow({
 	pin,
+	linkedGameId = null,
 	api,
 	store,
 	onPinChange,
@@ -237,6 +242,8 @@ export function JoinFlow({
 }: {
 	/** The PIN in the address, if any. */
 	pin: string | null;
+	/** The game the join link names with that PIN (RN-39a). */
+	linkedGameId?: string | null;
 	api: JoinApi;
 	store: PlayerSessionStore;
 	/** Keeps the address in step with the flow: the PIN once found, null back at the start. */
@@ -274,12 +281,16 @@ export function JoinFlow({
 	/**
 	 * Where a PIN leads: back into the game, to the nickname, or nowhere.
 	 * `typed` is a PIN the player has just written: a game that is over is not
-	 * what they are after.
+	 * what they are after. `linkedGame` is the game a join link names.
 	 */
-	async function resolve(rawPin: string, typed: boolean): Promise<Step> {
+	async function resolve(
+		rawPin: string,
+		typed: boolean,
+		linkedGame: string | null = null,
+	): Promise<Step> {
 		if (parseJoinPin(rawPin)?.mode === "assignment") {
 			try {
-				const found = await api.find(rawPin);
+				const found = await api.find(rawPin, linkedGame);
 				return { kind: "assignment", gameId: found.gameId };
 			} catch (error) {
 				return pinStep(
@@ -343,7 +354,7 @@ export function JoinFlow({
 				pin: foundPin,
 				themeId,
 				customTheme,
-			} = await api.find(parsed);
+			} = await api.find(parsed, linkedGame);
 			return {
 				kind: "nickname",
 				game: { gameId, pin: foundPin, themeId, customTheme },
@@ -374,7 +385,7 @@ export function JoinFlow({
 
 	const followAddress = useEffectEvent(
 		async (addressPin: string, isCancelled: () => boolean) => {
-			const next = await resolve(addressPin, false);
+			const next = await resolve(addressPin, false, linkedGameId);
 			if (!isCancelled()) {
 				show(next, parseGamePin(addressPin));
 			}

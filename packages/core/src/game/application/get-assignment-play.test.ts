@@ -27,7 +27,7 @@ async function playing(options = {}) {
 	});
 	deps.assignmentLanding.creatorNames.set("user-1", "Ana");
 	const join = createJoinAssignment(deps);
-	const john = await join({ gameId, nickname: "John" });
+	const john = await join({ clientKey: "ip", gameId, nickname: "John" });
 	const participant = { gameId, playerId: john.playerId, secret: john.secret };
 	const play = () => createGetAssignmentPlay(deps)(participant);
 	const moveTo = async (progress: {
@@ -174,7 +174,7 @@ describe("getAssignmentPlay (spec 030)", () => {
 
 	it("the scoreboard has everyone's points up to that question, as in a live game", async () => {
 		const { deps, gameId, join, answer, moveTo, play } = await playing();
-		const claude = await join({ gameId, nickname: "claude" });
+		const claude = await join({ clientKey: "ip", gameId, nickname: "claude" });
 		await deps.answers.add(
 			anAnswer({
 				gameId,
@@ -206,7 +206,7 @@ describe("getAssignmentPlay (spec 030)", () => {
 
 	it("who passed someone in that question gets the arrow", async () => {
 		const { deps, gameId, join, answer, moveTo, play } = await playing();
-		const claude = await join({ gameId, nickname: "claude" });
+		const claude = await join({ clientKey: "ip", gameId, nickname: "claude" });
 		await deps.answers.add(
 			anAnswer({
 				gameId,
@@ -240,7 +240,7 @@ describe("getAssignmentPlay (spec 030)", () => {
 		await answer(0, true, 950);
 		await answer(1, true, 900);
 		await moveTo({ questionIndex: 1, phase: "finished" });
-		const claude = await join({ gameId, nickname: "claude" });
+		const claude = await join({ clientKey: "ip", gameId, nickname: "claude" });
 		await deps.answers.add(
 			anAnswer({
 				gameId,

@@ -1,5 +1,6 @@
 import { InMemoryQuizRepository } from "../../quiz/testing/in-memory-quiz-repository";
 import { FixedClock } from "../../shared/testing/fixed-clock";
+import { InMemoryAttemptLimiter } from "../../shared/testing/in-memory-attempt-limiter";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { InMemoryThemeFileUsage } from "./in-memory-theme-file-usage";
@@ -19,6 +20,7 @@ export function themesTestDeps() {
 		storage,
 		clock,
 		ids: new SequentialIdGenerator("theme"),
+		attempts: new InMemoryAttemptLimiter(),
 	};
 	/** A pending upload the browser already sent. */
 	async function uploaded(key: string, ownerId = "owner-1") {

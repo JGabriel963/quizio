@@ -11,7 +11,10 @@ export const themeChoice = z
 				.describe("A ready-made theme (see list_themes)."),
 		}),
 		z.object({
-			customThemeId: z.string().describe("One of the person's custom themes."),
+			customThemeId: z
+				.string()
+				.max(10_000)
+				.describe("One of the person's custom themes."),
 		}),
 	])
 	.describe("The quiz's look in the editor and in games.");

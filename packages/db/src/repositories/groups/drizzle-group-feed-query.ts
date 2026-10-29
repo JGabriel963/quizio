@@ -7,14 +7,18 @@ import {
 	count,
 	desc,
 	eq,
+	exists,
+	gt,
 	inArray,
 	isNotNull,
+	isNull,
 	or,
 	type SQL,
 	sql,
 } from "drizzle-orm";
 
 import { user } from "../../schema/auth";
+import { game } from "../../schema/game";
 import { groupPost, groupPostLike } from "../../schema/groups";
 import type { Database } from "../../types";
 import { toGroupPost } from "./drizzle-group-post-repository";
@@ -72,6 +76,30 @@ export function createDrizzleGroupFeedQuery(db: Database): GroupFeedQuery {
 				),
 				viewerId,
 				page?.limit,
+			);
+		},
+
+		async listOpenAssignmentPosts(groupId, viewerId, now, limit) {
+			// The groups' `isAssignmentOpen`, read where the limit is applied.
+			const open = db
+				.select({ id: game.id })
+				.from(game)
+				.where(
+					and(
+						eq(game.id, groupPost.gameId),
+						eq(game.mode, "assignment"),
+						isNull(game.endedAt),
+						gt(game.expiresAt, now),
+					),
+				);
+			return records(
+				and(
+					eq(groupPost.groupId, groupId),
+					isNotNull(groupPost.gameId),
+					exists(open),
+				),
+				viewerId,
+				limit,
 			);
 		},
 

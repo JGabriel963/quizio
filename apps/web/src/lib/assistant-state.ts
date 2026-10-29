@@ -38,6 +38,8 @@ export type Generation =
 			discarded: number;
 			/** What was asked, to tell when fewer came (RN-22); null when extracting. */
 			requested: number | null;
+			/** What the creation was charged (spec 045, RN-09). */
+			creditsUsed: number;
 	  }
 	| { status: "failed"; message: string };
 
@@ -77,7 +79,11 @@ export type AssistantEvent =
 	| { type: "generationStarted"; request?: GenerationRequest }
 	| {
 			type: "generationSucceeded";
-			result: { questions: GeneratedQuestionData[]; discarded: number };
+			result: {
+				questions: GeneratedQuestionData[];
+				discarded: number;
+				creditsUsed: number;
+			};
 	  }
 	| { type: "generationFailed"; message: string }
 	| { type: "questionToggled"; id: string }
@@ -237,6 +243,7 @@ export function assistantReducer(
 					discarded: event.result.discarded,
 					requested:
 						state.options.format === "extract" ? null : state.options.count,
+					creditsUsed: event.result.creditsUsed,
 				},
 				checked: [],
 			};

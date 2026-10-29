@@ -30,6 +30,15 @@ describe("settingErrorMessage (spec 012)", () => {
 });
 
 describe("gameErrorMessage", () => {
+	it("points a network out of attempts to the QR code and tells too many joins apart (spec 008, RN-39, RN-45a)", () => {
+		expect(gameErrorMessage(refusal("GAME.TOO_MANY_PIN_ATTEMPTS"))).toBe(
+			"Muitas tentativas. Aguarde um momento ou entre pelo QR code ou pelo link do jogo.",
+		);
+		expect(gameErrorMessage(refusal("GAME.TOO_MANY_JOINS"))).toBe(
+			"Muitas entradas por esta rede agora. Aguarde um momento e tente de novo.",
+		);
+	});
+
 	it("no longer tells a game in progress apart for who joins (spec 012)", () => {
 		expect(gameErrorMessage(refusal("GAME.LOCKED"))).toBe(
 			"Este jogo está bloqueado. Peça ao anfitrião para desbloquear.",

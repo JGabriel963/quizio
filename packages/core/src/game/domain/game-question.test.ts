@@ -173,17 +173,35 @@ describe("game question (spec 009)", () => {
 				backwards,
 			);
 
-			// The same three shapes (0, 1 and 3), handed out backwards, in position order.
+			// The same three shapes (0, 1 and 3), handed out backwards, in position
+			// order, each answer named after its new place (L8).
 			expect(first?.choices).toEqual([
-				{ id: "choice-4", shapeIndex: 0, text: "Salvador", correct: false },
+				{ id: "choice-1", shapeIndex: 0, text: "Salvador", correct: false },
 				{
 					id: "choice-2",
 					shapeIndex: 1,
 					text: "Rio de Janeiro",
 					correct: false,
 				},
-				{ id: "choice-1", shapeIndex: 3, text: "Brasília", correct: true },
+				{ id: "choice-4", shapeIndex: 3, text: "Brasília", correct: true },
 			]);
+		});
+
+		it("an answer's id is its drawn place: an id learned in another game tells nothing (L8)", () => {
+			const [first] = arrangeGameQuestions(
+				questions,
+				{ ...DEFAULT_GAME_OPTIONS, randomizeAnswers: true },
+				backwards,
+			);
+
+			// "choice-1" was Brasília, the right one, in the editor and in every
+			// game without the option; here it is a wrong answer.
+			expect(
+				first?.choices.find((answer) => answer.id === "choice-1"),
+			).toMatchObject({ text: "Salvador", correct: false });
+			for (const answer of first?.choices ?? []) {
+				expect(answer.id).toBe(`choice-${answer.shapeIndex + 1}`);
+			}
 		});
 
 		it("the right answer goes with its answer to the new shape", () => {
@@ -194,8 +212,8 @@ describe("game question (spec 009)", () => {
 			);
 
 			expect(arranged[2]?.choices).toEqual([
-				{ id: "choice-2", shapeIndex: 0, text: "Verde", correct: true },
-				{ id: "choice-1", shapeIndex: 1, text: "Azul", correct: false },
+				{ id: "choice-1", shapeIndex: 0, text: "Verde", correct: true },
+				{ id: "choice-2", shapeIndex: 1, text: "Azul", correct: false },
 			]);
 		});
 

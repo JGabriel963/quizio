@@ -13,7 +13,7 @@ export const accountTools = [
 		name: "get_account",
 		title: "Get the account",
 		description:
-			"The person you act for: name, email, photo and how much of Quizio's own AI assistant quota they used in the last 24 hours. Using these tools never spends that quota.",
+			"The person you act for: name, email, photo and how many credits of Quizio's own AI assistant they have every 24 hours, used and left (each creation in the editor's assistant costs what the model used). Using these tools never spends credits.",
 		kind: "read",
 		input: z.object({}),
 		run: async (_input, context) => {
@@ -27,9 +27,9 @@ export const accountTools = [
 				account,
 				aiAssistant: {
 					enabled: assistant.enabled,
-					limit: assistant.limit,
-					used: assistant.used,
-					remaining: assistant.remaining,
+					creditsPerDay: assistant.limit,
+					creditsUsed: assistant.used,
+					creditsLeft: assistant.remaining,
 				},
 				links: {
 					profile: context.links.profile(context.identity.userId),
@@ -43,7 +43,7 @@ export const accountTools = [
 		title: "Rename the account",
 		description: `Changes the person's name, shown to group members and on their profile: ${CREATOR_NAME_LENGTH.min} to ${CREATOR_NAME_LENGTH.max} characters.`,
 		kind: "idempotent",
-		input: z.object({ name: z.string() }),
+		input: z.object({ name: z.string().max(10_000) }),
 		run: async ({ name }, context) => {
 			await context.useCases.renameCreator({
 				userId: context.identity.userId,
@@ -58,7 +58,7 @@ export const accountTools = [
 		description:
 			"Another creator's (or the person's own) profile: name, totals and public quizzes, which can be read with get_others_quiz, hosted, assigned or duplicated.",
 		kind: "read",
-		input: z.object({ userId: z.string() }),
+		input: z.object({ userId: z.string().max(10_000) }),
 		run: async ({ userId }, { useCases, identity, links }) => {
 			const profile = await useCases.getCreatorProfile({
 				viewerId: identity.userId,

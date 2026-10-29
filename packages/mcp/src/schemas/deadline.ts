@@ -8,6 +8,7 @@ import { z } from "zod";
  */
 export const deadline = z.iso
 	.datetime({ offset: true })
+	.max(64)
 	.describe(
 		`ISO 8601 date-time with the person's time zone offset, like 2026-11-20T23:59:00-03:00. Later than now and at most ${ASSIGNMENT_DEFAULT_MAX_DEADLINE_DAYS} days ahead (the instance may set another limit; a refusal says it).`,
 	);

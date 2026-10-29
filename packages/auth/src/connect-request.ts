@@ -1,4 +1,5 @@
 import { verifyOAuthQueryParams } from "@better-auth/oauth-provider";
+import { isUnambiguousAddress } from "@quizio/core/shared/domain/web-address";
 
 /** Who asks to connect, as the authorization screen shows it (spec 044, RN-03, RN-04). */
 export interface ConnectRequest {
@@ -11,8 +12,10 @@ export interface ConnectRequest {
 
 /**
  * Reads the signed query Better Auth sent to the authorization screen: null
- * when the signature does not hold (changed or expired) or the agent is not
- * registered, so "Conectar ao Quizio" shows that the request is not valid.
+ * when the signature does not hold (changed or expired), the agent is not
+ * registered, or its return address is one the browser would read another
+ * way than the screen (a metadata document is not checked at registration),
+ * so "Conectar ao Quizio" shows that the request is not valid.
  */
 export function createConnectRequestReader(
 	auth: { handler: (request: Request) => Promise<Response> },
@@ -25,7 +28,11 @@ export function createConnectRequestReader(
 		}
 		const params = new URLSearchParams(signedQuery);
 		const clientId = params.get("client_id");
-		if (!clientId) {
+		const redirectUri = params.get("redirect_uri");
+		if (
+			!clientId ||
+			(redirectUri !== null && !isUnambiguousAddress(redirectUri))
+		) {
 			return null;
 		}
 		const response = await auth.handler(
@@ -41,7 +48,7 @@ export function createConnectRequestReader(
 		return {
 			clientId,
 			clientName: client.client_name ?? null,
-			redirectUri: params.get("redirect_uri"),
+			redirectUri,
 		};
 	};
 }

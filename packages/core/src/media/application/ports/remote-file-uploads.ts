@@ -13,6 +13,14 @@ export type RemoteFileTarget =
  * a file from a link follows the same rules as one from the browser.
  */
 export interface RemoteFileUploads {
+	/**
+	 * Refuses who may not upload to the target (a group they are not in),
+	 * before anything is fetched (audit L4).
+	 */
+	authorize(input: {
+		ownerId: string;
+		target: RemoteFileTarget;
+	}): Promise<void>;
 	/** The largest file the target takes, of any type it accepts. */
 	maxBytesFor(target: RemoteFileTarget): number;
 	keyFor(input: {

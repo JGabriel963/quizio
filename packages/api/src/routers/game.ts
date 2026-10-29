@@ -6,10 +6,10 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../index";
 
 // Shapes only: PIN, nickname and ownership rules are enforced by the game use cases.
-const gameReference = z.object({ gameId: z.string().min(1) });
+const gameReference = z.object({ gameId: z.string().min(1).max(10_000) });
 const playerReference = gameReference.extend({
-	playerId: z.string().min(1),
-	secret: z.string().min(1),
+	playerId: z.string().min(1).max(10_000),
+	secret: z.string().min(1).max(10_000),
 });
 const questionIndex = z.number().int().min(0);
 /**
@@ -35,6 +35,7 @@ const avatar = z.object({
 /** An instant with its zone, as the browser's `toISOString()` sends it. */
 const deadline = z.iso
 	.datetime({ offset: true })
+	.max(64)
 	.transform((value) => new Date(value));
 
 /**
@@ -49,7 +50,7 @@ const assignmentRouter = router({
 	create: protectedProcedure
 		.input(
 			z.object({
-				quizId: z.string().min(1),
+				quizId: z.string().min(1).max(10_000),
 				deadline,
 				options: z.object({
 					gameCharacters: z.boolean(),
@@ -76,7 +77,7 @@ const assignmentRouter = router({
 
 	/** "Atividades em andamento", before creating another (spec 029, RN-05a). */
 	openOfQuiz: protectedProcedure
-		.input(z.object({ quizId: z.string().min(1) }))
+		.input(z.object({ quizId: z.string().min(1).max(10_000) }))
 		.query(({ ctx, input }) =>
 			ctx.container.useCases.listOpenAssignments({
 				ownerId: ctx.session.user.id,
@@ -106,18 +107,29 @@ const assignmentRouter = router({
 				avatar: avatar.nullable().optional(),
 			}),
 		)
-		.mutation(({ ctx, input }) => ctx.container.useCases.joinAssignment(input)),
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.joinAssignment({
+				...input,
+				clientKey: ctx.clientIp,
+			}),
+		),
 
-	/** "Sim" to "Você é {apelido}?": the nickname is enough, as in Kahoot (spec 030, RN-20). */
+	/** "Sim" to "Você é {apelido}?": only the browser that kept the pair goes on (spec 030, RN-20). */
 	resume: publicProcedure
-		.input(gameReference.extend({ nickname: z.string().max(100) }))
+		.input(playerReference)
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.resumeAssignment(input),
 		),
 
+	/**
+	 * A read, sent as a mutation: a query's input travels in the address, and
+	 * the secret would stay in the logs of every proxy on the way (audit L3).
+	 */
 	play: publicProcedure
 		.input(playerReference)
-		.query(({ ctx, input }) => ctx.container.useCases.getAssignmentPlay(input)),
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.getAssignmentPlay(input),
+		),
 
 	start: publicProcedure
 		.input(playerReference)
@@ -156,12 +168,21 @@ const assignmentRouter = router({
  * with the pair received when joining (ADR 0009).
  */
 const joinRouter = router({
-	/** A mutation, because wrong PINs are counted (spec 008, RN-39). */
+	/**
+	 * A mutation, because wrong PINs are counted (spec 008, RN-39); the join
+	 * link and the QR code also send the game (RN-39a).
+	 */
 	find: publicProcedure
-		.input(z.object({ pin: z.string().max(16) }))
+		.input(
+			z.object({
+				pin: z.string().max(16),
+				gameId: z.string().min(1).max(64).nullable().optional(),
+			}),
+		)
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.findGameByPin({
 				pin: input.pin,
+				gameId: input.gameId,
 				clientKey: ctx.clientIp,
 			}),
 		),
@@ -174,16 +195,21 @@ const joinRouter = router({
 				avatar: avatar.nullable().optional(),
 			}),
 		)
-		.mutation(({ ctx, input }) => ctx.container.useCases.joinGame(input)),
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.joinGame({ ...input, clientKey: ctx.clientIp }),
+		),
 
 	/** A tap in the avatar editor (spec 028, RN-12). */
 	setAvatar: publicProcedure
 		.input(playerReference.extend({ avatar }))
 		.mutation(({ ctx, input }) => ctx.container.useCases.changeAvatar(input)),
 
+	/** A read, sent as a mutation so the secret never goes in the address (audit L3). */
 	session: publicProcedure
 		.input(playerReference)
-		.query(({ ctx, input }) => ctx.container.useCases.getPlayerSession(input)),
+		.mutation(({ ctx, input }) =>
+			ctx.container.useCases.getPlayerSession(input),
+		),
 
 	/** The time and the correctness are the server's: the device sends only the choice (spec 009, RN-18). */
 	answer: publicProcedure
@@ -248,7 +274,7 @@ export const gameRouter = router({
 
 	/** "Organizar ao vivo" (spec 008, RN-01 to RN-09). */
 	host: protectedProcedure
-		.input(z.object({ quizId: z.string().min(1) }))
+		.input(z.object({ quizId: z.string().min(1).max(10_000) }))
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.hostGame({
 				ownerId: ctx.session.user.id,
@@ -331,7 +357,7 @@ export const gameRouter = router({
 		),
 
 	removePlayer: protectedProcedure
-		.input(gameReference.extend({ playerId: z.string().min(1) }))
+		.input(gameReference.extend({ playerId: z.string().min(1).max(10_000) }))
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.removePlayer({
 				ownerId: ctx.session.user.id,

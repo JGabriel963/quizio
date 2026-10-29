@@ -6,12 +6,12 @@ import { quizAssistantRouter } from "./quiz-assistant";
 import { quizQuestionsRouter } from "./quiz-questions";
 
 // Shapes only: limits and cover ownership are enforced by the quiz use cases.
-const quizReference = z.object({ quizId: z.string().min(1) });
+const quizReference = z.object({ quizId: z.string().min(1).max(10_000) });
 
 const coverChange = z.discriminatedUnion("type", [
 	z.object({ type: z.literal("keep") }),
 	z.object({ type: z.literal("remove") }),
-	z.object({ type: z.literal("set"), key: z.string().min(1) }),
+	z.object({ type: z.literal("set"), key: z.string().min(1).max(10_000) }),
 ]);
 
 export const quizRouter = router({
@@ -43,7 +43,7 @@ export const quizRouter = router({
 
 	/** Title autosaved from the editor header (spec 003, RN-18). */
 	rename: protectedProcedure
-		.input(quizReference.extend({ title: z.string().nullable() }))
+		.input(quizReference.extend({ title: z.string().max(10_000).nullable() }))
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.renameQuiz({
 				ownerId: ctx.session.user.id,
@@ -60,8 +60,8 @@ export const quizRouter = router({
 			quizReference.extend({
 				details: z
 					.object({
-						title: z.string().nullable(),
-						description: z.string().nullable(),
+						title: z.string().max(10_000).nullable(),
+						description: z.string().max(10_000).nullable(),
 					})
 					.optional(),
 			}),
@@ -86,10 +86,10 @@ export const quizRouter = router({
 	create: protectedProcedure
 		.input(
 			z.object({
-				title: z.string().nullish(),
-				description: z.string().nullish(),
+				title: z.string().max(10_000).nullish(),
+				description: z.string().max(10_000).nullish(),
 				visibility: z.enum(QUIZ_VISIBILITIES).optional(),
-				coverImageKey: z.string().nullish(),
+				coverImageKey: z.string().max(10_000).nullish(),
 			}),
 		)
 		.mutation(({ ctx, input }) =>
@@ -102,8 +102,8 @@ export const quizRouter = router({
 	updateDetails: protectedProcedure
 		.input(
 			quizReference.extend({
-				title: z.string().nullable(),
-				description: z.string().nullable(),
+				title: z.string().max(10_000).nullable(),
+				description: z.string().max(10_000).nullable(),
 				visibility: z.enum(QUIZ_VISIBILITIES),
 				cover: coverChange,
 			}),

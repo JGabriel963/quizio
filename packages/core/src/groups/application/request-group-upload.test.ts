@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-
+import { reserveUpload } from "../../shared/application/upload-limit";
+import {
+	TooManyUploadsError,
+	UPLOAD_LIMIT,
+} from "../../shared/domain/upload-limit";
 import {
 	GroupNotFoundError,
 	InvalidGroupFileSizeError,
@@ -150,5 +154,16 @@ describe("discardGroupUpload (spec 036, RN-08)", () => {
 
 		expect(await t.store.findUpload(upload.key)).not.toBeNull();
 		expect(t.deps.storage.keys()).toContain(upload.key);
+	});
+});
+
+describe("requestGroupUpload limit (audit L4)", () => {
+	it("counts against the person's uploads of the hour", async () => {
+		const t = await setup();
+		for (let upload = 0; upload < UPLOAD_LIMIT; upload++) {
+			await reserveUpload(t.deps, "bruno");
+		}
+
+		await expect(t.pdf("bruno")).rejects.toThrow(TooManyUploadsError);
 	});
 });

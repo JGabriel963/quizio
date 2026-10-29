@@ -1,4 +1,5 @@
 import { FixedClock } from "../../shared/testing/fixed-clock";
+import { InMemoryAttemptLimiter } from "../../shared/testing/in-memory-attempt-limiter";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { InMemoryProfilePhotoRepository } from "../../shared/testing/in-memory-profile-photo-repository";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
@@ -40,6 +41,7 @@ export function groupsTestDeps() {
 		});
 	}
 	// Quizzes the groups may share and read (spec 037).
+	store.readAssignmentsWith(assignments);
 	const sharedQuizReads = new InMemorySharedQuizReads(store);
 	const inbox = new RecordingGroupInbox();
 	const deps = {
@@ -60,6 +62,7 @@ export function groupsTestDeps() {
 		ids: new SequentialIdGenerator("group"),
 		inviteCodes: new SequentialInviteCodeGenerator(),
 		clock,
+		attempts: new InMemoryAttemptLimiter(),
 	};
 	const createGroup = createCreateGroup(deps);
 	const acceptInvite = createAcceptGroupInvite(deps);

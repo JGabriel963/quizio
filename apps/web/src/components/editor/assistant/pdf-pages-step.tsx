@@ -24,6 +24,8 @@ export interface PdfPagesStepProps {
 	pages: readonly number[];
 	extract: boolean;
 	createDisabledReason: string | null;
+	/** What the creation may cost, or why it does not fit (spec 045, RN-06, RN-08). */
+	creditsNote: string | null;
 	onTogglePage: (page: number) => void;
 	onSelectAll: () => void;
 	onExtractChange: (extract: boolean) => void;
@@ -39,6 +41,7 @@ export function PdfPagesStep({
 	pages,
 	extract,
 	createDisabledReason,
+	creditsNote,
 	onTogglePage,
 	onSelectAll,
 	onExtractChange,
@@ -88,7 +91,10 @@ export function PdfPagesStep({
 					);
 				})}
 			</ul>
-			<div className="flex items-center justify-end gap-3 border-border border-t p-3">
+			<div className="flex flex-wrap items-center justify-end gap-3 border-border border-t p-3">
+				{creditsNote && (
+					<p className="mr-auto text-muted-foreground text-xs">{creditsNote}</p>
+				)}
 				<div className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
 					<SparklesIcon aria-hidden="true" className="size-4 text-brand" />
 					<span id={switchLabelId} className="font-bold text-sm">

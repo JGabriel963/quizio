@@ -12,7 +12,9 @@ export const accountRouter = router({
 	/** Step 1 of the photo: the browser PUTs the cropped square to this URL. */
 	requestPhotoUpload: protectedProcedure
 		// Shape only: the media policy in @quizio/core decides what is allowed.
-		.input(z.object({ contentType: z.string(), sizeBytes: z.number() }))
+		.input(
+			z.object({ contentType: z.string().max(10_000), sizeBytes: z.number() }),
+		)
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.requestProfilePhotoUpload({
 				userId: ctx.session.user.id,
@@ -21,7 +23,7 @@ export const accountRouter = router({
 		),
 
 	setPhoto: protectedProcedure
-		.input(z.object({ key: z.string().min(1) }))
+		.input(z.object({ key: z.string().min(1).max(10_000) }))
 		.mutation(({ ctx, input }) =>
 			ctx.container.useCases.setProfilePhoto({
 				userId: ctx.session.user.id,
@@ -37,10 +39,13 @@ export const accountRouter = router({
 		.input(
 			z.object({
 				reason: z.enum(ACCOUNT_DELETION_REASONS),
-				feedback: z.string().nullish(),
+				feedback: z.string().max(10_000).nullish(),
 				confirmation: z.discriminatedUnion("kind", [
-					z.object({ kind: z.literal("password"), password: z.string() }),
-					z.object({ kind: z.literal("email"), email: z.string() }),
+					z.object({
+						kind: z.literal("password"),
+						password: z.string().max(10_000),
+					}),
+					z.object({ kind: z.literal("email"), email: z.string().max(10_000) }),
 				]),
 			}),
 		)
@@ -52,7 +57,7 @@ export const accountRouter = router({
 		),
 
 	profile: protectedProcedure
-		.input(z.object({ userId: z.string().min(1) }))
+		.input(z.object({ userId: z.string().min(1).max(10_000) }))
 		.query(({ ctx, input }) =>
 			ctx.container.useCases.getCreatorProfile({
 				viewerId: ctx.session.user.id,
@@ -61,7 +66,12 @@ export const accountRouter = router({
 		),
 
 	publicQuiz: protectedProcedure
-		.input(z.object({ userId: z.string().min(1), quizId: z.string().min(1) }))
+		.input(
+			z.object({
+				userId: z.string().min(1).max(10_000),
+				quizId: z.string().min(1).max(10_000),
+			}),
+		)
 		.query(({ ctx, input }) =>
 			ctx.container.useCases.getPublicQuiz({
 				viewerId: ctx.session.user.id,

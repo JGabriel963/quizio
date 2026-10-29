@@ -115,6 +115,7 @@ export function HostLobby({
 						<JoinInstructions
 							origin={origin}
 							pin={lobby.pin}
+							gameId={lobby.gameId}
 							locked={lobby.locked}
 						/>
 					</div>

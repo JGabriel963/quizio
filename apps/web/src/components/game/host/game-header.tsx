@@ -28,6 +28,8 @@ export interface HeaderJoin {
 	/** The site's origin: the address shown and the link in the QR code come from it. */
 	origin: string;
 	pin: string;
+	/** The QR code names the game too (spec 008, RN-39a). */
+	gameId: string;
 	locked: boolean;
 }
 
@@ -152,6 +154,7 @@ function JoinInHeader({ join }: { join: HeaderJoin }) {
 			<JoinQrDialog
 				origin={join.origin}
 				pin={join.pin}
+				gameId={join.gameId}
 				open={expanded}
 				onOpenChange={setExpanded}
 			/>

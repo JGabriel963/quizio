@@ -161,7 +161,7 @@ describe("HostLobby (spec 008)", () => {
 
 		expect(await screen.findByText("Link copiado")).toBeInTheDocument();
 		expect(await navigator.clipboard.readText()).toBe(
-			"https://quizio.app/join/265914",
+			"https://quizio.app/join/265914?game=game-1",
 		);
 	});
 

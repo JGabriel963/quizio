@@ -28,7 +28,11 @@ async function playing(options = {}, questions?: Question[]) {
 		deadline: new Date(deps.clock.now().getTime() + 3 * DAY_MS),
 		options: { ...DEFAULT_ASSIGNMENT_OPTIONS, ...options },
 	});
-	const john = await createJoinAssignment(deps)({ gameId, nickname: "John" });
+	const john = await createJoinAssignment(deps)({
+		clientKey: "ip",
+		gameId,
+		nickname: "John",
+	});
 	const participant = { gameId, playerId: john.playerId, secret: john.secret };
 	const answer = (choiceIds: string[], questionIndex = 0) =>
 		createAnswerAssignmentQuestion(deps)({

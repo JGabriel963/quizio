@@ -1,3 +1,4 @@
+import type { GroupAssignmentQuery } from "../application/ports/group-assignments";
 import type {
 	GroupFeedCursor,
 	GroupFeedQuery,
@@ -18,6 +19,7 @@ import type {
 } from "../application/ports/group-upload-repository";
 import type { GroupVisitRepository } from "../application/ports/group-visit-repository";
 import type { Group } from "../domain/group";
+import { isAssignmentOpen } from "../domain/group-assignment";
 import type { GroupMember } from "../domain/group-member";
 import type { GroupPermission } from "../domain/group-permissions";
 import type { GroupPost } from "../domain/group-post";
@@ -71,6 +73,7 @@ export class InMemoryGroupStore
 	readonly #likes = new Set<string>();
 	readonly #uploads = new Map<string, GroupUpload>();
 	readonly #shares = new Map<string, SharedQuiz>();
+	#assignmentQuery: GroupAssignmentQuery | null = null;
 
 	addUser(user: StoredUser): void {
 		this.#users.set(user.id, { ...user });
@@ -362,6 +365,36 @@ export class InMemoryGroupStore
 			likeCount: this.#likeCountOf(post.id),
 			likedByViewer: this.#likes.has(`${post.id}:${viewerId}`),
 		}));
+	}
+
+	/** Where the open assignments are read from, as the database joins the games. */
+	readAssignmentsWith(query: GroupAssignmentQuery): void {
+		this.#assignmentQuery = query;
+	}
+
+	async listOpenAssignmentPosts(
+		groupId: string,
+		viewerId: string,
+		now: Date,
+		limit: number,
+	): Promise<GroupPostRecord[]> {
+		if (!this.#assignmentQuery) {
+			throw new Error("Give the store its assignments: readAssignmentsWith");
+		}
+		const posts = (await this.listPosts(groupId, viewerId)).filter(
+			(post) => post.gameId !== null,
+		);
+		const records = await this.#assignmentQuery.findAssignments(
+			posts.flatMap((post) => (post.gameId ? [post.gameId] : [])),
+		);
+		const open = new Set(
+			records
+				.filter((record) => isAssignmentOpen(record, now))
+				.map((record) => record.gameId),
+		);
+		return posts
+			.filter((post) => post.gameId !== null && open.has(post.gameId))
+			.slice(0, limit);
 	}
 
 	async findPostRecord(

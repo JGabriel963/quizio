@@ -1,3 +1,8 @@
+import {
+	DEFAULT_ASSIGNMENT_OPTIONS,
+	newAssignment,
+} from "@quizio/core/game/domain/assignment";
+import { endGame } from "@quizio/core/game/domain/game";
 import type { GroupPost } from "@quizio/core/groups/domain/group-post";
 import { adminOf, aGroup } from "@quizio/core/groups/testing/a-group";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -5,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { user } from "../../schema/auth";
 import { groupPostLike, groupTable } from "../../schema/groups";
 import { createTestDb, type TestDatabase } from "../../testing/create-test-db";
+import { createDrizzleGameRepository } from "../game/drizzle-game-repository";
 import { createDrizzleGroupFeedQuery } from "./drizzle-group-feed-query";
 import { createDrizzleGroupPostRepository } from "./drizzle-group-post-repository";
 import { createDrizzleGroupRepository } from "./drizzle-group-repository";
@@ -134,6 +140,53 @@ describe("Drizzle group feed (spec 038)", () => {
 				likedByViewer: true,
 			},
 		]);
+	});
+
+	it("lists the posts of the assignments still open, newest first, up to the limit (audit L9)", async () => {
+		const games = createDrizzleGameRepository(testDb.db);
+		const now = at(30);
+		const assignment = (id: string, pin: string, deadline: Date) =>
+			newAssignment({
+				id,
+				ownerId: "ana",
+				quizId: "quiz-1",
+				quizVersion: 1,
+				title: "Capitais",
+				pin,
+				deadline,
+				options: DEFAULT_ASSIGNMENT_OPTIONS,
+				questionCount: 5,
+				themeId: "standard",
+				now: at(0),
+			});
+		await games.create(assignment("game-open-old", "10000001", at(59)));
+		await games.create(assignment("game-open-new", "10000002", at(59)));
+		await games.create(assignment("game-expired", "10000003", at(10)));
+		const ended = assignment("game-ended", "10000004", at(59));
+		await games.create(ended);
+		await games.save(endGame(ended, "host", at(20)));
+		for (const [id, gameId, minute] of [
+			["open-old", "game-open-old", 1],
+			["open-new", "game-open-new", 2],
+			["expired", "game-expired", 3],
+			["ended", "game-ended", 4],
+			["deleted", "game-deleted", 5],
+		] as const) {
+			await posts.createPost(aPost({ id, gameId, createdAt: at(minute) }));
+		}
+		await posts.createPost(
+			aPost({ id: "message", kind: "message", gameId: null, createdAt: at(6) }),
+		);
+
+		// The newer posts whose assignment is over never take an open one's place.
+		expect(
+			(await feed.listOpenAssignmentPosts("g1", "bruno", now, 1)).map(
+				(post) => post.id,
+			),
+		).toEqual(["open-new"]);
+		const open = await feed.listOpenAssignmentPosts("g1", "bruno", now, 5);
+		expect(open.map((post) => post.id)).toEqual(["open-new", "open-old"]);
+		expect(open[0]).toMatchObject({ authorName: "Ana", likeCount: 0 });
 	});
 
 	it("stats and groupsWithAssignment", async () => {

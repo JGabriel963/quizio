@@ -1,15 +1,25 @@
-import type {
-	GeneratedDraft,
-	QuestionGenerationRequest,
-	QuestionGenerator,
-} from "@quizio/core/quiz/application/ports/question-generator";
 import {
+	type GeneratedDraft,
+	GenerationChargedError,
+	GenerationNotChargedError,
+	type QuestionGeneration,
+	type QuestionGenerationRequest,
+	type QuestionGenerator,
+} from "@quizio/core/quiz/application/ports/question-generator";
+import type { TokenUsage } from "@quizio/core/quiz/domain/generation-credits";
+import {
+	APICallError,
 	generateText,
 	type LanguageModel,
+	LoadAPIKeyError,
 	type ModelMessage,
+	NoObjectGeneratedError,
 	Output,
+	RetryError,
 } from "ai";
 import { z } from "zod";
+
+import type { GenerationProviderOptions } from "./ai-model";
 
 /**
  * The output format only: the limits and rules are the core's to enforce
@@ -73,6 +83,44 @@ export interface AiSdkQuestionGeneratorConfig {
 	model: LanguageModel;
 	/** A slower answer counts as a failure (spec 027, RN-33). */
 	timeoutMs: number;
+	/**
+	 * The most the model may ever write, reasoning included, above each
+	 * creation's own cap (spec 045, RN-07): what one call can cost at worst.
+	 */
+	maxOutputTokens: number;
+	/** Per provider, from `generationProviderOptions` (spec 045, RN-07). */
+	providerOptions?: GenerationProviderOptions;
+}
+
+/** The provider's report, or null when it lacks either number. */
+function tokenUsageOf(
+	usage:
+		| { inputTokens: number | undefined; outputTokens: number | undefined }
+		| undefined,
+): TokenUsage | null {
+	if (!usage) {
+		return null;
+	}
+	const { inputTokens, outputTokens } = usage;
+	return inputTokens === undefined || outputTokens === undefined
+		? null
+		: { inputTokens, outputTokens };
+}
+
+/**
+ * Whether the provider gave no answer: a request it refused or never got
+ * (no status, or 4xx/5xx), or the key missing. An answer it sent, even one
+ * outside the format or cut by the timeout, was charged.
+ */
+function providerGaveNoAnswer(error: unknown): boolean {
+	const last = RetryError.isInstance(error) ? error.lastError : error;
+	if (LoadAPIKeyError.isInstance(last)) {
+		return true;
+	}
+	return (
+		APICallError.isInstance(last) &&
+		(last.statusCode === undefined || last.statusCode >= 400)
+	);
 }
 
 /** `QuestionGenerator` over the AI SDK (ADR 0012), for any provider it supports. */
@@ -80,17 +128,46 @@ export function createAiSdkQuestionGenerator(
 	config: AiSdkQuestionGeneratorConfig,
 ): QuestionGenerator {
 	return {
-		async generate({ brief, source }): Promise<GeneratedDraft[]> {
-			const result = await generateText({
-				model: config.model,
-				system: brief,
-				messages: [userMessage(source)],
-				output: Output.object({ schema: outputSchema }),
-				abortSignal: AbortSignal.timeout(config.timeoutMs),
-				// One retry for a transient error; the quota is given back on failure.
-				maxRetries: 1,
-			});
-			return toDrafts(result.output.questions);
+		async generate({
+			brief,
+			source,
+			maxOutputTokens,
+		}): Promise<QuestionGeneration> {
+			try {
+				const result = await generateText({
+					model: config.model,
+					system: brief,
+					messages: [userMessage(source)],
+					output: Output.object({ schema: outputSchema }),
+					abortSignal: AbortSignal.timeout(config.timeoutMs),
+					maxOutputTokens: Math.min(maxOutputTokens, config.maxOutputTokens),
+					providerOptions: config.providerOptions,
+					// One retry for a transient error.
+					maxRetries: 1,
+				});
+				return {
+					drafts: toDrafts(result.output.questions),
+					usage: tokenUsageOf(result.usage),
+				};
+			} catch (error) {
+				if (providerGaveNoAnswer(error)) {
+					throw new GenerationNotChargedError("The provider gave no answer", {
+						cause: error,
+					});
+				}
+				// An answer outside the format was paid for as reported; a timeout,
+				// or anything else, without a usage (spec 045, RN-10).
+				const usage = NoObjectGeneratedError.isInstance(error)
+					? tokenUsageOf(error.usage)
+					: null;
+				throw new GenerationChargedError(
+					"The provider's answer was not usable",
+					usage,
+					{
+						cause: error,
+					},
+				);
+			}
 		},
 	};
 }

@@ -204,16 +204,17 @@ describe("startGame (spec 009)", () => {
 			await createStartGame(deps)(mine);
 
 			const [quiz, trueFalse] = deps.gameQuestions.allOf("game-1");
+			// Each answer is named after its drawn place (L8).
 			expect(quiz?.choices).toEqual([
-				{ id: "choice-4", shapeIndex: 0, text: "Recife", correct: false },
-				{ id: "choice-3", shapeIndex: 1, text: "Salvador", correct: false },
+				{ id: "choice-1", shapeIndex: 0, text: "Recife", correct: false },
+				{ id: "choice-2", shapeIndex: 1, text: "Salvador", correct: false },
 				{
-					id: "choice-2",
+					id: "choice-3",
 					shapeIndex: 2,
 					text: "Rio de Janeiro",
 					correct: false,
 				},
-				{ id: "choice-1", shapeIndex: 3, text: "Brasília", correct: true },
+				{ id: "choice-4", shapeIndex: 3, text: "Brasília", correct: true },
 			]);
 			// "Verdadeiro" stays the blue diamond (RN-24).
 			expect(trueFalse?.choices.map((choice) => choice.shapeIndex)).toEqual([

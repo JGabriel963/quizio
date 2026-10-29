@@ -88,6 +88,21 @@ export class UnknownAvatarError extends DomainError {
 	readonly code = "GAME.UNKNOWN_AVATAR";
 }
 
+/**
+ * Changes a player may make in each window (spec 028, RN-12a): taps in the
+ * editor go through, a script in a loop does not fill the game's channel.
+ */
+export const AVATAR_CHANGE_LIMIT = 10;
+export const AVATAR_CHANGE_WINDOW_MS = 5_000;
+
+export class TooManyAvatarChangesError extends DomainError {
+	readonly code = "GAME.TOO_MANY_AVATAR_CHANGES";
+}
+
+export function sameAvatar(a: Avatar, b: Avatar): boolean {
+	return a.character === b.character && a.accessory === b.accessory;
+}
+
 function isCharacter(id: string): id is CharacterId {
 	return (CHARACTER_IDS as readonly string[]).includes(id);
 }

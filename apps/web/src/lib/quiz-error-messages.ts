@@ -69,13 +69,17 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"MEDIA.UNSUPPORTED_TYPE":
 		"Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
 	"MEDIA.INVALID_SIZE": "Use uma imagem JPEG, PNG, GIF ou WebP de até 10 MB.",
+	"UPLOAD.TOO_MANY":
+		"Você enviou muitos arquivos na última hora. Tente de novo mais tarde.",
 	// The creation assistant (spec 027).
 	"QUIZ.GENERATION_FAILED":
 		"Não foi possível criar as perguntas agora. Tente de novo.",
 	"QUIZ.GENERATION_UNAVAILABLE":
 		"A criação com IA não está disponível nesta instância.",
 	"QUIZ.GENERATION_QUOTA_EXCEEDED":
-		"Você usou todas as criações das últimas 24 horas.",
+		"Esta criação precisa de mais créditos do que restam.",
+	"QUIZ.GENERATION_INSTANCE_LIMIT":
+		"As criações com IA desta instância acabaram por hoje. Tente de novo mais tarde.",
 	"QUIZ.GENERATION_TOPIC_EMPTY": "Escreva sobre o que será o quiz.",
 	"QUIZ.GENERATION_TOPIC_TOO_LONG": `O texto pode ter até ${GENERATION_TOPIC_MAX_LENGTH} caracteres.`,
 	"QUIZ.INVALID_GENERATION_OPTIONS": "Escolha as opções da lista.",
