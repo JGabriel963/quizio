@@ -4,7 +4,7 @@ Carregar nos **Passos 0 e 7**. Cada auditoria reverifica cada linha (lendo o có
 
 Os ids (M1, L3, INFO 6…) são os da auditoria que os abriu. Achados novos recebem ids novos no relatório da vez e são acrescentados aqui.
 
-Origem: `docs/security/auditoria-2026-10-29.md` (commit `79c963f`).
+Origem: auditoria de 29/10/2026 sobre o commit `79c963f`. Este arquivo é a base das reverificações, com ou sem o relatório completo em `docs/security/`.
 
 ---
 

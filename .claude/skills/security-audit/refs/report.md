@@ -1,6 +1,6 @@
 # Modelo do relatório
 
-Usar no **Passo 7**. Arquivo: `docs/security/auditoria-AAAA-MM-DD.md` (se já existir um do mesmo dia, sufixo `-2`). Markdown comum, no tom das docs do projeto: frases curtas, em português, termos técnicos de segurança em inglês quando forem o padrão (IDOR, SSRF, CSRF, GHSA). Links relativos ao arquivo (`../../packages/...`) com linha. O modelo é a primeira auditoria, `docs/security/auditoria-2026-10-29.md`.
+Usar no **Passo 7**. Arquivo: `docs/security/auditoria-AAAA-MM-DD.md` (se já existir um do mesmo dia, sufixo `-2`). Markdown comum, no tom das docs do projeto: frases curtas, em português, termos técnicos de segurança em inglês quando forem o padrão (IDOR, SSRF, CSRF, GHSA). Links relativos ao arquivo (`../../packages/...`) com linha. O modelo abaixo basta; se `docs/security/` já tiver relatórios, manter o tom e a estrutura do mais recente.
 
 Não commitar o relatório sem pedido.
 
@@ -17,7 +17,7 @@ Não commitar o relatório sem pedido.
 
    - **Escopo:** …
    - **Stack instalada (lockfile):** …
-   - **Auditoria anterior:** `auditoria-AAAA-MM-DD.md` @ `<commit>`; <n> achados reverificados.
+   - **Auditoria anterior:** `auditoria-AAAA-MM-DD.md` @ `<commit>` (ou `refs/known-findings.md`, quando não houver relatório anterior em `docs/security/`); <n> achados reverificados.
    - **Limitação:** análise estática; <o que foi reproduzido isolado, e como; o que não foi executado>.
    ```
 

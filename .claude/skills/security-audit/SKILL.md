@@ -8,7 +8,7 @@ argument-hint: "[caminho opcional, ex.: packages/mcp]"
 
 Escopo: **$ARGUMENTS** (vazio = o monorepo inteiro).
 
-Postura de pesquisador de segurança: contexto, fluxo de dados e o comportamento **da versão instalada** de cada biblioteca. Método adaptado da skill [`security-audit`](https://github.com/devfraga/skills-sujeito-programador/tree/main/security-audit) (feita para Next.js/Auth.js/Prisma/Stripe), com o checklist trocado pelo da nossa stack. A primeira auditoria feita assim é `docs/security/auditoria-2026-10-29.md`.
+Postura de pesquisador de segurança: contexto, fluxo de dados e o comportamento **da versão instalada** de cada biblioteca. Método adaptado da skill [`security-audit`](https://github.com/devfraga/skills-sujeito-programador/tree/main/security-audit) (feita para Next.js/Auth.js/Prisma/Stripe), com o checklist trocado pelo da nossa stack. A primeira auditoria feita assim (29/10/2026, commit `79c963f`) está resumida em `refs/known-findings.md` e `refs/false-positives.md`: os refs bastam, sem depender de um relatório anterior no repositório.
 
 Relatório em **português** (termos OWASP/CWE/CVE podem ficar em inglês). Código citado como `arquivo:linha`.
 
@@ -19,14 +19,14 @@ Relatório em **português** (termos OWASP/CWE/CVE podem ficar em inglês). Cód
 3. **Siga a cadeia até o fim.** Os routers são finos de propósito: a autorização do Quizio mora no core (`requireOwnedQuiz`, `requireMembership`, `requireOwnedGame`, `loadParticipant`…), não no router. Router sem checagem visível só vira achado depois de ler o use case, o helper de dono e o adapter.
 4. **Biblioteca se confirma no código-fonte instalado** (`node_modules/.pnpm/<pacote, com / trocado por +>@<versão>[_<hash>]/node_modules/<pacote>/`; numa worktree sem `node_modules`, rodar `pnpm install` antes) ou no Context7 da mesma versão, nunca de memória.
 5. **Decisão aceita não é achado novo.** Riscos registrados numa ADR ou spec (ex.: ADR 0007, spec 030) entram como INFO com a referência, ou como achado só se o impacto for maior do que o aceito.
-6. **Nada muda no código.** Patches são propostas, só para CRITICAL e HIGH. O único arquivo escrito é o relatório. Sem commit, sem PR, a menos que peçam.
+6. **Nada muda no código do app.** Patches são propostas, só para CRITICAL e HIGH. Os únicos arquivos escritos são o relatório (`docs/security/auditoria-AAAA-MM-DD.md`) e os da própria skill, para mantê-la em dia: `refs/known-findings.md` (Passo 7), `refs/false-positives.md` (Passo 6) e a correção de um caminho citado que mudou de lugar. Sem commit, sem PR, a menos que peçam.
 7. **Nenhum ataque contra uma instância real.** Um mecanismo pode ser reproduzido isolado (script Node no scratchpad, teste PGlite, `pnpm vitest run`), nunca contra produção, preview ou o túnel ngrok de alguém sem pedido explícito.
 
 ## Fluxo (ordem fixa)
 
 ### Passo 0 — Auditoria anterior e decisões
 
-1. Ler o relatório mais recente em `docs/security/auditoria-*.md` e `refs/known-findings.md`. Cada achado conhecido é **reverificado** (corrigido / ainda aberto / piorou), não redescoberto como novo.
+1. Ler `refs/known-findings.md`, que é a base: cada achado conhecido é **reverificado** (corrigido / ainda aberto / piorou), não redescoberto como novo. Se houver relatórios em `docs/security/` (`ls docs/security/ 2>/dev/null`), ler também o mais recente para o contexto de cada achado; não ter nenhum não bloqueia a auditoria.
 2. Ler o que define o que é "por design": `CLAUDE.md`, `specs/constitution.md`, `docs/architecture.md` (regra de dependência), `docs/deploy.md` (Vercel vs VPS) e as ADRs que tocam segurança: 0003 (storage), 0007 (Better Auth/Google, risco aceito), 0009 (jogo ao vivo), 0011 (deploy), 0014 (atribuições), 0023 (MCP).
 3. `git log --oneline <commit da última auditoria>..HEAD` mostra o que mudou. Uma auditoria completa revisa tudo, mas o que mudou merece leitura linha a linha.
 
@@ -97,7 +97,7 @@ Lembretes da nossa stack:
 
 ### Passo 7 — Relatório
 
-`refs/report.md`: escrever em `docs/security/auditoria-AAAA-MM-DD.md`, no formato da primeira auditoria (resumo, achados por categoria com confiança, dependências, segredos, patches, descartados, plano de correção, cobertura). Atualizar `refs/known-findings.md` com o estado de cada achado.
+`refs/report.md`: escrever em `docs/security/auditoria-AAAA-MM-DD.md`, no formato descrito lá (resumo, achados por categoria com confiança, dependências, segredos, patches, descartados, plano de correção, cobertura). Atualizar `refs/known-findings.md` com o estado de cada achado.
 
 ### Passo 8 — Patches (só CRITICAL e HIGH)
 
