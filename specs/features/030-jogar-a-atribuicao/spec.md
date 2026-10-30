@@ -89,7 +89,7 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 | ID | Regra | Fonte |
 | --- | --- | --- |
 | RN-20 | O aparelho guarda quem o participante é na atividade, e **só esse navegador o continua**. Voltar ao link ou ao PIN nele pergunta **"Você é {apelido}?"** ("Um jogador com esse apelido já começou o jogo. Se foi você, continue jogando de onde parou ou comece a jogar com um apelido diferente."): "Sim" leva aonde ele estava (à pergunta, ao resultado, a Pontuações ou ao fim) e "Não" esquece o participante nesse navegador e vai ao apelido, para entrar como outro; quem já jogou continua no placar. Em outro navegador, ou depois de limpar os dados do navegador, o participante não é retomado: a pessoa entra com outro apelido. Como no Kahoot, o apelido não é uma porta de entrada, e quem conhece o apelido de alguém não joga por ele. | kahoot-reference §8.1, §9 · spec 008, RN-44a · decisão do usuário (2026-10-20) · observação do usuário no Kahoot e auditoria de segurança (2026-10-29, M5) |
-| RN-21 | Quem **abandona** a partida no meio de uma pergunta e volta (RN-20) recomeça **essa pergunta**, com o tempo inteiro, se não a respondeu; se já a respondeu, segue para a próxima tela. Quem estava no aparelho quando o tempo acabou vê o resultado ("Tempo esgotado") e a pergunta conta como não respondida. Com o timer desligado, a pergunta o espera. | captura do Kahoot · decisão do usuário (2026-10-20) |
+| RN-21 | O tempo de uma pergunta **corre desde que ela apareceu**, com o aparelho aberto ou não. Quem **abandona** a partida no meio de uma pergunta que não respondeu e volta (RN-20) **continua essa pergunta com o tempo que sobrava**; se o tempo acabou enquanto estava fora, vê o resultado ("Tempo esgotado") e a pergunta conta como não respondida, como para quem estava no aparelho quando o tempo acabou. Se já a respondeu, segue para a próxima tela. Com o timer desligado, a pergunta o espera. **Diverge do Kahoot**, que recomeça a pergunta com o tempo inteiro: assim, sair e voltar (ou recarregar a página) não dá mais tempo para responder nem mais pontos pela velocidade. | captura do Kahoot · decisão do usuário (2026-10-20) · auditoria de segurança (2026-10-29, M6) · decisão do usuário (2026-10-30) |
 | RN-22 | Quem terminou não joga de novo a mesma atividade: voltar e dizer "Sim" leva direto ao fim (RN-16), **sem ← para rever as perguntas**; a revisão é de quem acabou de terminar. | kahoot-reference §8.1 · captura do Kahoot (2026-10-20) |
 | RN-23 | Quando a atribuição **acaba** (prazo ou "Encerrar agora", spec 029) com o participante no meio, as respostas seguintes são recusadas e o aparelho mostra o fim com o que ele fez, com o aviso "Esta atividade foi encerrada". As perguntas que faltavam contam como não respondidas. | spec 029, RN-39, RN-40 · decisão do produto (2026-10-19) |
 | RN-24 | Sem conexão, a resposta não enviada mostra "Sua resposta não foi enviada." e devolve as alternativas, como na partida ao vivo (spec 013), enquanto o tempo da pergunta não acabou. | spec 013 |
@@ -239,9 +239,15 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 
 #### CA-19 — Voltar no mesmo navegador
 
-- **Dado** John na terceira pergunta, que fecha a aba sem responder
-- **Quando** abre o link de novo no mesmo navegador e responde "Sim" a "Você é John?"
-- **Então** vê a terceira pergunta de novo, com o tempo inteiro
+- **Dado** John na terceira pergunta, de 20 segundos, que fecha a aba aos 5 segundos sem responder
+- **Quando** abre o link de novo no mesmo navegador 5 segundos depois e responde "Sim" a "Você é John?"
+- **Então** vê a terceira pergunta de novo, com os 10 segundos que sobravam
+
+#### CA-19a — Voltar depois que o tempo acabou
+
+- **Dado** John na terceira pergunta, de 20 segundos, que fecha a aba sem responder
+- **Quando** abre o link de novo no mesmo navegador 1 minuto depois e responde "Sim" a "Você é John?"
+- **Então** vê o resultado "Tempo esgotado", e a terceira pergunta conta como não respondida
 
 #### CA-20 — Outro participante no mesmo navegador
 
@@ -339,3 +345,4 @@ Quem recebe o link ou o PIN de uma atribuição entra com um apelido, sem conta,
 - 2026-10-21 — por decisão do usuário, a partir do Kahoot: Pontuações mostra os pontos de cada um até a pergunta que ela segue, não o total atual; a seta de subida compara com a pergunta anterior (RN-14).
 - 2026-10-29 — por decisão do usuário, depois da auditoria de segurança (achado M7): cada rede cria no máximo 60 participantes por minuto numa atividade (RN-04a, CA-04a), como na partida ao vivo (spec 008, RN-45a). Remover participantes da atividade continua fora e virou um item do roadmap.
 - 2026-10-29 — por decisão do usuário, depois de observar o Kahoot e da auditoria de segurança (achado M5): só o navegador que guardou o participante o continua (RN-20, CA-19 a CA-21). A lista de quem entrou fica só para ver, e um apelido em uso mostra "Esse apelido já está em uso. Escolha outro." (RN-03, CA-03). Antes, o apelido bastava para retomar em qualquer navegador, e o servidor entregava o segredo do participante a quem dissesse "Sim": dava para responder no lugar de outra pessoa. Em troca, quem muda de aparelho ou limpa o navegador entra de novo com outro apelido.
+- 2026-10-30 — por decisão do usuário, depois da auditoria de segurança (achado M6): quem volta a uma pergunta que não respondeu continua com o tempo que sobrava, e uma pergunta cujo tempo acabou enquanto estava fora conta como não respondida (RN-21, CA-19, CA-19a). Antes, voltar recomeçava a pergunta com o tempo inteiro, como no Kahoot: recarregar a página dava mais tempo para responder e mais pontos pela velocidade, quantas vezes se quisesse.

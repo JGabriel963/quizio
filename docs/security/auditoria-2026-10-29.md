@@ -2,7 +2,7 @@
 
 Método adaptado da skill [`security-audit`](https://github.com/devfraga/skills-sujeito-programador/tree/main/security-audit): primeiro as versões instaladas, depois `pnpm audit`, segredos rastreados e revisão do código por fluxo (entrada → validação → autenticação → autorização → destino). Todo achado passou pelo filtro de falsos positivos. O checklist da skill é de Next.js e foi trocado por um feito para a nossa stack.
 
-- **Escopo:** monorepo inteiro em `main` @ `79c963f` (sem `node_modules`, `e2e/`, testes e fakes).
+- **Escopo:** monorepo inteiro em `main` @ `79c963f` (sem `node_modules`, `e2e/`, testes e fakes). As linhas e os trechos em **Onde** são desse commit: várias mudaram ou saíram com as correções.
 - **Stack instalada (lockfile):** `@tanstack/react-start@1.168.60`, `@tanstack/router-core@1.171.34`, `react@19.2.8`, `better-auth@1.7.14` (+ `oauth-provider`, `mcp`, `cimd` 1.7.14), `@trpc/server@11.18.0`, `drizzle-orm@0.45.2`, `zod@4.5.4`, `@modelcontextprotocol/server@2.4.0`, `ai@7.0.142`, `pdf-lib@1.17.1`, `undici@8.10.2`, `@aws-sdk/client-s3@3.1131.0`, `pusher@5.3.4`, `vite@8.2.2`.
 - **Limitação:** análise estática. Nenhum exploit foi executado contra o app; dois mecanismos foram reproduzidos isoladamente em Node (o parser de URL do achado M1 e o `SafeUrlSchema` do Better Auth).
 
@@ -132,7 +132,7 @@ A base está sólida no que mais costuma falhar. Não há IDOR nos routers e use
 - **Correção:** não escrever nem publicar quando nada mudou, e limitar trocas por jogador (por exemplo 2/s).
 
 #### 🔵 L9 — Uma enxurrada de posts quebra a aba Atribuições do grupo
-- **Status:** ✅ corrigido. A aba Atribuições lê só as publicações de atividade (as 500 mais novas) por `listAssignmentPosts`; cada pessoa publica no máximo 20 vezes por minuto e 500 por dia, somando mensagens, arquivos, quizzes e atividades (spec 036, RN-05a).
+- **Status:** ✅ corrigido. A aba Atribuições lê só as publicações de atividades ainda abertas (as 500 mais novas) por `listOpenAssignmentPosts`, então uma atividade encerrada nunca toma o lugar de uma aberta; cada pessoa publica no máximo 20 vezes por minuto e 500 por dia, somando mensagens, arquivos, quizzes e atividades (spec 036, RN-05a).
 - **Confiança:** MEDIUM.
 - **Onde:** [list-group-assignments.ts:35](../../packages/core/src/groups/application/list-group-assignments.ts), que chama `listPosts` sem página. As curtidas usam `inArray`, com um parâmetro por post.
 - **Problema:** qualquer membro posta sem limite. Com dezenas de milhares de posts, a aba fica lenta e, passando de 65.535, falha no limite de parâmetros do Postgres. Cada post também notifica todos os membros.
@@ -143,7 +143,7 @@ A base está sólida no que mais costuma falhar. Não há IDOR nos routers e use
 #### 🟡 M5 — Qualquer pessoa com o link ou PIN assume um participante da atividade pelo apelido
 - **Status:** ✅ corrigido, por decisão do usuário depois de observar o Kahoot: só o navegador que guardou o participante o continua (spec 030, RN-20). "Sim" em "Você é {apelido}?" manda o par `playerId` + `secret` que o navegador guardou, e a busca pelo apelido deixou de existir; a lista de quem entrou fica só para ver, e um apelido em uso é recusado como na partida ao vivo (RN-03). O segredo só sai do servidor uma vez, para o aparelho que entrou. A emboscada também fecha: quem chega com o nome já usado entra com outro apelido e nunca herda as respostas de outro. Em troca, quem muda de aparelho ou limpa o navegador entra de novo com outro apelido.
 - **Confiança:** HIGH. É um risco **aceito de propósito** (paridade com o Kahoot, spec 030), mas com impacto maior do que o necessário.
-- **Onde:** [resume-assignment.ts:37-56](../../packages/core/src/game/application/resume-assignment.ts) e `get-assignment-cover.ts:76`.
+- **Onde:** [resume-assignment.ts:37-56](https://github.com/JGabriel963/quizio/blob/79c963f/packages/core/src/game/application/resume-assignment.ts#L37-L56) (arquivo removido na correção do M6) e `get-assignment-cover.ts:76`.
   ```ts
   return { playerId: participant.id, secret: participant.secret, nickname: participant.nickname };
   ```
@@ -158,9 +158,9 @@ A base está sólida no que mais costuma falhar. Não há IDOR nos routers e use
   - Limitar `resume` por IP.
 
 #### 🟡 M6 — Retomar a atividade reinicia uma pergunta cujo tempo já acabou (fura o "Timer da pergunta")
-- **Status:** ⚠️ **é a regra RN-21 da spec 030**, decidida em 20/10/2026: "Quem abandona a partida no meio de uma pergunta e volta recomeça essa pergunta, com o tempo inteiro". Há um teste explícito para isso ("also past its time, when nobody was there to see it run out"). É um risco aceito, como o M5, e não um bug. Aplicar só o `settleProgress` também não fecharia a trapaça: quem volta antes do prazo ganha o tempo inteiro de novo, e isso pode ser repetido. Corrigir exige mudar a regra, por exemplo manter o `startedAt` original.
+- **Status:** ✅ corrigido em 30/10/2026, por decisão do usuário, com a mudança da regra RN-21 da spec 030. Até então, a regra decidida em 20/10/2026 a partir do Kahoot recomeçava a pergunta com o tempo inteiro. Agora o tempo de uma pergunta corre desde que ela apareceu: quem volta continua com o que sobrava, e uma pergunta cujo tempo acabou enquanto estava fora conta como não respondida (CA-19, CA-19a). O "Sim" deixou de ter procedimento próprio (`game.assignment.resume` e `resumeAssignment` saíram): ele vai direto à tela, e `game.assignment.play`, como toda chamada do participante, passa por `loadParticipant`, que confere o par e acerta o andamento pelo relógio do servidor, sem recomeçar nada. Um E2E sai no meio de uma pergunta de 1 minuto, volta e confere que sobrou tempo, mas menos do que antes.
 - **Confiança:** HIGH.
-- **Onde:** [resume-assignment.ts:45-51](../../packages/core/src/game/application/resume-assignment.ts).
+- **Onde:** [resume-assignment.ts:45-51](https://github.com/JGabriel963/quizio/blob/79c963f/packages/core/src/game/application/resume-assignment.ts#L45-L51) (arquivo removido na correção).
   ```ts
   if (isGameOpen(game) && progress.phase === "answering") {
       await deps.players.saveProgressIfAt(participant.id, progress, { ...progress, startedAt: deps.clock.now() });
@@ -349,7 +349,7 @@ Nenhum achado CRITICAL ou HIGH, então não há patches obrigatórios nesta audi
 |---|---|---|---|
 | 1 | ✅ M1 — recusar endereços de retorno ambíguos no registro e na tela de consentimento | pequeno | não (correção) |
 | 2 | ✅ M4 — `zod` 4.6.7 (+ `vite` 8.3.5, `undici` 8.12.3, `shadcn` em devDependencies) | pequeno | não |
-| 3 | M6 — mudar a RN-21 (tempo da pergunta que continua contando depois de sair) | pequeno | **sim** (spec 030, RN-21) |
+| 3 | ✅ M6 — mudar a RN-21 (tempo da pergunta que continua contando depois de sair) | pequeno | ✅ spec 030 (RN-21, CA-19, CA-19a) |
 | 4 | ✅ L1 — `errorFormatter` mascarando 500 | pequeno | não |
 | 5 | ✅ M2 + M3 — cota antes do PDF, sem devolução em falha provocada, `maxOutputTokens`, teto global, limite de descompressão | médio | ✅ spec 027 (RN-31, RN-33) |
 | 6 | ✅ M8 + M7 — QR e link fora do limite de PIN; 60 entradas por minuto por rede em cada jogo | médio | ✅ specs 008, 029 e 030 |
@@ -357,7 +357,7 @@ Nenhum achado CRITICAL ou HIGH, então não há patches obrigatórios nesta audi
 | 8 | ✅ L10 — cabeçalhos de segurança (*request middleware*, no lugar de `routeRules`) | pequeno | não |
 | 9 | ✅ Demais LOW (L2 a L9, L11 a L13) | médio | ✅ specs 007, 028, 036, 039 |
 
-L2, L6 e L13, que só apareciam fora da Vercel, já estão corrigidos. Do plano, falta só o M6, que é uma decisão de regra.
+L2, L6 e L13, que só apareciam fora da Vercel, já estão corrigidos. O plano está concluído: o M6 foi o último, em 30/10/2026. Fica para depois a CSP completa, primeiro em modo *report-only* (L10).
 
 ## Cobertura
 

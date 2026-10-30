@@ -62,8 +62,6 @@ export interface AssignmentPlayApi {
 	setAvatar(
 		input: StoredAssignmentSession & { avatar: Avatar },
 	): Promise<{ avatar: Avatar }>;
-	/** "Sim" to "Você é {apelido}?", with the pair this browser kept (RN-20). */
-	resume(session: StoredAssignmentSession): Promise<void>;
 }
 
 /** How often the activity's cover asks again: the deadline may change or end (spec 029, RN-37). */
@@ -83,12 +81,7 @@ type Step =
 	| { kind: "cover" }
 	| { kind: "nickname"; notice: string | null }
 	/** "Você é {apelido}?": coming back to the participant this browser kept (RN-20). */
-	| {
-			kind: "confirm";
-			session: StoredAssignmentSession;
-			nickname: string;
-			notice: string | null;
-	  }
+	| { kind: "confirm"; session: StoredAssignmentSession; nickname: string }
 	| { kind: "play"; session: StoredAssignmentSession };
 
 interface PlayState {
@@ -136,10 +129,9 @@ export function AssignmentPlayFlow({
 		}
 		// Older sessions kept no nickname: they go straight back in.
 		return session.nickname
-			? { kind: "confirm", session, nickname: session.nickname, notice: null }
+			? { kind: "confirm", session, nickname: session.nickname }
 			: { kind: "play", session };
 	});
-	const [resuming, setResuming] = useState(false);
 	// Who comes back already at the end sees it without ← (RN-22).
 	const [reviewLocked, setReviewLocked] = useState(false);
 	const entering = useRef(false);
@@ -302,29 +294,14 @@ export function AssignmentPlayFlow({
 		}
 	}
 
-	/** "Sim": the participant this browser kept, where they were (RN-20 to RN-22). */
-	async function resume(confirm: Extract<Step, { kind: "confirm" }>) {
-		const { session: kept } = confirm;
-		setResuming(true);
-		try {
-			await api.resume({
-				gameId: kept.gameId,
-				playerId: kept.playerId,
-				secret: kept.secret,
-			});
-			entering.current = true;
-			setStep({ kind: "play", session: kept });
-		} catch (error) {
-			if (gameErrorCode(error) === "GAME.NOT_FOUND") {
-				// That participant is not there anymore: the cover, as a new arrival.
-				store.clear(gameId);
-				setStep({ kind: "cover" });
-			} else {
-				setStep({ ...confirm, notice: gameErrorMessage(error) });
-			}
-		} finally {
-			setResuming(false);
-		}
+	/**
+	 * "Sim": the participant this browser kept, where they were (RN-20 to
+	 * RN-22). The screen's own `play` proves the pair, and a participant who
+	 * is gone sends the browser back to the cover from there.
+	 */
+	function resume(kept: StoredAssignmentSession) {
+		entering.current = true;
+		setStep({ kind: "play", session: kept });
 	}
 
 	/** "Não": somebody else, with a nickname of their own (RN-20). */
@@ -349,9 +326,7 @@ export function AssignmentPlayFlow({
 		return themed(
 			<ConfirmParticipant
 				nickname={step.nickname}
-				busy={resuming}
-				notice={step.notice}
-				onYes={() => void resume(step)}
+				onYes={() => resume(step.session)}
 				onNo={startOver}
 			/>,
 		);

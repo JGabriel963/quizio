@@ -110,7 +110,6 @@ function fakeApi(overrides: Partial<AssignmentPlayApi> = {}) {
 			}),
 		),
 		setAvatar: vi.fn(async ({ avatar }) => ({ avatar })),
-		resume: vi.fn(async () => {}),
 		...overrides,
 	};
 	return api;
@@ -282,7 +281,7 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 			await screen.findByRole("list", { name: "Pontuações" }),
 		).toBeInTheDocument();
 		// Only the pair this browser kept goes on (RN-20).
-		expect(api.resume).toHaveBeenCalledWith(SESSION);
+		expect(api.play).toHaveBeenCalledWith(SESSION);
 		await user.click(screen.getByRole("button", { name: "Próximo" }));
 		expect(api.advance).toHaveBeenCalledWith({
 			...SESSION,
@@ -303,7 +302,7 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 			await screen.findByRole("textbox", { name: "Insira um apelido" }),
 		).toBeInTheDocument();
 		expect(store.load(GAME)).toBeNull();
-		expect(api.resume).not.toHaveBeenCalled();
+		expect(api.play).not.toHaveBeenCalled();
 	});
 
 	it("a nickname in use asks for another, never Você é…? (RN-03, M5)", async () => {
@@ -330,13 +329,13 @@ describe("AssignmentPlayFlow (spec 030)", () => {
 			screen.getByRole("textbox", { name: "Insira um apelido" }),
 		).toBeInTheDocument();
 		expect(screen.queryByRole("heading", { name: /Você é/ })).toBeNull();
-		expect(api.resume).not.toHaveBeenCalled();
+		expect(api.play).not.toHaveBeenCalled();
 		expect(store.load(GAME)).toBeNull();
 	});
 
 	it("a kept participant that is gone sends the browser back to the cover", async () => {
 		const api = fakeApi({
-			resume: vi.fn(async () => {
+			play: vi.fn(async () => {
 				throw Object.assign(new Error("gone"), {
 					data: { domainCode: "GAME.NOT_FOUND" },
 				});

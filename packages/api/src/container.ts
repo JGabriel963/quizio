@@ -128,10 +128,6 @@ import {
 	type RemovePlayer,
 } from "@quizio/core/game/application/remove-player";
 import {
-	createResumeAssignment,
-	type ResumeAssignment,
-} from "@quizio/core/game/application/resume-assignment";
-import {
 	createReviewTypedAnswers,
 	type ReviewTypedAnswers,
 } from "@quizio/core/game/application/review-typed-answers";
@@ -743,7 +739,6 @@ export interface Container extends Adapters {
 		getAssignmentCover: GetAssignmentCover;
 		listOpenAssignments: ListOpenAssignments;
 		joinAssignment: JoinAssignment;
-		resumeAssignment: ResumeAssignment;
 		getAssignmentPlay: GetAssignmentPlay;
 		startAssignmentPlay: StartAssignmentPlay;
 		answerAssignmentQuestion: AnswerAssignmentQuestion;
@@ -1032,7 +1027,6 @@ export function createContainer(baseAdapters: Adapters): Container {
 			getAssignmentCover: createGetAssignmentCover(adapters),
 			listOpenAssignments: createListOpenAssignments(adapters),
 			joinAssignment: createJoinAssignment(adapters),
-			resumeAssignment: createResumeAssignment(adapters),
 			getAssignmentPlay: createGetAssignmentPlay(adapters),
 			startAssignmentPlay: createStartAssignmentPlay(adapters),
 			answerAssignmentQuestion: createAnswerAssignmentQuestion(adapters),

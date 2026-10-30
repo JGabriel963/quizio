@@ -218,14 +218,10 @@ export function ReadyScreen({
  */
 export function ConfirmParticipant({
 	nickname,
-	busy,
-	notice,
 	onYes,
 	onNo,
 }: {
 	nickname: string;
-	busy: boolean;
-	notice: string | null;
 	onYes: () => void;
 	onNo: () => void;
 }) {
@@ -241,7 +237,6 @@ export function ConfirmParticipant({
 					variant="secondary"
 					size="lg"
 					className="w-full"
-					disabled={busy}
 					onClick={onYes}
 				>
 					Sim
@@ -250,12 +245,10 @@ export function ConfirmParticipant({
 					variant="outline"
 					size="lg"
 					className="w-full border-game-fg bg-transparent text-game-fg hover:bg-game-chip"
-					disabled={busy}
 					onClick={onNo}
 				>
 					Não
 				</Button>
-				<JoinNotice message={notice} />
 			</div>
 		</Card>
 	);

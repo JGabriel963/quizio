@@ -1350,34 +1350,6 @@ describe("game router: playing an assignment (spec 030)", () => {
 		).rejects.toMatchObject({ cause: { code: "GAME.TOO_MANY_JOINS" } });
 	});
 
-	it("assignment.resume goes on only with the pair the browser kept (RN-20, M5)", async () => {
-		const { visitor, participant } = await assignedTo();
-
-		await expect(
-			visitor.game.assignment.resume(participant),
-		).resolves.toBeUndefined();
-		await expect(
-			visitor.game.assignment.resume({ ...participant, secret: "guess" }),
-		).rejects.toMatchObject({
-			code: "NOT_FOUND",
-			cause: { code: "GAME.NOT_FOUND" },
-		});
-	});
-
-	it("assignment.resume no longer takes a nickname (RN-20, M5)", async () => {
-		const { visitor, gameId } = await assignedTo();
-
-		await expect(
-			visitor.game.assignment.resume(
-				// @ts-expect-error The procedure takes the pair, never a nickname.
-				{ gameId, nickname: "john" },
-			),
-		).rejects.toMatchObject({
-			code: "BAD_REQUEST",
-			cause: { name: "ZodError" },
-		});
-	});
-
 	it("assignment.join, play, answer and advance play a whole assignment", async () => {
 		const { api, visitor, participant } = await assignedTo();
 

@@ -123,15 +123,7 @@ describe("ConfirmParticipant (spec 030, RN-03, RN-20)", () => {
 	it("asks Você é John? with Sim and Não", async () => {
 		const onYes = vi.fn();
 		const onNo = vi.fn();
-		render(
-			<ConfirmParticipant
-				nickname="John"
-				busy={false}
-				notice={null}
-				onYes={onYes}
-				onNo={onNo}
-			/>,
-		);
+		render(<ConfirmParticipant nickname="John" onYes={onYes} onNo={onNo} />);
 		const user = userEvent.setup();
 
 		expect(

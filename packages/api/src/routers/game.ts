@@ -114,16 +114,11 @@ const assignmentRouter = router({
 			}),
 		),
 
-	/** "Sim" to "Você é {apelido}?": only the browser that kept the pair goes on (spec 030, RN-20). */
-	resume: publicProcedure
-		.input(playerReference)
-		.mutation(({ ctx, input }) =>
-			ctx.container.useCases.resumeAssignment(input),
-		),
-
 	/**
 	 * A read, sent as a mutation: a query's input travels in the address, and
 	 * the secret would stay in the logs of every proxy on the way (audit L3).
+	 * "Sim" to "Você é {apelido}?" is this read too, with the pair the browser
+	 * kept: only that browser goes on as the participant (spec 030, RN-20).
 	 */
 	play: publicProcedure
 		.input(playerReference)

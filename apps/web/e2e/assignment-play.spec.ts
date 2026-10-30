@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import {
+	chooseProperty,
 	createQuizInEditor,
 	expectSaved,
 	newParticipant,
@@ -10,8 +11,11 @@ import {
 const readyDialog = (page: Page) =>
 	page.getByRole("dialog", { name: "O quiz está pronto" });
 
-/** A playable quiz of one Quiz question of two answers, the first one right. */
-async function publishQuiz(page: Page, title: string) {
+/**
+ * A playable quiz of one Quiz question of two answers, the first one right,
+ * with the editor's time limit unless another is given ("1 minuto").
+ */
+async function publishQuiz(page: Page, title: string, timeLimit?: string) {
 	await createQuizInEditor(page);
 	await page.getByRole("textbox", { name: "Título do quiz" }).fill(title);
 	await page
@@ -26,8 +30,34 @@ async function publishQuiz(page: Page, title: string) {
 	await page.getByRole("textbox", { name: "Resposta 2", exact: true }).blur();
 	await page.getByRole("checkbox", { name: "Resposta 1 correta" }).click();
 	await expectSaved(page);
+	if (timeLimit) {
+		await chooseProperty(page, "Limite de tempo", timeLimit);
+		await expectSaved(page);
+	}
 	await page.getByRole("button", { name: "Salvar", exact: true }).click();
 	await expect(readyDialog(page)).toBeVisible();
+}
+
+/** "Atribuir" from "O quiz está pronto", then the new activity's report. */
+async function assignQuiz(creator: Page, title: string) {
+	await readyDialog(creator)
+		.getByRole("button", { name: /^Atribuir/ })
+		.click();
+	await creator
+		.getByRole("dialog", { name: "Configurar atividade" })
+		.getByRole("button", { name: "Criar uma tarefa" })
+		.click();
+	const share = creator.getByRole("dialog", {
+		name: "Compartilhe com os participantes",
+	});
+	const pinText = await share.locator("strong").last().textContent();
+	const pin = (pinText ?? "").replace(/\s/g, "");
+	await share.getByRole("link", { name: title }).click();
+	await expect(
+		creator.getByRole("heading", { level: 1, name: title }),
+	).toBeVisible();
+	const gameId = creator.url().split("/reports/")[1]?.split("?")[0] ?? "";
+	return { gameId, pin };
 }
 
 /** From the cover to the first question: Iniciar and the nickname (CA-01 to CA-03). */
@@ -76,24 +106,7 @@ test.describe("jogar a atribuição (spec 030)", () => {
 		test.setTimeout(150_000);
 		await signUp(creator, { name: "Ana" });
 		await publishQuiz(creator, "Capitais");
-
-		await readyDialog(creator)
-			.getByRole("button", { name: /^Atribuir/ })
-			.click();
-		await creator
-			.getByRole("dialog", { name: "Configurar atividade" })
-			.getByRole("button", { name: "Criar uma tarefa" })
-			.click();
-		const share = creator.getByRole("dialog", {
-			name: "Compartilhe com os participantes",
-		});
-		const pinText = await share.locator("strong").last().textContent();
-		const pin = (pinText ?? "").replace(/\s/g, "");
-		await share.getByRole("link", { name: /Capitais/ }).click();
-		await expect(
-			creator.getByRole("heading", { level: 1, name: "Capitais" }),
-		).toBeVisible();
-		const gameId = creator.url().split("/reports/")[1]?.split("?")[0] ?? "";
+		const { gameId, pin } = await assignQuiz(creator, "Capitais");
 
 		// Ana by the link: right answer, first place (CA-14, CA-17).
 		const ana = await newParticipant(browser);
@@ -159,5 +172,36 @@ test.describe("jogar a atribuição (spec 030)", () => {
 		const tab = await opened;
 		await expect(tab).toHaveURL(new RegExp(`/assignment/${gameId}$`));
 		await expect(tab.getByRole("button", { name: "Iniciar" })).toBeVisible();
+	});
+
+	test("who leaves in the middle of a question goes on with the time it had left (CA-19, RN-21)", async ({
+		page: creator,
+		browser,
+	}) => {
+		test.setTimeout(90_000);
+		await signUp(creator, { name: "Ana" });
+		// A minute: the time away plus a slow reload never use the whole question up.
+		await publishQuiz(creator, "Capitais", "1 minuto");
+		const { gameId } = await assignQuiz(creator, "Capitais");
+
+		const ana = await newParticipant(browser);
+		await ana.goto(`/assignment/${gameId}`);
+		await expect(ana.getByText("1 pergunta")).toBeVisible({ timeout: 15_000 });
+		await enterActivity(ana, "Ana P");
+		const timer = ana.getByRole("timer", { name: "Tempo restante" });
+		const secondsLeft = async () => Number(await timer.textContent());
+		const atStart = await secondsLeft();
+
+		// Away for a while: the question's time runs on the server meanwhile, and
+		// "Sim" goes on with what was left instead of starting it again (M6).
+		await ana.waitForTimeout(5_000);
+		await ana.reload();
+		await ana.getByRole("button", { name: "Sim" }).click();
+		await expect(
+			ana.getByRole("heading", { name: "Capital do Brasil?" }),
+		).toBeVisible();
+		const left = await secondsLeft();
+		expect(left).toBeGreaterThan(0);
+		expect(left).toBeLessThanOrEqual(atStart - 5);
 	});
 });
