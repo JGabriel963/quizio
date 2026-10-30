@@ -264,4 +264,4 @@ Todo membro do grupo escreve uma publicação no mural, com texto, uma imagem ou
 - 2026-10-26: spec aprovada pelo usuário.
 - 2026-10-26: spec entregue (status `done`). Escolhas feitas na implementação, dentro das regras: o arquivo é enviado assim que escolhido, com a barra de andamento, e um envio que termina depois do X ou do Cancelar é descartado; o cartão do PDF diz "PDF · 2,4 MB"; o `Progress` foi escrito à mão no estilo do projeto, sem o CLI do shadcn.
 - 2026-10-27 — as notificações que esta spec deixava para o sino chegaram com a spec 040.
-- 2026-10-29 — auditoria de segurança (achado L9), a pedido do usuário: limite de publicações por pessoa (RN-05a); a aba Atribuições (spec 038) lê só as publicações de atividade, as 500 mais novas, e não o mural inteiro. Os envios de arquivo contam no limite de envios da pessoa (spec 007, RN-35a).
+- 2026-10-29 — auditoria de segurança (achado L9), a pedido do usuário: limite de publicações por pessoa (RN-05a); a aba Atribuições (spec 038) lê só as publicações de atividades ainda abertas, as 500 mais novas, e não o mural inteiro. Os envios de arquivo contam no limite de envios da pessoa (spec 007, RN-35a).

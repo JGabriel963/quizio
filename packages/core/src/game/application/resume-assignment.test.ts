@@ -47,28 +47,43 @@ describe("resumeAssignment (spec 030, RN-20 to RN-22)", () => {
 		await expect(resume(kept)).resolves.toBeUndefined();
 	});
 
-	it("a question left unanswered starts again with its whole time", async () => {
-		const { deps, kept, progressOf, resume } = await withParticipant();
+	it("a question left unanswered goes on with the time it had left (RN-21, M6)", async () => {
+		const { deps, gameId, joined, kept, progressOf, resume } =
+			await withParticipant();
+		const left = await progressOf();
 		deps.clock.advanceBy(6_000);
 
 		await resume(kept);
 
-		expect(await progressOf()).toEqual({
-			questionIndex: 0,
-			phase: "answering",
-			startedAt: deps.clock.now(),
+		expect(await progressOf()).toEqual(left);
+		const { screen } = await createGetAssignmentPlay(deps)({
+			gameId,
+			...joined,
 		});
+		if (screen.phase !== "answering" || screen.durationMs === null) {
+			throw new Error("Expected a question with the timer");
+		}
+		expect(screen.remainingMs).toBe(screen.durationMs - 6_000);
 	});
 
-	it("also past its time, when nobody was there to see it run out", async () => {
-		const { deps, kept, progressOf, resume } = await withParticipant();
+	it("a question whose time ran out while away counts as unanswered (RN-21, M6)", async () => {
+		const { deps, gameId, joined, kept, progressOf, resume } =
+			await withParticipant();
 		deps.clock.advanceBy(60_000);
 
 		await resume(kept);
 
 		expect(await progressOf()).toMatchObject({
-			phase: "answering",
-			startedAt: deps.clock.now(),
+			questionIndex: 0,
+			phase: "results",
+		});
+		const { screen } = await createGetAssignmentPlay(deps)({
+			gameId,
+			...joined,
+		});
+		expect(screen).toMatchObject({
+			phase: "results",
+			result: { result: "unanswered", points: 0 },
 		});
 	});
 
@@ -103,14 +118,13 @@ describe("resumeAssignment (spec 030, RN-20 to RN-22)", () => {
 		expect(await progressOf()).toEqual(answered);
 	});
 
-	it("an ended activity is resumed to its end, with nothing started again", async () => {
+	it("an ended activity is resumed to its end (RN-22, RN-23)", async () => {
 		const { deps, gameId, kept, progressOf, resume } = await withParticipant();
-		const before = await progressOf();
 		await createEndAssignment(deps)({ ownerId: "user-1", gameId });
 
 		await resume(kept);
 
-		expect(await progressOf()).toEqual(before);
+		expect(await progressOf()).toMatchObject({ phase: "finished" });
 	});
 
 	it("refuses a pair that is not the participant's (M5)", async () => {
