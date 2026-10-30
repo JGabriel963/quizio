@@ -25,6 +25,11 @@ import { z } from "zod";
 
 import type { ToolContext } from "../define-tool";
 import { fileSource, resolveFile } from "./file-source";
+import {
+	STATEMENT_MARKUP_HELP,
+	statementFromMarkup,
+	withStatementMarkup,
+} from "./statement-markup";
 
 const timeLimits = QUESTION_TYPES.map(
 	(type) => `${type}: ${timeLimitsFor(type).join(", ")}`,
@@ -67,7 +72,9 @@ const questionShape = {
 		.string()
 		.max(10_000)
 		.nullish()
-		.describe(`The statement, up to ${QUESTION_TEXT_MAX_LENGTH} characters.`),
+		.describe(
+			`The statement, up to ${QUESTION_TEXT_MAX_LENGTH} characters. ${STATEMENT_MARKUP_HELP}`,
+		),
 	timeLimitSeconds: z
 		.number()
 		.int()
@@ -182,14 +189,19 @@ export async function toQuestionDraft(
 	input: QuestionInput,
 	context: ToolContext,
 ): Promise<QuestionDraft> {
-	return { ...input, image: await imageDraft(input.image, context) };
+	return {
+		...input,
+		...statementFromMarkup(input.text),
+		image: await imageDraft(input.image, context),
+	};
 }
 
 export async function toQuestionPatch(
 	input: QuestionChangesInput,
 	context: ToolContext,
 ): Promise<QuestionPatch> {
-	const { image, ...changes } = input;
+	const { image, text, ...rest } = input;
+	const changes = { ...rest, ...statementFromMarkup(text) };
 	return image === undefined
 		? changes
 		: { ...changes, image: await imageDraft(image, context) };
@@ -202,7 +214,7 @@ export function questionOutput(
 	imageUrls: Record<string, string> = {},
 ) {
 	return {
-		...question,
+		...withStatementMarkup(question),
 		position,
 		issues: questionIssues(question),
 		...(question.image

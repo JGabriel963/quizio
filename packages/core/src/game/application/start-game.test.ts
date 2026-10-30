@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Question } from "../../quiz/domain/question";
 import { aQuestion } from "../../quiz/testing/a-question";
 import {
 	GameEndedError,
@@ -167,6 +168,26 @@ describe("startGame (spec 009)", () => {
 		expect(deps.gameQuestions.allOf("game-1")[0]?.text).toBe(
 			"Qual é a capital do Brasil?",
 		);
+	});
+
+	it("a game takes the formatting of the playable version, and a later edit does not reach the copy (spec 047, RN-21)", async () => {
+		const deps = await lobby();
+		const [first, second] = somePlayableQuestions();
+		deps.versionQuestions.set(1, [
+			{
+				...(first as Question),
+				text: "H2O?",
+				textFormatting: { subscript: [[1, 2]] },
+			},
+			second as Question,
+		]);
+
+		await createStartGame(deps)(mine);
+		deps.versionQuestions.set(1, [aQuestion({ text: "H2O?" })]);
+
+		expect(deps.gameQuestions.allOf("game-1")[0]?.textFormatting).toEqual({
+			subscript: [[1, 2]],
+		});
 	});
 
 	it("refuses a version that is gone", async () => {

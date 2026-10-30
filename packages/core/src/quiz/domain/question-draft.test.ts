@@ -268,4 +268,26 @@ describe("questionFromDraft (spec 044, RN-21, RN-22)", () => {
 			true,
 		);
 	});
+
+	it("a draft keeps its formatting (spec 047, RN-29)", () => {
+		const question = questionFromDraft(
+			{
+				type: "trueFalse",
+				text: "A fórmula da água é H2O",
+				textFormatting: { bold: [[13, 17]], subscript: [[21, 22]] },
+			},
+			"q",
+		);
+
+		expect(question.textFormatting).toEqual({
+			bold: [[13, 17]],
+			subscript: [[21, 22]],
+		});
+	});
+
+	it("a draft without formatting has none", () => {
+		expect(
+			questionFromDraft({ type: "trueFalse", text: "H2O" }, "q").textFormatting,
+		).toEqual({});
+	});
 });

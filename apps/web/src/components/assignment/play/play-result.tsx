@@ -61,6 +61,7 @@ export function PlayResult({
 			<ProgressSegments index={result.question.index} count={questionCount} />
 			<QuestionLayout
 				text={result.question.text}
+				formatting={result.question.textFormatting}
 				top={<ResultStrip result={result} animate={animate} />}
 				answers={
 					result.sliderAnswer ? (

@@ -1,10 +1,11 @@
 import { QUESTION_TYPE_REVEAL_MS } from "@quizio/core/game/domain/game-progress";
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { Button } from "@quizio/ui/components/button";
 import { ChevronRightIcon, SkipForwardIcon } from "lucide-react";
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
-
 import { QuestionTypeIcon } from "@/components/editor/question-type-icon";
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { HostQuestionData, HostStageData } from "@/lib/api-types";
 import { usePrefersReducedMotion } from "@/lib/game-motion";
 import { questionTypeLabel } from "@/lib/quiz-labels";
@@ -18,11 +19,17 @@ import { AnswerBars, StageChoices } from "./stage-choices";
 import { StageImage } from "./stage-image";
 import { TypedAnswersReveal } from "./typed-answers-reveal";
 
-/** The white strip with the question, as in Kahoot. */
-function QuestionText({ children }: { children: ReactNode }) {
+/** The white strip with the question, as in Kahoot, with its formatting (spec 047). */
+function QuestionText({
+	text,
+	formatting,
+}: {
+	text: string;
+	formatting: TextFormatting;
+}) {
 	return (
-		<h1 className="w-full rounded-md bg-white px-4 py-3 text-center font-bold text-2xl text-neutral-900 shadow-lg sm:py-5 sm:text-4xl">
-			{children}
+		<h1 className="w-full rounded-md bg-white px-4 py-3 text-center text-2xl text-neutral-900 shadow-lg sm:py-5 sm:text-4xl">
+			<FormattedText text={text} formatting={formatting} />
 		</h1>
 	);
 }
@@ -127,7 +134,10 @@ export function QuestionIntro({
 						<span className="sr-only">{typeLabel}</span>
 					</p>
 					<div className="flex w-full max-w-6xl flex-1 items-center motion-safe:animate-stage-in">
-						<QuestionText>{question.text}</QuestionText>
+						<QuestionText
+							text={question.text}
+							formatting={question.textFormatting}
+						/>
 					</div>
 				</>
 			)}
@@ -169,7 +179,10 @@ function QuestionStage({
 			{/* As in Kahoot: the question in a card at the center, the action at the right edge. */}
 			<div className="grid grid-cols-1 items-start gap-2 p-2 sm:grid-cols-[1fr_minmax(0,40rem)_1fr] sm:p-4">
 				<div className="sm:col-start-2">
-					<QuestionText>{question.text}</QuestionText>
+					<QuestionText
+						text={question.text}
+						formatting={question.textFormatting}
+					/>
 				</div>
 				<div className="flex justify-end">{action}</div>
 			</div>

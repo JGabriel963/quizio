@@ -16,6 +16,7 @@ describe("PlayResult of a type answer (spec 031, RN-35)", () => {
 						selection: "single",
 						slider: null,
 						text: "Quem andou sobre as águas?",
+						textFormatting: { italic: [[20, 25]] },
 						image: null,
 						choices: [],
 					},
@@ -39,6 +40,12 @@ describe("PlayResult of a type answer (spec 031, RN-35)", () => {
 			screen.getByRole("heading", { name: "As respostas corretas são:" }),
 		).toBeInTheDocument();
 		expect(screen.getByText("Simão Pedro")).toBeInTheDocument();
+		// The statement shows formatted (spec 047, RN-25).
+		expect(
+			screen
+				.getByRole("heading", { name: "Quem andou sobre as águas?" })
+				.querySelector("em"),
+		).toHaveTextContent("águas");
 	});
 });
 
@@ -63,6 +70,7 @@ describe("PlayResult of a slider (spec 032, RN-34)", () => {
 							unit: "anos",
 						},
 						text: "Quantos anos?",
+						textFormatting: {},
 						image: null,
 						choices: [],
 					},
@@ -103,6 +111,7 @@ describe("PlayResult of a puzzle (spec 033, RN-29)", () => {
 		selection: "single" as const,
 		slider: null,
 		text: "Coloque estes rios do maior para o menor",
+		textFormatting: {},
 		image: null,
 		choices: [
 			{ id: "choice-3", shapeIndex: 0, text: "Yangtzé" },

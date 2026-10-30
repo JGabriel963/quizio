@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { aQuestion } from "../../quiz/testing/a-question";
 import { A_THEME_LOOK } from "../../shared/testing/a-theme-look";
 
 import {
@@ -59,6 +60,23 @@ describe("createAssignment theme (spec 042)", () => {
 		expect((await deps.games.findById(gameId))?.customTheme).toEqual(
 			A_THEME_LOOK,
 		);
+	});
+});
+
+describe("createAssignment and the statement's formatting (spec 047, RN-21)", () => {
+	it("an assignment copies the formatting, and a later edit does not reach it", async () => {
+		const deps = createGameDeps({
+			questions: [
+				aQuestion({ text: "H2O?", textFormatting: { subscript: [[1, 2]] } }),
+			],
+		});
+
+		const { gameId } = await createCreateAssignment(deps)(assign());
+		deps.versionQuestions.set(1, [aQuestion({ text: "H2O?" })]);
+
+		expect(deps.gameQuestions.allOf(gameId)[0]?.textFormatting).toEqual({
+			subscript: [[1, 2]],
+		});
 	});
 });
 

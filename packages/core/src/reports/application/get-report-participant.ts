@@ -1,4 +1,5 @@
 import type { QuestionType } from "../../quiz/domain/question";
+import type { TextFormatting } from "../../shared/domain/text-formatting";
 import { puzzleOrderOf } from "../domain/puzzle-orders";
 import { ReportNotFoundError } from "../domain/report";
 import { participantStats } from "../domain/report-stats";
@@ -15,6 +16,8 @@ import {
 export interface ParticipantAnswerView {
 	questionIndex: number;
 	text: string;
+	/** The statement's marked stretches (spec 047, RN-25). */
+	textFormatting: TextFormatting;
 	type: QuestionType;
 	result: AnswerResult;
 	/** What they marked; empty without an answer. */
@@ -68,6 +71,7 @@ export function createGetReportParticipant(
 					return {
 						questionIndex: question.index,
 						text: question.text,
+						textFormatting: question.textFormatting,
 						type: question.type,
 						result: answer?.correctness ?? "unanswered",
 						choices: chosenChoices(question, answer),

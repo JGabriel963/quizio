@@ -125,6 +125,20 @@ describe("QuestionList", () => {
 		expect(second).toHaveTextContent("2 Quiz");
 	});
 
+	it("the item shows the statement formatted and keeps a plain aria-label (spec 047, RN-27)", () => {
+		renderList([
+			question("a", "Quanto é 22?", {
+				textFormatting: { superscript: [[10, 11]] },
+			}),
+		]);
+
+		const [first] = items();
+		expect(first?.querySelector("sup")).toHaveTextContent("2");
+		expect(
+			screen.getByRole("button", { name: "Pergunta 1: Quanto é 22?" }),
+		).toBeInTheDocument();
+	});
+
 	it("shows the type name, the two answers and the alert of a true/false question", () => {
 		renderList([
 			question("a", "A?"),

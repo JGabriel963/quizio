@@ -1,3 +1,4 @@
+import { copyTextFormatting } from "../../shared/domain/text-formatting";
 import type {
 	ReportGameQuery,
 	ReportHeaderCriteria,
@@ -26,6 +27,7 @@ function copyGame(game: ReportGame): ReportGame {
 		participants: game.participants.map((participant) => ({ ...participant })),
 		questions: game.questions.map((question) => ({
 			...question,
+			textFormatting: copyTextFormatting(question.textFormatting),
 			choices: question.choices.map((choice) => ({ ...choice })),
 			acceptedAnswers: [...question.acceptedAnswers],
 			correctOrder: [...question.correctOrder],

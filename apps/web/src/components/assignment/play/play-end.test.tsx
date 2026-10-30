@@ -45,6 +45,7 @@ const resultOf = (index: number, text: string) => ({
 		selection: "single" as const,
 		slider: null,
 		text,
+		textFormatting: {},
 		image: null,
 		choices: [
 			{ id: `q${index}-a`, shapeIndex: 0, text: "Sim" },

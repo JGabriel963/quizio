@@ -64,6 +64,7 @@ describe("advanceGame (spec 009)", () => {
 					type: "quiz",
 					selection: "single",
 					text: null,
+					textFormatting: {},
 					image: null,
 					choices: [
 						{ id: "choice-1", shapeIndex: 0, label: null, text: null },

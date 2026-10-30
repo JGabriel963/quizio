@@ -18,6 +18,29 @@ function Example() {
 }
 
 describe("Tabs", () => {
+	it("pill variant marks the selected tab (spec 047)", async () => {
+		const user = userEvent.setup();
+		render(
+			<Tabs defaultValue="greek">
+				<TabsList variant="pill" aria-label="Símbolos">
+					<TabsTrigger variant="pill" value="greek">
+						Grego
+					</TabsTrigger>
+					<TabsTrigger variant="pill" value="other">
+						Outro
+					</TabsTrigger>
+				</TabsList>
+			</Tabs>,
+		);
+		const other = screen.getByRole("tab", { name: "Outro" });
+
+		await user.click(other);
+
+		expect(other).toHaveAttribute("aria-selected", "true");
+		expect(other.className).toContain("data-[active]:bg-primary");
+		expect(screen.getByRole("tablist").className).toContain("bg-transparent");
+	});
+
 	it("switches panels with the mouse and the arrow keys and exposes a tablist", async () => {
 		const user = userEvent.setup();
 		render(<Example />);

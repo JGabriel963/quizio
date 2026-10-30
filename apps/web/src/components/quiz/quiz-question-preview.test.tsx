@@ -43,6 +43,36 @@ describe("QuizQuestionPreview", () => {
 		expect(screen.queryByText("Verdadeiro")).toBeNull();
 	});
 
+	it("slide and row show the statement formatted, in normal weight (spec 047)", () => {
+		const formatted = aQuestion({
+			id: "q3",
+			text: "Qual destas não é uma capital?",
+			textFormatting: { bold: [[12, 15]] },
+		});
+		const { rerender } = render(
+			<QuizQuestionPreview
+				questions={[formatted]}
+				imageUrls={{}}
+				layout="grid"
+				showAnswers={false}
+			/>,
+		);
+		expect(document.querySelector("strong")).toHaveTextContent("não");
+		expect(document.querySelector("strong")?.parentElement).toHaveClass(
+			"font-normal",
+		);
+
+		rerender(
+			<QuizQuestionPreview
+				questions={[formatted]}
+				imageUrls={{}}
+				layout="list"
+				showAnswers={false}
+			/>,
+		);
+		expect(document.querySelector("strong")).toHaveTextContent("não");
+	});
+
 	it("shows the answers and marks the right ones with Mostrar respostas", () => {
 		render(
 			<QuizQuestionPreview

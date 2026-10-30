@@ -32,6 +32,7 @@ function renderReview(props: Partial<Parameters<typeof AnswerReview>[0]> = {}) {
 	render(
 		<AnswerReview
 			questionText="Quem andou sobre as águas?"
+			questionFormatting={{}}
 			groups={groups}
 			busy={false}
 			error={null}
@@ -47,6 +48,18 @@ const lane = (name: string) => screen.getByRole("list", { name });
 const send = () => screen.getByRole("button", { name: "Enviar" });
 
 describe("AnswerReview (spec 031, RN-27 to RN-29)", () => {
+	it("the review shows the statement formatted (spec 047, RN-25)", () => {
+		renderReview({
+			questionText: "Quem andou sobre as águas?",
+			questionFormatting: { italic: [[20, 25]] },
+		});
+
+		const heading = screen.getByRole("heading", {
+			name: "Quem andou sobre as águas?",
+		});
+		expect(heading.querySelector("em")).toHaveTextContent("águas");
+	});
+
 	it("lists correct, similar and other answers with counts", () => {
 		renderReview();
 

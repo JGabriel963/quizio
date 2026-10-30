@@ -7,7 +7,6 @@ import {
 import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon, ChevronDownIcon, ImageIcon, XIcon } from "lucide-react";
 import { useId, useState } from "react";
-
 import {
 	QuestionImageView,
 	thumbnailImage,
@@ -20,6 +19,7 @@ import {
 	type ShownTheme,
 	themeStyle,
 } from "@/lib/theme-catalog";
+import { FormattedText } from "./formatted-text";
 
 /** How "Perguntas (N)" is laid out, as Kahoot's three buttons. */
 export const QUESTION_PREVIEW_LAYOUTS = ["large", "grid", "list"] as const;
@@ -226,11 +226,16 @@ function QuestionSlide({
 			<span className="sr-only">{questionCaption(question, number)}</span>
 			<p
 				className={cn(
-					"rounded-md bg-card/90 px-4 py-2 text-center font-semibold text-foreground shadow-sm",
+					"rounded-md bg-card/90 px-4 py-2 text-center text-foreground shadow-sm",
 					large ? "text-xl sm:text-3xl" : "text-base sm:text-lg",
 				)}
 			>
-				{question.text || (
+				{question.text ? (
+					<FormattedText
+						text={question.text}
+						formatting={question.textFormatting}
+					/>
+				) : (
 					<span className="text-muted-foreground">Pergunta sem texto</span>
 				)}
 			</p>
@@ -407,8 +412,13 @@ function QuestionRow({
 						{number} · {questionTypeLabel(question.type)} ·{" "}
 						{timeLimitLabel(question.timeLimitSeconds)}
 					</span>
-					<p className="truncate font-semibold sm:whitespace-normal sm:break-words">
-						{question.text || (
+					<p className="truncate sm:whitespace-normal sm:break-words">
+						{question.text ? (
+							<FormattedText
+								text={question.text}
+								formatting={question.textFormatting}
+							/>
+						) : (
 							<span className="text-muted-foreground">Pergunta sem texto</span>
 						)}
 					</p>

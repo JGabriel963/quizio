@@ -5,6 +5,7 @@ import { TabNav, TabNavItem } from "@quizio/ui/components/tab-nav";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { ReportQuestionData } from "@/lib/api-types";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 
@@ -103,9 +104,12 @@ export function QuestionsTable({
 								to="/reports/$gameId"
 								params={{ gameId }}
 								search={{ tab: "questions", view, question: question.index }}
-								className="min-w-0 break-words font-semibold hover:underline"
+								className="min-w-0 break-words hover:underline"
 							>
-								{question.text}
+								<FormattedText
+									text={question.text}
+									formatting={question.textFormatting}
+								/>
 							</Link>
 							<span className="col-start-2 text-muted-foreground text-sm md:col-start-auto md:text-foreground">
 								{questionTypeLabel(question.type)}

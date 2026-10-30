@@ -13,6 +13,19 @@ export function characterCount(text: string): number {
 	return count;
 }
 
+/**
+ * Where each user-perceived character starts, in UTF-16 units, plus the
+ * text's length: the places a formatted stretch may begin or end (spec 047).
+ */
+export function graphemeBoundaries(text: string): number[] {
+	const boundaries: number[] = [];
+	for (const { index } of graphemes.segment(text)) {
+		boundaries.push(index);
+	}
+	boundaries.push(text.length);
+	return boundaries;
+}
+
 /** Keeps the first `max` user-perceived characters, never splitting an emoji or accent. */
 export function truncateCharacters(text: string, max: number): string {
 	let result = "";

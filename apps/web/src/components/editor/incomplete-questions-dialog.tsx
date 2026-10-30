@@ -10,6 +10,7 @@ import {
 } from "@quizio/ui/components/dialog";
 import { ImageIcon } from "lucide-react";
 
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { QuestionData } from "@/lib/api-types";
 import { questionIssueLabel } from "@/lib/question-labels";
 import { questionTypeLabel } from "@/lib/quiz-labels";
@@ -84,9 +85,11 @@ export function IncompleteQuestionsDialog({
 										{`${position} - ${questionTypeLabel(question.type)}`}
 									</span>
 									{question.text && (
-										<span className="truncate font-semibold text-sm">
-											{question.text}
-										</span>
+										<FormattedText
+											text={question.text}
+											formatting={question.textFormatting}
+											className="truncate text-sm"
+										/>
 									)}
 								</div>
 								<Button

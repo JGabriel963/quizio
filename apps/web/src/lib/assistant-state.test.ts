@@ -15,6 +15,7 @@ const generated = (ids: string[]) =>
 		id,
 		type: "trueFalse" as const,
 		text: `Pergunta ${id}`,
+		textFormatting: {},
 		timeLimitSeconds: 20 as const,
 		points: "standard" as const,
 		image: null,

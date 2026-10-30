@@ -7,6 +7,7 @@ import {
 import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon } from "lucide-react";
 
+import { FormattedText } from "@/components/quiz/formatted-text";
 import { timeLimitLabel } from "@/lib/question-labels";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import { formatSliderNumber } from "@/lib/slider-format";
@@ -40,7 +41,14 @@ export function SharedQuestionList({
 							{index + 1} · {questionTypeLabel(question.type)} ·{" "}
 							{timeLimitLabel(question.timeLimitSeconds)}
 						</p>
-						<p className="font-bold">{question.text}</p>
+						<p>
+							{question.text && (
+								<FormattedText
+									text={question.text}
+									formatting={question.textFormatting}
+								/>
+							)}
+						</p>
 						{imageUrl && (
 							<img
 								src={imageUrl}

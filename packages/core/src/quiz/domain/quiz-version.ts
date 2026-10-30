@@ -1,4 +1,8 @@
 import {
+	readTextFormatting,
+	sameTextFormatting,
+} from "../../shared/domain/text-formatting";
+import {
 	copyQuestion,
 	parseStoredContent,
 	parseStoredTimeLimit,
@@ -97,6 +101,7 @@ export function sameQuestionLists(
 			const other = b[index] as Question;
 			return (
 				question.text === other.text &&
+				sameTextFormatting(question.textFormatting, other.textFormatting) &&
 				question.timeLimitSeconds === other.timeLimitSeconds &&
 				question.points === other.points &&
 				sameImage(question.image, other.image) &&
@@ -130,6 +135,7 @@ export function parseVersionQuestions(raw: unknown): Question[] {
 			id,
 			type,
 			text,
+			textFormatting,
 			timeLimitSeconds,
 			points,
 			image,
@@ -142,10 +148,13 @@ export function parseVersionQuestions(raw: unknown): Question[] {
 		) {
 			return [];
 		}
+		const storedText = typeof text === "string" ? text : null;
 		return [
 			{
 				id,
-				text: typeof text === "string" ? text : null,
+				text: storedText,
+				// Versions saved before spec 047 have none (RN-22).
+				textFormatting: readTextFormatting(storedText, textFormatting),
 				timeLimitSeconds: parseStoredTimeLimit(type, timeLimitSeconds),
 				points: isOneOf<QuestionPoints>(QUESTION_POINTS, points)
 					? points

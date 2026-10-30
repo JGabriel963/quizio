@@ -2,6 +2,11 @@ import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
 import { ANSWER_MARGINS } from "../../shared/domain/slider-scale";
 import {
+	copyTextFormatting,
+	NO_FORMATTING,
+	type TextFormatting,
+} from "../../shared/domain/text-formatting";
+import {
 	blankContent,
 	type Choice,
 	choiceIdAt,
@@ -18,7 +23,7 @@ import {
 	parseAcceptedAnswer,
 	parseChoiceText,
 	parsePoints,
-	parseQuestionText,
+	parseQuestionStatement,
 	parseQuestionType,
 	parseSelection,
 	parseSliderNumber,
@@ -70,7 +75,8 @@ export type QuestionContentInput =
  * the optimistic client) and are validated here.
  */
 export type QuestionChange =
-	| { kind: "text"; text: string | null }
+	/** The whole statement with its formatting; none sent is none kept (spec 047, RN-18). */
+	| { kind: "text"; text: string | null; formatting?: TextFormatting }
 	| { kind: "timeLimit"; seconds: number }
 	| { kind: "points"; points: string }
 	| { kind: "selection"; selection: string }
@@ -557,6 +563,7 @@ function changeType(
 		question: {
 			id: question.id,
 			text: question.text,
+			textFormatting: copyTextFormatting(question.textFormatting),
 			// Spec 031, RN-07: below what the new type takes, it gets its shortest time.
 			timeLimitSeconds: fitTimeLimit(type, question.timeLimitSeconds),
 			points: question.points,
@@ -587,7 +594,13 @@ export function applyQuestionChange(
 ): QuestionChangeResult {
 	switch (change.kind) {
 		case "text":
-			return unchanged({ ...question, text: parseQuestionText(change.text) });
+			return unchanged({
+				...question,
+				...parseQuestionStatement(
+					change.text,
+					change.formatting ?? NO_FORMATTING,
+				),
+			});
 		case "timeLimit": {
 			const seconds = parseTimeLimit(change.seconds);
 			if (!timeLimitsFor(question.type).includes(seconds)) {

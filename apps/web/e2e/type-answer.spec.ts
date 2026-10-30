@@ -42,7 +42,7 @@ async function publishTypeAnswerQuiz(
 	if (withSecond) {
 		await pickNewQuestionType(page, "Verdadeiro ou falso");
 		const question = page.getByRole("textbox", { name: "Pergunta" });
-		await expect(question).toHaveValue("");
+		await expect(question).toHaveText("");
 		await question.fill("Pedro era pescador");
 		await question.blur();
 		await page.getByRole("checkbox", { name: "Verdadeiro correta" }).click();

@@ -121,6 +121,57 @@ describe("sameQuestionLists", () => {
 	});
 });
 
+describe("formatting in versions (spec 047)", () => {
+	const formatted = aQuestion({
+		text: "Qual destas não é uma capital?",
+		textFormatting: { bold: [[12, 15]] },
+	});
+
+	it("a formatting change makes the lists differ", () => {
+		expect(
+			sameQuestionLists(
+				[formatted],
+				[{ ...formatted, textFormatting: { italic: [[12, 15]] } }],
+			),
+		).toBe(false);
+		expect(
+			sameQuestionLists([formatted], [{ ...formatted, textFormatting: {} }]),
+		).toBe(false);
+	});
+
+	it("the same formatting written in another order is the same", () => {
+		const twoStretches = aQuestion({
+			text: "Qual destas não é uma capital?",
+			textFormatting: { bold: [[0, 4]], italic: [[12, 15]] },
+		});
+
+		expect(
+			sameQuestionLists(
+				[twoStretches],
+				[
+					{
+						...twoStretches,
+						textFormatting: { italic: [[12, 15]], bold: [[0, 4]] },
+					},
+				],
+			),
+		).toBe(true);
+	});
+
+	it("parseVersionQuestions reads the formatting and leaves it out of the content", () => {
+		const stored = JSON.parse(JSON.stringify([formatted]));
+
+		expect(parseVersionQuestions(stored)).toEqual([formatted]);
+	});
+
+	it("a stored version without the field reads without formatting", () => {
+		const { textFormatting: _formatting, ...old } = formatted;
+		const stored = JSON.parse(JSON.stringify([old]));
+
+		expect(parseVersionQuestions(stored)[0]?.textFormatting).toEqual({});
+	});
+});
+
 describe("sameQuestionLists and the AI mark", () => {
 	it("same lists ignore the AI mark", () => {
 		const question = aQuestion();

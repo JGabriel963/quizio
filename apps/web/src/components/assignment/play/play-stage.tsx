@@ -1,6 +1,6 @@
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { cn } from "@quizio/ui/lib/utils";
 import type { ReactNode } from "react";
-
 import { Statement } from "@/components/game/player/question-on-device";
 
 /** One segment per question, the ones reached filled, above the card as in Kahoot (RN-08). */
@@ -72,12 +72,14 @@ export function PlayCard({
  */
 export function QuestionLayout({
 	text,
+	formatting,
 	top,
 	answers,
 	footer,
 	background,
 }: {
 	text: string;
+	formatting: TextFormatting;
 	top: ReactNode;
 	answers: ReactNode;
 	/** The time bar; the same room stays empty without it. */
@@ -92,7 +94,7 @@ export function QuestionLayout({
 				{top}
 			</div>
 			<div className="shrink-0 px-2 pt-2">
-				<Statement>{text}</Statement>
+				<Statement text={text} formatting={formatting} />
 			</div>
 			{answers}
 			<div className="flex h-8 shrink-0 items-start px-2">{footer}</div>

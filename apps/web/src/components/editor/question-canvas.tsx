@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import type { QuestionData } from "@/lib/api-types";
 import { PuzzleAnswers } from "./puzzle-answers";
 import { type ImageUploadState, QuestionMedia } from "./question-media";
-import { QuestionTextField } from "./question-text-field";
+import { QuestionTextField, type Statement } from "./question-text-field";
 import { QuizAnswers } from "./quiz-answers";
 import { SliderAnswers } from "./slider-answers";
 import { TrueFalseAnswers } from "./true-false-answers";
@@ -22,7 +22,7 @@ export function QuestionCanvas({
 	imageUrl,
 	upload,
 	showHints,
-	onSaveText,
+	onSaveStatement,
 	onSaveChoiceText,
 	onSaveAcceptedAnswer,
 	onSavePuzzleItem,
@@ -36,7 +36,8 @@ export function QuestionCanvas({
 	upload: ImageUploadState;
 	/** False for a question the creator has just started: no warnings yet (spec 004, RN-16). */
 	showHints: boolean;
-	onSaveText: (text: string | null) => Promise<unknown>;
+	/** The statement with its formatting (spec 047). */
+	onSaveStatement: (statement: Statement) => Promise<unknown>;
 	onSaveChoiceText: (choiceId: string, text: string | null) => Promise<unknown>;
 	/** The autosaved text of an accepted answer of a type answer (spec 031). */
 	onSaveAcceptedAnswer: (
@@ -61,9 +62,10 @@ export function QuestionCanvas({
 					key={question.id}
 					questionId={question.id}
 					initialText={question.text}
+					initialFormatting={question.textFormatting}
 					hint={showHints}
 					tip={question.type === "puzzle" ? PUZZLE_QUESTION_TIP : undefined}
-					onSave={onSaveText}
+					onSave={onSaveStatement}
 				/>
 				{titleAside}
 			</div>

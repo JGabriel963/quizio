@@ -10,6 +10,11 @@ import {
 	ANSWER_MARGINS,
 	type SliderScale,
 } from "../../shared/domain/slider-scale";
+import {
+	copyTextFormatting,
+	readTextFormatting,
+	type TextFormatting,
+} from "../../shared/domain/text-formatting";
 import type { GameOptions } from "./game-options";
 import { placedInOrder, wrongOrderOf } from "./puzzle";
 
@@ -37,6 +42,8 @@ export interface GameQuestion {
 	index: number;
 	type: QuestionType;
 	text: string;
+	/** The statement's marked stretches (spec 047, RN-21). */
+	textFormatting: TextFormatting;
 	timeLimitSeconds: number;
 	points: QuestionPoints;
 	selection: SelectionMode;
@@ -146,6 +153,7 @@ export function toGameQuestion(
 		index,
 		type: question.type,
 		text: question.text ?? "",
+		textFormatting: copyTextFormatting(question.textFormatting),
 		timeLimitSeconds: question.timeLimitSeconds,
 		points: question.points,
 		selection: question.type === "quiz" ? question.selection : "single",
@@ -280,6 +288,8 @@ export function parseStoredGameQuestion(raw: unknown): GameQuestion | null {
 		index,
 		type: type as QuestionType,
 		text,
+		// Games stored before spec 047 have none (RN-22).
+		textFormatting: readTextFormatting(text, stored.textFormatting),
 		timeLimitSeconds,
 		points: points as QuestionPoints,
 		selection: selection as SelectionMode,

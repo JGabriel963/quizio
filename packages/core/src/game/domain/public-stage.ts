@@ -10,6 +10,10 @@ import {
 	startPosition,
 } from "../../shared/domain/slider-scale";
 import {
+	NO_FORMATTING,
+	type TextFormatting,
+} from "../../shared/domain/text-formatting";
+import {
 	type GamePhase,
 	type PlayingGame,
 	phaseDurationMs,
@@ -82,6 +86,8 @@ export interface PublicStage {
 		selection: SelectionMode;
 		/** The statement; null with the questions off the devices. */
 		text: string | null;
+		/** Its marked stretches; none without the statement (spec 047, RN-25). */
+		textFormatting: TextFormatting;
 		/** Null with the questions off the devices and before the answers open. */
 		image: PublicImage | null;
 		choices: PublicChoice[];
@@ -111,6 +117,7 @@ export function publicStageOf(
 			type: shown.type,
 			selection: shown.selection,
 			text: onDevices ? shown.text : null,
+			textFormatting: onDevices ? shown.textFormatting : NO_FORMATTING,
 			image:
 				answersShown && shown.image
 					? {

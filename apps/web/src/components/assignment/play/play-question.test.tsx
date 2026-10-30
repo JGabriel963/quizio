@@ -11,6 +11,7 @@ const question = {
 	selection: "single" as const,
 	slider: null,
 	text: "Qual é a capital do Brasil?",
+	textFormatting: {},
 	image: {
 		url: "https://media.test/rio.png",
 		placement: "media" as const,
@@ -60,6 +61,18 @@ describe("PlayQuestion (spec 030, RN-08, RN-09)", () => {
 		await user.click(screen.getByRole("button", { name: /Brasília/ }));
 
 		expect(props.onAnswer).toHaveBeenCalledWith(["choice-1"]);
+	});
+
+	it("the statement shows formatted (spec 047, RN-25)", () => {
+		renderQuestion({
+			question: { ...question, textFormatting: { bold: [[20, 26]] } },
+		});
+
+		expect(
+			screen
+				.getByRole("heading", { name: "Qual é a capital do Brasil?" })
+				.querySelector("strong"),
+		).toHaveTextContent("Brasil");
 	});
 
 	it("the time bar counts down from what the server sent", () => {
@@ -210,6 +223,7 @@ describe("PlayQuestion with a puzzle (spec 033, RN-28)", () => {
 		selection: "single" as const,
 		slider: null,
 		text: "Coloque estes rios do maior para o menor",
+		textFormatting: {},
 		image: null,
 		choices: [
 			{ id: "choice-3", shapeIndex: 0, text: "Yangtzé" },

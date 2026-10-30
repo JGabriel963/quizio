@@ -58,7 +58,11 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Visibilidade | `QuizVisibility` | `private` ou `public` (spec 039, que tirou o `unlisted` da spec 001); `public` = aparece no perfil do dono | ✅ |
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
 | Pergunta | `Question` | Bloco interativo com texto (≤ 160), tipo, tempo limite e pontos | ✅ |
-| Enunciado | `text` | Texto da pergunta, ≤ 160 caracteres (120 no Kahoot); pode ficar vazio no rascunho (spec 003) | ✅ |
+| Enunciado | `text` | Texto da pergunta, ≤ 160 caracteres (120 no Kahoot); pode ficar vazio no rascunho (spec 003); pode ter formatação (spec 047) | ✅ |
+| Formatação | `TextFormatting` | Trechos do enunciado com marcas, guardados ao lado do texto puro; não conta no limite de caracteres e faz parte da versão jogável (spec 047) | ✅ |
+| Marca de formatação | `TextMark` | `bold` (negrito), `italic` (itálico), `subscript` (subscrito) ou `superscript` (sobrescrito); subscrito e sobrescrito nunca no mesmo trecho (spec 047) | ✅ |
+| Barra de formatação | `FormattingToolbar` | Barra flutuante acima do enunciado, à vista só com o campo em foco: Negrito, Itálico, Subscrito, Sobrescrito e Símbolos (spec 047) | ✅ |
+| Diálogo de símbolos | `SymbolDialog` | "Insira um símbolo": abas Caracteres especiais, Moeda, Matemática, Grego e Outro; o símbolo escolhido entra no cursor e o diálogo fecha (spec 047) | ✅ |
 | Pergunta em branco | `blankQuestion` | Pergunta Quiz recém-criada, sem enunciado; todo quiz novo nasce com uma (spec 003) | ✅ |
 | Posição | `position` | Ordem da pergunta no quiz, que é a ordem de apresentação na partida (spec 003) | ✅ |
 | Limite de perguntas | `QUIZ_MAX_QUESTIONS` | Máximo de 200 perguntas por quiz, configurável (spec 003) | ✅ |

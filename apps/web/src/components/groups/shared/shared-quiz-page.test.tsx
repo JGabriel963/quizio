@@ -9,6 +9,7 @@ import { renderWithRouter } from "@/testing/render-with-router";
 import { SharedQuizPage } from "./shared-quiz-page";
 
 const base = {
+	textFormatting: {},
 	timeLimitSeconds: 20,
 	points: "standard",
 	aiGenerated: false,
@@ -107,6 +108,29 @@ describe("SharedQuizPage (spec 037, RN-16 to RN-21)", () => {
 		);
 		expect(screen.getByText(/1 · Quiz · 20 segundos/)).toBeVisible();
 		expect(screen.queryByText("Brasília")).toBeNull();
+	});
+
+	it("questions show their formatting (spec 047, RN-25)", async () => {
+		const [first, ...rest] = questions;
+		renderWithRouter(
+			<SharedQuizPage
+				quiz={aPage({
+					questions: [
+						{
+							...(first as Question),
+							text: "H2O?",
+							textFormatting: { subscript: [[1, 2]] },
+						},
+						...rest,
+					],
+				})}
+				onHost={vi.fn()}
+				onAssign={vi.fn()}
+				onDuplicate={vi.fn()}
+			/>,
+		);
+
+		expect(await screen.findByText("2", { selector: "sub" })).toBeVisible();
 	});
 
 	it("Mostrar respostas shows the answers with the right ones marked", async () => {

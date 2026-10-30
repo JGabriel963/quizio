@@ -113,6 +113,23 @@ describe("duplicateQuiz", () => {
 		]);
 	});
 
+	it("the copy keeps the formatting (spec 047, RN-20)", async () => {
+		await quizzes.save(aQuiz());
+		await questions.saveList("quiz-1", [
+			aQuestion({
+				id: "a",
+				text: "H2O",
+				textFormatting: { subscript: [[1, 2]] },
+			}),
+		]);
+
+		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(questions.listOf(copy.id)[0]?.textFormatting).toEqual({
+			subscript: [[1, 2]],
+		});
+	});
+
 	it("copies answers, corrects, selection, time and points", async () => {
 		await quizzes.save(aQuiz());
 		const original = aQuestion({

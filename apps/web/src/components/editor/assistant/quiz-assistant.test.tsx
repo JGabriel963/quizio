@@ -19,6 +19,7 @@ const generated = (id: string, text: string): GeneratedQuestionData => ({
 	id,
 	type: "quiz",
 	text,
+	textFormatting: {},
 	timeLimitSeconds: 20,
 	points: "standard",
 	image: null,

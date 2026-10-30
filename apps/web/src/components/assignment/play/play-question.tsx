@@ -17,6 +17,7 @@ export function asDeviceQuestion(
 		type: question.type,
 		selection: question.selection,
 		text: question.text,
+		textFormatting: question.textFormatting,
 		image: question.image,
 		slider: question.slider,
 		choices: question.choices.map((choice) => ({
@@ -65,6 +66,7 @@ export function PlayQuestion({
 			<ProgressSegments index={question.index} count={questionCount} />
 			<QuestionLayout
 				text={question.text}
+				formatting={question.textFormatting}
 				background={<DeviceBackground image={question.image} />}
 				top={
 					<>

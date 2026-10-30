@@ -1,10 +1,11 @@
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { cn } from "@quizio/ui/lib/utils";
 import type { ReactNode } from "react";
-
 import {
 	QUESTION_IMAGE_FALLBACK_ALT,
 	QuestionImageView,
 } from "@/components/editor/question-image-view";
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { PlayerQuestionData, PlayerStageData } from "@/lib/api-types";
 import { useCountdown } from "@/lib/use-countdown";
 
@@ -17,10 +18,16 @@ type DeviceImage = NonNullable<PlayerQuestionData["image"]>;
  */
 
 /** The white strip with the statement, as on the host's screen. */
-export function Statement({ children }: { children: ReactNode }) {
+export function Statement({
+	text,
+	formatting,
+}: {
+	text: string;
+	formatting: TextFormatting;
+}) {
 	return (
-		<h1 className="w-full break-words rounded-md bg-white px-3 py-2 text-center font-bold text-lg text-neutral-900 leading-snug shadow-lg sm:text-2xl">
-			{children}
+		<h1 className="w-full break-words rounded-md bg-white px-3 py-2 text-center text-lg text-neutral-900 leading-snug shadow-lg sm:text-2xl">
+			<FormattedText text={text} formatting={formatting} />
 		</h1>
 	);
 }
@@ -29,10 +36,12 @@ export function Statement({ children }: { children: ReactNode }) {
 export function DeviceQuestionIntro({
 	stage,
 	text,
+	formatting,
 	receivedAt,
 }: {
 	stage: PlayerStageData;
 	text: string;
+	formatting: TextFormatting;
 	receivedAt: number;
 }) {
 	const { ms } = useCountdown(stage.remainingMs, receivedAt);
@@ -42,7 +51,7 @@ export function DeviceQuestionIntro({
 	return (
 		<main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 p-4 motion-safe:animate-stage-in">
 			<div className="w-full max-w-2xl motion-safe:animate-pop-in">
-				<Statement>{text}</Statement>
+				<Statement text={text} formatting={formatting} />
 			</div>
 			<div
 				role="progressbar"
@@ -131,7 +140,10 @@ export function DeviceQuestion({
 			</div>
 			{question.text !== null && (
 				<div className="shrink-0 px-2 pt-2">
-					<Statement>{question.text}</Statement>
+					<Statement
+						text={question.text}
+						formatting={question.textFormatting}
+					/>
 				</div>
 			)}
 			{answersInMiddle ? (

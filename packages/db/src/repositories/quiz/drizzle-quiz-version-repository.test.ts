@@ -152,6 +152,19 @@ describe("DrizzleQuizVersionRepository", () => {
 		);
 	});
 
+	it("a saved version keeps the formatting (spec 047)", async () => {
+		const versions = createDrizzleQuizVersionRepository(testDb.db);
+		await versions.save(
+			versionOf("quiz-1", 1, [
+				{ ...trueFalse, text: "H2O", textFormatting: { subscript: [[1, 2]] } },
+			]),
+		);
+
+		expect(
+			(await versions.find("quiz-1", 1))?.questions[0]?.textFormatting,
+		).toEqual({ subscript: [[1, 2]] });
+	});
+
 	it("deletes every version of a quiz", async () => {
 		const versions = createDrizzleQuizVersionRepository(testDb.db);
 		await versions.save(versionOf("quiz-1", 1));

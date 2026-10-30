@@ -4,6 +4,7 @@ import {
 } from "@quizio/core/game/domain/assignment";
 import { endGame, type Game } from "@quizio/core/game/domain/game";
 import { revealedThrough } from "@quizio/core/game/domain/game-progress";
+import type { GameQuestion } from "@quizio/core/game/domain/game-question";
 import { removePlayer } from "@quizio/core/game/domain/player";
 import { rankPlayers } from "@quizio/core/game/domain/standings";
 import { aGame, aPlayer, aPlayingGame } from "@quizio/core/game/testing/a-game";
@@ -413,6 +414,7 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 			aGameQuestion({
 				index: 0,
 				text: "Como foi jogada",
+				textFormatting: { bold: [[0, 4]] },
 				image: {
 					key: "questions/a.png",
 					placement: "media",
@@ -431,6 +433,8 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				index: 0,
 				type: "quiz",
 				text: "Como foi jogada",
+				// The report question carries the formatting (spec 047, RN-25).
+				textFormatting: { bold: [[0, 4]] },
 				imageKey: "questions/a.png",
 				choices: aGameQuestion().choices,
 				acceptedAnswers: [],
@@ -462,6 +466,15 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 				receivedAt: anAnswer().receivedAt,
 			},
 		]);
+	});
+
+	it("an old copy reads without formatting (spec 047, RN-22)", async () => {
+		const { textFormatting: _formatting, ...old } = aGameQuestion({ index: 0 });
+		await seedPlayed(finished({ questionCount: 1 }), [old as GameQuestion]);
+
+		const game = await query.findGame("game-1", now);
+
+		expect(game?.questions[0]?.textFormatting).toEqual({});
 	});
 
 	it("reads typed answers and accepted answers of a type answer question (spec 031)", async () => {

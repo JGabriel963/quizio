@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { QuestionTextTooLongError } from "./question";
+import { type Question, QuestionTextTooLongError } from "./question";
 import { questionFromDraft } from "./question-draft";
 import { patchedQuestion } from "./question-patch";
 
@@ -107,5 +107,34 @@ describe("patchedQuestion (spec 044, RN-21)", () => {
 		expect(() => patchedQuestion(quiz(), { text: "a".repeat(161) })).toThrow(
 			QuestionTextTooLongError,
 		);
+	});
+
+	it("a patch with a text replaces the formatting with the one sent (spec 047, RN-29)", () => {
+		const formatted: Question = {
+			...quiz(),
+			textFormatting: { bold: [[0, 7]] },
+		};
+
+		expect(
+			patchedQuestion(formatted, {
+				text: "Capital da Itália?",
+				textFormatting: { italic: [[11, 17]] },
+			}).textFormatting,
+		).toEqual({ italic: [[11, 17]] });
+		expect(
+			patchedQuestion(formatted, { text: "Capital da Itália?" }).textFormatting,
+		).toEqual({});
+	});
+
+	it("a patch without a text keeps text and formatting", () => {
+		const formatted: Question = {
+			...quiz(),
+			textFormatting: { bold: [[0, 7]] },
+		};
+
+		const patched = patchedQuestion(formatted, { timeLimitSeconds: 30 });
+
+		expect(patched.text).toBe("Capital da França?");
+		expect(patched.textFormatting).toEqual({ bold: [[0, 7]] });
 	});
 });

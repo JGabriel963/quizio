@@ -105,9 +105,33 @@ describe("game question (spec 009)", () => {
 		expect(question.image?.crop).not.toBe(image.crop);
 	});
 
+	it("toGameQuestion copies the formatting (spec 047, RN-21)", () => {
+		const formatting = { bold: [[12, 15]] } as const;
+		const source = aQuestion({
+			text: "Qual destas não é uma capital?",
+			textFormatting: formatting,
+		});
+
+		const question = toGameQuestion(source, 0);
+
+		expect(question.textFormatting).toEqual(formatting);
+		expect(question.textFormatting).not.toBe(source.textFormatting);
+	});
+
+	it("parseStoredGameQuestion reads a copy without formatting", () => {
+		const { textFormatting: _formatting, ...old } = aGameQuestion({
+			textFormatting: { bold: [[0, 4]] },
+		});
+
+		expect(
+			parseStoredGameQuestion(JSON.parse(JSON.stringify(old)))?.textFormatting,
+		).toEqual({});
+	});
+
 	it("reads a stored question back", () => {
 		const question = aGameQuestion({
 			index: 4,
+			textFormatting: { superscript: [[5, 6]] },
 			image: {
 				key: "a.png",
 				placement: "media",
@@ -261,6 +285,7 @@ describe("public stage (spec 009)", () => {
 				type: "quiz",
 				selection: "single",
 				text: null,
+				textFormatting: {},
 				image: null,
 				choices: [
 					{ id: "choice-1", shapeIndex: 0, label: null, text: null },

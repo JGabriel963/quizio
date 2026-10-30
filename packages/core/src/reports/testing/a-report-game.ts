@@ -44,6 +44,7 @@ export function aReportQuestion(
 		index,
 		type: "quiz",
 		text: `Pergunta ${index + 1}`,
+		textFormatting: {},
 		imageKey: null,
 		acceptedAnswers: [],
 		slider: null,

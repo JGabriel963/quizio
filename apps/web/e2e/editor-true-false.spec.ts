@@ -130,7 +130,7 @@ test("an unanswered true/false question is still saved and keeps its alert", asy
 
 	await reload(page);
 
-	await expect(questionText(page)).toHaveValue("O céu é azul");
+	await expect(questionText(page)).toHaveText("O céu é azul");
 	await expect(answers(page)).toHaveText(["Verdadeiro", "Falso"]);
 	await expect(correctHint(page)).toBeVisible();
 	await expect(
@@ -152,9 +152,7 @@ test("changing the type keeps the question, and the answers come back within the
 	await choose(page, "Tipo de pergunta", "Verdadeiro ou falso");
 
 	await expect(page.getByText(KEPT_NOTICE)).toBeVisible();
-	await expect(questionText(page)).toHaveValue(
-		"A capital do Brasil é Brasília",
-	);
+	await expect(questionText(page)).toHaveText("A capital do Brasil é Brasília");
 	await expect(answers(page)).toHaveText(["Verdadeiro", "Falso"]);
 	await expect(mark(page, "Verdadeiro")).not.toBeChecked();
 	await expect(mark(page, "Falso")).not.toBeChecked();
@@ -179,9 +177,7 @@ test("changing the type keeps the question, and the answers come back within the
 
 	await expect(answer(page, 1)).toHaveValue("");
 	await expect(answer(page, 2)).toHaveValue("");
-	await expect(questionText(page)).toHaveValue(
-		"A capital do Brasil é Brasília",
-	);
+	await expect(questionText(page)).toHaveText("A capital do Brasil é Brasília");
 	await expectProperty(page, "Limite de tempo", "30 segundos");
 	await expectProperty(page, "Opções de resposta", "Seleção simples");
 });

@@ -53,6 +53,7 @@ describe("duplicateSharedQuiz (spec 037, RN-21)", () => {
 					aQuestion({
 						id: "q1",
 						text: "Salva",
+						textFormatting: { bold: [[0, 5]] },
 						image: {
 							key: IMAGE,
 							placement: "media",
@@ -78,6 +79,8 @@ describe("duplicateSharedQuiz (spec 037, RN-21)", () => {
 
 		const copied = await questions.listByQuiz(copy.id);
 		expect(copied.map((question) => question.text)).toEqual(["Salva"]);
+		// The copy keeps the formatting of the version (spec 047, RN-20).
+		expect(copied[0]?.textFormatting).toEqual({ bold: [[0, 5]] });
 		expect(copied[0]?.id).not.toBe("q1");
 	});
 

@@ -33,7 +33,10 @@ function setup(game: ReturnType<typeof aReportGame>) {
 const threeQuestions = () =>
 	aReportGame({
 		questions: [
-			aReportQuestion(0, { text: "Capital do Brasil?" }),
+			aReportQuestion(0, {
+				text: "Capital do Brasil?",
+				textFormatting: { bold: [[11, 17]] },
+			}),
 			aReportQuestion(1, { text: "Capital da França?" }),
 			aReportQuestion(2, { text: "Capital do Japão?" }),
 		],
@@ -69,6 +72,8 @@ describe("getReportParticipant (spec 015)", () => {
 			{
 				questionIndex: 0,
 				text: "Capital do Brasil?",
+				// Each answer row carries the statement's formatting (spec 047, RN-25).
+				textFormatting: { bold: [[11, 17]] },
 				type: "quiz",
 				result: "correct",
 				choices: [{ shapeIndex: 0, text: "Resposta A", correct: true }],
@@ -82,6 +87,7 @@ describe("getReportParticipant (spec 015)", () => {
 			{
 				questionIndex: 1,
 				text: "Capital da França?",
+				textFormatting: {},
 				type: "quiz",
 				result: "wrong",
 				choices: [{ shapeIndex: 1, text: "Resposta B", correct: false }],
@@ -101,6 +107,7 @@ describe("getReportParticipant (spec 015)", () => {
 		expect(ana.answers[2]).toEqual({
 			questionIndex: 2,
 			text: "Capital do Japão?",
+			textFormatting: {},
 			type: "quiz",
 			result: "unanswered",
 			choices: [],
@@ -279,6 +286,15 @@ describe("getReportQuestion (spec 015)", () => {
 				puzzleOrder: null,
 			},
 		]);
+	});
+
+	it("the detail carries the formatting (spec 047, RN-25)", async () => {
+		const detail = await setup(threeQuestions()).question(0);
+
+		expect(detail).toMatchObject({
+			text: "Capital do Brasil?",
+			textFormatting: { bold: [[11, 17]] },
+		});
 	});
 
 	it("leaves out who could not answer it", async () => {

@@ -1,11 +1,15 @@
 import { DomainError } from "../../shared/domain/domain-error";
 import {
+	NO_FORMATTING,
+	type TextFormatting,
+} from "../../shared/domain/text-formatting";
+import {
 	DEFAULT_CHOICE_COUNT,
 	defaultTimeLimitFor,
 	MAX_CHOICE_COUNT,
 	PUZZLE_ITEM_COUNT,
 	parsePoints,
-	parseQuestionText,
+	parseQuestionStatement,
 	parseQuestionType,
 	parseSliderNumber,
 	parseTimeLimit,
@@ -42,6 +46,8 @@ type SliderNumberInput = number | string | null;
 export interface QuestionDraft {
 	type: string;
 	text?: string | null;
+	/** The text's marked stretches (spec 047, RN-29); none when missing. */
+	textFormatting?: TextFormatting;
 	/** The type's default when missing. */
 	timeLimitSeconds?: number;
 	points?: string;
@@ -203,7 +209,10 @@ export function buildQuestion(
 	);
 	return {
 		id,
-		text: parseQuestionText(draft.text),
+		...parseQuestionStatement(
+			draft.text,
+			draft.textFormatting ?? NO_FORMATTING,
+		),
 		timeLimitSeconds: draftTimeLimit(type, draft.timeLimitSeconds),
 		points: parsePoints(draft.points ?? "standard"),
 		image: draftImage(draft.image),

@@ -281,6 +281,7 @@ export function PlayerStage({
 					<DeviceQuestionIntro
 						stage={stage}
 						text={question.text}
+						formatting={question.textFormatting}
 						receivedAt={receivedAt}
 					/>
 				)}

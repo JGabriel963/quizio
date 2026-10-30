@@ -5,7 +5,7 @@ import { connectTestClient } from "../testing/connect-test-client";
 const complete = {
 	title: "Sistema solar",
 	questions: [
-		{ type: "trueFalse", text: "A Terra é redonda", correct: true },
+		{ type: "trueFalse", text: "A Terra é <b>redonda</b>", correct: true },
 		{
 			type: "quiz",
 			text: "Maior planeta?",
@@ -84,6 +84,11 @@ describe("library tools (spec 044, RN-19)", () => {
 		expect(
 			(publicQuiz.quiz as { questions: unknown[] }).questions,
 		).toHaveLength(2);
+		// The statements come as markup (spec 047, RN-28).
+		expect(
+			(publicQuiz.quiz as { questions: { text: string }[] }).questions[0],
+		).toEqual(expect.objectContaining({ text: "A Terra é <b>redonda</b>" }));
+		expect(JSON.stringify(publicQuiz)).not.toContain("textFormatting");
 
 		const { groupId } = await ana.api.callerFor("bruno").group.create({
 			name: "Ciências",

@@ -15,11 +15,13 @@ import {
 	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
 	InvalidSliderNumberError,
+	InvalidTextFormattingError,
 	InvalidTimeLimitError,
 	isBlankQuestion,
 	parseAcceptedAnswer,
 	parseChoiceText,
 	parsePoints,
+	parseQuestionStatement,
 	parseQuestionText,
 	parseQuestionType,
 	parseQuizContent,
@@ -59,6 +61,7 @@ describe("blankQuestion", () => {
 			timeLimitSeconds: 20,
 			points: "standard",
 			image: null,
+			textFormatting: {},
 			aiGenerated: false,
 			selection: "single",
 			choices: emptyChoices(4),
@@ -84,6 +87,7 @@ describe("true/false question", () => {
 			timeLimitSeconds: 20,
 			points: "standard",
 			image: null,
+			textFormatting: {},
 			aiGenerated: false,
 			correct: null,
 		});
@@ -216,6 +220,65 @@ describe("parseQuestionText", () => {
 	});
 });
 
+describe("parseQuestionStatement", () => {
+	it("keeps a bold range", () => {
+		expect(
+			parseQuestionStatement("Qual destas não é uma capital?", {
+				bold: [[12, 15]],
+			}),
+		).toEqual({
+			text: "Qual destas não é uma capital?",
+			textFormatting: { bold: [[12, 15]] },
+		});
+	});
+
+	it("trims the text and shifts its ranges", () => {
+		expect(parseQuestionStatement("  H2O  ", { subscript: [[3, 4]] })).toEqual({
+			text: "H2O",
+			textFormatting: { subscript: [[1, 2]] },
+		});
+	});
+
+	it("a blank text has no formatting", () => {
+		expect(parseQuestionStatement("   ", { bold: [[0, 3]] })).toEqual({
+			text: null,
+			textFormatting: {},
+		});
+		expect(parseQuestionStatement(null, {})).toEqual({
+			text: null,
+			textFormatting: {},
+		});
+	});
+
+	it("the limit counts the text, not the formatting", () => {
+		const text = "a".repeat(QUESTION_TEXT_MAX_LENGTH);
+		const halfBold = { bold: [[0, QUESTION_TEXT_MAX_LENGTH / 2]] };
+
+		expect(parseQuestionStatement(text, halfBold).text).toBe(text);
+		expect(() => parseQuestionStatement(`${text}a`, halfBold)).toThrow(
+			QuestionTextTooLongError,
+		);
+	});
+
+	it("refuses a range outside the text with InvalidTextFormattingError", () => {
+		expect(() => parseQuestionStatement("abc", { bold: [[0, 9]] })).toThrow(
+			InvalidTextFormattingError,
+		);
+		expect(() =>
+			parseQuestionStatement("abc", { underline: [[0, 1]] }),
+		).toThrow(InvalidTextFormattingError);
+	});
+
+	it("refuses subscript overlapping superscript", () => {
+		expect(() =>
+			parseQuestionStatement("x2", {
+				subscript: [[1, 2]],
+				superscript: [[1, 2]],
+			}),
+		).toThrow(InvalidTextFormattingError);
+	});
+});
+
 describe("parseChoiceText", () => {
 	it("trims, turns blank into null and allows 75 characters", () => {
 		expect(parseChoiceText("  Brasília ")).toBe("Brasília");
@@ -327,6 +390,22 @@ describe("copyQuestion", () => {
 		expect(copy.choices[0]).not.toBe(source.choices[0]);
 	});
 
+	it("copies the formatting deeply", () => {
+		const source: QuizQuestion = {
+			...blankQuestion("question-1"),
+			text: "H2O",
+			textFormatting: { subscript: [[1, 2]] },
+		};
+
+		const copy = copyQuestion(source, "question-2");
+
+		expect(copy.textFormatting).toEqual({ subscript: [[1, 2]] });
+		expect(copy.textFormatting).not.toBe(source.textFormatting);
+		expect(copy.textFormatting.subscript).not.toBe(
+			source.textFormatting.subscript,
+		);
+	});
+
 	it("copies a true/false question under a new id", () => {
 		const source: Question = {
 			...blankQuestion("question-1", "trueFalse"),
@@ -353,6 +432,7 @@ describe("type answer question", () => {
 			timeLimitSeconds: 30,
 			points: "standard",
 			image: null,
+			textFormatting: {},
 			aiGenerated: false,
 			acceptedAnswers: [null],
 		});
@@ -441,6 +521,7 @@ describe("slider question", () => {
 			timeLimitSeconds: 20,
 			points: "standard",
 			image: null,
+			textFormatting: {},
 			aiGenerated: false,
 			min: 0,
 			max: 50,
@@ -578,6 +659,7 @@ describe("puzzle question", () => {
 			timeLimitSeconds: 60,
 			points: "standard",
 			image: null,
+			textFormatting: {},
 			aiGenerated: false,
 			items: [null, null, null, null],
 		});

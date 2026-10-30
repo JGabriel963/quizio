@@ -4,6 +4,15 @@ import {
 	type AnswerMargin,
 } from "../../shared/domain/slider-scale";
 import {
+	copyTextFormatting,
+	NO_FORMATTING,
+	normalizeTextFormatting,
+	overlapsSubAndSuper,
+	type TextFormatting,
+	textFormattingIssue,
+	trimFormattedText,
+} from "../../shared/domain/text-formatting";
+import {
 	characterCount,
 	truncateCharacters,
 } from "../../shared/domain/text-length";
@@ -124,6 +133,8 @@ interface QuestionBase {
 	id: string;
 	/** Null means no text yet, which drafts allow (spec 003, RN-09). */
 	text: string | null;
+	/** The text's marked stretches, beside it (spec 047, ADR 0025); none for a null text. */
+	textFormatting: TextFormatting;
 	timeLimitSeconds: TimeLimitSeconds;
 	points: QuestionPoints;
 	/** Optional, whatever the type (spec 007, RN-01). */
@@ -223,6 +234,10 @@ export class QuestionTextTooLongError extends DomainError {
 	readonly code = "QUIZ.QUESTION_TEXT_TOO_LONG";
 }
 
+export class InvalidTextFormattingError extends DomainError {
+	readonly code = "QUIZ.INVALID_TEXT_FORMATTING";
+}
+
 export class ChoiceTextTooLongError extends DomainError {
 	readonly code = "QUIZ.CHOICE_TEXT_TOO_LONG";
 }
@@ -307,6 +322,7 @@ export function blankQuestion(
 	return {
 		id,
 		text: null,
+		textFormatting: NO_FORMATTING,
 		timeLimitSeconds: defaultTimeLimitFor(type),
 		points: "standard",
 		image: null,
@@ -363,18 +379,49 @@ function parseLimitedText(
 	return text;
 }
 
+/**
+ * The statement and its formatting as the question keeps them (spec 003,
+ * RN-10; spec 047, RN-04, RN-07, RN-08, RN-10): the formatting must fit the
+ * text as sent, the spaces at the ends are cut with the stretches moved
+ * along, a blank text keeps no formatting, the limit counts the text only,
+ * and subscript never crosses superscript.
+ */
+export function parseQuestionStatement(
+	raw: string | null | undefined,
+	formatting: unknown,
+): { text: string | null; textFormatting: TextFormatting } {
+	const sent = raw ?? "";
+	if (textFormattingIssue(sent, formatting) !== null) {
+		throw new InvalidTextFormattingError(
+			"The formatting does not fit the question text",
+		);
+	}
+	const trimmed = trimFormattedText(sent, formatting as TextFormatting);
+	if (trimmed.text === "") {
+		return { text: null, textFormatting: NO_FORMATTING };
+	}
+	if (characterCount(trimmed.text) > QUESTION_TEXT_MAX_LENGTH) {
+		throw new QuestionTextTooLongError(
+			`Question text must have at most ${QUESTION_TEXT_MAX_LENGTH} characters`,
+		);
+	}
+	const textFormatting = normalizeTextFormatting(
+		trimmed.text,
+		trimmed.formatting,
+	);
+	if (overlapsSubAndSuper(textFormatting)) {
+		throw new InvalidTextFormattingError(
+			"Subscript and superscript cannot cover the same characters",
+		);
+	}
+	return { text: trimmed.text, textFormatting };
+}
+
 /** Trims, turns blank text into null and enforces the limit (spec 003, RN-10). */
 export function parseQuestionText(
 	raw: string | null | undefined,
 ): string | null {
-	return parseLimitedText(
-		raw,
-		QUESTION_TEXT_MAX_LENGTH,
-		() =>
-			new QuestionTextTooLongError(
-				`Question text must have at most ${QUESTION_TEXT_MAX_LENGTH} characters`,
-			),
-	);
+	return parseQuestionStatement(raw, NO_FORMATTING).text;
 }
 
 /** Same rules for an answer, with its own limit (spec 004, RN-04). */
@@ -661,6 +708,7 @@ export function copyQuestion<T extends Question>(source: T, id: string): T {
 	return {
 		...source,
 		...questionContent(source),
+		textFormatting: copyTextFormatting(source.textFormatting),
 		image: copyImage(source.image),
 		id,
 	};

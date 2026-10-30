@@ -157,6 +157,8 @@ describe("getReport (spec 015)", () => {
 					aReportQuestion(0),
 					aReportQuestion(1, {
 						text: "Quem escreveu o Salmo 90?",
+						// The hardest question carries the formatting (spec 047, RN-25).
+						textFormatting: { italic: [[16, 21]] },
 						imageKey: "questions/salmo.png",
 					}),
 					aReportQuestion(2),
@@ -176,6 +178,7 @@ describe("getReport (spec 015)", () => {
 		expect(summary.hardestQuestion).toEqual({
 			index: 1,
 			text: "Quem escreveu o Salmo 90?",
+			textFormatting: { italic: [[16, 21]] },
 			type: "quiz",
 			accuracyPercent: 0,
 			difficult: true,
@@ -256,6 +259,7 @@ describe("getReport (spec 015)", () => {
 			{
 				index: 0,
 				text: "Primeira",
+				textFormatting: {},
 				type: "quiz",
 				accuracyPercent: 50,
 				difficult: false,
@@ -263,6 +267,7 @@ describe("getReport (spec 015)", () => {
 			{
 				index: 1,
 				text: "Segunda",
+				textFormatting: {},
 				type: "trueFalse",
 				accuracyPercent: 0,
 				difficult: true,

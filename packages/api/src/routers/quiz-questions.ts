@@ -8,6 +8,7 @@ import {
 	IMAGE_PLACEMENTS,
 } from "@quizio/core/quiz/domain/question-image";
 import { ANSWER_MARGINS } from "@quizio/core/shared/domain/slider-scale";
+import { TEXT_MARKS } from "@quizio/core/shared/domain/text-formatting";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -20,6 +21,17 @@ const questionReference = quizReference.extend({
 const position = z.number().int().min(0);
 const seconds = z.number().int();
 const choiceId = z.string().min(1).max(10_000);
+
+const textOffset = z.number().int().min(0).max(10_000);
+/**
+ * A text's marked stretches as the editor sends them (spec 047): known marks
+ * only, each a list of [start, end) pairs. Whether they fit the text is the
+ * core's to say.
+ */
+export const textFormattingInput = z.partialRecord(
+	z.enum(TEXT_MARKS),
+	z.array(z.tuple([textOffset, textOffset])).max(400),
+);
 
 /** The type-specific part of a question, as clients send it back in a type change (spec 005). */
 const content = z.discriminatedUnion("type", [
@@ -62,6 +74,8 @@ const change = z.discriminatedUnion("kind", [
 	z.object({
 		kind: z.literal("text"),
 		text: z.string().max(10_000).nullable(),
+		// A tab still on the version before spec 047 sends none.
+		formatting: textFormattingInput.default(() => ({})),
 	}),
 	z.object({ kind: z.literal("timeLimit"), seconds }),
 	z.object({ kind: z.literal("points"), points: z.enum(QUESTION_POINTS) }),

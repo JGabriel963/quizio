@@ -221,9 +221,7 @@ test("editar depois de publicar guarda as alterações até o próximo Salvar, e
 	// The changes were kept: the editor opens with them.
 	await page.goto("/library");
 	await openEditorFromLibrary(page, "Geografia");
-	await expect(questionText(page)).toHaveValue(
-		"Qual é a capital da Argentina?",
-	);
+	await expect(questionText(page)).toHaveText("Qual é a capital da Argentina?");
 
 	await exitButton(page).click();
 	await unsavedDialog(page).getByRole("button", { name: "Descartar" }).click();
@@ -234,7 +232,7 @@ test("editar depois de publicar guarda as alterações até o próximo Salvar, e
 		libraryItem(page, "Geografia").getByText("Alterações não salvas"),
 	).toHaveCount(0);
 	await openEditorFromLibrary(page, "Geografia");
-	await expect(questionText(page)).toHaveValue("Qual é a capital do Brasil?");
+	await expect(questionText(page)).toHaveText("Qual é a capital do Brasil?");
 	await expect(headerStatus(page, "Publicado")).toBeAttached();
 });
 
@@ -251,7 +249,7 @@ test("publicar de novo leva as alterações para a versão jogável", async ({
 
 	// A new blank question blocks the next Salvar, and the version stays.
 	await pickNewQuestionType(page, "Verdadeiro ou falso");
-	await expect(questionText(page)).toHaveValue("");
+	await expect(questionText(page)).toHaveText("");
 	await saveButton(page).click();
 	await expect(
 		incompleteDialog(page).getByRole("listitem", { name: "Pergunta 2" }),

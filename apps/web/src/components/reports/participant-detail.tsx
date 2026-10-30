@@ -1,3 +1,4 @@
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { ParticipantDetailData } from "@/lib/api-types";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import { responseTimeLabel, unansweredLabel } from "@/lib/report-labels";
@@ -45,7 +46,11 @@ export function ParticipantDetail({
 							<span className="text-muted-foreground text-xs">
 								{answer.questionIndex + 1} - {questionTypeLabel(answer.type)}
 							</span>
-							<span className="break-words font-bold">{answer.text}</span>
+							<FormattedText
+								text={answer.text}
+								formatting={answer.textFormatting}
+								className="break-words"
+							/>
 							{answer.choices.length > 0 && (
 								<ul
 									aria-label="Resposta enviada"

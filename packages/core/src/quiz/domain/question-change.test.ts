@@ -146,12 +146,22 @@ describe("applyQuestionChange changing the type", () => {
 			id: "q-7",
 			type: "trueFalse",
 			text: "A capital do Brasil é Brasília",
+			textFormatting: {},
 			timeLimitSeconds: 30,
 			points: "double",
 			image: null,
 			aiGenerated: false,
 			correct: null,
 		});
+	});
+
+	it("a type change keeps the formatting", () => {
+		const { question } = applyQuestionChange(
+			{ ...written, textFormatting: { bold: [[2, 9]] } },
+			{ kind: "type", type: "trueFalse", remembered: null },
+		);
+
+		expect(question.textFormatting).toEqual({ bold: [[2, 9]] });
 	});
 
 	it("tells when quiz answers were set aside", () => {
@@ -279,6 +289,26 @@ describe("applyQuestionChange", () => {
 
 			expect(question.text).toBe("Capital?");
 			expect(notice).toBeNull();
+		});
+
+		it("a text change saves the text and its formatting", () => {
+			const { question } = applyToQuiz(aQuestion(), {
+				kind: "text",
+				text: " Quanto é 22? ",
+				formatting: { superscript: [[11, 12]] },
+			});
+
+			expect(question.text).toBe("Quanto é 22?");
+			expect(question.textFormatting).toEqual({ superscript: [[10, 11]] });
+		});
+
+		it("a text change without marks clears the formatting", () => {
+			const { question } = applyToQuiz(
+				aQuestion({ text: "H2O", textFormatting: { subscript: [[1, 2]] } }),
+				{ kind: "text", text: "H2O" },
+			);
+
+			expect(question.textFormatting).toEqual({});
 		});
 
 		it("refuses more than 160 characters", () => {

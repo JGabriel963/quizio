@@ -31,6 +31,7 @@ function capitals(correct: (boolean | null)[]): HostQuestionData {
 		selection: "single",
 		slider: null,
 		text: "Qual é a capital do Brasil?",
+		textFormatting: {},
 		choices: ["Rio de Janeiro", "Salvador", "Brasília", "Recife"].map(
 			(text, index) => ({
 				id: `choice-${index + 1}`,
@@ -295,6 +296,23 @@ describe("HostStage: openings (spec 009)", () => {
 });
 
 describe("HostStage: answers (spec 009)", () => {
+	it("draws the statement formatted, in normal weight (spec 047, RN-24, RN-25)", () => {
+		renderStage(
+			stageAt({
+				question: {
+					...capitals(hidden),
+					text: "Quanto é 22?",
+					textFormatting: { superscript: [[10, 11]] },
+				},
+			}),
+		);
+
+		const heading = screen.getByRole("heading", { name: "Quanto é 22?" });
+		expect(heading.querySelector("sup")).toHaveTextContent("2");
+		expect(heading.querySelector(".font-normal")).not.toBeNull();
+		expect(heading).not.toHaveClass("font-bold");
+	});
+
 	it("shows the question, the answers, the time left and the total of answers", () => {
 		renderStage(stageAt({ remainingMs: 12_000, answerCount: 1 }));
 
@@ -569,6 +587,7 @@ describe("HostStage: results (spec 009)", () => {
 				selection: "single",
 				slider: null,
 				text: "A capital do Brasil é o Rio de Janeiro",
+				textFormatting: {},
 				choices: [
 					{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: false },
 					{ id: "false", shapeIndex: 0, text: "Falso", correct: true },
@@ -1213,6 +1232,7 @@ describe("HostStage: type answer (spec 031)", () => {
 		selection: "single",
 		slider: null,
 		text: "Quem andou sobre as águas?",
+		textFormatting: {},
 		choices: [],
 		image: null,
 	};
@@ -1351,6 +1371,7 @@ describe("HostStage: slider (spec 032)", () => {
 		selection: "single",
 		slider: scale,
 		text: "Quantos anos tinha Noé?",
+		textFormatting: {},
 		choices: [],
 		image: null,
 	};
@@ -1521,6 +1542,7 @@ describe("HostStage: slider results, pointing (spec 032, RN-31)", () => {
 						unit: "anos",
 					},
 					text: "Quantos anos?",
+					textFormatting: {},
 					choices: [],
 					image: null,
 				},

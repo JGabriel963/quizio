@@ -6,6 +6,7 @@ import {
 	themeLookView,
 } from "../../shared/application/theme-look-view";
 import { marginRange } from "../../shared/domain/slider-scale";
+import type { TextFormatting } from "../../shared/domain/text-formatting";
 import type { ThemeId } from "../../shared/domain/theme";
 import type { Answer, Correctness } from "../domain/answer";
 import {
@@ -66,6 +67,8 @@ export interface PlayQuestionView {
 	type: QuestionType;
 	selection: SelectionMode;
 	text: string;
+	/** The statement's marked stretches (spec 047, RN-25). */
+	textFormatting: TextFormatting;
 	image: PublicImage | null;
 	choices: PlayChoiceView[];
 	/** A slider's public scale (spec 032, RN-33). */
@@ -237,6 +240,7 @@ function questionView(
 		type: question.type,
 		selection: question.selection,
 		text: question.text,
+		textFormatting: question.textFormatting,
 		image: question.image
 			? {
 					url: storage.getPublicUrl(question.image.key),

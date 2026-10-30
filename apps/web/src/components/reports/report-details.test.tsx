@@ -24,6 +24,7 @@ const ana: ParticipantDetailData = {
 		{
 			questionIndex: 0,
 			text: "Capital do Brasil?",
+			textFormatting: {},
 			type: "quiz",
 			result: "correct",
 			choices: [{ shapeIndex: 0, text: "Brasília", correct: true }],
@@ -37,6 +38,7 @@ const ana: ParticipantDetailData = {
 		{
 			questionIndex: 1,
 			text: "Capital da França?",
+			textFormatting: {},
 			type: "quiz",
 			result: "wrong",
 			choices: [{ shapeIndex: 1, text: "Lyon", correct: false }],
@@ -50,6 +52,7 @@ const ana: ParticipantDetailData = {
 		{
 			questionIndex: 2,
 			text: "A Terra é plana.",
+			textFormatting: {},
 			type: "trueFalse",
 			result: "unanswered",
 			choices: [],
@@ -97,6 +100,26 @@ describe("ParticipantDetail (spec 015)", () => {
 		expect(france.getByText("0 pontos")).toBeInTheDocument();
 	});
 
+	it("the participant's rows show the statement's formatting (spec 047, RN-25)", () => {
+		const [first, ...rest] = ana.answers;
+		render(
+			<ParticipantDetail
+				detail={{
+					...ana,
+					answers: [
+						{
+							...(first as (typeof ana.answers)[number]),
+							textFormatting: { bold: [[11, 17]] },
+						},
+						...rest,
+					],
+				}}
+			/>,
+		);
+
+		expect(answers()[0]?.querySelector("strong")).toHaveTextContent("Brasil");
+	});
+
 	it("tells 'Sem resposta'", () => {
 		render(<ParticipantDetail detail={ana} />);
 
@@ -124,6 +147,7 @@ describe("ParticipantDetail (spec 015)", () => {
 						{
 							questionIndex: 3,
 							text: "Marque as capitais.",
+							textFormatting: {},
 							type: "quiz",
 							result: "partiallyCorrect",
 							choices: [{ shapeIndex: 0, text: "Lima", correct: true }],
@@ -166,6 +190,7 @@ describe("ParticipantDetail (spec 015)", () => {
 const salmo: QuestionDetailData = {
 	index: 14,
 	text: "Quem escreveu o Salmo 90?",
+	textFormatting: {},
 	type: "quiz",
 	accuracyPercent: 23,
 	difficult: true,
@@ -270,6 +295,16 @@ describe("QuestionDetail (spec 015)", () => {
 		]);
 	});
 
+	it("the question shows its formatting (spec 047, RN-25)", () => {
+		render(
+			<QuestionDetail
+				detail={{ ...salmo, textFormatting: { italic: [[16, 24]] } }}
+			/>,
+		);
+
+		expect(document.querySelector("em")).toHaveTextContent("Salmo 90");
+	});
+
 	it("a question without an image shows none", () => {
 		const { container } = render(
 			<QuestionDetail detail={{ ...salmo, imageUrl: null, unanswered: 1 }} />,
@@ -347,6 +382,7 @@ describe("report details of a type answer (spec 031, RN-37)", () => {
 						{
 							questionIndex: 0,
 							text: "Quem escreveu o Salmo 90?",
+							textFormatting: {},
 							type: "typeAnswer",
 							result: "wrong",
 							choices: [],
@@ -416,6 +452,7 @@ describe("report details of a slider (spec 032, RN-36)", () => {
 						{
 							questionIndex: 0,
 							text: "Quantos anos?",
+							textFormatting: {},
 							type: "slider",
 							result: "almostCorrect",
 							choices: [],
@@ -519,6 +556,7 @@ describe("report details of a puzzle (spec 033, RN-31)", () => {
 						{
 							questionIndex: 0,
 							text: "Coloque estes rios do maior para o menor",
+							textFormatting: {},
 							type: "puzzle",
 							result: "wrong",
 							choices: [],

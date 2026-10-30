@@ -22,6 +22,7 @@ export function aGameQuestion(
 		index: 0,
 		type: "quiz",
 		text: "Qual é a capital do Brasil?",
+		textFormatting: {},
 		timeLimitSeconds: 20,
 		points: "standard",
 		selection: "single",

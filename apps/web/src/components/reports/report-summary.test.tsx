@@ -54,6 +54,7 @@ const summary = (
 	hardestQuestion: {
 		index: 14,
 		text: "Quem escreveu o Salmo 90?",
+		textFormatting: {},
 		type: "quiz",
 		accuracyPercent: 16,
 		difficult: true,
@@ -111,6 +112,25 @@ describe("ReportSummary and themes (spec 042, RN-18)", () => {
 });
 
 describe("ReportSummary (spec 015)", () => {
+	it("the hardest question shows the formatting (spec 047, RN-25)", async () => {
+		renderSummary({
+			summary: {
+				hardestQuestion: {
+					...(summary().hardestQuestion as NonNullable<
+						ReportSummaryData["hardestQuestion"]
+					>),
+					textFormatting: { italic: [[16, 24]] },
+				},
+			},
+		});
+
+		expect(
+			(await section(/Perguntas difíceis/)).getByText("Salmo 90", {
+				selector: "em",
+			}),
+		).toBeInTheDocument();
+	});
+
 	it("draws the five cards", async () => {
 		const { start } = renderSummary();
 

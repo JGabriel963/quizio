@@ -69,6 +69,15 @@ describe("acceptGeneratedQuestions", () => {
 		]);
 	});
 
+	it("a generated question has no formatting", () => {
+		const { questions } = accept([quizDraft(), trueFalseDraft], extract);
+
+		expect(questions.map((question) => question.textFormatting)).toEqual([
+			{},
+			{},
+		]);
+	});
+
 	it("marks every question as AI generated with 20 s and standard points", () => {
 		const { questions } = accept([quizDraft()]);
 

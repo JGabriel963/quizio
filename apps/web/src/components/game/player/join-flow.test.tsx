@@ -796,6 +796,7 @@ const stageOf = (
 					selection,
 					slider: null,
 					text: null,
+					textFormatting: {},
 					image: null,
 					choices: [0, 1, 2, 3].map((shapeIndex) => ({
 						id: `choice-${shapeIndex + 1}`,
@@ -1961,6 +1962,7 @@ describe("JoinFlow: type answers in a row (spec 031, RN-19)", () => {
 			selection: "single",
 			slider: null,
 			text: null,
+			textFormatting: {},
 			image: null,
 			choices: [],
 		},

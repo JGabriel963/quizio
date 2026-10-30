@@ -1,5 +1,6 @@
 import { CheckIcon, ClockIcon, XIcon } from "lucide-react";
 
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { QuestionDetailData } from "@/lib/api-types";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import { averageTimeLabel, responseTimeLabel } from "@/lib/report-labels";
@@ -21,7 +22,12 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 				<span className="text-muted-foreground text-xs">
 					{detail.index + 1} - {questionTypeLabel(detail.type)}
 				</span>
-				<p className="break-words font-bold text-lg">{detail.text}</p>
+				<p className="break-words text-lg">
+					<FormattedText
+						text={detail.text}
+						formatting={detail.textFormatting}
+					/>
+				</p>
 				{detail.imageUrl && (
 					<img
 						src={detail.imageUrl}

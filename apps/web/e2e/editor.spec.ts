@@ -81,7 +81,7 @@ async function addQuestion(page: Page, text: string) {
 	const count = await questionItems(page).count();
 	await pickNewQuestionType(page);
 	await expect(questionItems(page)).toHaveCount(count + 1);
-	await expect(questionText(page)).toHaveValue("");
+	await expect(questionText(page)).toHaveText("");
 	await writeQuestion(page, text);
 }
 
@@ -114,9 +114,9 @@ test("Criar opens the editor with one blank Quiz question, listed in Rascunhos a
 }) => {
 	await createQuizInEditor(page);
 
-	await expect(questionText(page)).toHaveValue("");
+	await expect(questionText(page)).toHaveText("");
 	await expect(questionText(page)).toHaveAttribute(
-		"placeholder",
+		"aria-placeholder",
 		"Comece a digitar a pergunta",
 	);
 	await waitForEditor(page);
@@ -140,7 +140,7 @@ test("typed text and title survive a reload", async ({ page }) => {
 	await page.reload();
 
 	await expect(titleField(page)).toHaveValue("Geografia");
-	await expect(questionText(page)).toHaveValue("Qual é a capital do Brasil?");
+	await expect(questionText(page)).toHaveText("Qual é a capital do Brasil?");
 	await expectOrder(page, ["Qual é a capital do Brasil?"]);
 });
 
@@ -157,7 +157,7 @@ test("adds after the selected, duplicates, moves C before A, and the order survi
 
 	// The copy goes right after the original, with its text (RN-12).
 	await questionAction(page, isMobile, 3, "Duplicar");
-	await expect(questionText(page)).toHaveValue("Pergunta B");
+	await expect(questionText(page)).toHaveText("Pergunta B");
 	await expectOrder(page, [
 		"Pergunta A",
 		"Nova",
@@ -285,7 +285,7 @@ test("deletes after confirming, and cancelling keeps the question", async ({
 	await questionAction(page, isMobile, 2, "Excluir");
 	await confirmation.getByRole("button", { name: "Excluir" }).click();
 	await expectOrder(page, ["Pergunta A", "Pergunta C"]);
-	await expect(questionText(page)).toHaveValue("Pergunta C");
+	await expect(questionText(page)).toHaveText("Pergunta C");
 	// No undo after the confirmation (RN-14).
 	await expect(page.getByRole("button", { name: "Desfazer" })).toHaveCount(0);
 	await expectSaved(page);
@@ -322,13 +322,13 @@ test("shows the failure offline and saves on retry", async ({ page }) => {
 	await expect(
 		page.getByRole("status").filter({ hasText: "Não foi possível salvar" }),
 	).toBeVisible();
-	await expect(questionText(page)).toHaveValue("Pergunta nova");
+	await expect(questionText(page)).toHaveText("Pergunta nova");
 
 	await page.context().setOffline(false);
 	await page.getByRole("button", { name: "Tentar de novo" }).click();
 	await expectSaved(page);
 	await page.reload();
-	await expect(questionText(page)).toHaveValue("Pergunta nova");
+	await expect(questionText(page)).toHaveText("Pergunta nova");
 });
 
 test("Sair returns to the library with the new title and count", async ({

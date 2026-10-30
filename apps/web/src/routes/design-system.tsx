@@ -51,6 +51,7 @@ import {
 	TabsTrigger,
 } from "@quizio/ui/components/tabs";
 import { Textarea } from "@quizio/ui/components/textarea";
+import { Toggle } from "@quizio/ui/components/toggle";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -208,6 +209,29 @@ function DesignSystemPage() {
 						/>
 					</TabsContent>
 				</Tabs>
+			</Section>
+
+			<Section title="Barra de formatação e abas em botões">
+				<div className="flex flex-col items-start gap-4">
+					<div className="inline-flex items-center gap-0.5 rounded-md bg-neutral-300 p-1">
+						<Toggle aria-label="Negrito" defaultPressed>
+							B
+						</Toggle>
+						<Toggle aria-label="Itálico">
+							<span className="italic">I</span>
+						</Toggle>
+					</div>
+					<Tabs defaultValue="greek">
+						<TabsList variant="pill" aria-label="Exemplo de categorias">
+							<TabsTrigger variant="pill" value="greek">
+								Grego
+							</TabsTrigger>
+							<TabsTrigger variant="pill" value="other">
+								Outro
+							</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
 			</Section>
 
 			<Section title="Diálogos">

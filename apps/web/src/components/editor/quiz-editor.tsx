@@ -461,8 +461,12 @@ export function QuizEditor({
 							upload={uploads[selected.id] ?? NO_UPLOAD}
 							onUploadImage={(file) => void uploadImage(selected.id, file)}
 							showHints={!quietIds.has(selected.id)}
-							onSaveText={(text) =>
-								actions.saveQuestionField(selected.id, { kind: "text", text })
+							onSaveStatement={({ text, formatting }) =>
+								actions.saveQuestionField(selected.id, {
+									kind: "text",
+									text,
+									formatting,
+								})
 							}
 							onSaveChoiceText={(choiceId, text) =>
 								actions.saveQuestionField(selected.id, {

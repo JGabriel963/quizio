@@ -22,6 +22,91 @@ async function quizWith(questions: unknown[]) {
 
 const tf = (text: string) => ({ type: "trueFalse", text, correct: true });
 
+describe("statement formatting (spec 047, RN-28 to RN-30)", () => {
+	const formatted = "Qual é a fórmula da <b>água</b>, H<sub>2</sub>O?";
+
+	it("add_questions keeps sub and bold, and get_quiz reads them back", async () => {
+		const { ok, quizId, read } = await quizWith([tf("Um")]);
+
+		const added = await ok("add_questions", {
+			quizId,
+			questions: [tf(formatted)],
+		});
+
+		expect((await read()).map((question) => question.text)).toEqual([
+			"Um",
+			formatted,
+		]);
+		expect(added.questions).toEqual([
+			expect.objectContaining({ text: formatted }),
+		]);
+		expect((await read())[1]).not.toHaveProperty("textFormatting");
+	});
+
+	it("update_question without tags clears the formatting", async () => {
+		const { ok, quizId, read } = await quizWith([tf(formatted)]);
+		const [question] = await read();
+
+		await ok("update_question", {
+			quizId,
+			questionId: question?.id,
+			changes: { text: "Qual é a fórmula da água, H2O?" },
+		});
+
+		expect((await read())[0]?.text).toBe("Qual é a fórmula da água, H2O?");
+	});
+
+	it("160 characters with tags are accepted, 161 are refused", async () => {
+		const { call, ok, quizId } = await quizWith([tf("Um")]);
+		const half = "a".repeat(80);
+
+		await ok("add_questions", {
+			quizId,
+			questions: [tf(`<b>${half}</b>${half}`)],
+		});
+		const tooLong = await call("add_questions", {
+			quizId,
+			questions: [tf(`<b>${half}</b>${half}a`)],
+		});
+
+		expect(tooLong.data.error).toMatchObject({
+			code: "QUIZ.QUESTION_TEXT_TOO_LONG",
+		});
+	});
+
+	it("subscript inside superscript is refused with QUIZ.INVALID_TEXT_FORMATTING", async () => {
+		const { call, quizId } = await quizWith([tf("Um")]);
+
+		const refused = await call("add_questions", {
+			quizId,
+			questions: [tf("x<sup><sub>2</sub></sup>")],
+		});
+
+		expect(refused.data.error).toMatchObject({
+			code: "QUIZ.INVALID_TEXT_FORMATTING",
+		});
+	});
+
+	it("an unknown tag is refused and x < 3 is text (CA-31)", async () => {
+		const { call, ok, quizId, read } = await quizWith([tf("Um")]);
+
+		const refused = await call("add_questions", {
+			quizId,
+			questions: [tf("Um <u>sublinhado</u>")],
+		});
+		await ok("add_questions", {
+			quizId,
+			questions: [tf("Para qual valor x < 3 e x > 1?")],
+		});
+
+		expect(refused.data.error).toMatchObject({ code: "INVALID_INPUT" });
+		expect((await read()).map((question) => question.text)).toEqual([
+			"Um",
+			"Para qual valor x < 3 e x > 1?",
+		]);
+	});
+});
+
 describe("question tools (spec 044, RN-21, RN-22)", () => {
 	it("add_questions inserts after a question and returns what each one is missing", async () => {
 		const { ok, quizId, read } = await quizWith([tf("Um"), tf("Três")]);

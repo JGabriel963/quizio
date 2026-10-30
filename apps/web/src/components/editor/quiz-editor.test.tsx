@@ -269,7 +269,7 @@ const exitButton = () => screen.getByRole("button", { name: "Sair" });
 const header = () => document.querySelector("header") as HTMLElement;
 const badge = (label: string) => within(header()).queryByText(label);
 
-const questionText = () => screen.getByRole("textbox", { name: "Pergunta" });
+const questionText = () => screen.findByRole("textbox", { name: "Pergunta" });
 
 describe("QuizEditor", () => {
 	it("shows header, list, canvas and properties without the main nav", async () => {
@@ -277,7 +277,7 @@ describe("QuizEditor", () => {
 
 		expect(screen.getByRole("banner")).toBeInTheDocument();
 		expect(screen.getByRole("list", { name: "Perguntas" })).toBeInTheDocument();
-		expect(questionText()).toHaveValue("Capital?");
+		expect(await questionText()).toHaveTextContent("Capital?");
 		expect(
 			screen.getByRole("heading", { name: "Propriedades da pergunta" }),
 		).toBeInTheDocument();
@@ -293,7 +293,7 @@ describe("QuizEditor", () => {
 
 		await user.click(screen.getByRole("button", { name: "Pergunta 2: B?" }));
 
-		expect(questionText()).toHaveValue("B?");
+		expect(await questionText()).toHaveTextContent("B?");
 		expect(
 			screen.getByRole("button", { name: "Pergunta 2: B?" }),
 		).toHaveAttribute("aria-current", "true");
@@ -440,7 +440,7 @@ describe("QuizEditor", () => {
 		await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
 
 		expect(actions.deleteQuestion).toHaveBeenCalledExactlyOnceWith("b");
-		expect(questionText()).toHaveValue("C?");
+		expect(await questionText()).toHaveTextContent("C?");
 		await vi.waitFor(() =>
 			expect(screen.queryByRole("alertdialog")).toBeNull(),
 		);
@@ -1052,8 +1052,8 @@ describe("QuizEditor: published quiz", () => {
 		);
 		expect(onExit).not.toHaveBeenCalled();
 		expect(
-			screen.getByRole("textbox", { name: "Pergunta", hidden: true }),
-		).toHaveValue("Mudou");
+			await screen.findByRole("textbox", { name: "Pergunta", hidden: true }),
+		).toHaveTextContent("Mudou");
 		expect(badge("Alterações não salvas")).toBeInTheDocument();
 	});
 

@@ -84,6 +84,25 @@ describe("getHostGame during a game (spec 009)", () => {
 		});
 	});
 
+	it("the host's question carries the formatting (spec 047, RN-25)", async () => {
+		const { deps, reach } = await createStartedGame({
+			questions: [
+				aQuestion({
+					text: "Qual destas não é uma capital?",
+					textFormatting: { bold: [[12, 15]] },
+				}),
+			],
+		});
+		await reach("questionIntro");
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage?.question).toMatchObject({
+			text: "Qual destas não é uma capital?",
+			textFormatting: { bold: [[12, 15]] },
+		});
+	});
+
 	it("hides the correct answer until the results", async () => {
 		const { deps, reach, answer } = await createStartedGame({
 			players: ["Ana", "Bia", "Caio"],

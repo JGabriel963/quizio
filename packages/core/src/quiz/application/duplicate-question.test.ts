@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { FixedClock } from "../../shared/testing/fixed-clock";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
-import { blankQuestion } from "../domain/question";
+import { blankQuestion, type Question } from "../domain/question";
 import {
 	QUIZ_MAX_QUESTIONS,
 	QuestionLimitReachedError,
@@ -70,6 +70,17 @@ describe("duplicateQuestion", () => {
 			"b",
 		]);
 		expect((await quizzes.findById("quiz-1"))?.updatedAt).toEqual(clock.now());
+	});
+
+	it("the copy keeps the formatting (spec 047, RN-20)", async () => {
+		const formatted: Question = { ...a, textFormatting: { italic: [[0, 1]] } };
+		await questions.saveQuestion("quiz-1", formatted);
+
+		await duplicateQuestion({ ...ref, questionId: "a" });
+
+		expect(questions.listOf("quiz-1")[1]?.textFormatting).toEqual({
+			italic: [[0, 1]],
+		});
 	});
 
 	it("the copy is independent of the original", async () => {

@@ -5,6 +5,7 @@ import {
 import { z } from "zod";
 
 import { defineTool } from "../define-tool";
+import { withStatementMarkup } from "../schemas/statement-markup";
 import { ToolInputError } from "../tool-input-error";
 import { WRITTEN_BY_PLAYERS } from "./groups";
 
@@ -67,13 +68,25 @@ export const reportTools = [
 		description: `A report as its screen shows it: the summary, the participants with their accuracy and points, and the questions with their accuracy. Below 35% is a difficult question or a participant who needs help. A group admin also reads the reports of members' assignments posted in the group, read-only. ${WRITTEN_BY_PLAYERS}`,
 		kind: "read",
 		input: z.object({ gameId }),
-		run: async ({ gameId: id }, context) => ({
-			report: await context.useCases.getReport({
+		run: async ({ gameId: id }, context) => {
+			const report = await context.useCases.getReport({
 				ownerId: context.identity.userId,
 				gameId: id,
-			}),
-			links: { report: context.links.report(id) },
-		}),
+			});
+			const { hardestQuestion } = report.summary;
+			return {
+				report: {
+					...report,
+					summary: {
+						...report.summary,
+						hardestQuestion:
+							hardestQuestion && withStatementMarkup(hardestQuestion),
+					},
+					questions: report.questions.map(withStatementMarkup),
+				},
+				links: { report: context.links.report(id) },
+			};
+		},
 	}),
 	defineTool({
 		name: "get_report_detail",
@@ -92,19 +105,26 @@ export const reportTools = [
 					"Send either participantId or questionPosition",
 				);
 			}
-			return participantId !== undefined
-				? {
-						participant: await context.useCases.getReportParticipant({
-							...target,
-							playerId: participantId,
-						}),
-					}
-				: {
-						question: await context.useCases.getReportQuestion({
-							...target,
-							questionIndex: (questionPosition ?? 1) - 1,
-						}),
-					};
+			if (participantId !== undefined) {
+				const participant = await context.useCases.getReportParticipant({
+					...target,
+					playerId: participantId,
+				});
+				return {
+					participant: {
+						...participant,
+						answers: participant.answers.map(withStatementMarkup),
+					},
+				};
+			}
+			return {
+				question: withStatementMarkup(
+					await context.useCases.getReportQuestion({
+						...target,
+						questionIndex: (questionPosition ?? 1) - 1,
+					}),
+				),
+			};
 		},
 	}),
 	defineTool({

@@ -1,4 +1,7 @@
-import { aReportGame } from "@quizio/core/reports/testing/a-report-game";
+import {
+	aReportGame,
+	aReportQuestion,
+} from "@quizio/core/reports/testing/a-report-game";
 import { describe, expect, it } from "vitest";
 
 import { connectTestClient } from "../testing/connect-test-client";
@@ -17,8 +20,14 @@ const report = (gameId: string, header: Record<string, unknown> = {}) =>
 		answers: { Ana: ["right", "right"], Bia: ["right", "wrong"] },
 	});
 
-/** As the screen gets it: dates as ISO strings. */
-const asSent = (value: unknown) => JSON.parse(JSON.stringify(value));
+/**
+ * As the screen gets it: dates as ISO strings. An agent reads a statement's
+ * formatting as tags in the text instead (spec 047, RN-28).
+ */
+const asSent = (value: unknown) =>
+	JSON.parse(JSON.stringify(value), (key, entry) =>
+		key === "textFormatting" ? undefined : entry,
+	);
 
 async function withReports(...games: ReturnType<typeof aReportGame>[]) {
 	const ana = await connectTestClient({ userId: "ana" });
@@ -80,6 +89,47 @@ describe("report tools (spec 044, RN-28)", () => {
 		expect(
 			(await ana.call("get_report_detail", { gameId: "game-1" })).data.error,
 		).toMatchObject({ code: "INVALID_INPUT" });
+	});
+
+	it("get_report and get_report_detail return statements as markup (spec 047, RN-28)", async () => {
+		const ana = await withReports(
+			aReportGame({
+				header: {
+					gameId: "game-1",
+					ownerId: "ana",
+					endedAt: new Date("2026-05-10T18:00:00.000Z"),
+				},
+				questions: [
+					aReportQuestion(0, {
+						text: "H2O?",
+						textFormatting: { subscript: [[1, 2]] },
+					}),
+				],
+				players: ["Ana", "Bia"],
+				answers: { Ana: ["wrong"], Bia: ["wrong"] },
+			}),
+		);
+		const markup = "H<sub>2</sub>O?";
+
+		const { report } = await ana.ok("get_report", { gameId: "game-1" });
+		const { participant } = await ana.ok("get_report_detail", {
+			gameId: "game-1",
+			participantId: "player-Ana",
+		});
+		const { question } = await ana.ok("get_report_detail", {
+			gameId: "game-1",
+			questionPosition: 1,
+		});
+
+		expect(report).toMatchObject({
+			questions: [{ text: markup }],
+			summary: { hardestQuestion: { text: markup } },
+		});
+		expect(participant).toMatchObject({ answers: [{ text: markup }] });
+		expect(question).toMatchObject({ text: markup });
+		expect(JSON.stringify([report, participant, question])).not.toContain(
+			"textFormatting",
+		);
 	});
 
 	it("rename_report and set_reports_trashed", async () => {

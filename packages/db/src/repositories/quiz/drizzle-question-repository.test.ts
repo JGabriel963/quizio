@@ -1,3 +1,4 @@
+import type { Question } from "@quizio/core/quiz/domain/question";
 import {
 	aPuzzleQuestion,
 	aQuestion,
@@ -66,6 +67,57 @@ describe("DrizzleQuestionRepository", () => {
 			text: "A2",
 			aiGenerated: true,
 		});
+	});
+
+	it("round-trips text_formatting (spec 047)", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const formatted: Question = {
+			...a,
+			text: "H2O e 22",
+			textFormatting: { bold: [[0, 3]], subscript: [[1, 2]] },
+		};
+		await questions.saveList("quiz-1", [formatted, b]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([formatted, b]);
+
+		await questions.saveQuestion("quiz-1", {
+			...formatted,
+			textFormatting: { superscript: [[7, 8]] },
+		});
+
+		expect((await questions.listByQuiz("quiz-1"))[0]?.textFormatting).toEqual({
+			superscript: [[7, 8]],
+		});
+	});
+
+	it("saveList rewrites the formatting with the text", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const formatted: Question = { ...a, textFormatting: { bold: [[0, 1]] } };
+		await questions.saveList("quiz-1", [formatted]);
+
+		await questions.saveList("quiz-1", [
+			{ ...a, text: "B", textFormatting: {} },
+		]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([
+			{ ...a, text: "B", textFormatting: {} },
+		]);
+	});
+
+	it("a row written before reads without formatting", async () => {
+		await testDb.db.insert(questionTable).values({
+			id: "old",
+			type: "quiz",
+			quizId: "quiz-1",
+			position: 0,
+			text: "Antiga",
+		});
+
+		const [question] = await createDrizzleQuestionRepository(
+			testDb.db,
+		).listByQuiz("quiz-1");
+
+		expect(question?.textFormatting).toEqual({});
 	});
 
 	it("an existing row reads as not AI generated", async () => {

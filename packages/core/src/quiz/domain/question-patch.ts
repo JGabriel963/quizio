@@ -1,3 +1,4 @@
+import { NO_FORMATTING } from "../../shared/domain/text-formatting";
 import { fitTimeLimit, parseQuestionType, type Question } from "./question";
 import { buildQuestion, type QuestionDraft } from "./question-draft";
 import type { QuestionImage } from "./question-image";
@@ -25,6 +26,7 @@ export function draftOf(question: Question): QuestionDraft {
 	const shared = {
 		type: question.type,
 		text: question.text,
+		textFormatting: question.textFormatting,
 		timeLimitSeconds: question.timeLimitSeconds,
 		points: question.points,
 		image: imageDraftOf(question.image),
@@ -68,6 +70,7 @@ function draftForType(current: Question, type: string): QuestionDraft {
 	return {
 		type,
 		text: current.text,
+		textFormatting: current.textFormatting,
 		timeLimitSeconds: fitTimeLimit(
 			parseQuestionType(type),
 			current.timeLimitSeconds,
@@ -100,6 +103,11 @@ export function patchedQuestion(
 		...base,
 		...sentFields(patch),
 		type: patch.type ?? base.type,
+		// A statement sent replaces the old one whole, with its own formatting or none (spec 047, RN-29).
+		textFormatting:
+			patch.text !== undefined
+				? (patch.textFormatting ?? NO_FORMATTING)
+				: base.textFormatting,
 		slider:
 			patch.slider !== undefined
 				? { ...base.slider, ...sentFields(patch.slider) }

@@ -52,6 +52,18 @@ describe("discardQuizChanges", () => {
 		);
 	});
 
+	it("brings back the saved formatting (spec 047, RN-19)", async () => {
+		await quizzes.save(aPublishedQuiz({ hasUnpublishedChanges: true }));
+		await questions.saveList("quiz-1", [
+			{ ...a, textFormatting: { bold: [[0, 1]] } },
+			b,
+		]);
+
+		await discardQuizChanges(ref);
+
+		expect(questions.listOf("quiz-1")[0]?.textFormatting).toEqual({});
+	});
+
 	it("restores the questions of the current version", async () => {
 		await quizzes.save(aPublishedQuiz({ hasUnpublishedChanges: true }));
 		// A edited, B deleted and C added since the version was saved.

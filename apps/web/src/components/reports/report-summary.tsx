@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { CircleHelpIcon, ClockIcon, UserIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { ReportHeaderData, ReportSummaryData } from "@/lib/api-types";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import {
@@ -146,9 +147,11 @@ export function ReportSummary({
 										{summary.hardestQuestion.index + 1} -{" "}
 										{questionTypeLabel(summary.hardestQuestion.type)}
 									</span>
-									<span className="break-words font-bold">
-										{summary.hardestQuestion.text}
-									</span>
+									<FormattedText
+										text={summary.hardestQuestion.text}
+										formatting={summary.hardestQuestion.textFormatting}
+										className="break-words"
+									/>
 								</div>
 								{summary.hardestQuestion.imageUrl && (
 									<img

@@ -26,6 +26,27 @@ function showing(phase: GamePhase) {
 	);
 }
 
+describe("public stage and the statement's formatting (spec 047)", () => {
+	const formatted = aGameQuestion({
+		text: "Qual é a fórmula da água, H2O?",
+		textFormatting: { subscript: [[27, 28]] },
+	});
+
+	it("carries the formatting with the statement", () => {
+		const stage = publicStageOf(showing("questionIntro"), formatted, urlOf);
+
+		expect(stage.question?.text).toBe("Qual é a fórmula da água, H2O?");
+		expect(stage.question?.textFormatting).toEqual({ subscript: [[27, 28]] });
+	});
+
+	it("no statement, no formatting", () => {
+		const stage = publicStageOf(aPlayingGame("answering"), formatted, urlOf);
+
+		expect(stage.question?.text).toBeNull();
+		expect(stage.question?.textFormatting).toEqual({});
+	});
+});
+
 describe("public stage with the questions on the devices (spec 012)", () => {
 	it("sends no text and no image with the option off", () => {
 		const stage = publicStageOf(
@@ -67,6 +88,7 @@ describe("public stage with the questions on the devices (spec 012)", () => {
 			type: "quiz",
 			selection: "single",
 			text: "Qual é a capital do Brasil?",
+			textFormatting: {},
 			image: {
 				url: "https://media.test/quizzes/quiz-1/questions/a.png",
 				placement: "media",

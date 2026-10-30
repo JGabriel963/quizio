@@ -64,6 +64,22 @@ describe("updateQuestion", () => {
 		expect((await quizzes.findById("quiz-1"))?.updatedAt).toEqual(clock.now());
 	});
 
+	it("saves the text and its formatting (spec 047, RN-18)", async () => {
+		await updateQuestion({
+			...ref,
+			change: {
+				kind: "text",
+				text: "Qual destas não é uma capital?",
+				formatting: { bold: [[12, 15]] },
+			},
+		});
+
+		expect(questions.listOf("quiz-1")[0]).toMatchObject({
+			text: "Qual destas não é uma capital?",
+			textFormatting: { bold: [[12, 15]] },
+		});
+	});
+
 	describe("on a published quiz", () => {
 		const published = [
 			aQuestion({ id: "a", text: "Capital do Brasil?" }),
@@ -98,6 +114,21 @@ describe("updateQuestion", () => {
 				publishedVersion: 1,
 				hasUnpublishedChanges: true,
 			});
+		});
+
+		it("a formatting change alone marks unpublished changes (spec 047, RN-19)", async () => {
+			await updateQuestion({
+				...ref,
+				change: {
+					kind: "text",
+					text: "Capital do Brasil?",
+					formatting: { bold: [[11, 17]] },
+				},
+			});
+
+			expect((await quizzes.findById("quiz-1"))?.hasUnpublishedChanges).toBe(
+				true,
+			);
 		});
 
 		it("undoing an edit clears the flag", async () => {

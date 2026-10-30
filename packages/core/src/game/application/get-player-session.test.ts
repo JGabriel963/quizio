@@ -98,6 +98,7 @@ describe("getPlayerSession during a game (spec 009)", () => {
 				type: "quiz",
 				selection: "single",
 				text: null,
+				textFormatting: {},
 				image: null,
 				choices: [
 					{ id: "choice-1", shapeIndex: 0, label: null, text: null },
@@ -598,6 +599,7 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 			type: "quiz",
 			selection: "single",
 			text: "Qual é a capital do Brasil?",
+			textFormatting: {},
 			image: {
 				url: "https://media.test/quizzes/quiz-1/questions/mapa.png",
 				placement: "background",
@@ -614,6 +616,31 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 		});
 		// Never which one is right (RN-20).
 		expect(JSON.stringify(view)).not.toMatch(/"correct":/);
+	});
+
+	it("the device gets the formatting only with the statement (spec 047, RN-25)", async () => {
+		const formatted = quiz({
+			text: "Qual é a fórmula da água, H2O?",
+			textFormatting: { subscript: [[27, 28]] },
+		});
+		const shown = await createStartedGame({
+			questions: [formatted],
+			options: onDevices,
+		});
+		const hidden = await createStartedGame({ questions: [formatted] });
+		await shown.reach("answering");
+		await hidden.reach("answering");
+
+		const withStatement = await createGetPlayerSession(shown.deps)(player(1));
+		const without = await createGetPlayerSession(hidden.deps)(player(1));
+
+		expect(withStatement.stage?.question?.textFormatting).toEqual({
+			subscript: [[27, 28]],
+		});
+		expect(without.stage?.question).toMatchObject({
+			text: null,
+			textFormatting: {},
+		});
 	});
 
 	it("gets the statement alone in the question's intro", async () => {

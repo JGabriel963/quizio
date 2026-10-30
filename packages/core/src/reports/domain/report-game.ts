@@ -1,6 +1,7 @@
 import type { Correctness } from "../../game/domain/answer";
 import type { GameChoice, GameSlider } from "../../game/domain/game-question";
 import type { QuestionType } from "../../quiz/domain/question";
+import type { TextFormatting } from "../../shared/domain/text-formatting";
 import type { ReportHeader } from "./report";
 
 /** A player who was in the game when it started, or joined later (spec 015, RN-08). */
@@ -18,6 +19,8 @@ export interface ReportQuestion {
 	index: number;
 	type: QuestionType;
 	text: string;
+	/** The statement's marked stretches (spec 047, RN-25). */
+	textFormatting: TextFormatting;
 	imageKey: string | null;
 	choices: GameChoice[];
 	/** Of a type answer, as the creator wrote them (spec 031); none otherwise. */

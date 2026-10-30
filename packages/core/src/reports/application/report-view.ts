@@ -3,6 +3,7 @@ import type { QuestionType } from "../../quiz/domain/question";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { QuizShareGrants } from "../../shared/application/ports/quiz-share-grants";
 import { marginRange } from "../../shared/domain/slider-scale";
+import type { TextFormatting } from "../../shared/domain/text-formatting";
 import { groupTypedAnswers } from "../../shared/domain/typed-answer";
 import { accuracyPercent, isLowAccuracy } from "../domain/accuracy";
 import {
@@ -39,6 +40,7 @@ export interface ParticipantRowView {
 export interface QuestionRowView {
 	index: number;
 	text: string;
+	textFormatting: TextFormatting;
 	type: QuestionType;
 	accuracyPercent: number | null;
 	difficult: boolean;
@@ -70,6 +72,7 @@ export function questionRow(
 	return {
 		index: question.index,
 		text: question.text,
+		textFormatting: question.textFormatting,
 		type: question.type,
 		accuracyPercent: accuracyPercent(stats.accuracy),
 		difficult: isLowAccuracy(stats.accuracy),

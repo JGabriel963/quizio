@@ -137,6 +137,7 @@ describe("quiz.questions router", () => {
 				id: expect.any(String),
 				type: "trueFalse",
 				text: null,
+				textFormatting: {},
 				timeLimitSeconds: 20,
 				points: "standard",
 				image: null,
@@ -182,6 +183,7 @@ describe("quiz.questions router", () => {
 				id: ref.questionId,
 				type: "trueFalse",
 				text: null,
+				textFormatting: {},
 				timeLimitSeconds: 20,
 				points: "standard",
 				image: null,
@@ -235,6 +237,97 @@ describe("quiz.questions router", () => {
 		expect(error).toMatchObject({
 			code: "BAD_REQUEST",
 			cause: { code: "QUIZ.CHANGE_NOT_APPLICABLE" },
+		});
+	});
+
+	describe("statement formatting (spec 047)", () => {
+		async function aQuizWithQuestion() {
+			const ana = createTestApi().callerFor("user-1");
+			const { id: quizId } = await ana.quiz.create({});
+			const { questions } = await ana.quiz.editor({ quizId });
+			return { ana, quizId, questionId: questions[0]?.id ?? "" };
+		}
+
+		it("update saves a text change with its formatting", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+
+			const { question } = await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: {
+					kind: "text",
+					text: "Quanto é 22?",
+					formatting: { superscript: [[10, 11]] },
+				},
+			});
+
+			expect(question).toMatchObject({
+				text: "Quanto é 22?",
+				textFormatting: { superscript: [[10, 11]] },
+			});
+			expect(
+				(await ana.quiz.editor({ quizId })).questions[0]?.textFormatting,
+			).toEqual({ superscript: [[10, 11]] });
+		});
+
+		it("a text change without formatting clears it", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+			await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: {
+					kind: "text",
+					text: "H2O",
+					formatting: { subscript: [[1, 2]] },
+				},
+			});
+
+			const { question } = await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: { kind: "text", text: "H2O" },
+			});
+
+			expect(question.textFormatting).toEqual({});
+		});
+
+		it("an invalid formatting is BAD_REQUEST with QUIZ.INVALID_TEXT_FORMATTING", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+
+			const error = await failureOf(
+				ana.quiz.questions.update({
+					quizId,
+					questionId,
+					change: {
+						kind: "text",
+						text: "H2O",
+						formatting: { subscript: [[1, 2]], superscript: [[1, 2]] },
+					},
+				}),
+			);
+
+			expect(error).toMatchObject({
+				code: "BAD_REQUEST",
+				cause: { code: "QUIZ.INVALID_TEXT_FORMATTING" },
+			});
+		});
+
+		it("refuses an unknown mark key by its shape", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+
+			const error = await failureOf(
+				ana.quiz.questions.update({
+					quizId,
+					questionId,
+					change: {
+						kind: "text",
+						text: "H2O",
+						formatting: { underline: [[0, 1]] } as never,
+					},
+				}),
+			);
+
+			expect(error).toMatchObject({ code: "BAD_REQUEST" });
 		});
 	});
 

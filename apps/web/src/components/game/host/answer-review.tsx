@@ -1,8 +1,9 @@
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { Button } from "@quizio/ui/components/button";
 import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon, InfoIcon, LoaderCircleIcon, XIcon } from "lucide-react";
 import { useState } from "react";
-
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { TypedAnswerGroupData } from "@/lib/api-types";
 
 /** A mark of the host: the answers of `key` are now correct or not (RN-29). */
@@ -19,6 +20,7 @@ export interface ReviewMark {
  */
 export function AnswerReview({
 	questionText,
+	questionFormatting,
 	groups,
 	busy,
 	error,
@@ -26,6 +28,7 @@ export function AnswerReview({
 	onCancel,
 }: {
 	questionText: string;
+	questionFormatting: TextFormatting;
 	/** Null while the list is on its way. */
 	groups: TypedAnswerGroupData[] | null;
 	busy: boolean;
@@ -53,8 +56,8 @@ export function AnswerReview({
 			className="absolute inset-0 z-20 flex flex-col gap-4 bg-black/60 p-4 text-white backdrop-blur-sm"
 		>
 			<div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[1fr_minmax(0,40rem)_1fr]">
-				<h1 className="rounded-md bg-white px-4 py-3 text-center font-bold text-2xl text-neutral-900 shadow-lg sm:col-start-2">
-					{questionText}
+				<h1 className="rounded-md bg-white px-4 py-3 text-center text-2xl text-neutral-900 shadow-lg sm:col-start-2">
+					<FormattedText text={questionText} formatting={questionFormatting} />
 				</h1>
 				<div className="flex flex-col items-end gap-2">
 					<Button

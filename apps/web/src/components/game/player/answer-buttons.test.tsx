@@ -20,6 +20,7 @@ function quiz(
 		selection: options.selection ?? "single",
 		slider: null,
 		text: texts ? "Qual é a capital do Brasil?" : null,
+		textFormatting: {},
 		image: null,
 		choices: (texts ?? TEXTS).map((text, index) => ({
 			id: `choice-${index + 1}`,
@@ -35,6 +36,7 @@ const trueFalse = (withTexts: boolean): PlayerQuestionData => ({
 	selection: "single",
 	slider: null,
 	text: withTexts ? "A capital do Brasil é Brasília" : null,
+	textFormatting: {},
 	image: null,
 	choices: [
 		{
