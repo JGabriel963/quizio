@@ -2,7 +2,10 @@ import {
 	CHOICE_TEXT_MAX_LENGTH,
 	type Choice,
 } from "@quizio/core/quiz/domain/question";
-import { truncateCharacters } from "@quizio/core/shared/domain/text-length";
+import {
+	characterCount,
+	truncateCharacters,
+} from "@quizio/core/shared/domain/text-length";
 import {
 	ANSWER_COLOR_CLASSES,
 	AnswerShape,
@@ -10,17 +13,19 @@ import {
 } from "@quizio/ui/components/answer-shape";
 import { Checkbox } from "@quizio/ui/components/checkbox";
 import { cn } from "@quizio/ui/lib/utils";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { answerPlaceholder, missingAnswerHint } from "@/lib/question-labels";
 import { useDebouncedAutosave } from "@/lib/use-debounced-autosave";
 
+import { AnswerTextInput } from "./answer-text-input";
 import { EditorHint } from "./editor-hint";
 
 /**
  * One answer block (spec 004): color and shape of its position, the autosaved
  * text capped at 75 characters and the "correct" mark, which an empty answer
- * cannot have (RN-04, RN-06).
+ * cannot have (RN-04, RN-06). The text wraps and the block grows to show all
+ * of it; while it has the focus, the corner counts what is left (as Kahoot).
  */
 export function ChoiceField({
 	questionId,
@@ -41,6 +46,7 @@ export function ChoiceField({
 	const position = index + 1;
 	const shape = answerShapeAt(index);
 	const hintId = useId();
+	const [focused, setFocused] = useState(false);
 	const { value, setValue, flush } = useDebouncedAutosave({
 		key: `question:${questionId}:choice:${choice.id}`,
 		initialValue: choice.text ?? "",
@@ -48,12 +54,13 @@ export function ChoiceField({
 	});
 	const filled = value.trim() !== "";
 	const showHint = hint && !filled;
+	const left = CHOICE_TEXT_MAX_LENGTH - characterCount(value);
 
 	return (
 		<li className="relative flex flex-col">
 			<div
 				className={cn(
-					"flex min-h-16 items-center gap-3 rounded-md p-2 shadow-press-light transition-colors sm:min-h-[clamp(4.5rem,11svh,7rem)] xl:gap-4",
+					"relative flex min-h-16 flex-1 items-center @4xl:gap-4 gap-3 rounded-md p-2 shadow-press-light transition-colors sm:min-h-[clamp(4.5rem,11svh,7rem)]",
 					filled
 						? [ANSWER_COLOR_CLASSES[shape], "text-answer-foreground"]
 						: "bg-card",
@@ -61,30 +68,33 @@ export function ChoiceField({
 			>
 				<span
 					className={cn(
-						"flex min-h-12 w-10 shrink-0 items-center justify-center self-stretch rounded-md text-answer-foreground xl:w-12",
+						"flex min-h-12 @4xl:w-12 w-10 shrink-0 items-center justify-center self-stretch rounded-md text-answer-foreground",
 						ANSWER_COLOR_CLASSES[shape],
 					)}
 				>
-					<AnswerShape shape={shape} className="size-5 xl:size-7" />
+					<AnswerShape shape={shape} className="@4xl:size-7 size-5" />
 				</span>
-				<input
+				<AnswerTextInput
 					aria-label={`Resposta ${position}`}
 					aria-describedby={showHint ? hintId : undefined}
 					placeholder={answerPlaceholder(index)}
 					value={value}
-					onChange={(event) =>
-						setValue(
-							truncateCharacters(event.target.value, CHOICE_TEXT_MAX_LENGTH),
-						)
+					onFocus={() => setFocused(true)}
+					onValueChange={(typed) =>
+						setValue(truncateCharacters(typed, CHOICE_TEXT_MAX_LENGTH))
 					}
-					onBlur={() => void flush()}
-					className={cn(
-						"min-w-0 flex-1 bg-transparent font-bold outline-none xl:text-lg",
-						filled
-							? "placeholder:text-answer-foreground/70"
-							: "placeholder:text-muted-foreground",
-					)}
+					onBlur={() => {
+						setFocused(false);
+						void flush();
+					}}
+					className="font-bold @4xl:text-lg"
 				/>
+				{focused && (
+					<span className="pointer-events-none absolute top-1 right-2 font-bold text-xs">
+						<span aria-hidden="true">{left}</span>
+						<span className="sr-only">{left} caracteres restantes</span>
+					</span>
+				)}
 				<Checkbox
 					variant="answer"
 					aria-label={`Resposta ${position} correta`}
@@ -95,7 +105,7 @@ export function ChoiceField({
 						await flush();
 						onCorrectChange(checked);
 					}}
-					className={cn("xl:mr-1 xl:size-11", !filled && "invisible")}
+					className={cn("@4xl:mr-1 @4xl:size-11", !filled && "invisible")}
 				/>
 			</div>
 			{showHint && (

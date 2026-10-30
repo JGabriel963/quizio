@@ -74,6 +74,20 @@ describe("ChoiceField", () => {
 		expect(answer()).toHaveValue("a".repeat(75));
 	});
 
+	it("counts the characters left while it has the focus", async () => {
+		const { user } = renderField({ text: "Rio" });
+
+		expect(screen.queryByText("72 caracteres restantes")).toBeNull();
+		await user.click(answer());
+		expect(screen.getByText("72 caracteres restantes")).toBeInTheDocument();
+
+		await user.type(answer(), " de Janeiro");
+		expect(screen.getByText("61 caracteres restantes")).toBeInTheDocument();
+
+		await user.tab();
+		expect(screen.queryByText(/caracteres restantes/)).toBeNull();
+	});
+
 	it("autosaves the answer, blank as null", async () => {
 		const { onSaveText, tracker, user } = renderField({ text: "Rio" });
 
@@ -109,7 +123,9 @@ describe("ChoiceField", () => {
 	it("a filled answer takes its position's color", () => {
 		renderField({ text: "Salvador", index: 5 });
 
-		expect(answer(6).parentElement).toHaveClass("bg-answer-purple");
+		expect(answer(6).closest("li")?.firstElementChild).toHaveClass(
+			"bg-answer-purple",
+		);
 	});
 
 	it("shows the correct state", () => {

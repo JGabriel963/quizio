@@ -36,11 +36,15 @@ export function QuizAnswers({
 
 	return (
 		<div className="flex flex-col gap-2">
-			{/* Room for the hint below the answers, kept even without it so nothing moves. */}
-			<div className="relative mb-7">
+			{/*
+				Room for the hint below the answers, kept even without it so nothing
+				moves. Two columns and the larger sizes follow the editor's width, not
+				the window's: the side panels can leave it narrow on a wide screen.
+			*/}
+			<div className="@container relative mb-7">
 				<ul
 					aria-label="Respostas"
-					className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+					className="grid @xl:grid-cols-2 grid-cols-1 gap-2"
 				>
 					{question.choices.map((choice, index) => (
 						<ChoiceField

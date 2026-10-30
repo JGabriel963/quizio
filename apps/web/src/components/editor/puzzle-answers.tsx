@@ -40,6 +40,8 @@ import {
 } from "@/lib/sortable";
 import { useDebouncedAutosave } from "@/lib/use-debounced-autosave";
 
+import { AnswerTextInput } from "./answer-text-input";
+
 /** A slot's field as the list reaches it: its typed text and its pending save. */
 interface SlotField {
 	flush: () => Promise<void>;
@@ -179,8 +181,13 @@ export function PuzzleAnswers({
 
 	return (
 		<div className="flex flex-col gap-3">
+			{/* One grid for both lists, so a shape grows with the answer beside it. */}
 			<div className="grid grid-cols-[auto_1fr] gap-2">
-				<ol aria-hidden="true" className="flex flex-col gap-2">
+				<ol
+					aria-hidden="true"
+					className="grid grid-rows-subgrid"
+					style={{ gridRow: `span ${items.length}` }}
+				>
 					{items.map((_, index) => {
 						const shape = answerShapeAt(index);
 						return (
@@ -214,7 +221,8 @@ export function PuzzleAnswers({
 					>
 						<ol
 							aria-label="Respostas na ordem correta"
-							className="flex flex-col gap-2"
+							className="grid grid-rows-subgrid"
+							style={{ gridRow: `span ${items.length}` }}
 						>
 							{items.map((text, index) => (
 								<PuzzleAnswerField
@@ -319,26 +327,19 @@ function PuzzleAnswerField({
 				hidden && "opacity-0",
 			)}
 		>
-			<input
+			<AnswerTextInput
 				aria-label={`Resposta ${index + 1}`}
 				placeholder={placeholderOf(index, count)}
 				value={value}
 				onFocus={() => setFocused(true)}
-				onChange={(event) =>
-					setValue(
-						truncateCharacters(event.target.value, CHOICE_TEXT_MAX_LENGTH),
-					)
+				onValueChange={(typed) =>
+					setValue(truncateCharacters(typed, CHOICE_TEXT_MAX_LENGTH))
 				}
 				onBlur={() => {
 					setFocused(false);
 					void flush();
 				}}
-				className={cn(
-					"min-w-0 flex-1 bg-transparent font-bold outline-none xl:text-lg",
-					filled
-						? "placeholder:text-answer-foreground/70"
-						: "placeholder:text-muted-foreground",
-				)}
+				className="font-bold xl:text-lg"
 			/>
 			{focused && (
 				<span className="absolute top-1 right-2 font-bold text-xs">
@@ -386,7 +387,7 @@ function DraggedAnswer({
 					: "bg-card text-muted-foreground",
 			)}
 		>
-			<span className="min-w-0 flex-1 truncate">
+			<span className="wrap-break-word min-w-0 flex-1">
 				{text ?? placeholderOf(index, 4)}
 			</span>
 			<EqualIcon className="mx-2.5 size-5" />

@@ -109,6 +109,47 @@ test("an incomplete question is still saved and keeps its alert", async ({
 	).toBeVisible();
 });
 
+test("a long answer wraps and shows whole, in one line of text, with what is left counted", async ({
+	page,
+}) => {
+	const long =
+		"Deus Pai, Jesus, o anjo, João e os leitores/ouvintes das sete igrejas";
+	await answer(page, 1).click();
+	await expect(page.getByText("75 caracteres restantes")).toBeAttached();
+	await page.keyboard.type(long);
+	await page.keyboard.press("Enter");
+	await page.keyboard.type(" da Ásia e mais");
+	// Past 75 characters nothing goes in.
+	const kept = `${long} da Ásia e mais`.slice(0, 75);
+	await expect(answer(page, 1)).toHaveValue(kept);
+	await expect(page.getByText("0 caracteres restantes")).toBeAttached();
+	await writeAnswer(page, 2, "aba".repeat(25));
+
+	// Nothing of either answer is hidden, and the row keeps one height.
+	const fields = [answer(page, 1), answer(page, 2)];
+	for (const field of fields) {
+		expect(
+			await field.evaluate(
+				(element) => element.scrollHeight <= element.clientHeight + 1,
+			),
+		).toBe(true);
+	}
+	const heights = await Promise.all(
+		fields.map(async (field) =>
+			Math.round(
+				(await field.locator("xpath=ancestor::li[1]").boundingBox())?.height ??
+					0,
+			),
+		),
+	);
+	if (test.info().project.name !== "mobile") {
+		expect(heights[0]).toBe(heights[1]);
+	}
+
+	await reload(page);
+	await expect(answer(page, 1)).toHaveValue(kept);
+});
+
 test("extra answers come with colors 5 and 6, and removing them discards their text", async ({
 	page,
 }) => {
