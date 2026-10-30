@@ -166,6 +166,27 @@ export function SignUpForm({
 				</form.Subscribe>
 			</form>
 
+			<p className="text-muted-foreground text-xs">
+				Ao criar sua conta, você concorda com os{" "}
+				<a
+					href="/terms"
+					target="_blank"
+					rel="noreferrer"
+					className="text-primary underline underline-offset-4"
+				>
+					Termos de Uso
+				</a>{" "}
+				e a{" "}
+				<a
+					href="/privacy"
+					target="_blank"
+					rel="noreferrer"
+					className="text-primary underline underline-offset-4"
+				>
+					Política de Privacidade
+				</a>
+				.
+			</p>
 			{switchToSignIn}
 		</div>
 	);
