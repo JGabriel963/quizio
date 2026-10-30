@@ -11,13 +11,12 @@ import {
 } from "@quizio/ui/components/answer-shape";
 import { Checkbox } from "@quizio/ui/components/checkbox";
 import { cn } from "@quizio/ui/lib/utils";
-import { ImageIcon } from "lucide-react";
 import { useId, useState } from "react";
 
 import { answerPlaceholder, missingAnswerHint } from "@/lib/question-labels";
 import { useDebouncedAutosave } from "@/lib/use-debounced-autosave";
 
-import { AnswerImageField } from "./answer-image-field";
+import { AddAnswerImageButton, AnswerImageField } from "./answer-image-field";
 import { EditorHint } from "./editor-hint";
 import { FormattedTextField, type SavedText } from "./formatted-text-field";
 
@@ -148,15 +147,7 @@ export function ChoiceField({
 					/>
 				)}
 				{!filled && !focused && pickImage && (
-					<button
-						type="button"
-						aria-label={`Adicionar imagem à resposta ${position}`}
-						title="Adicione imagem como resposta alternativa"
-						onClick={pickImage}
-						className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-					>
-						<ImageIcon aria-hidden="true" className="size-6" />
-					</button>
+					<AddAnswerImageButton position={position} onClick={pickImage} />
 				)}
 				{focused && !image && (
 					<span className="pointer-events-none absolute top-1 right-2 font-bold text-xs">

@@ -30,7 +30,7 @@ import {
 	answerShapeAt,
 } from "@quizio/ui/components/answer-shape";
 import { cn } from "@quizio/ui/lib/utils";
-import { EqualIcon, ImageIcon } from "lucide-react";
+import { EqualIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BodyDragOverlay } from "@/components/game/body-drag-overlay";
 import {
@@ -49,6 +49,7 @@ import {
 import { useDebouncedAutosave } from "@/lib/use-debounced-autosave";
 
 import {
+	AddAnswerImageButton,
 	type AnswerImageActions,
 	AnswerImageField,
 } from "./answer-image-field";
@@ -237,7 +238,8 @@ export function PuzzleAnswers({
 	return (
 		<div className="flex flex-col gap-3">
 			{/* One grid for both lists, so a shape grows with the answer beside it. */}
-			<div className="grid grid-cols-[auto_1fr] gap-2">
+			{/* Every row as tall as the tallest, as in Kahoot (spec 049). */}
+			<div className="grid auto-rows-fr grid-cols-[auto_1fr] gap-2">
 				<ol
 					aria-hidden="true"
 					className="grid grid-rows-subgrid"
@@ -448,15 +450,7 @@ function PuzzleAnswerField({
 				/>
 			)}
 			{!filled && !focused && pickImage && (
-				<button
-					type="button"
-					aria-label={`Adicionar imagem à resposta ${index + 1}`}
-					title="Adicione imagem como resposta alternativa"
-					onClick={pickImage}
-					className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-				>
-					<ImageIcon aria-hidden="true" className="size-6" />
-				</button>
+				<AddAnswerImageButton position={index + 1} onClick={pickImage} />
 			)}
 			{focused && !image && (
 				<span className="absolute top-1 right-2 font-bold text-xs">

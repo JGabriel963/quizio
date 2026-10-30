@@ -59,7 +59,7 @@ test.describe("imagem nas respostas (spec 049)", () => {
 		await sendAnswerImage(page, 2);
 
 		// CA-07: a crop without the circle.
-		await page.locator("[data-slot=answer-image-field]").first().hover();
+		await answerImage(page, 1).hover({ force: true });
 		await page
 			.getByRole("button", { name: "Recortar imagem da resposta 1" })
 			.click();

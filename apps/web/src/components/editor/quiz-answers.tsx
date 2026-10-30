@@ -49,7 +49,9 @@ export function QuizAnswers({
 			<div className="@container relative mb-7">
 				<ul
 					aria-label="Respostas"
-					className="grid @xl:grid-cols-2 grid-cols-1 gap-2"
+					// Every row as tall as the tallest, as in Kahoot: an image answer
+					// raises them all (spec 049).
+					className="grid auto-rows-fr @xl:grid-cols-2 grid-cols-1 gap-2"
 				>
 					{question.choices.map((choice, index) => (
 						<ChoiceField
