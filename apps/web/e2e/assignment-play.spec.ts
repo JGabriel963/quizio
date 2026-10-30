@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import {
+	chooseProperty,
 	createQuizInEditor,
 	expectSaved,
 	newParticipant,
@@ -10,8 +11,11 @@ import {
 const readyDialog = (page: Page) =>
 	page.getByRole("dialog", { name: "O quiz está pronto" });
 
-/** A playable quiz of one Quiz question of two answers, the first one right. */
-async function publishQuiz(page: Page, title: string) {
+/**
+ * A playable quiz of one Quiz question of two answers, the first one right,
+ * with the editor's time limit unless another is given ("1 minuto").
+ */
+async function publishQuiz(page: Page, title: string, timeLimit?: string) {
 	await createQuizInEditor(page);
 	await page.getByRole("textbox", { name: "Título do quiz" }).fill(title);
 	await page
@@ -26,6 +30,10 @@ async function publishQuiz(page: Page, title: string) {
 	await page.getByRole("textbox", { name: "Resposta 2", exact: true }).blur();
 	await page.getByRole("checkbox", { name: "Resposta 1 correta" }).click();
 	await expectSaved(page);
+	if (timeLimit) {
+		await chooseProperty(page, "Limite de tempo", timeLimit);
+		await expectSaved(page);
+	}
 	await page.getByRole("button", { name: "Salvar", exact: true }).click();
 	await expect(readyDialog(page)).toBeVisible();
 }
@@ -44,7 +52,7 @@ async function assignQuiz(creator: Page, title: string) {
 	});
 	const pinText = await share.locator("strong").last().textContent();
 	const pin = (pinText ?? "").replace(/\s/g, "");
-	await share.getByRole("link", { name: new RegExp(title) }).click();
+	await share.getByRole("link", { name: title }).click();
 	await expect(
 		creator.getByRole("heading", { level: 1, name: title }),
 	).toBeVisible();
@@ -172,7 +180,8 @@ test.describe("jogar a atribuição (spec 030)", () => {
 	}) => {
 		test.setTimeout(90_000);
 		await signUp(creator, { name: "Ana" });
-		await publishQuiz(creator, "Capitais");
+		// A minute: the time away plus a slow reload never use the whole question up.
+		await publishQuiz(creator, "Capitais", "1 minuto");
 		const { gameId } = await assignQuiz(creator, "Capitais");
 
 		const ana = await newParticipant(browser);
@@ -191,6 +200,8 @@ test.describe("jogar a atribuição (spec 030)", () => {
 		await expect(
 			ana.getByRole("heading", { name: "Capital do Brasil?" }),
 		).toBeVisible();
-		expect(await secondsLeft()).toBeLessThanOrEqual(atStart - 5);
+		const left = await secondsLeft();
+		expect(left).toBeGreaterThan(0);
+		expect(left).toBeLessThanOrEqual(atStart - 5);
 	});
 });

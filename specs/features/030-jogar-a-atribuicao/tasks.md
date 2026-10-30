@@ -148,7 +148,7 @@ status: done # todo | in-progress | done
 | CA-17 | T08, T17, T20 |
 | CA-18 | T06, T17 |
 | CA-19 | T01, T06, T10, T14, T18 |
-| CA-19a | T01, T06 (`resume-assignment.test.ts`, 2026-10-30) |
+| CA-19a | T01, T06 (`get-assignment-play.test.ts`, 2026-10-30) |
 | CA-20 | T01, T06, T18 |
 | CA-21 | T06, T14, T18 |
 | CA-22 | T06, T07, T09, T12, T18 |

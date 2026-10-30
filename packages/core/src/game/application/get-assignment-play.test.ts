@@ -7,6 +7,7 @@ import {
 
 import { DEFAULT_ASSIGNMENT_OPTIONS } from "../domain/assignment";
 import { GameNotFoundError } from "../domain/game";
+import { aGame, aPlayer } from "../testing/a-game";
 import { anAnswer } from "../testing/a-game-question";
 import { createGameDeps } from "../testing/game-deps";
 import { createCreateAssignment } from "./create-assignment";
@@ -306,15 +307,24 @@ describe("getAssignmentPlay (spec 030)", () => {
 		expect((await play()).endedEarly).toBe(false);
 	});
 
-	it("a wrong secret is missing", async () => {
+	it("only the pair the browser kept goes on: anything else is missing (RN-20, M5)", async () => {
 		const { deps, gameId, john } = await playing();
+		const kept = { gameId, playerId: john.playerId, secret: john.secret };
+		await deps.games.save(aGame({ id: "live", pin: "111111", quizId: "q-2" }));
+		await deps.players.add(
+			aPlayer({ id: "p-live", gameId: "live", secret: "s-live" }),
+		);
 
-		await expect(
-			createGetAssignmentPlay(deps)({
-				gameId,
-				playerId: john.playerId,
-				secret: "nope",
-			}),
-		).rejects.toThrow(GameNotFoundError);
+		for (const pair of [
+			{ ...kept, secret: "nope" },
+			{ ...kept, playerId: "nobody" },
+			{ ...kept, gameId: "missing" },
+			// A player of a live game is nobody's participant here.
+			{ ...kept, playerId: "p-live", secret: "s-live" },
+		]) {
+			await expect(createGetAssignmentPlay(deps)(pair)).rejects.toThrow(
+				GameNotFoundError,
+			);
+		}
 	});
 });
