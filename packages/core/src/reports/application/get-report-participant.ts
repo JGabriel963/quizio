@@ -1,13 +1,15 @@
 import type { QuestionType } from "../../quiz/domain/question";
 import type { TextFormatting } from "../../shared/domain/text-formatting";
-import { puzzleOrderOf } from "../domain/puzzle-orders";
+import { type OrderedAnswer, puzzleOrderOf } from "../domain/puzzle-orders";
 import { ReportNotFoundError } from "../domain/report";
 import { participantStats } from "../domain/report-stats";
 import { loadReport, type ReportReadDeps } from "./load-report";
 import {
 	type AnswerResult,
+	answerImageOf,
 	type ChoiceView,
 	chosenChoices,
+	type ImageUrlResolver,
 	type ParticipantRowView,
 	participantRow,
 } from "./report-view";
@@ -28,8 +30,8 @@ export interface ParticipantAnswerView {
 	sliderValue: number | null;
 	/** The slider's unit, told with the value ("600 anos"); null otherwise. */
 	sliderUnit: string | null;
-	/** The order they sent in a puzzle, by text (spec 033, RN-31); null otherwise. */
-	puzzleOrder: string[] | null;
+	/** The order they sent in a puzzle, with its formatting (spec 033, RN-31; spec 048); null otherwise. */
+	puzzleOrder: OrderedAnswer[] | null;
 	points: number;
 	/** Null without an answer. */
 	responseTimeMs: number | null;
@@ -47,7 +49,7 @@ export type GetReportParticipant = (input: {
 }) => Promise<ParticipantDetailView>;
 
 export function createGetReportParticipant(
-	deps: ReportReadDeps,
+	deps: ReportReadDeps & { storage: ImageUrlResolver },
 ): GetReportParticipant {
 	return async ({ playerId, ...input }) => {
 		const game = await loadReport(deps, input);
@@ -61,6 +63,7 @@ export function createGetReportParticipant(
 				.filter((answer) => answer.playerId === playerId)
 				.map((answer) => [answer.questionIndex, answer]),
 		);
+		const imageOf = answerImageOf(game.header, deps.storage);
 
 		return {
 			...participantRow(stats),
@@ -74,11 +77,11 @@ export function createGetReportParticipant(
 						textFormatting: question.textFormatting,
 						type: question.type,
 						result: answer?.correctness ?? "unanswered",
-						choices: chosenChoices(question, answer),
+						choices: chosenChoices(question, answer, imageOf),
 						typedText: answer?.text ?? null,
 						sliderValue: answer?.value ?? null,
 						sliderUnit: question.slider?.unit ?? null,
-						puzzleOrder: puzzleOrderOf(question, answer),
+						puzzleOrder: puzzleOrderOf(question, answer, imageOf),
 						points: answer?.points ?? 0,
 						responseTimeMs: answer?.responseTimeMs ?? null,
 					};

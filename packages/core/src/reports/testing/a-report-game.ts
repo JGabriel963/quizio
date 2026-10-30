@@ -53,6 +53,8 @@ export function aReportQuestion(
 			id: `q${index}-${letter}`,
 			shapeIndex,
 			text: `Resposta ${letter.toUpperCase()}`,
+			textFormatting: {},
+			image: null,
 			correct: shapeIndex === 0,
 		})),
 		...overrides,

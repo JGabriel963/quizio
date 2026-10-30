@@ -44,7 +44,7 @@ O criador formata trechos do enunciado com negrito, itálico, subscrito e sobres
 
 | ID | Regra | Fonte |
 | --- | --- | --- |
-| RN-01 | Com o enunciado em foco, uma **barra de formatação (`FormattingToolbar`)** flutua logo acima do campo, centralizada, com os botões **Negrito (B)**, **Itálico (I)**, **Subscrito (X₂)** e **Sobrescrito (X²)**, um separador e **Símbolos (Ω)**. Fora de foco, a barra não aparece. Usar a barra não tira o foco do campo. | capturas do Kahoot (2026-10-30) · decisão do usuário (2026-10-30) |
+| RN-01 | Com o enunciado em foco, uma **barra de formatação (`FormattingToolbar`)** flutua logo abaixo do campo, centralizada e por cima da mídia, sem empurrar nada (o enunciado fica no topo, como antes), com os botões **Negrito (B)**, **Itálico (I)**, **Subscrito (X₂)** e **Sobrescrito (X²)**, um separador e **Símbolos (Ω)**. Fora de foco, a barra não aparece. Usar a barra não tira o foco do campo. | capturas do Kahoot (2026-10-30) · decisão do usuário (2026-10-30) |
 | RN-02 | Cada botão mostra uma **dica com o nome** ao receber o ponteiro ou o foco: "Negrito", "Itálico", "Subscrito", "Sobrescrito" e "Símbolos". | captura do Kahoot ("Símbolos") · decisão do produto (2026-10-30) |
 | RN-03 | A formatação vale **por trecho**, com quatro **marcas (`TextMark`)**: negrito (`bold`), itálico (`italic`), subscrito (`subscript`) e sobrescrito (`superscript`). Com um trecho selecionado, o botão aplica a marca ao trecho, ou a tira se o trecho inteiro já a tem. Sem seleção, o botão liga ou desliga a marca para o que for digitado a seguir. | capturas do Kahoot |
 | RN-04 | Negrito e itálico **se combinam** entre si e com subscrito ou sobrescrito. **Subscrito e sobrescrito se excluem**: ligar um num trecho tira o outro desse trecho. | captura do Kahoot ("texto em itálico e negrito") · decisão do produto (2026-10-30) |
@@ -107,7 +107,7 @@ O criador formata trechos do enunciado com negrito, itálico, subscrito e sobres
 - **Dado** o editor aberto numa pergunta, com o foco fora do enunciado
 - **Então** não há barra de formatação acima do enunciado
 - **Quando** o criador clica no enunciado
-- **Então** a barra aparece centralizada logo acima dele, com B, I, X₂, X², o separador e Ω, sem f(x)
+- **Então** a barra aparece centralizada logo abaixo dele, com B, I, X₂, X², o separador e Ω, sem f(x)
 - **Quando** ele clica em B
 - **Então** o enunciado continua em foco e a barra continua à vista
 - **Quando** ele clica fora do enunciado
@@ -313,7 +313,7 @@ O criador formata trechos do enunciado com negrito, itálico, subscrito e sobres
 
 - **Dado** o editor aberto num celular
 - **Quando** o criador toca no enunciado
-- **Então** a barra aparece acima do campo, inteira na tela
+- **Então** a barra aparece abaixo do campo, inteira na tela
 - **Quando** ele toca em Ω
 - **Então** o diálogo cabe na largura da tela, com menos colunas, e rola para mostrar o resto
 
@@ -349,7 +349,7 @@ O criador formata trechos do enunciado com negrito, itálico, subscrito e sobres
 
 ## Experiência (telas e estados)
 
-- **Barra de formatação**: um retângulo cinza-claro de cantos arredondados, flutuando acima do enunciado e centralizado sobre ele, por cima do fundo do editor, sem empurrar o resto da tela. Os botões são letras escuras e grossas: **B**, *I*, X₂, X², uma linha vertical fina e Ω. Botão aceso: fundo cinza-escuro com o símbolo branco. Ao passar o ponteiro, o botão clareia e a dica aparece abaixo dele. Aparece ao focar o enunciado e some ao sair dele; abrir o diálogo de símbolos não a esconde de vez, porque o foco volta ao campo quando o diálogo fecha.
+- **Barra de formatação**: um retângulo cinza-claro de cantos arredondados, flutuando logo abaixo do enunciado e centralizado com ele, por cima da mídia, sem empurrar o resto da tela. Os botões são letras escuras e grossas: **B**, *I*, X₂, X², uma linha vertical fina e Ω. Botão aceso: fundo cinza-escuro com o símbolo branco. Ao passar o ponteiro, o botão clareia e a dica aparece abaixo dele. Aparece ao focar o enunciado e some ao sair dele; abrir o diálogo de símbolos não a esconde de vez, porque o foco volta ao campo quando o diálogo fecha.
 - **Enunciado no editor**: a mesma caixa branca de hoje, com o texto centralizado e grande, agora em **peso normal**; os trechos em negrito em negrito; o contador de caracteres restantes no canto superior direito enquanto o campo está em foco; "Comece a digitar a pergunta" quando vazio.
 - **Diálogo "Insira um símbolo"**: janela branca com o título em negrito à esquerda. Abaixo, as cinco abas lado a lado; a escolhida em azul-escuro com o texto branco, as outras em cinza-claro com a sombra de botão. A grade de quadrados com bordas finas, cada um com um símbolo grande e escuro; ao passar o ponteiro, o quadrado fica cinza. Quando a lista passa da altura, a grade rola, a borda de baixo esmaece e um botão redondo azul com uma seta para baixo rola a grade. Embaixo, centralizado, o botão cinza **Cancelar**. No celular, a janela ocupa quase toda a largura e a grade tem menos colunas.
 - **Telas de jogo, páginas do quiz e relatórios**: o enunciado como hoje, mas com o texto em peso normal e a formatação aplicada; expoentes e índices menores, acima ou abaixo da linha.
@@ -382,3 +382,4 @@ O criador formata trechos do enunciado com negrito, itálico, subscrito e sobres
 - 2026-10-30 — spec aprovada pelo usuário; a pergunta em aberto sobre as listas de símbolos foi resolvida no plano.
 - 2026-10-30 — implementação: a aba Moeda ficou com 28 símbolos, sem ؋, ៛ e ﷼, que nenhuma das fontes de símbolos tem (RN-16). A pedido do usuário, a fonte do app passou a ser a Montserrat estática, como a do Kahoot, em vez da variável.
 - 2026-10-30 — implementada (tarefas T01 a T29): testes de unidade, componentes, repositórios, API, MCP e E2E verdes.
+- 2026-10-30 — a barra passa a flutuar **abaixo** do enunciado: reservar espaço acima afastava o enunciado do topo e descentralizava o ⋮ (pedido do usuário, com a captura de produção); acima, dentro da área que rola, não há espaço sem empurrar a tela.

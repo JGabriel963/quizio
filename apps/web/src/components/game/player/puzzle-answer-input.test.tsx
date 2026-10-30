@@ -1,3 +1,4 @@
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -6,14 +7,19 @@ import { PuzzleAnswerInput } from "./puzzle-answer-input";
 
 /** The rivers as the game drew them: Yangtzé took the red triangle. */
 const drawn = [
-	{ id: "choice-3", shapeIndex: 0, text: "Yangtzé" },
-	{ id: "choice-4", shapeIndex: 1, text: "Mississipi" },
-	{ id: "choice-1", shapeIndex: 2, text: "Nilo" },
-	{ id: "choice-2", shapeIndex: 3, text: "Amazonas" },
+	{ id: "choice-3", shapeIndex: 0, text: "Yangtzé", textFormatting: {} },
+	{ id: "choice-4", shapeIndex: 1, text: "Mississipi", textFormatting: {} },
+	{ id: "choice-1", shapeIndex: 2, text: "Nilo", textFormatting: {} },
+	{ id: "choice-2", shapeIndex: 3, text: "Amazonas", textFormatting: {} },
 ];
 
 function renderInput(
-	choices: { id: string; shapeIndex: number; text: string | null }[] = drawn,
+	choices: {
+		id: string;
+		shapeIndex: number;
+		text: string | null;
+		textFormatting?: TextFormatting;
+	}[] = drawn,
 	initialOrder?: string[],
 ) {
 	const onSubmit = vi.fn();
@@ -112,5 +118,25 @@ describe("PuzzleAnswerInput (spec 033)", () => {
 			"Yangtzé",
 			"Mississipi",
 		]);
+	});
+});
+
+describe("formatted blocks on the phone (spec 048, RN-19)", () => {
+	it("draws the block's formatting", () => {
+		renderInput([
+			{
+				id: "choice-1",
+				shapeIndex: 0,
+				text: "H2O",
+				textFormatting: { subscript: [[1, 2]] },
+			},
+			{ id: "choice-2", shapeIndex: 1, text: "Sal", textFormatting: {} },
+			{ id: "choice-3", shapeIndex: 2, text: "Ar", textFormatting: {} },
+		]);
+
+		expect(screen.getByText("2", { selector: "sub" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Mover H2O" }),
+		).toBeInTheDocument();
 	});
 });

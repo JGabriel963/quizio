@@ -17,6 +17,46 @@ export function aQuestion(overrides: Partial<QuizQuestion> = {}): QuizQuestion {
 	};
 }
 
+/** Test builder: "H2O", with its 2 in subscript and right, and "CO2" (spec 048). */
+export function aFormattedAnswersQuestion(
+	overrides: Partial<QuizQuestion> = {},
+): QuizQuestion {
+	return aQuestion({
+		text: "Qual é a fórmula da água?",
+		choices: [
+			{
+				id: "choice-1",
+				text: "H2O",
+				textFormatting: { subscript: [[1, 2]] },
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				text: "CO2",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-3",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-4",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+		],
+		...overrides,
+	});
+}
+
 /** Test builder: a true/false question with some text and nothing marked. */
 export function aTrueFalseQuestion(
 	overrides: Partial<TrueFalseQuestion> = {},
@@ -115,3 +155,54 @@ export function asPuzzle(question: Question | undefined): PuzzleQuestion {
 	}
 	return question;
 }
+
+/** Test builder (spec 049): a quiz whose first answer is an image of rice, the right one. */
+export function anImageAnswersQuestion(
+	overrides: Parameters<typeof aQuestion>[0] = {},
+): QuizQuestion {
+	return aQuestion({
+		text: "Qual é o prato típico?",
+		choices: [
+			{
+				id: "choice-1",
+				text: null,
+				textFormatting: {},
+				image: {
+					key: "media/user-1/arroz.png",
+					crop: { shape: "square", zoom: 2, x: 0.5, y: 0.5 },
+					altText: "Arroz",
+				},
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				text: "Feijão",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-3",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-4",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+		],
+		...overrides,
+	});
+}
+
+/** The view of `anImageAnswersQuestion`'s image, with the test storage's address. */
+export const RICE_IMAGE_VIEW = {
+	url: "https://media.test/media/user-1/arroz.png",
+	crop: { shape: "square", zoom: 2, x: 0.5, y: 0.5 },
+	altText: "Arroz",
+};

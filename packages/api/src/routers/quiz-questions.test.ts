@@ -109,8 +109,20 @@ describe("quiz.questions router", () => {
 		const { choices } = asQuiz(after[0]);
 		expect(choices).toHaveLength(6);
 		expect(choices.slice(0, 2)).toEqual([
-			{ id: "choice-1", text: "Brasília", correct: true },
-			{ id: "choice-2", text: "Rio", correct: true },
+			{
+				id: "choice-1",
+				text: "Brasília",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				text: "Rio",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
 		]);
 	});
 
@@ -174,7 +186,12 @@ describe("quiz.questions router", () => {
 		});
 		const back = await ana.quiz.questions.update({
 			...ref,
-			change: { kind: "type", type: "quiz", remembered: asQuiz(written) },
+			// The core's formatting is readonly; the editor casts it the same way.
+			change: {
+				kind: "type",
+				type: "quiz",
+				remembered: asQuiz(written) as never,
+			},
 		});
 		const after = await ana.quiz.editor({ quizId });
 
@@ -331,6 +348,156 @@ describe("quiz.questions router", () => {
 		});
 	});
 
+	describe("answer formatting (spec 048)", () => {
+		async function aQuizWithQuestion() {
+			const ana = createTestApi().callerFor("user-1");
+			const { id: quizId } = await ana.quiz.create({});
+			const { questions } = await ana.quiz.editor({ quizId });
+			return { ana, quizId, questionId: questions[0]?.id ?? "" };
+		}
+
+		it("choiceText takes a formatting", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+
+			const { question } = await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: {
+					kind: "choiceText",
+					choiceId: "choice-1",
+					text: "H2O",
+					formatting: { subscript: [[1, 2]] },
+				},
+			});
+
+			expect(question.type === "quiz" && question.choices[0]).toMatchObject({
+				text: "H2O",
+				textFormatting: { subscript: [[1, 2]] },
+			});
+		});
+
+		it("puzzleItemText takes a formatting", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+			await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: { kind: "type", type: "puzzle", remembered: null },
+			});
+
+			const { question } = await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: {
+					kind: "puzzleItemText",
+					index: 1,
+					text: "CO2",
+					formatting: { subscript: [[2, 3]] },
+				},
+			});
+
+			expect(question.type === "puzzle" && question.itemFormatting).toEqual([
+				{},
+				{ subscript: [[2, 3]] },
+				{},
+				{},
+			]);
+		});
+
+		it("an answer change without formatting leaves none", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+			await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: {
+					kind: "choiceText",
+					choiceId: "choice-1",
+					text: "H2O",
+					formatting: { subscript: [[1, 2]] },
+				},
+			});
+
+			const { question } = await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: { kind: "choiceText", choiceId: "choice-1", text: "H2O" },
+			});
+
+			expect(
+				question.type === "quiz" && question.choices[0]?.textFormatting,
+			).toEqual({});
+		});
+
+		it("a type change keeps the remembered answers' formatting", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+
+			const { question } = await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: {
+					kind: "type",
+					type: "puzzle",
+					remembered: {
+						type: "puzzle",
+						items: ["H2O", "Sal", "Ar", null],
+						itemFormatting: [{ subscript: [[1, 2]] }, {}, {}, {}],
+					},
+				},
+			});
+			const back = await ana.quiz.questions.update({
+				quizId,
+				questionId,
+				change: {
+					kind: "type",
+					type: "quiz",
+					remembered: {
+						type: "quiz",
+						selection: "single",
+						choices: [
+							{
+								text: "x2",
+								textFormatting: { superscript: [[1, 2]] },
+								correct: true,
+							},
+							{ text: "y", correct: false },
+							{ text: null, correct: false },
+							{ text: null, correct: false },
+						],
+					},
+				},
+			});
+
+			expect(question.type === "puzzle" && question.itemFormatting[0]).toEqual({
+				subscript: [[1, 2]],
+			});
+			expect(
+				back.question.type === "quiz" &&
+					back.question.choices[0]?.textFormatting,
+			).toEqual({ superscript: [[1, 2]] });
+		});
+
+		it("an answer's bad formatting is INVALID_TEXT_FORMATTING", async () => {
+			const { ana, quizId, questionId } = await aQuizWithQuestion();
+
+			const error = await failureOf(
+				ana.quiz.questions.update({
+					quizId,
+					questionId,
+					change: {
+						kind: "choiceText",
+						choiceId: "choice-1",
+						text: "H2O",
+						formatting: { bold: [[0, 9]] },
+					},
+				}),
+			);
+
+			expect(error).toMatchObject({
+				code: "BAD_REQUEST",
+				cause: { code: "QUIZ.INVALID_TEXT_FORMATTING" },
+			});
+		});
+	});
+
 	it("update refuses an answer over 75 characters with its domainCode", async () => {
 		const ana = createTestApi().callerFor("user-1");
 		const { id: quizId } = await ana.quiz.create({});
@@ -432,6 +599,180 @@ describe("quiz.questions router", () => {
 			expect(badCrop).toMatchObject({
 				cause: { code: "QUIZ.INVALID_IMAGE_CROP" },
 			});
+		});
+	});
+
+	describe("answer images (spec 049)", () => {
+		const first = { choiceId: "choice-1" };
+
+		async function quizWithUpload() {
+			const setup = await (async () => {
+				const api = createTestApi();
+				const ana = api.callerFor("user-1");
+				const { id: quizId } = await ana.quiz.create({});
+				const { questions } = await ana.quiz.editor({ quizId });
+				const upload = await ana.media.requestUpload({
+					contentType: "image/png",
+					sizeBytes: 2048,
+				});
+				api.storage.simulateUpload(upload.key);
+				const questionId = questions[0]?.id ?? "";
+				const update = (
+					change: Parameters<typeof ana.quiz.questions.update>[0]["change"],
+					id = questionId,
+				) => ana.quiz.questions.update({ quizId, questionId: id, change });
+				return { api, ana, quizId, upload, update, questionId };
+			})();
+			await setup.update({
+				kind: "choiceText",
+				choiceId: "choice-1",
+				text: "Arroz",
+			});
+			return setup;
+		}
+
+		it("answerImage puts an uploaded image in a quiz answer and a puzzle slot", async () => {
+			const { ana, quizId, upload, update, questionId } =
+				await quizWithUpload();
+
+			const { question } = await update({
+				kind: "answerImage",
+				answer: first,
+				key: upload.key,
+			});
+			const puzzle = await ana.quiz.questions.add({
+				quizId,
+				afterQuestionId: questionId,
+				type: "puzzle",
+			});
+			await update(
+				{ kind: "answerImage", answer: { slot: 2 }, key: upload.key },
+				puzzle.question.id,
+			);
+			const editor = await ana.quiz.editor({ quizId });
+
+			expect(question.type === "quiz" && question.choices[0]).toMatchObject({
+				text: null,
+				image: { key: upload.key, crop: null },
+			});
+			expect(editor.questions[1]).toMatchObject({
+				itemImages: [null, null, { key: upload.key }, null],
+			});
+			expect(editor.imageUrls).toEqual({ [upload.key]: upload.publicUrl });
+		});
+
+		it("answerImageCrop and answerImageAltText", async () => {
+			const { upload, update } = await quizWithUpload();
+			await update({ kind: "answerImage", answer: first, key: upload.key });
+
+			await update({
+				kind: "answerImageCrop",
+				answer: first,
+				crop: { shape: "portrait", zoom: 2, x: 0.5, y: 0 },
+			});
+			const { question } = await update({
+				kind: "answerImageAltText",
+				answer: first,
+				altText: " Arroz ",
+			});
+
+			expect(question.type === "quiz" && question.choices[0]?.image).toEqual({
+				key: upload.key,
+				crop: { shape: "portrait", zoom: 2, x: 0.5, y: 0 },
+				altText: "Arroz",
+			});
+		});
+
+		it("a circle crop and a foreign key are refused", async () => {
+			const { api, upload, update } = await quizWithUpload();
+			api.storage.simulateUpload("media/user-2/segredo.png");
+
+			const foreign = await failureOf(
+				update({
+					kind: "answerImage",
+					answer: first,
+					key: "media/user-2/segredo.png",
+				}),
+			);
+			await update({ kind: "answerImage", answer: first, key: upload.key });
+			const circle = await failureOf(
+				update({
+					kind: "answerImageCrop",
+					answer: first,
+					crop: { shape: "circle", zoom: 1, x: 0.5, y: 0.5 },
+				}),
+			);
+
+			expect(foreign).toMatchObject({ cause: { code: "QUIZ.INVALID_IMAGE" } });
+			expect(circle).toMatchObject({
+				cause: { code: "QUIZ.INVALID_IMAGE_CROP" },
+			});
+		});
+
+		it("a text change on an image answer is ANSWER_HAS_IMAGE", async () => {
+			const { upload, update } = await quizWithUpload();
+			await update({ kind: "answerImage", answer: first, key: upload.key });
+
+			const error = await failureOf(
+				update({ kind: "choiceText", choiceId: "choice-1", text: "Arroz" }),
+			);
+
+			expect(error).toMatchObject({
+				code: "BAD_REQUEST",
+				cause: { code: "QUIZ.ANSWER_HAS_IMAGE" },
+			});
+		});
+
+		it("a type change keeps the remembered images, and refuses a foreign one", async () => {
+			const { api, upload, update } = await quizWithUpload();
+			const { question } = await update({
+				kind: "answerImage",
+				answer: first,
+				key: upload.key,
+			});
+			await update({ kind: "type", type: "trueFalse", remembered: null });
+			const remembered = {
+				type: "quiz" as const,
+				selection: "single" as const,
+				choices: (question.type === "quiz" ? question.choices : []).map(
+					({ text, image, correct }) => ({ text, image, correct }),
+				),
+			};
+
+			const { question: back } = await update({
+				kind: "type",
+				type: "quiz",
+				remembered,
+			});
+			api.storage.simulateUpload("media/user-2/segredo.png");
+			await update({ kind: "type", type: "trueFalse", remembered: null });
+			const stolen = await failureOf(
+				update({
+					kind: "type",
+					type: "quiz",
+					remembered: {
+						...remembered,
+						choices: remembered.choices.map((choice, index) =>
+							index === 0
+								? {
+										...choice,
+										image: {
+											key: "media/user-2/segredo.png",
+											crop: null,
+											altText: null,
+										},
+									}
+								: choice,
+						),
+					},
+				}),
+			);
+
+			expect(back.type === "quiz" && back.choices[0]).toMatchObject({
+				text: null,
+				image: { key: upload.key },
+			});
+			expect(stolen).toMatchObject({ cause: { code: "QUIZ.INVALID_IMAGE" } });
 		});
 	});
 

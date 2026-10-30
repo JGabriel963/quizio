@@ -27,7 +27,15 @@ const ana: ParticipantDetailData = {
 			textFormatting: {},
 			type: "quiz",
 			result: "correct",
-			choices: [{ shapeIndex: 0, text: "Brasília", correct: true }],
+			choices: [
+				{
+					shapeIndex: 0,
+					text: "Brasília",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+			],
 			points: 893,
 			responseTimeMs: 3200,
 			typedText: null,
@@ -41,7 +49,15 @@ const ana: ParticipantDetailData = {
 			textFormatting: {},
 			type: "quiz",
 			result: "wrong",
-			choices: [{ shapeIndex: 1, text: "Lyon", correct: false }],
+			choices: [
+				{
+					shapeIndex: 1,
+					text: "Lyon",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+			],
 			points: 0,
 			responseTimeMs: 7400,
 			typedText: null,
@@ -150,7 +166,15 @@ describe("ParticipantDetail (spec 015)", () => {
 							textFormatting: {},
 							type: "quiz",
 							result: "partiallyCorrect",
-							choices: [{ shapeIndex: 0, text: "Lima", correct: true }],
+							choices: [
+								{
+									shapeIndex: 0,
+									text: "Lima",
+									textFormatting: {},
+									image: null,
+									correct: true,
+								},
+							],
 							points: 450,
 							responseTimeMs: 5000,
 							typedText: null,
@@ -201,17 +225,57 @@ const salmo: QuestionDetailData = {
 	sliderAnswers: null,
 	puzzleAnswers: null,
 	choices: [
-		{ id: "a", shapeIndex: 0, text: "Moisés", correct: true, count: 5 },
-		{ id: "b", shapeIndex: 1, text: "Davi", correct: false, count: 12 },
-		{ id: "c", shapeIndex: 2, text: "Salomão", correct: false, count: 3 },
-		{ id: "d", shapeIndex: 3, text: "Asafe", correct: false, count: 0 },
+		{
+			id: "a",
+			shapeIndex: 0,
+			text: "Moisés",
+			textFormatting: {},
+			image: null,
+			correct: true,
+			count: 5,
+		},
+		{
+			id: "b",
+			shapeIndex: 1,
+			text: "Davi",
+			textFormatting: {},
+			image: null,
+			correct: false,
+			count: 12,
+		},
+		{
+			id: "c",
+			shapeIndex: 2,
+			text: "Salomão",
+			textFormatting: {},
+			image: null,
+			correct: false,
+			count: 3,
+		},
+		{
+			id: "d",
+			shapeIndex: 3,
+			text: "Asafe",
+			textFormatting: {},
+			image: null,
+			correct: false,
+			count: 0,
+		},
 	],
 	participants: [
 		{
 			playerId: "p1",
 			nickname: "Ana",
 			result: "correct",
-			choices: [{ shapeIndex: 0, text: "Moisés", correct: true }],
+			choices: [
+				{
+					shapeIndex: 0,
+					text: "Moisés",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+			],
 			points: 912,
 			responseTimeMs: 2600,
 			typedText: null,
@@ -222,7 +286,15 @@ const salmo: QuestionDetailData = {
 			playerId: "p2",
 			nickname: "Bia",
 			result: "wrong",
-			choices: [{ shapeIndex: 1, text: "Davi", correct: false }],
+			choices: [
+				{
+					shapeIndex: 1,
+					text: "Davi",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+			],
 			points: 0,
 			responseTimeMs: 6100,
 			typedText: null,
@@ -477,12 +549,46 @@ describe("report details of a slider (spec 032, RN-36)", () => {
 
 describe("report details of a puzzle (spec 033, RN-31)", () => {
 	const drawn = [
-		{ id: "c4", shapeIndex: 0, text: "Mississipi", correct: true, count: 5 },
-		{ id: "c3", shapeIndex: 1, text: "Yangtzé", correct: true, count: 5 },
-		{ id: "c2", shapeIndex: 2, text: "Amazonas", correct: true, count: 5 },
-		{ id: "c1", shapeIndex: 3, text: "Nilo", correct: true, count: 5 },
+		{
+			id: "c4",
+			shapeIndex: 0,
+			text: "Mississipi",
+			textFormatting: {},
+			image: null,
+			correct: true,
+			count: 5,
+		},
+		{
+			id: "c3",
+			shapeIndex: 1,
+			text: "Yangtzé",
+			textFormatting: {},
+			image: null,
+			correct: true,
+			count: 5,
+		},
+		{
+			id: "c2",
+			shapeIndex: 2,
+			text: "Amazonas",
+			textFormatting: {},
+			image: null,
+			correct: true,
+			count: 5,
+		},
+		{
+			id: "c1",
+			shapeIndex: 3,
+			text: "Nilo",
+			textFormatting: {},
+			image: null,
+			correct: true,
+			count: 5,
+		},
 	];
-	const swapped = ["Nilo", "Amazonas", "Mississipi", "Yangtzé"];
+	const plain = (texts: string[]) =>
+		texts.map((text) => ({ text, textFormatting: {}, image: null }));
+	const swapped = plain(["Nilo", "Amazonas", "Mississipi", "Yangtzé"]);
 
 	it("a puzzle question lists the sent orders", () => {
 		render(
@@ -493,18 +599,33 @@ describe("report details of a puzzle (spec 033, RN-31)", () => {
 					choices: drawn,
 					puzzleAnswers: {
 						correctOrder: [
-							{ text: "Nilo", shapeIndex: 3 },
-							{ text: "Amazonas", shapeIndex: 2 },
-							{ text: "Yangtzé", shapeIndex: 1 },
-							{ text: "Mississipi", shapeIndex: 0 },
+							{ text: "Nilo", textFormatting: {}, image: null, shapeIndex: 3 },
+							{
+								text: "Amazonas",
+								textFormatting: {},
+								image: null,
+								shapeIndex: 2,
+							},
+							{
+								text: "Yangtzé",
+								textFormatting: {},
+								image: null,
+								shapeIndex: 1,
+							},
+							{
+								text: "Mississipi",
+								textFormatting: {},
+								image: null,
+								shapeIndex: 0,
+							},
 						],
 						orders: [
 							{
-								texts: ["Nilo", "Amazonas", "Yangtzé", "Mississipi"],
+								answers: plain(["Nilo", "Amazonas", "Yangtzé", "Mississipi"]),
 								count: 3,
 								correct: true,
 							},
-							{ texts: swapped, count: 2, correct: false },
+							{ answers: swapped, count: 2, correct: false },
 						],
 					},
 					participants: [
@@ -541,10 +662,8 @@ describe("report details of a puzzle (spec 033, RN-31)", () => {
 		// The drawn answers are not listed as alternatives.
 		expect(screen.queryByRole("list", { name: "Alternativas" })).toBeNull();
 		expect(
-			screen.getByText("Nilo → Amazonas → Mississipi → Yangtzé", {
-				selector: "[data-slot=puzzle-order]",
-			}),
-		).toBeInTheDocument();
+			document.querySelector("[data-slot=puzzle-order]"),
+		).toHaveTextContent("Nilo → Amazonas → Mississipi → Yangtzé");
 	});
 
 	it("a participant's puzzle answer shows the order", () => {
@@ -573,7 +692,66 @@ describe("report details of a puzzle (spec 033, RN-31)", () => {
 		);
 
 		expect(
-			screen.getByText("Nilo → Amazonas → Mississipi → Yangtzé"),
-		).toBeInTheDocument();
+			document.querySelector("[data-slot=puzzle-order]"),
+		).toHaveTextContent("Nilo → Amazonas → Mississipi → Yangtzé");
+	});
+
+	it("the choices, each participant's choices and the puzzle orders are formatted (spec 048, RN-19)", () => {
+		const italicNilo = {
+			text: "Nilo",
+			textFormatting: { italic: [[0, 4]] as [number, number][] },
+			image: null,
+		};
+		const { unmount } = render(
+			<QuestionDetail
+				detail={{
+					...salmo,
+					type: "puzzle",
+					choices: drawn,
+					puzzleAnswers: {
+						correctOrder: [{ ...italicNilo, shapeIndex: 3 }],
+						orders: [{ answers: [italicNilo], count: 1, correct: true }],
+					},
+					participants: [
+						{
+							playerId: "p1",
+							nickname: "Davi",
+							result: "wrong",
+							choices: [],
+							points: 0,
+							responseTimeMs: 3000,
+							typedText: null,
+							sliderValue: null,
+							puzzleOrder: [italicNilo],
+						},
+					],
+				}}
+			/>,
+		);
+		expect(screen.getAllByText("Nilo", { selector: "em" })).toHaveLength(3);
+		unmount();
+
+		render(
+			<QuestionDetail
+				detail={{
+					...salmo,
+					choices: salmo.choices.map((choice, index) =>
+						index === 0
+							? { ...choice, textFormatting: { bold: [[0, 6]] } }
+							: choice,
+					),
+					participants: salmo.participants.map((participant) => ({
+						...participant,
+						choices: participant.choices.map((choice) => ({
+							...choice,
+							textFormatting: { bold: [[0, 6]] },
+						})),
+					})),
+				}}
+			/>,
+		);
+		expect(
+			screen.getAllByText(/./, { selector: "strong" }).length,
+		).toBeGreaterThanOrEqual(1);
 	});
 });

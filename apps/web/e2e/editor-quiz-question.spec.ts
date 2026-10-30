@@ -90,8 +90,8 @@ test("answers and corrects are saved, a second correct turns on multiple choice 
 	).toHaveCount(0);
 
 	await reload(page);
-	await expect(answer(page, 1)).toHaveValue("Brasília");
-	await expect(answer(page, 2)).toHaveValue("Rio");
+	await expect(answer(page, 1)).toHaveText("Brasília");
+	await expect(answer(page, 2)).toHaveText("Rio");
 	await expect(correctMark(page, 1)).toBeChecked();
 	await expect(correctMark(page, 2)).toBeChecked();
 });
@@ -103,7 +103,7 @@ test("an incomplete question is still saved and keeps its alert", async ({
 
 	await reload(page);
 
-	await expect(answer(page, 1)).toHaveValue("Brasília");
+	await expect(answer(page, 1)).toHaveText("Brasília");
 	await expect(
 		page.getByRole("button", { name: "Pergunta 1 incompleta" }),
 	).toBeVisible();
@@ -121,7 +121,7 @@ test("a long answer wraps and shows whole, in one line of text, with what is lef
 	await page.keyboard.type(" da Ásia e mais");
 	// Past 75 characters nothing goes in.
 	const kept = `${long} da Ásia e mais`.slice(0, 75);
-	await expect(answer(page, 1)).toHaveValue(kept);
+	await expect(answer(page, 1)).toHaveText(kept);
 	await expect(page.getByText("0 caracteres restantes")).toBeAttached();
 	await writeAnswer(page, 2, "aba".repeat(25));
 
@@ -147,7 +147,7 @@ test("a long answer wraps and shows whole, in one line of text, with what is lef
 	}
 
 	await reload(page);
-	await expect(answer(page, 1)).toHaveValue(kept);
+	await expect(answer(page, 1)).toHaveText(kept);
 });
 
 test("extra answers come with colors 5 and 6, and removing them discards their text", async ({
@@ -156,7 +156,7 @@ test("extra answers come with colors 5 and 6, and removing them discards their t
 	await page.getByRole("button", { name: "Adicionar mais respostas" }).click();
 	await expect(answerFields(page)).toHaveCount(6);
 	await expect(answer(page, 6)).toHaveAttribute(
-		"placeholder",
+		"aria-placeholder",
 		"Adicionar resposta 6 (opcional)",
 	);
 	await writeAnswer(page, 5, "Salvador");
@@ -168,7 +168,7 @@ test("extra answers come with colors 5 and 6, and removing them discards their t
 	await reload(page);
 	await expect(answerFields(page)).toHaveCount(4);
 	await page.getByRole("button", { name: "Adicionar mais respostas" }).click();
-	await expect(answer(page, 5)).toHaveValue("");
+	await expect(answer(page, 5)).toHaveText("");
 });
 
 test("time limit shows in the list, applies to every question, and points persist", async ({

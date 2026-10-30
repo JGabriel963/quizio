@@ -1,3 +1,4 @@
+import type { AnswerImage } from "../../quiz/domain/answer-image";
 import type { QuestionType, SelectionMode } from "../../quiz/domain/question";
 import type {
 	ImageCrop,
@@ -28,6 +29,27 @@ export interface PublicChoice {
 	label: string | null;
 	/** Only with the questions on the devices, once the answers open (spec 012, RN-18). */
 	text: string | null;
+	/** Its marked stretches; none without the text (spec 048, RN-19). */
+	textFormatting: TextFormatting;
+	/** An image answer, only when the texts would be shown (spec 049, RN-23). */
+	image: AnswerImageView | null;
+}
+
+/** An answer's image as a screen draws it (spec 049): the URL, never the key. */
+export interface AnswerImageView {
+	url: string;
+	crop: ImageCrop | null;
+	altText: string | null;
+}
+
+/** The view of an answer's image, with its URL built by the server. */
+export function answerImageView(
+	image: AnswerImage | null,
+	imageUrlOf: (key: string) => string,
+): AnswerImageView | null {
+	return image
+		? { url: imageUrlOf(image.key), crop: image.crop, altText: image.altText }
+		: null;
 }
 
 /**
@@ -132,6 +154,8 @@ export function publicStageOf(
 				shapeIndex: choice.shapeIndex,
 				label: shown.type === "trueFalse" ? choice.text : null,
 				text: answersShown ? choice.text : null,
+				textFormatting: answersShown ? choice.textFormatting : NO_FORMATTING,
+				image: answersShown ? answerImageView(choice.image, imageUrlOf) : null,
 			})),
 			slider:
 				shown.slider && phase !== "questionIntro"

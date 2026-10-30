@@ -2,6 +2,7 @@ import {
 	readTextFormatting,
 	sameTextFormatting,
 } from "../../shared/domain/text-formatting";
+import { sameAnswerImage } from "./answer-image";
 import {
 	copyQuestion,
 	parseStoredContent,
@@ -69,7 +70,18 @@ function sameContent(a: Question, b: Question): boolean {
 			return (
 				b.type === "puzzle" &&
 				a.items.length === b.items.length &&
-				a.items.every((item, index) => item === b.items[index])
+				a.items.every(
+					(item, index) =>
+						item === b.items[index] &&
+						sameTextFormatting(
+							a.itemFormatting[index] ?? {},
+							b.itemFormatting[index] ?? {},
+						) &&
+						sameAnswerImage(
+							a.itemImages[index] ?? null,
+							b.itemImages[index] ?? null,
+						),
+				)
 			);
 		case "quiz":
 			return b.type === "quiz" && sameQuizContent(a, b);
@@ -82,7 +94,12 @@ function sameQuizContent(a: QuizQuestion, b: QuizQuestion): boolean {
 		a.choices.length === b.choices.length &&
 		a.choices.every((choice, index) => {
 			const other = b.choices[index];
-			return choice.text === other?.text && choice.correct === other.correct;
+			return (
+				choice.text === other?.text &&
+				sameTextFormatting(choice.textFormatting, other.textFormatting) &&
+				sameAnswerImage(choice.image, other.image) &&
+				choice.correct === other.correct
+			);
 		})
 	);
 }

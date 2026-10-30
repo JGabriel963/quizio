@@ -48,8 +48,20 @@ const resultOf = (index: number, text: string) => ({
 		textFormatting: {},
 		image: null,
 		choices: [
-			{ id: `q${index}-a`, shapeIndex: 0, text: "Sim" },
-			{ id: `q${index}-b`, shapeIndex: 1, text: "Não" },
+			{
+				id: `q${index}-a`,
+				shapeIndex: 0,
+				text: "Sim",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: `q${index}-b`,
+				shapeIndex: 1,
+				text: "Não",
+				textFormatting: {},
+				image: null,
+			},
 		],
 	},
 	chosenIds: [`q${index}-a`],

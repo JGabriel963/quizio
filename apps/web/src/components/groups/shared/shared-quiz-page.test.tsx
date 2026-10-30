@@ -1,4 +1,8 @@
 import type { Question } from "@quizio/core/quiz/domain/question";
+import {
+	aFormattedAnswersQuestion,
+	aPuzzleQuestion,
+} from "@quizio/core/quiz/testing/a-question";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -75,14 +79,14 @@ function aPage(
 	} as SharedQuizPageData;
 }
 
-function renderPage() {
+function renderPage(quiz = aPage()) {
 	const user = userEvent.setup();
 	const actions = {
 		onHost: vi.fn(),
 		onAssign: vi.fn(),
 		onDuplicate: vi.fn(),
 	};
-	renderWithRouter(<SharedQuizPage quiz={aPage()} {...actions} />);
+	renderWithRouter(<SharedQuizPage quiz={quiz} {...actions} />);
 	return { user, ...actions };
 }
 
@@ -131,6 +135,31 @@ describe("SharedQuizPage (spec 037, RN-16 to RN-21)", () => {
 		);
 
 		expect(await screen.findByText("2", { selector: "sub" })).toBeVisible();
+	});
+
+	it("draws the answers formatted, in normal weight (spec 048, RN-18)", async () => {
+		const { user } = renderPage(
+			aPage({
+				questions: [
+					aFormattedAnswersQuestion({ id: "q9" }),
+					aPuzzleQuestion({
+						id: "q10",
+						items: ["H2O", "Sal", "Ar", null],
+						itemFormatting: [{ subscript: [[1, 2]] }, {}, {}, {}],
+					}),
+				],
+			}),
+		);
+
+		await user.click(
+			await screen.findByRole("button", { name: "Mostrar respostas" }),
+		);
+
+		const subs = await screen.findAllByText("2", { selector: "sub" });
+		expect(subs).toHaveLength(2);
+		for (const sub of subs) {
+			expect(sub.parentElement).toHaveClass("font-normal");
+		}
 	});
 
 	it("Mostrar respostas shows the answers with the right ones marked", async () => {

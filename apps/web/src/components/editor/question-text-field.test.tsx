@@ -6,10 +6,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createSaveTracker, SaveTrackerProvider } from "@/lib/save-tracker";
 import {
-	statementEditorOf,
-	statementField,
-	typeStatement,
-} from "@/testing/statement-editor";
+	editorOf,
+	formattedField,
+	typeInEditor,
+} from "@/testing/formatted-text-editor";
 
 import { QuestionTextField, type Statement } from "./question-text-field";
 
@@ -40,14 +40,14 @@ async function renderField(...args: Parameters<typeof field>) {
 			{field(...args)(onSave)}
 		</SaveTrackerProvider>,
 	);
-	const textbox = await statementField(() =>
+	const textbox = await formattedField(() =>
 		screen.getByRole("textbox", { name: "Pergunta" }),
 	);
 	return {
 		onSave,
 		tracker,
 		textbox,
-		editor: statementEditorOf(textbox),
+		editor: editorOf(textbox),
 		user: userEvent.setup(),
 	};
 }
@@ -91,11 +91,11 @@ describe("QuestionTextField (spec 003, RN-10; spec 047)", () => {
 		const { editor, onSave, textbox, tracker, user } = await renderField("");
 		act(() => textbox.focus());
 
-		typeStatement(textbox, "Qual destas ");
+		typeInEditor(textbox, "Qual destas ");
 		await user.click(screen.getByRole("button", { name: "Negrito" }));
-		typeStatement(textbox, "não");
+		typeInEditor(textbox, "não");
 		await user.click(screen.getByRole("button", { name: "Negrito" }));
-		typeStatement(textbox, " é capital?");
+		typeInEditor(textbox, " é capital?");
 		await act(() => tracker.flush());
 
 		expect(onSave).toHaveBeenLastCalledWith({
@@ -245,7 +245,7 @@ describe("QuestionTextField (spec 003, RN-10; spec 047)", () => {
 		expect(textbox).toHaveAccessibleDescription(
 			"Nenhuma pergunta foi adicionada.",
 		);
-		typeStatement(textbox, "Capital?");
+		typeInEditor(textbox, "Capital?");
 
 		expect(screen.queryByText("Nenhuma pergunta foi adicionada.")).toBeNull();
 	});

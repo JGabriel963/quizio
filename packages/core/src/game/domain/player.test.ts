@@ -172,8 +172,22 @@ describe("assignment participant (spec 030)", () => {
 			index: 1,
 			type: "trueFalse",
 			choices: [
-				{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: true },
-				{ id: "false", shapeIndex: 0, text: "Falso", correct: false },
+				{
+					id: "true",
+					shapeIndex: 1,
+					text: "Verdadeiro",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "false",
+					shapeIndex: 0,
+					text: "Falso",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
 			],
 		}),
 	];

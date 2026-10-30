@@ -31,6 +31,8 @@ import type { GameQuestion } from "../domain/game-question";
 import { avatarShown, type Player, shownPlayers } from "../domain/player";
 import { podiumRevealRemainingMs } from "../domain/podium";
 import {
+	type AnswerImageView,
+	answerImageView,
 	type PublicSliderScale,
 	publicSliderScale,
 } from "../domain/public-stage";
@@ -59,7 +61,12 @@ export interface LobbyPlayerView {
 export interface HostChoiceView {
 	id: string;
 	shapeIndex: number;
-	text: string;
+	/** Null when the answer is an image (spec 049). */
+	text: string | null;
+	/** Its marked stretches (spec 048, RN-19). */
+	textFormatting: TextFormatting;
+	/** An image answer, always on the host's screen (spec 049, RN-22). */
+	image: AnswerImageView | null;
 	/**
 	 * Null until the results: the host's screen is projected, so the right
 	 * answer does not reach the page before it is revealed (spec 009, RN-21).
@@ -213,6 +220,8 @@ function toQuestionView(
 			id: choice.id,
 			shapeIndex: choice.shapeIndex,
 			text: choice.text,
+			textFormatting: choice.textFormatting,
+			image: answerImageView(choice.image, (key) => storage.getPublicUrl(key)),
 			correct: revealed ? choice.correct : null,
 		})),
 		image: question.image && {

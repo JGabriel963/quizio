@@ -34,6 +34,8 @@ import {
 	shownPlayers,
 } from "../domain/player";
 import {
+	type AnswerImageView,
+	answerImageView,
 	type PublicImage,
 	type PublicSliderScale,
 	publicSliderScale,
@@ -58,7 +60,12 @@ export interface ParticipantReference {
 export interface PlayChoiceView {
 	id: string;
 	shapeIndex: number;
-	text: string;
+	/** Null when the answer is an image (spec 049). */
+	text: string | null;
+	/** Its marked stretches (spec 048, RN-19). */
+	textFormatting: TextFormatting;
+	/** An image answer: an assignment always shows the answers (spec 049, RN-23). */
+	image: AnswerImageView | null;
 }
 
 /** A question on the participant's screen: never which answer is right. */
@@ -249,10 +256,12 @@ function questionView(
 					altText: question.image.altText,
 				}
 			: null,
-		choices: choices.map(({ id, shapeIndex, text }) => ({
+		choices: choices.map(({ id, shapeIndex, text, textFormatting, image }) => ({
 			id,
 			shapeIndex,
 			text,
+			textFormatting,
+			image: answerImageView(image, (key) => storage.getPublicUrl(key)),
 		})),
 		slider: question.slider && publicSliderScale(question.slider),
 	};

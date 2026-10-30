@@ -6,10 +6,34 @@ import { PuzzleAnswering, PuzzleResults } from "./puzzle-results";
 
 /** The rivers as the game drew them: Yangtzé took the red triangle. */
 const drawn = [
-	{ id: "choice-3", shapeIndex: 0, text: "Yangtzé", correct: null },
-	{ id: "choice-4", shapeIndex: 1, text: "Mississipi", correct: null },
-	{ id: "choice-1", shapeIndex: 2, text: "Nilo", correct: null },
-	{ id: "choice-2", shapeIndex: 3, text: "Amazonas", correct: null },
+	{
+		id: "choice-3",
+		shapeIndex: 0,
+		text: "Yangtzé",
+		textFormatting: {},
+		correct: null,
+	},
+	{
+		id: "choice-4",
+		shapeIndex: 1,
+		text: "Mississipi",
+		textFormatting: {},
+		correct: null,
+	},
+	{
+		id: "choice-1",
+		shapeIndex: 2,
+		text: "Nilo",
+		textFormatting: {},
+		correct: null,
+	},
+	{
+		id: "choice-2",
+		shapeIndex: 3,
+		text: "Amazonas",
+		textFormatting: {},
+		correct: null,
+	},
 ];
 const results = {
 	order: ["choice-1", "choice-2", "choice-3", "choice-4"],
@@ -109,5 +133,32 @@ describe("PuzzleResults (spec 033, RN-26, RN-27)", () => {
 		);
 
 		expect(screen.queryByRole("button", { name: "Mostrar mídia" })).toBeNull();
+	});
+});
+
+describe("formatted puzzle blocks on the host (spec 048, RN-19)", () => {
+	const formatted = drawn.map((choice) =>
+		choice.text === "Nilo"
+			? {
+					...choice,
+					textFormatting: { italic: [[0, 4]] as [number, number][] },
+				}
+			: choice,
+	);
+
+	it("the drawn order and the right order are formatted", () => {
+		const { unmount } = render(<PuzzleAnswering choices={formatted} />);
+		expect(screen.getByText("Nilo", { selector: "em" })).toBeInTheDocument();
+		unmount();
+
+		render(
+			<PuzzleResults
+				choices={formatted}
+				results={results}
+				image={null}
+				animate={false}
+			/>,
+		);
+		expect(screen.getByText("Nilo", { selector: "em" })).toBeInTheDocument();
 	});
 });

@@ -4,7 +4,7 @@ import type { GameChoice, GameQuestion } from "./game-question";
 export function puzzleTexts(
 	question: GameQuestion,
 	ids: readonly string[],
-): string[] {
+): (string | null)[] {
 	const textOf = new Map(question.choices.map(({ id, text }) => [id, text]));
 	return ids.flatMap((id) => {
 		const text = textOf.get(id);
@@ -13,15 +13,38 @@ export function puzzleTexts(
 }
 
 /**
- * Right only when, at every position, the text is the right one (spec 033,
- * RN-16): answers with the same text may swap places (RN-09).
+ * What makes two answers the same: their text, or the file of their image
+ * (spec 049, RN-20). An image is never the same as a text.
+ */
+export function answerIdentity(
+	choice: Pick<GameChoice, "text" | "image">,
+): string {
+	return choice.image
+		? `image:${choice.image.key}`
+		: `text:${choice.text ?? ""}`;
+}
+
+function identities(question: GameQuestion, ids: readonly string[]): string[] {
+	const identityOf = new Map(
+		question.choices.map((choice) => [choice.id, answerIdentity(choice)]),
+	);
+	return ids.flatMap((id) => {
+		const identity = identityOf.get(id);
+		return identity === undefined ? [] : [identity];
+	});
+}
+
+/**
+ * Right only when, at every position, the answer is the right one (spec 033,
+ * RN-16): answers with the same text, or the same image, may swap places
+ * (RN-09; spec 049, RN-20).
  */
 export function isRightOrder(
 	question: GameQuestion,
 	ids: readonly string[],
 ): boolean {
-	const sent = puzzleTexts(question, ids);
-	const right = puzzleTexts(question, question.correctOrder);
+	const sent = identities(question, ids);
+	const right = identities(question, question.correctOrder);
 	return (
 		ids.length === question.correctOrder.length &&
 		sent.length === right.length &&

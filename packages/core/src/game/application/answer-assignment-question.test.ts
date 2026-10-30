@@ -94,6 +94,8 @@ describe("answerAssignmentQuestion (spec 030, RN-10, RN-11, RN-13)", () => {
 				selection: "multiple",
 				choices: ["A", "B", "C", "D"].map((text, index) => ({
 					id: `choice-${index + 1}`,
+					textFormatting: {},
+					image: null,
 					text,
 					correct: index < 2,
 				})),
@@ -319,7 +321,7 @@ describe("a puzzle in an assignment (spec 033, RN-28, RN-29)", () => {
 
 	/** The participant's blocks, and the ids of the given texts in that order. */
 	async function puzzleOf(setup: Awaited<ReturnType<typeof playing>>): Promise<{
-		choices: { id: string; shapeIndex: number; text: string }[];
+		choices: { id: string; shapeIndex: number; text: string | null }[];
 		idsOf: (texts: readonly string[]) => string[];
 	}> {
 		const view = await createGetAssignmentPlay(setup.deps)({

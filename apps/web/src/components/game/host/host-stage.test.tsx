@@ -37,6 +37,8 @@ function capitals(correct: (boolean | null)[]): HostQuestionData {
 				id: `choice-${index + 1}`,
 				shapeIndex: index,
 				text,
+				textFormatting: {},
+				image: null,
 				correct: correct[index] ?? null,
 			}),
 		),
@@ -303,6 +305,7 @@ describe("HostStage: answers (spec 009)", () => {
 					...capitals(hidden),
 					text: "Quanto é 22?",
 					textFormatting: { superscript: [[10, 11]] },
+					image: null,
 				},
 			}),
 		);
@@ -311,6 +314,43 @@ describe("HostStage: answers (spec 009)", () => {
 		expect(heading.querySelector("sup")).toHaveTextContent("2");
 		expect(heading.querySelector(".font-normal")).not.toBeNull();
 		expect(heading).not.toHaveClass("font-bold");
+	});
+
+	it("draws the answers formatted, in normal weight, in the answers and the results (spec 048, RN-18)", () => {
+		const withPower = (correct: (boolean | null)[]): HostQuestionData => {
+			const question = capitals(correct);
+			return {
+				...question,
+				choices: question.choices.map((choice, index) =>
+					index === 0
+						? {
+								...choice,
+								text: "x2",
+								textFormatting: { superscript: [[1, 2]] },
+								image: null,
+							}
+						: choice,
+				),
+			};
+		};
+		const { rerender } = renderStage(stageAt({ question: withPower(hidden) }));
+
+		const sup = () => screen.getByText("2", { selector: "sup" }) as HTMLElement;
+		expect(sup().parentElement).toHaveClass("font-normal");
+
+		rerender(
+			stageAt({
+				phase: "results",
+				question: withPower(revealed),
+				distribution: [
+					{ choiceId: "choice-1", count: 1 },
+					{ choiceId: "choice-2", count: 0 },
+					{ choiceId: "choice-3", count: 2 },
+					{ choiceId: "choice-4", count: 0 },
+				],
+			}),
+		);
+		expect(sup()).toBeInTheDocument();
 	});
 
 	it("shows the question, the answers, the time left and the total of answers", () => {
@@ -441,6 +481,8 @@ describe("HostStage: answers (spec 009)", () => {
 						id: `choice-${index + 1}`,
 						shapeIndex: index,
 						text,
+						textFormatting: {},
+						image: null,
 						correct: null,
 					})),
 				},
@@ -589,8 +631,22 @@ describe("HostStage: results (spec 009)", () => {
 				text: "A capital do Brasil é o Rio de Janeiro",
 				textFormatting: {},
 				choices: [
-					{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: false },
-					{ id: "false", shapeIndex: 0, text: "Falso", correct: true },
+					{
+						id: "true",
+						shapeIndex: 1,
+						text: "Verdadeiro",
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
+					{
+						id: "false",
+						shapeIndex: 0,
+						text: "Falso",
+						textFormatting: {},
+						image: null,
+						correct: true,
+					},
 				],
 				image: null,
 			},

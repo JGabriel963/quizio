@@ -15,6 +15,7 @@ describe("FormattingToolbar (spec 047)", () => {
 	it("has B, I, X₂, X², a separator and Ω, without f(x)", () => {
 		render(
 			<FormattingToolbar
+				label="Formatação do enunciado"
 				active={none}
 				onToggle={() => {}}
 				onSymbols={() => {}}
@@ -36,6 +37,7 @@ describe("FormattingToolbar (spec 047)", () => {
 	it("a button is pressed while its mark is on", () => {
 		render(
 			<FormattingToolbar
+				label="Formatação do enunciado"
 				active={{ ...none, bold: true, superscript: true }}
 				onToggle={() => {}}
 				onSymbols={() => {}}
@@ -60,6 +62,7 @@ describe("FormattingToolbar (spec 047)", () => {
 		const user = userEvent.setup();
 		render(
 			<FormattingToolbar
+				label="Formatação do enunciado"
 				active={none}
 				onToggle={() => {}}
 				onSymbols={() => {}}
@@ -82,6 +85,7 @@ describe("FormattingToolbar (spec 047)", () => {
 		const onSymbols = vi.fn();
 		render(
 			<FormattingToolbar
+				label="Formatação do enunciado"
 				active={none}
 				onToggle={onToggle}
 				onSymbols={onSymbols}
@@ -101,6 +105,7 @@ describe("FormattingToolbar (spec 047)", () => {
 			<>
 				<input aria-label="Pergunta" />
 				<FormattingToolbar
+					label="Formatação do enunciado"
 					active={none}
 					onToggle={() => {}}
 					onSymbols={() => {}}
@@ -113,5 +118,51 @@ describe("FormattingToolbar (spec 047)", () => {
 		await user.click(screen.getByRole("button", { name: "Negrito" }));
 
 		expect(field).toHaveFocus();
+	});
+});
+
+describe("FormattingToolbar on an answer (spec 048)", () => {
+	it("the toolbar takes its label", () => {
+		render(
+			<FormattingToolbar
+				label="Formatação da resposta 2"
+				active={{
+					bold: false,
+					italic: false,
+					subscript: false,
+					superscript: false,
+				}}
+				onToggle={() => {}}
+				onSymbols={() => {}}
+			/>,
+		);
+
+		expect(
+			screen.getByRole("toolbar", { name: "Formatação da resposta 2" }),
+		).toBeInTheDocument();
+	});
+});
+
+describe("FormattingToolbar with an image (spec 049, RN-05)", () => {
+	it("with onImage, the first button is the image with its tip, and a click calls it", async () => {
+		const onImage = vi.fn();
+		render(
+			<FormattingToolbar
+				label="Formatação da resposta 1"
+				active={none}
+				onToggle={() => {}}
+				onSymbols={() => {}}
+				onImage={onImage}
+			/>,
+		);
+		const buttons = within(
+			screen.getByRole("toolbar", { name: "Formatação da resposta 1" }),
+		).getAllByRole("button");
+
+		expect(buttons[0]).toHaveAccessibleName(
+			"Adicione imagem como resposta alternativa",
+		);
+		await userEvent.click(buttons[0] as HTMLElement);
+		expect(onImage).toHaveBeenCalledOnce();
 	});
 });

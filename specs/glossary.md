@@ -59,9 +59,9 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Bloco | `Block` | Item da lista: pergunta ou slide | 📝 |
 | Pergunta | `Question` | Bloco interativo com texto (≤ 160), tipo, tempo limite e pontos | ✅ |
 | Enunciado | `text` | Texto da pergunta, ≤ 160 caracteres (120 no Kahoot); pode ficar vazio no rascunho (spec 003); pode ter formatação (spec 047) | ✅ |
-| Formatação | `TextFormatting` | Trechos do enunciado com marcas, guardados ao lado do texto puro; não conta no limite de caracteres e faz parte da versão jogável (spec 047) | ✅ |
+| Formatação | `TextFormatting` | Trechos do enunciado com marcas, guardados ao lado do texto puro; não conta no limite de caracteres e faz parte da versão jogável (spec 047). Também nas respostas de Quiz e de Puzzle (spec 048) | ✅ |
 | Marca de formatação | `TextMark` | `bold` (negrito), `italic` (itálico), `subscript` (subscrito) ou `superscript` (sobrescrito); subscrito e sobrescrito nunca no mesmo trecho (spec 047) | ✅ |
-| Barra de formatação | `FormattingToolbar` | Barra flutuante acima do enunciado, à vista só com o campo em foco: Negrito, Itálico, Subscrito, Sobrescrito e Símbolos (spec 047) | ✅ |
+| Barra de formatação | `FormattingToolbar` | Barra flutuante acima do enunciado, à vista só com o campo em foco: Negrito, Itálico, Subscrito, Sobrescrito e Símbolos (spec 047); também acima da resposta de Quiz ou de Puzzle em foco (spec 048) | ✅ |
 | Diálogo de símbolos | `SymbolDialog` | "Insira um símbolo": abas Caracteres especiais, Moeda, Matemática, Grego e Outro; o símbolo escolhido entra no cursor e o diálogo fecha (spec 047) | ✅ |
 | Pergunta em branco | `blankQuestion` | Pergunta Quiz recém-criada, sem enunciado; todo quiz novo nasce com uma (spec 003) | ✅ |
 | Posição | `position` | Ordem da pergunta no quiz, que é a ordem de apresentação na partida (spec 003) | ✅ |
@@ -87,7 +87,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Respostas lembradas | `RememberedContents`, `typeChangeFor` | O que a pergunta tinha em cada tipo, guardado só enquanto o criador está no editor, para desfazer uma troca de tipo; não é salvo (spec 005) | ✅ |
 | Conteúdo do tipo | `QuestionContent`, `questionContent` | A parte da pergunta que é própria do tipo: alternativas e seleção no Quiz, a correta no Verdadeiro ou falso (ADR 0008, spec 005) | ✅ |
 | Slide | `Slide` | Bloco só de conteúdo, com layout; sem resposta nem pontos | 📝 |
-| Alternativa | `Choice` (`AnswerOption` na UI) | Opção de resposta (texto ≤ 75 ou imagem) com flag de correta; 4 ou 6 espaços em posições fixas, id = posição (spec 004) | ✅ (texto; imagem 📝) |
+| Alternativa | `Choice` (`AnswerOption` na UI) | Opção de resposta (texto ≤ 75 ou imagem) com flag de correta; 4 ou 6 espaços em posições fixas, id = posição (spec 004) | ✅ (texto e imagem, spec 049) |
 | Resposta correta | `correct` | Marca da alternativa certa; alternativa vazia nunca é correta (spec 004) | ✅ |
 | Respostas extras | `extraChoices` | Espaços 5 e 6, mostrados e removidos juntos (spec 004) | ✅ |
 | Pontos da pergunta | `QuestionPoints` | `standard`, `double` ou `noPoints` (spec 004) | ✅ |
@@ -107,6 +107,7 @@ Termos usados em specs (PT) e no código (EN). A definição completa e as fonte
 | Perguntas incompletas | `incompleteQuestions`, `missingAnswerCount` | Lista, na ordem do quiz, das perguntas que impedem o Salvar, com os motivos de cada uma (spec 006) | ✅ |
 | Toques finais | `withFinishingTouches` (`details` do `publishQuiz`) | Título e descrição pedidos pelo Salvar quando o quiz ainda não tem título (spec 006) | ✅ |
 | Imagem da pergunta | `QuestionImage` | Imagem opcional de uma pergunta de qualquer tipo, segue a política de mídia; faz parte da versão jogável (spec 007) | ✅ |
+| Imagem da resposta | `AnswerImage` | Imagem no lugar do texto de uma resposta de Quiz ou de Puzzle, com recorte e texto alternativo; texto e imagem nunca juntos; faz parte da versão jogável (spec 049) | ✅ |
 | Posição da imagem | `placement` | `media` (ao centro, na área de mídia; padrão) ou `background` (fundo da pergunta inteira) (spec 007) | ✅ |
 | Recorte | `ImageCrop` | Enquadramento da imagem ao centro: forma `landscape` (3:2), `portrait` (2:3), `square` ou `circle`, com zoom e posição; não altera o arquivo (spec 007) | ✅ |
 | Texto alternativo | `altText` | Descrição opcional da imagem para leitores de tela, até 1000 caracteres (spec 007) | ✅ |

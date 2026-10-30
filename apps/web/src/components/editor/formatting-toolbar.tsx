@@ -6,7 +6,14 @@ import {
 	TooltipTrigger,
 } from "@quizio/ui/components/tooltip";
 import { cn } from "@quizio/ui/lib/utils";
+import { ImageIcon } from "lucide-react";
 import type { MouseEvent, ReactElement, ReactNode } from "react";
+
+/** The tip of the bar's image button (spec 049, RN-05). */
+export const ANSWER_IMAGE_TIP = "Adicione imagem como resposta alternativa";
+
+const BAR_BUTTON =
+	"inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-md px-2 font-extrabold text-base outline-none transition-colors hover:bg-white/60 focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const MARK_BUTTONS: { mark: TextMark; label: string; glyph: ReactNode }[] = [
 	{
@@ -58,30 +65,56 @@ function WithTooltip({
 }
 
 /**
- * The bar over the statement (spec 047, RN-01 to RN-05): Negrito, Itálico,
- * Subscrito and Sobrescrito, lit while their mark is on, a separator and
- * Símbolos. Kahoot's f(x) is not here (out of scope).
+ * The bar by the statement or an answer (spec 047, RN-01 to RN-05; spec 048,
+ * RN-01): Negrito, Itálico, Subscrito and Sobrescrito, lit while their mark is
+ * on, a separator and Símbolos. An answer's bar starts with the image and a
+ * separator (spec 049, RN-05). Kahoot's f(x) is not here (out of scope).
  */
 export function FormattingToolbar({
+	label,
 	active,
 	onToggle,
 	onSymbols,
+	onImage,
 	className,
 }: {
+	/** "Formatação do enunciado", "Formatação da resposta 2". */
+	label: string;
 	active: Record<TextMark, boolean>;
 	onToggle: (mark: TextMark) => void;
 	onSymbols: () => void;
+	/** An answer's image: the button shows only with it (spec 049). */
+	onImage?: () => void;
 	className?: string;
 }) {
 	return (
 		<div
 			role="toolbar"
-			aria-label="Formatação do enunciado"
+			aria-label={label}
 			className={cn(
 				"inline-flex items-center gap-0.5 rounded-md bg-neutral-300 p-1 text-neutral-800 shadow-md",
 				className,
 			)}
 		>
+			{onImage && (
+				<>
+					<WithTooltip label={ANSWER_IMAGE_TIP}>
+						<button
+							type="button"
+							aria-label={ANSWER_IMAGE_TIP}
+							onMouseDown={keepFocus}
+							onClick={onImage}
+							className={BAR_BUTTON}
+						>
+							<ImageIcon aria-hidden="true" />
+						</button>
+					</WithTooltip>
+					<hr
+						aria-orientation="vertical"
+						className="mx-1 h-6 w-px border-0 bg-neutral-500"
+					/>
+				</>
+			)}
 			{MARK_BUTTONS.map(({ mark, label, glyph }) => (
 				<WithTooltip key={mark} label={label}>
 					<Toggle
@@ -105,7 +138,7 @@ export function FormattingToolbar({
 					aria-label="Símbolos"
 					onMouseDown={keepFocus}
 					onClick={onSymbols}
-					className="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-md px-2 font-extrabold text-base outline-none transition-colors hover:bg-white/60 focus-visible:ring-3 focus-visible:ring-ring/50"
+					className={BAR_BUTTON}
 				>
 					Ω
 				</button>

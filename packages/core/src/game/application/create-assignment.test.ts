@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { aQuestion } from "../../quiz/testing/a-question";
+import {
+	aFormattedAnswersQuestion,
+	aQuestion,
+} from "../../quiz/testing/a-question";
 import { A_THEME_LOOK } from "../../shared/testing/a-theme-look";
 
 import {
@@ -77,6 +80,21 @@ describe("createAssignment and the statement's formatting (spec 047, RN-21)", ()
 		expect(deps.gameQuestions.allOf(gameId)[0]?.textFormatting).toEqual({
 			subscript: [[1, 2]],
 		});
+	});
+});
+
+describe("createAssignment and the answers' formatting (spec 048, RN-16)", () => {
+	it("an assignment keeps the answers' formatting it was created with", async () => {
+		const deps = createGameDeps({ questions: [aFormattedAnswersQuestion()] });
+
+		const { gameId } = await createCreateAssignment(deps)(assign());
+		deps.versionQuestions.set(1, [aQuestion({ text: "H2O?" })]);
+
+		expect(
+			deps.gameQuestions
+				.allOf(gameId)[0]
+				?.choices.map((choice) => choice.textFormatting),
+		).toEqual([{ subscript: [[1, 2]] }, {}]);
 	});
 });
 

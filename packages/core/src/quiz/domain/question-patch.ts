@@ -36,10 +36,14 @@ export function draftOf(question: Question): QuestionDraft {
 			return {
 				...shared,
 				selection: question.selection,
-				choices: question.choices.map(({ text, correct }) => ({
-					text,
-					correct,
-				})),
+				choices: question.choices.map(
+					({ text, textFormatting, image, correct }) => ({
+						text,
+						textFormatting,
+						image,
+						correct,
+					}),
+				),
 			};
 		case "trueFalse":
 			return { ...shared, correct: question.correct };
@@ -57,7 +61,12 @@ export function draftOf(question: Question): QuestionDraft {
 				},
 			};
 		case "puzzle":
-			return { ...shared, items: [...question.items] };
+			return {
+				...shared,
+				items: [...question.items],
+				itemFormatting: [...question.itemFormatting],
+				itemImages: [...question.itemImages],
+			};
 	}
 }
 
@@ -108,6 +117,11 @@ export function patchedQuestion(
 			patch.text !== undefined
 				? (patch.textFormatting ?? NO_FORMATTING)
 				: base.textFormatting,
+		// Puzzle answers sent replace the old ones whole, likewise (spec 048, RN-23).
+		itemFormatting:
+			patch.items !== undefined ? patch.itemFormatting : base.itemFormatting,
+		// And their images (spec 049).
+		itemImages: patch.items !== undefined ? patch.itemImages : base.itemImages,
 		slider:
 			patch.slider !== undefined
 				? { ...base.slider, ...sentFields(patch.slider) }

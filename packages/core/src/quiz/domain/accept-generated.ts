@@ -75,6 +75,9 @@ function quizContent(
 	const choices: Choice[] = Array.from({ length: slots }, (_, index) => ({
 		id: choiceIdAt(index),
 		text: filled[index]?.text ?? null,
+		// The assistant writes plain answers (spec 048, out of scope).
+		textFormatting: NO_FORMATTING,
+		image: null,
 		correct: filled[index]?.correct ?? false,
 	}));
 	return {

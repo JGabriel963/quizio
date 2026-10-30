@@ -1,6 +1,8 @@
 import type { Correctness } from "../../game/domain/answer";
 import type { GameChoice, GameSlider } from "../../game/domain/game-question";
+import type { AnswerImage } from "../../quiz/domain/answer-image";
 import type { QuestionType } from "../../quiz/domain/question";
+import type { ImageCrop } from "../../quiz/domain/question-image";
 import type { TextFormatting } from "../../shared/domain/text-formatting";
 import type { ReportHeader } from "./report";
 
@@ -14,6 +16,23 @@ export interface ReportParticipant {
 }
 
 /** A question as the game showed it: its order and its answers (RN-04). */
+/** An answer's image in a report (spec 049, RN-24): the address only while the quiz exists. */
+export interface ReportAnswerImage {
+	url: string | null;
+	crop: ImageCrop | null;
+	altText: string | null;
+}
+
+/** How a report draws an answer's image; the address is the application's. */
+export type AnswerImageOf = (image: AnswerImage) => ReportAnswerImage;
+
+/** The image without an address: what is left once the quiz is gone. */
+export const withoutAddress: AnswerImageOf = ({ crop, altText }) => ({
+	url: null,
+	crop,
+	altText,
+});
+
 export interface ReportQuestion {
 	/** 0-based position in the game. */
 	index: number;

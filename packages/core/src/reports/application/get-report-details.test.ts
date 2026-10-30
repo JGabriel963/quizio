@@ -8,6 +8,10 @@ import { InMemoryReportStore } from "../testing/in-memory-report-store";
 import { createGetReportParticipant } from "./get-report-participant";
 import { createGetReportQuestion } from "./get-report-question";
 
+/** Answers without formatting, as most reports have them. */
+const plain = (texts: string[]) =>
+	texts.map((text) => ({ text, textFormatting: {}, image: null }));
+
 function setup(game: ReturnType<typeof aReportGame>) {
 	const storage = new InMemoryObjectStorage();
 	const deps = {
@@ -76,7 +80,15 @@ describe("getReportParticipant (spec 015)", () => {
 				textFormatting: { bold: [[11, 17]] },
 				type: "quiz",
 				result: "correct",
-				choices: [{ shapeIndex: 0, text: "Resposta A", correct: true }],
+				choices: [
+					{
+						shapeIndex: 0,
+						text: "Resposta A",
+						textFormatting: {},
+						image: null,
+						correct: true,
+					},
+				],
 				points: 893,
 				responseTimeMs: 3200,
 				typedText: null,
@@ -90,7 +102,15 @@ describe("getReportParticipant (spec 015)", () => {
 				textFormatting: {},
 				type: "quiz",
 				result: "wrong",
-				choices: [{ shapeIndex: 1, text: "Resposta B", correct: false }],
+				choices: [
+					{
+						shapeIndex: 1,
+						text: "Resposta B",
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
+				],
 				points: 0,
 				responseTimeMs: 2000,
 				typedText: null,
@@ -214,6 +234,8 @@ describe("getReportQuestion (spec 015)", () => {
 				id: "q0-a",
 				shapeIndex: 0,
 				text: "Resposta A",
+				textFormatting: {},
+				image: null,
 				correct: true,
 				count: 1,
 			},
@@ -221,6 +243,8 @@ describe("getReportQuestion (spec 015)", () => {
 				id: "q0-b",
 				shapeIndex: 1,
 				text: "Resposta B",
+				textFormatting: {},
+				image: null,
 				correct: false,
 				count: 2,
 			},
@@ -228,6 +252,8 @@ describe("getReportQuestion (spec 015)", () => {
 				id: "q0-c",
 				shapeIndex: 2,
 				text: "Resposta C",
+				textFormatting: {},
+				image: null,
 				correct: false,
 				count: 0,
 			},
@@ -235,6 +261,8 @@ describe("getReportQuestion (spec 015)", () => {
 				id: "q0-d",
 				shapeIndex: 3,
 				text: "Resposta D",
+				textFormatting: {},
+				image: null,
 				correct: false,
 				count: 0,
 			},
@@ -245,7 +273,15 @@ describe("getReportQuestion (spec 015)", () => {
 				playerId: "player-Ana",
 				nickname: "Ana",
 				result: "correct",
-				choices: [{ shapeIndex: 0, text: "Resposta A", correct: true }],
+				choices: [
+					{
+						shapeIndex: 0,
+						text: "Resposta A",
+						textFormatting: {},
+						image: null,
+						correct: true,
+					},
+				],
 				points: 1000,
 				responseTimeMs: 4000,
 				typedText: null,
@@ -256,7 +292,15 @@ describe("getReportQuestion (spec 015)", () => {
 				playerId: "player-Bia",
 				nickname: "Bia",
 				result: "wrong",
-				choices: [{ shapeIndex: 1, text: "Resposta B", correct: false }],
+				choices: [
+					{
+						shapeIndex: 1,
+						text: "Resposta B",
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
+				],
 				points: 0,
 				responseTimeMs: 6000,
 				typedText: null,
@@ -267,7 +311,15 @@ describe("getReportQuestion (spec 015)", () => {
 				playerId: "player-Caio",
 				nickname: "Caio",
 				result: "wrong",
-				choices: [{ shapeIndex: 1, text: "Resposta B", correct: false }],
+				choices: [
+					{
+						shapeIndex: 1,
+						text: "Resposta B",
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
+				],
 				points: 0,
 				responseTimeMs: 5000,
 				typedText: null,
@@ -286,6 +338,27 @@ describe("getReportQuestion (spec 015)", () => {
 				puzzleOrder: null,
 			},
 		]);
+	});
+
+	it("the choices and each participant's choices carry the formatting (spec 048, RN-19)", async () => {
+		const game = fourChoices();
+		const [question] = game.questions;
+		const first = question?.choices[0];
+		if (first) {
+			first.textFormatting = { bold: [[0, 8]] };
+		}
+
+		const detail = await setup(game).question(0);
+		const participant = await setup(game).participant("Ana");
+
+		expect(detail.choices[0]?.textFormatting).toEqual({ bold: [[0, 8]] });
+		expect(
+			detail.participants.find((p) => p.nickname === "Ana")?.choices[0]
+				?.textFormatting,
+		).toEqual({ bold: [[0, 8]] });
+		expect(participant.answers[0]?.choices[0]?.textFormatting).toEqual({
+			bold: [[0, 8]],
+		});
 	});
 
 	it("the detail carries the formatting (spec 047, RN-25)", async () => {
@@ -516,10 +589,38 @@ describe("a puzzle in the report (spec 033, RN-30, RN-31)", () => {
 					type: "puzzle",
 					text: "Coloque estes rios do maior para o menor",
 					choices: [
-						{ id: "c4", shapeIndex: 0, text: "Mississipi", correct: true },
-						{ id: "c3", shapeIndex: 1, text: "Yangtzé", correct: true },
-						{ id: "c2", shapeIndex: 2, text: "Amazonas", correct: true },
-						{ id: "c1", shapeIndex: 3, text: "Nilo", correct: true },
+						{
+							id: "c4",
+							shapeIndex: 0,
+							text: "Mississipi",
+							textFormatting: {},
+							image: null,
+							correct: true,
+						},
+						{
+							id: "c3",
+							shapeIndex: 1,
+							text: "Yangtzé",
+							textFormatting: {},
+							image: null,
+							correct: true,
+						},
+						{
+							id: "c2",
+							shapeIndex: 2,
+							text: "Amazonas",
+							textFormatting: {},
+							image: null,
+							correct: true,
+						},
+						{
+							id: "c1",
+							shapeIndex: 3,
+							text: "Nilo",
+							textFormatting: {},
+							image: null,
+							correct: true,
+						},
 					],
 					correctOrder: ["c1", "c2", "c3", "c4"],
 				}),
@@ -540,19 +641,19 @@ describe("a puzzle in the report (spec 033, RN-30, RN-31)", () => {
 
 		expect(view.puzzleAnswers).toEqual({
 			correctOrder: [
-				{ text: "Nilo", shapeIndex: 3 },
-				{ text: "Amazonas", shapeIndex: 2 },
-				{ text: "Yangtzé", shapeIndex: 1 },
-				{ text: "Mississipi", shapeIndex: 0 },
+				{ text: "Nilo", textFormatting: {}, image: null, shapeIndex: 3 },
+				{ text: "Amazonas", textFormatting: {}, image: null, shapeIndex: 2 },
+				{ text: "Yangtzé", textFormatting: {}, image: null, shapeIndex: 1 },
+				{ text: "Mississipi", textFormatting: {}, image: null, shapeIndex: 0 },
 			],
 			orders: [
 				{
-					texts: ["Nilo", "Amazonas", "Yangtzé", "Mississipi"],
+					answers: plain(["Nilo", "Amazonas", "Yangtzé", "Mississipi"]),
 					count: 3,
 					correct: true,
 				},
 				{
-					texts: ["Nilo", "Amazonas", "Mississipi", "Yangtzé"],
+					answers: plain(["Nilo", "Amazonas", "Mississipi", "Yangtzé"]),
 					count: 2,
 					correct: false,
 				},
@@ -560,7 +661,7 @@ describe("a puzzle in the report (spec 033, RN-30, RN-31)", () => {
 		});
 		expect(
 			view.participants.find((p) => p.nickname === "Davi")?.puzzleOrder,
-		).toEqual(["Nilo", "Amazonas", "Mississipi", "Yangtzé"]);
+		).toEqual(plain(["Nilo", "Amazonas", "Mississipi", "Yangtzé"]));
 	});
 
 	it("a puzzle counts only right orders", async () => {
@@ -577,9 +678,39 @@ describe("a puzzle in the report (spec 033, RN-30, RN-31)", () => {
 				type: "puzzle",
 				result: "wrong",
 				choices: [],
-				puzzleOrder: ["Nilo", "Amazonas", "Mississipi", "Yangtzé"],
+				puzzleOrder: plain(["Nilo", "Amazonas", "Mississipi", "Yangtzé"]),
 			}),
 		]);
+	});
+
+	it("the puzzle orders are formatted (spec 048, RN-19)", async () => {
+		const formatted = puzzleGame();
+		const [question] = formatted.questions;
+		const nilo = question?.choices.find((choice) => choice.text === "Nilo");
+		if (nilo) {
+			nilo.textFormatting = { italic: [[0, 4]] };
+		}
+
+		const view = await setup(formatted).question(0);
+
+		expect(view.puzzleAnswers?.correctOrder[0]).toEqual({
+			text: "Nilo",
+			textFormatting: { italic: [[0, 4]] },
+			image: null,
+			shapeIndex: 3,
+		});
+		expect(view.puzzleAnswers?.orders[0]?.answers[0]).toEqual({
+			text: "Nilo",
+			textFormatting: { italic: [[0, 4]] },
+			image: null,
+		});
+		expect(
+			(await setup(formatted).participant("Davi")).answers[0]?.puzzleOrder?.[0],
+		).toEqual({
+			text: "Nilo",
+			textFormatting: { italic: [[0, 4]] },
+			image: null,
+		});
 	});
 
 	it("a choice question has no puzzle answers", async () => {
@@ -587,5 +718,46 @@ describe("a puzzle in the report (spec 033, RN-30, RN-31)", () => {
 
 		expect(view.puzzleAnswers).toBeNull();
 		expect(view.participants[0]?.puzzleOrder).toBeNull();
+	});
+});
+
+describe("answer images in the report (spec 049, RN-24)", () => {
+	const rice = { key: "media/user-1/arroz.png", crop: null, altText: "Arroz" };
+	const withImage = (header?: Parameters<typeof aReportGame>[0]["header"]) =>
+		aReportGame({
+			header,
+			questions: [
+				aReportQuestion(0, {
+					choices: aReportQuestion(0).choices.map((choice, index) =>
+						index === 0 ? { ...choice, text: null, image: rice } : choice,
+					),
+				}),
+			],
+			players: ["Ana"],
+			answers: { Ana: ["right"] },
+		});
+
+	it("the choices and each participant's choices carry the image address while the quiz exists", async () => {
+		const { question, participant, storage } = setup(withImage());
+		const image = {
+			url: storage.getPublicUrl(rice.key),
+			crop: null,
+			altText: "Arroz",
+		};
+
+		expect((await question(0)).choices[0]).toMatchObject({ text: null, image });
+		expect((await participant("Ana")).answers[0]?.choices[0]?.image).toEqual(
+			image,
+		);
+	});
+
+	it("without the quiz they carry only the alt text", async () => {
+		const { question } = setup(withImage({ quiz: null }));
+
+		expect((await question(0)).choices[0]?.image).toEqual({
+			url: null,
+			crop: null,
+			altText: "Arroz",
+		});
 	});
 });

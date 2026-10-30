@@ -7,7 +7,7 @@ import { copyQuiz, type Quiz } from "../domain/quiz";
 import type { QuizVisibility } from "../domain/quiz-details";
 import type { QuestionRepository } from "./ports/question-repository";
 import type { QuizRepository } from "./ports/quiz-repository";
-import { imageKeysOf } from "./question-images";
+import { imageKeysOf, withRenamedImages } from "./question-images";
 import { type QuizDetailsView, toQuizDetailsView } from "./quiz-details-view";
 
 /**
@@ -63,15 +63,7 @@ export async function copyQuizContent(
 		sourceQuestions.length > 0
 			? sourceQuestions.map((question) => {
 					const copy = copyQuestion(question, deps.ids.generate());
-					return copy.image
-						? {
-								...copy,
-								image: {
-									...copy.image,
-									key: copiedKeys.get(copy.image.key) ?? copy.image.key,
-								},
-							}
-						: copy;
+					return withRenamedImages(copy, (key) => copiedKeys.get(key) ?? key);
 				})
 			: [blankQuestion(deps.ids.generate())];
 

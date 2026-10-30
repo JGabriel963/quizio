@@ -6,6 +6,8 @@ import {
 import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon, XIcon } from "lucide-react";
 
+import { AnswerImage, answerImageLabel } from "@/components/quiz/answer-image";
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { HostQuestionData, HostStageData } from "@/lib/api-types";
 
 type HostChoice = HostQuestionData["choices"][number];
@@ -57,7 +59,23 @@ export function StageChoices({ choices }: { choices: HostChoice[] }) {
 						)}
 					>
 						<AnswerShape shape={shape} className="size-7 shrink-0 sm:size-10" />
-						<span className="min-w-0 flex-1 break-words">{choice.text}</span>
+						{choice.image ? (
+							// The image right after the shape, the block's whole height (spec 049, RN-22).
+							<span className="flex min-w-0 flex-1 self-stretch">
+								<AnswerImage
+									image={choice.image}
+									label={answerImageLabel(choice.shapeIndex)}
+									className="justify-start"
+								/>
+							</span>
+						) : (
+							<span className="min-w-0 flex-1 break-words">
+								<FormattedText
+									text={choice.text ?? ""}
+									formatting={choice.textFormatting}
+								/>
+							</span>
+						)}
 						{state === "correct" && (
 							<>
 								<CheckIcon

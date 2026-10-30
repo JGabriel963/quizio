@@ -3,6 +3,7 @@ import {
 	NO_FORMATTING,
 	type TextFormatting,
 } from "../../shared/domain/text-formatting";
+import type { AnswerImageInput } from "./answer-image";
 import {
 	DEFAULT_CHOICE_COUNT,
 	defaultTimeLimitFor,
@@ -58,8 +59,17 @@ export interface QuestionDraft {
 		crop?: ImageCropInput | null;
 		altText?: string | null;
 	} | null;
-	/** Quiz: 0 to 6 answers, put in 4 slots, or 6 when there are more than 4. */
-	choices?: { text: string | null; correct: boolean }[];
+	/**
+	 * Quiz: 0 to 6 answers, put in 4 slots, or 6 when there are more than 4;
+	 * each with its marked stretches, none when missing (spec 048, RN-23).
+	 */
+	choices?: {
+		text: string | null;
+		textFormatting?: TextFormatting;
+		/** Spec 049: an upload of the quiz owner instead of the text. */
+		image?: AnswerImageInput | null;
+		correct: boolean;
+	}[];
 	/** Quiz: multiple when more than one answer is correct, when missing. */
 	selection?: string;
 	/** True/false: which one is right, or null while unmarked. */
@@ -76,6 +86,10 @@ export interface QuestionDraft {
 	};
 	/** Puzzle: up to 4 texts, top to bottom in the right order. */
 	items?: (string | null)[];
+	/** Puzzle: each text's marked stretches, by position; none when missing. */
+	itemFormatting?: TextFormatting[];
+	/** Puzzle: each slot's image instead of its text, by position (spec 049). */
+	itemImages?: (AnswerImageInput | null)[];
 }
 
 export class TooManyPuzzleItemsError extends DomainError {
@@ -173,7 +187,12 @@ function contentInput(
 			if (items.length > PUZZLE_ITEM_COUNT) {
 				throw new TooManyPuzzleItemsError();
 			}
-			return { type, items };
+			return {
+				type,
+				items,
+				itemFormatting: draft.itemFormatting,
+				itemImages: draft.itemImages,
+			};
 		}
 	}
 }

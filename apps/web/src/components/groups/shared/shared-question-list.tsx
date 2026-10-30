@@ -1,4 +1,5 @@
 import type { Question } from "@quizio/core/quiz/domain/question";
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import {
 	ANSWER_COLOR_CLASSES,
 	AnswerShape,
@@ -7,6 +8,12 @@ import {
 import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon } from "lucide-react";
 
+import {
+	AnswerImage,
+	type AnswerImageShown,
+	answerImageLabel,
+	answerImageShown,
+} from "@/components/quiz/answer-image";
 import { FormattedText } from "@/components/quiz/formatted-text";
 import { timeLimitLabel } from "@/lib/question-labels";
 import { questionTypeLabel } from "@/lib/quiz-labels";
@@ -56,7 +63,9 @@ export function SharedQuestionList({
 								className="max-h-48 w-full rounded-md bg-muted object-contain"
 							/>
 						)}
-						{showAnswers && <QuestionAnswers question={question} />}
+						{showAnswers && (
+							<QuestionAnswers question={question} imageUrls={imageUrls} />
+						)}
 					</li>
 				);
 			})}
@@ -64,14 +73,25 @@ export function SharedQuestionList({
 	);
 }
 
-/** An answer drawn with its color and shape, and the mark when it is right. */
+/**
+ * An answer drawn with its color and shape, its text formatted in normal
+ * weight (spec 048, RN-18), and the mark when it is right.
+ */
 function AnswerLine({
 	index,
+	prefix,
 	text,
+	formatting,
+	image = null,
 	correct,
 }: {
 	index: number;
-	text: string;
+	/** A puzzle answer's place ("1. "). */
+	prefix?: string;
+	text: string | null;
+	formatting?: TextFormatting;
+	/** A thumbnail in place of the text (spec 049, RN-24). */
+	image?: AnswerImageShown | null;
 	correct: boolean;
 }) {
 	const shape = answerShapeAt(index);
@@ -83,7 +103,16 @@ function AnswerLine({
 			)}
 		>
 			<AnswerShape shape={shape} className="size-4 shrink-0" />
-			<span className="min-w-0 flex-1 break-words">{text}</span>
+			<span className="min-w-0 flex-1 break-words">
+				{prefix && <span className="font-normal">{prefix}</span>}
+				{image ? (
+					<span className="inline-flex size-10 align-middle">
+						<AnswerImage image={image} label={answerImageLabel(index)} />
+					</span>
+				) : (
+					<FormattedText text={text ?? ""} formatting={formatting} />
+				)}
+			</span>
 			{correct && (
 				<>
 					<CheckIcon aria-hidden="true" className="size-4 shrink-0 stroke-3" />
@@ -94,17 +123,25 @@ function AnswerLine({
 	);
 }
 
-function QuestionAnswers({ question }: { question: Question }) {
+function QuestionAnswers({
+	question,
+	imageUrls,
+}: {
+	question: Question;
+	imageUrls: Readonly<Record<string, string>>;
+}) {
 	switch (question.type) {
 		case "quiz":
 			return (
 				<ul aria-label="Respostas" className="grid grid-cols-2 gap-2">
 					{question.choices.map((choice, index) =>
-						choice.text === null ? null : (
+						choice.text === null && choice.image === null ? null : (
 							<AnswerLine
 								key={choice.id}
 								index={index}
 								text={choice.text}
+								formatting={choice.textFormatting}
+								image={answerImageShown(choice.image, imageUrls)}
 								correct={choice.correct}
 							/>
 						),
@@ -165,12 +202,15 @@ function QuestionAnswers({ question }: { question: Question }) {
 			return (
 				<ol aria-label="Ordem certa" className="flex flex-col gap-2">
 					{question.items.map((item, index) =>
-						item === null ? null : (
+						item === null && !question.itemImages[index] ? null : (
 							<AnswerLine
 								// Slots have no id: the place is the slot (spec 033).
 								key={index}
 								index={index}
-								text={`${index + 1}. ${item}`}
+								prefix={`${index + 1}. `}
+								text={item}
+								formatting={question.itemFormatting[index]}
+								image={answerImageShown(question.itemImages[index], imageUrls)}
 								correct={false}
 							/>
 						),

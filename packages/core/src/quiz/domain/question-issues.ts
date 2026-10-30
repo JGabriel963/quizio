@@ -2,6 +2,8 @@ import { DomainError } from "../../shared/domain/domain-error";
 import type { SliderScale } from "../../shared/domain/slider-scale";
 import { normalizeTypedAnswer } from "../../shared/domain/typed-answer";
 import {
+	isFilledChoice,
+	isFilledSlot,
 	MIN_PUZZLE_ITEMS,
 	type Question,
 	type QuizQuestion,
@@ -49,7 +51,7 @@ export function sliderScaleOf(question: SliderQuestion): SliderScale | null {
 }
 
 function answeredCount(question: QuizQuestion): number {
-	return question.choices.filter((choice) => choice.text !== null).length;
+	return question.choices.filter(isFilledChoice).length;
 }
 
 /**
@@ -118,7 +120,8 @@ export function questionIssues(question: Question): QuestionIssue[] {
 		case "puzzle":
 			// Empty slots between filled ones do not count (spec 033, RN-07, RN-08).
 			if (
-				question.items.filter((item) => item !== null).length < MIN_PUZZLE_ITEMS
+				question.items.filter((_, slot) => isFilledSlot(question, slot))
+					.length < MIN_PUZZLE_ITEMS
 			) {
 				issues.push("notEnoughPuzzleItems");
 			}
@@ -134,7 +137,7 @@ export function missingAnswerHints(question: Question): number[] {
 	}
 	return question.choices
 		.slice(0, MIN_ANSWERS)
-		.flatMap((choice, index) => (choice.text === null ? [index + 1] : []));
+		.flatMap((choice, index) => (isFilledChoice(choice) ? [] : [index + 1]));
 }
 
 /** How many answers a quiz question still needs to reach the minimum (spec 006, RN-10a). */

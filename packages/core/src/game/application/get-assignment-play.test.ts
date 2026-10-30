@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-
 import type { Question } from "../../quiz/domain/question";
+import {
+	aFormattedAnswersQuestion,
+	anImageAnswersQuestion,
+	RICE_IMAGE_VIEW,
+} from "../../quiz/testing/a-question";
 
 import {
 	A_THEME_LOOK,
@@ -133,6 +137,44 @@ describe("getAssignmentPlay (spec 030)", () => {
 		expect((await play()).screen).toMatchObject({
 			phase: "results",
 			result: { question: { textFormatting: { subscript: [[1, 2]] } } },
+		});
+	});
+
+	it("the choices carry the formatting (spec 048, RN-19)", async () => {
+		const [, second] = somePlayableQuestions();
+		const { play } = await playing({}, [
+			aFormattedAnswersQuestion(),
+			second as Question,
+		]);
+
+		const { screen } = await play();
+
+		expect(screen).toMatchObject({
+			question: {
+				choices: [
+					{ text: "H2O", textFormatting: { subscript: [[1, 2]] } },
+					{ text: "CO2", textFormatting: {} },
+				],
+			},
+		});
+	});
+
+	it("the choices carry the image (spec 049, RN-23)", async () => {
+		const [, second] = somePlayableQuestions();
+		const { play } = await playing({}, [
+			anImageAnswersQuestion(),
+			second as Question,
+		]);
+
+		const { screen } = await play();
+
+		expect(screen).toMatchObject({
+			question: {
+				choices: [
+					{ text: null, image: RICE_IMAGE_VIEW },
+					{ text: "Feijão", image: null },
+				],
+			},
 		});
 	});
 

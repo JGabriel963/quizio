@@ -6,7 +6,7 @@ import type { Editor } from "@tiptap/core";
  * editable element. jsdom does not type into a `contenteditable` as a browser
  * does, so tests write and select through it; typing for real is the E2E's.
  */
-export function statementEditorOf(element: HTMLElement): Editor {
+export function editorOf(element: HTMLElement): Editor {
 	const editor = (element as HTMLElement & { editor?: Editor }).editor;
 	if (!editor) {
 		throw new Error("This element is not the statement's editor");
@@ -15,20 +15,20 @@ export function statementEditorOf(element: HTMLElement): Editor {
 }
 
 /** The field once the editor has mounted (it is built after the first render). */
-export async function statementField(
+export async function formattedField(
 	find: () => HTMLElement,
 ): Promise<HTMLElement> {
 	return waitFor(() => {
 		const field = find();
-		statementEditorOf(field);
+		editorOf(field);
 		return field;
 	});
 }
 
 /** Writes at the cursor, as typing would, with the marks of where it goes. */
-export function typeStatement(element: HTMLElement, text: string) {
+export function typeInEditor(element: HTMLElement, text: string) {
 	act(() => {
-		statementEditorOf(element)
+		editorOf(element)
 			.chain()
 			.focus()
 			.command(({ tr }) => {

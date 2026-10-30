@@ -32,12 +32,48 @@ describe("duplicateQuestion", () => {
 		timeLimitSeconds: 45,
 		points: "double",
 		choices: [
-			{ id: "choice-1", text: "Paris", correct: true },
-			{ id: "choice-2", text: "Lyon", correct: false },
-			{ id: "choice-3", text: "Paris (FR)", correct: true },
-			{ id: "choice-4", text: null, correct: false },
-			{ id: "choice-5", text: "Nice", correct: false },
-			{ id: "choice-6", text: null, correct: false },
+			{
+				id: "choice-1",
+				text: "Paris",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				text: "Lyon",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-3",
+				text: "Paris (FR)",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-4",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-5",
+				text: "Nice",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-6",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
 		],
 	});
 	const b = aQuestion({ id: "b", text: "B" });
@@ -83,11 +119,37 @@ describe("duplicateQuestion", () => {
 		});
 	});
 
+	it("the copy keeps the answers' formatting (spec 048, RN-15)", async () => {
+		const formatted: Question = {
+			...a,
+			choices: a.choices.map((choice, index) =>
+				index === 0
+					? { ...choice, textFormatting: { italic: [[0, 1]] } }
+					: choice,
+			),
+		};
+		await questions.saveQuestion("quiz-1", formatted);
+
+		await duplicateQuestion({ ...ref, questionId: "a" });
+
+		expect(
+			asQuiz(questions.listOf("quiz-1")[1]).choices[0]?.textFormatting,
+		).toEqual({
+			italic: [[0, 1]],
+		});
+	});
+
 	it("the copy is independent of the original", async () => {
 		await duplicateQuestion({ ...ref, questionId: "a" });
 
 		const copy = asQuiz(questions.listOf("quiz-1")[1]);
-		copy.choices[0] = { id: "choice-1", text: "Mudou", correct: false };
+		copy.choices[0] = {
+			id: "choice-1",
+			text: "Mudou",
+			textFormatting: {},
+			image: null,
+			correct: false,
+		};
 		await questions.saveQuestion("quiz-1", { ...copy, text: "Outra" });
 
 		expect(questions.listOf("quiz-1")[0]).toEqual(a);

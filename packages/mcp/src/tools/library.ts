@@ -2,7 +2,7 @@ import { LIBRARY_SECTIONS } from "@quizio/core/library/domain/library-section";
 import { z } from "zod";
 
 import { defineTool } from "../define-tool";
-import { withStatementMarkup } from "../schemas/statement-markup";
+import { questionMarkup } from "../schemas/text-markup";
 
 /** The library and quizzes of other people (spec 044, RN-19, RN-20). */
 export const libraryTools = [
@@ -62,7 +62,7 @@ export const libraryTools = [
 					quizId,
 				});
 				return {
-					quiz: { ...quiz, questions: quiz.questions.map(withStatementMarkup) },
+					quiz: { ...quiz, questions: quiz.questions.map(questionMarkup) },
 					links: { page: links.sharedQuiz(groupId, quizId) },
 				};
 			}
@@ -73,7 +73,7 @@ export const libraryTools = [
 				quizId,
 			});
 			return {
-				quiz: { ...quiz, questions: quiz.questions.map(withStatementMarkup) },
+				quiz: { ...quiz, questions: quiz.questions.map(questionMarkup) },
 				links: { page: links.publicQuiz(owner, quizId) },
 			};
 		},

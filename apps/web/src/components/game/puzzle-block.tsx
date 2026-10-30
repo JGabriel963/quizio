@@ -1,3 +1,4 @@
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import {
 	ANSWER_COLOR_CLASSES,
 	AnswerShape,
@@ -7,6 +8,13 @@ import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon, EqualIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
+import {
+	AnswerImage,
+	type AnswerImageShown,
+	answerImageLabel,
+} from "@/components/quiz/answer-image";
+import { FormattedText } from "@/components/quiz/formatted-text";
+
 /**
  * One answer of a puzzle in a game (spec 033): the color and shape it was
  * drawn with, its text when there is one, and on the right what the screen
@@ -15,12 +23,18 @@ import type { ComponentProps, ReactNode } from "react";
 export function PuzzleBlock({
 	shapeIndex,
 	text,
+	textFormatting,
+	image = null,
 	end,
 	className,
 	...props
 }: {
 	shapeIndex: number;
 	text: string | null;
+	/** Its marked stretches (spec 048, RN-19); none from a server before it. */
+	textFormatting?: TextFormatting;
+	/** An image answer in place of the text (spec 049, RN-22). */
+	image?: AnswerImageShown | null;
 	/** What sits on the right. */
 	end?: ReactNode;
 } & ComponentProps<"div">) {
@@ -36,7 +50,21 @@ export function PuzzleBlock({
 			{...props}
 		>
 			<AnswerShape shape={shape} className="size-5 shrink-0" />
-			<span className="min-w-0 flex-1 break-words">{text}</span>
+			{image ? (
+				<span className="flex h-12 min-w-0 flex-1 py-1">
+					<AnswerImage
+						image={image}
+						label={answerImageLabel(shapeIndex)}
+						className="justify-start"
+					/>
+				</span>
+			) : (
+				<span className="min-w-0 flex-1 break-words">
+					{text !== null && (
+						<FormattedText text={text} formatting={textFormatting} />
+					)}
+				</span>
+			)}
 			{end}
 		</div>
 	);

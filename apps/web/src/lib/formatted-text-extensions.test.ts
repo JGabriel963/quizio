@@ -2,26 +2,33 @@ import { Editor } from "@tiptap/core";
 import { Fragment, Slice } from "@tiptap/pm/model";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { documentToStatement, statementToDocument } from "./statement-document";
 import {
+	fromFormattedDocument,
+	toFormattedDocument,
+} from "./formatted-text-document";
+import {
+	FORMATTED_TEXT_EDITOR_OPTIONS,
 	fitSliceToRoom,
-	STATEMENT_EDITOR_OPTIONS,
-	statementExtensions,
-} from "./statement-extensions";
+	formattedTextExtensions,
+} from "./formatted-text-extensions";
 
 const editors: Editor[] = [];
 
-function editorWith(text: string, max = 160) {
+function editorWith(
+	text: string,
+	max = 160,
+	placeholder: string | (() => string) = "Comece a digitar a pergunta",
+) {
 	const editor = new Editor({
-		...STATEMENT_EDITOR_OPTIONS,
-		extensions: statementExtensions(max),
-		content: statementToDocument(text, {}),
+		...FORMATTED_TEXT_EDITOR_OPTIONS,
+		extensions: formattedTextExtensions({ maxLength: max, placeholder }),
+		content: toFormattedDocument(text, {}),
 	});
 	editors.push(editor);
 	return editor;
 }
 
-const statementOf = (editor: Editor) => documentToStatement(editor.getJSON());
+const statementOf = (editor: Editor) => fromFormattedDocument(editor.getJSON());
 
 afterEach(() => {
 	for (const editor of editors.splice(0)) {
@@ -146,5 +153,49 @@ describe("statement extensions (spec 047)", () => {
 		editor.chain().focus().insertContent("π").run();
 
 		expect(statementOf(editor).text).toBe("a".repeat(160));
+	});
+});
+
+describe("formatted text extensions for answers (spec 048)", () => {
+	it("the limit follows maxLength", () => {
+		const editor = editorWith("a".repeat(74), 75);
+		editor.commands.setTextSelection(75);
+
+		editor.commands.insertContent("b");
+		editor.commands.insertContent("c");
+
+		expect(statementOf(editor).text).toBe(`${"a".repeat(74)}b`);
+	});
+
+	it("accepts a mark change at the limit", () => {
+		const editor = editorWith("a".repeat(75), 75);
+		editor.commands.setTextSelection({ from: 1, to: 4 });
+
+		editor.commands.toggleBold();
+
+		expect(statementOf(editor).formatting).toEqual({ bold: [[0, 3]] });
+	});
+
+	it("a paste is cut to the room left of an answer", () => {
+		const editor = editorWith("a".repeat(70), 75);
+		editor.commands.setTextSelection(71);
+
+		editor.view.pasteText("bcdefghij");
+
+		expect(statementOf(editor).text).toBe(`${"a".repeat(70)}bcdef`);
+	});
+
+	it("a placeholder function is read again on each draw", () => {
+		let label = "Adicionar resposta 4";
+		const editor = editorWith("", 75, () => label);
+		const placeholderOf = () =>
+			editor.view.dom.querySelector("p")?.getAttribute("data-placeholder") ??
+			null;
+
+		expect(placeholderOf()).toBe("Adicionar resposta 4");
+		label = "Adicionar resposta 4 (opcional)";
+		editor.view.dispatch(editor.state.tr);
+
+		expect(placeholderOf()).toBe("Adicionar resposta 4 (opcional)");
 	});
 });

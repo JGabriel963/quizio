@@ -1,5 +1,8 @@
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
-import { aQuestion } from "@quizio/core/quiz/testing/a-question";
+import {
+	aPuzzleQuestion,
+	aQuestion,
+} from "@quizio/core/quiz/testing/a-question";
 import { aQuiz } from "@quizio/core/quiz/testing/a-quiz";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -73,6 +76,20 @@ describe("DrizzleMediaUsage (audit L4)", () => {
 		);
 		await createDrizzleQuestionRepository(testDb.db).saveList("quiz-1", [
 			aQuestion({ id: "q1", image: image("media/user-1/live.png") }),
+			// Spec 049: the answers' images live in the content.
+			aQuestion({
+				id: "q2",
+				choices: aQuestion().choices.map((choice, index) =>
+					index === 0
+						? { ...choice, text: null, image: image("media/user-1/answer.png") }
+						: choice,
+				),
+			}),
+			aPuzzleQuestion({
+				id: "q3",
+				items: [null, "B", "C", null],
+				itemImages: [image("media/user-1/slot.png"), null, null, null],
+			}),
 		]);
 		await createDrizzleQuizVersionRepository(testDb.db).save(
 			newQuizVersion({
@@ -99,6 +116,8 @@ describe("DrizzleMediaUsage (audit L4)", () => {
 			"media/user-1/cover.png",
 			"media/user-1/live.png",
 			"media/user-1/published.png",
+			"media/user-1/answer.png",
+			"media/user-1/slot.png",
 			"profiles/user-1/me.webp",
 		]) {
 			expect(await usage.isMediaInUse(key), key).toBe(true);
@@ -112,6 +131,7 @@ describe("DrizzleMediaUsage (audit L4)", () => {
 			"media/user-1/never.png",
 			"media/user-1/cover",
 			"media/user-1/published",
+			"media/user-1/answer",
 			"profiles/user-1/me",
 		]) {
 			expect(await usage.isMediaInUse(key), key).toBe(false);

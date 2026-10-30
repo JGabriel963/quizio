@@ -4,6 +4,8 @@ import { questionIssues } from "@quizio/core/quiz/domain/question-issues";
 import type { ReactNode } from "react";
 
 import type { QuestionData } from "@/lib/api-types";
+import type { AnswerImageActions } from "./answer-image-field";
+import type { SavedText } from "./formatted-text-field";
 import { PuzzleAnswers } from "./puzzle-answers";
 import { type ImageUploadState, QuestionMedia } from "./question-media";
 import { QuestionTextField, type Statement } from "./question-text-field";
@@ -28,6 +30,7 @@ export function QuestionCanvas({
 	onSavePuzzleItem,
 	onChange,
 	onUploadImage,
+	answerImages,
 	titleAside,
 }: {
 	question: QuestionData;
@@ -38,17 +41,20 @@ export function QuestionCanvas({
 	showHints: boolean;
 	/** The statement with its formatting (spec 047). */
 	onSaveStatement: (statement: Statement) => Promise<unknown>;
-	onSaveChoiceText: (choiceId: string, text: string | null) => Promise<unknown>;
+	/** An answer with its formatting (spec 048). */
+	onSaveChoiceText: (choiceId: string, answer: SavedText) => Promise<unknown>;
 	/** The autosaved text of an accepted answer of a type answer (spec 031). */
 	onSaveAcceptedAnswer: (
 		index: number,
 		text: string | null,
 	) => Promise<unknown>;
-	/** The autosaved text of a puzzle's slot (spec 033). */
-	onSavePuzzleItem: (index: number, text: string | null) => Promise<unknown>;
+	/** The autosaved text of a puzzle's slot, with its formatting (specs 033, 048). */
+	onSavePuzzleItem: (index: number, item: SavedText) => Promise<unknown>;
 	/** Changes saved at once: corrects and the extra answers. */
 	onChange: (change: QuestionChange) => void;
 	onUploadImage: (file: File) => void;
+	/** Images in the quiz and puzzle answers (spec 049). */
+	answerImages?: AnswerImageActions;
 	/** Beside the question text: the properties menu on compact screens. */
 	titleAside?: ReactNode;
 }) {
@@ -98,6 +104,7 @@ export function QuestionCanvas({
 					showHints={showHints}
 					onSaveChoiceText={onSaveChoiceText}
 					onChange={onChange}
+					answerImages={answerImages}
 				/>
 			)}
 			{question.type === "trueFalse" && (
@@ -134,6 +141,7 @@ export function QuestionCanvas({
 					question={question}
 					onSaveItem={onSavePuzzleItem}
 					onChange={onChange}
+					answerImages={answerImages}
 				/>
 			)}
 		</div>

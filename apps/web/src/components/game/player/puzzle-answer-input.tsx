@@ -5,10 +5,11 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { Button } from "@quizio/ui/components/button";
 import { cn } from "@quizio/ui/lib/utils";
 import { useEffect, useRef, useState } from "react";
-
+import type { AnswerImageShown } from "@/components/quiz/answer-image";
 import {
 	BLOCK_SCREEN_READER_INSTRUCTIONS,
 	blockAnnouncements,
@@ -17,6 +18,7 @@ import {
 	moveBlock,
 	useBlockSensors,
 } from "@/lib/sortable";
+
 import { BodyDragOverlay } from "../body-drag-overlay";
 import {
 	PuzzleBlock,
@@ -29,6 +31,10 @@ interface PuzzleChoice {
 	shapeIndex: number;
 	/** Null without "Mostrar perguntas nos dispositivos" (RN-20). */
 	text: string | null;
+	/** Its marked stretches (spec 048, RN-19). */
+	textFormatting?: TextFormatting;
+	/** An image answer, only when the texts are shown (spec 049, RN-23). */
+	image?: AnswerImageShown | null;
 }
 
 /**
@@ -79,7 +85,7 @@ export function PuzzleAnswerInput({
 	});
 	const dragged = draggedId === null ? undefined : byId.get(draggedId);
 	const nameOf = (choice: PuzzleChoice) =>
-		choice.text ?? `bloco ${choice.shapeIndex + 1}`;
+		choice.text ?? choice.image?.altText ?? `bloco ${choice.shapeIndex + 1}`;
 
 	useEffect(() => {
 		if (focusId !== null) {
@@ -171,6 +177,8 @@ export function PuzzleAnswerInput({
 						<PuzzleBlock
 							shapeIndex={dragged.shapeIndex}
 							text={dragged.text}
+							textFormatting={dragged.textFormatting}
+							image={dragged.image}
 							className={cn(BLOCK_SIZE[size], "-translate-y-0.5 shadow-lg")}
 							end={<PuzzleBlockGrip />}
 						/>
@@ -226,6 +234,8 @@ function SortableBlock({
 			<PuzzleBlock
 				shapeIndex={choice.shapeIndex}
 				text={choice.text}
+				textFormatting={choice.textFormatting}
+				image={choice.image}
 				className={BLOCK_SIZE[size]}
 				end={
 					<PuzzleBlockHandle

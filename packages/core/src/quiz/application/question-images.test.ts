@@ -4,12 +4,13 @@ import { FixedClock } from "../../shared/testing/fixed-clock";
 import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-storage";
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { InMemoryThemeStore } from "../../themes/testing/in-memory-theme-store";
+import { newAnswerImage } from "../domain/answer-image";
 import {
 	InvalidQuestionImageError,
 	newQuestionImage,
 } from "../domain/question-image";
 import { newQuizVersion } from "../domain/quiz-version";
-import { aQuestion } from "../testing/a-question";
+import { aPuzzleQuestion, aQuestion, asQuiz } from "../testing/a-question";
 import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
@@ -29,10 +30,34 @@ const PONTE = "media/user-1/ponte.png";
 const MAPA = "media/user-1/mapa.png";
 const ref = { ownerId: "user-1", quizId: "quiz-1" };
 const complete = [
-	{ id: "choice-1", text: "Sim", correct: true },
-	{ id: "choice-2", text: "Não", correct: false },
-	{ id: "choice-3", text: null, correct: false },
-	{ id: "choice-4", text: null, correct: false },
+	{
+		id: "choice-1",
+		text: "Sim",
+		textFormatting: {},
+		image: null,
+		correct: true,
+	},
+	{
+		id: "choice-2",
+		text: "Não",
+		textFormatting: {},
+		image: null,
+		correct: false,
+	},
+	{
+		id: "choice-3",
+		text: null,
+		textFormatting: {},
+		image: null,
+		correct: false,
+	},
+	{
+		id: "choice-4",
+		text: null,
+		textFormatting: {},
+		image: null,
+		correct: false,
+	},
 ];
 
 /** Image files across the editor's use cases (spec 007). */
@@ -351,6 +376,87 @@ describe("question images", () => {
 			await createDeleteQuizPermanently(deps)(ref);
 
 			expect(storage.keys()).toEqual(["media/user-1/x.png"]);
+		});
+	});
+	describe("answer images (spec 049)", () => {
+		function setAnswerImage(questionId: string, key: string | null) {
+			return createUpdateQuestion(deps)({
+				...ref,
+				questionId,
+				change: { kind: "answerImage", answer: { choiceId: "choice-3" }, key },
+			});
+		}
+		const answerKeys = (questionId: string) =>
+			asQuiz(
+				questions.listOf("quiz-1").find(({ id }) => id === questionId),
+			).choices.flatMap(({ image }) => (image ? [image.key] : []));
+
+		it("imageKeysOf includes the answer images, of quiz and puzzle", () => {
+			expect(
+				imageKeysOf([
+					aQuestion({
+						image: newQuestionImage(PONTE),
+						choices: complete.map((choice, index) =>
+							index === 2 ? { ...choice, image: newAnswerImage(MAPA) } : choice,
+						),
+					}),
+					aPuzzleQuestion({
+						items: [null, "B", "C", null],
+						itemImages: [newAnswerImage(PONTE), null, null, null],
+					}),
+				]),
+			).toEqual([PONTE, MAPA]);
+		});
+
+		it("answerImage refuses a key that is not an upload of the owner", async () => {
+			await expect(
+				setAnswerImage("a", "media/user-2/x.png"),
+			).rejects.toBeInstanceOf(InvalidQuestionImageError);
+			await expect(
+				setAnswerImage("a", "media/user-1/missing.png"),
+			).rejects.toBeInstanceOf(InvalidQuestionImageError);
+			expect(answerKeys("a")).toEqual([]);
+		});
+
+		it("releaseUnusedImages deletes an answer image no version uses and keeps one a version uses", async () => {
+			await setAnswerImage("a", PONTE);
+			await setAnswerImage("a", null);
+			expect(storage.keys()).toEqual([MAPA]);
+
+			storage.simulateUpload(PONTE);
+			await setAnswerImage("a", PONTE);
+			await publish();
+			await setAnswerImage("a", null);
+			expect(storage.keys()).toContain(PONTE);
+		});
+
+		it("discarding the changes brings back the answer images", async () => {
+			await setAnswerImage("a", PONTE);
+			await publish();
+			await setAnswerImage("a", null);
+
+			await createDiscardQuizChanges(deps)(ref);
+
+			expect(answerKeys("a")).toEqual([PONTE]);
+		});
+
+		it("the editor has the answer images' urls", async () => {
+			await setAnswerImage("a", PONTE);
+
+			expect((await createGetQuizEditor(deps)(ref)).imageUrls).toEqual({
+				[PONTE]: `https://media.test/${PONTE}`,
+			});
+		});
+
+		it("duplicating the quiz copies the answer image files under new keys", async () => {
+			await setAnswerImage("a", PONTE);
+
+			const copy = await createDuplicateQuiz(deps)(ref);
+			const copied = asQuiz(questions.listOf(copy.id)[0]).choices[2]?.image;
+
+			expect(copied?.key).toBeDefined();
+			expect(copied?.key).not.toBe(PONTE);
+			expect(storage.keys()).toContain(copied?.key);
 		});
 	});
 });

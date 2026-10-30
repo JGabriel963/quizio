@@ -10,7 +10,7 @@ const complete = {
 			type: "quiz",
 			text: "Maior planeta?",
 			choices: [
-				{ text: "Júpiter", correct: true },
+				{ text: "<b>Júpiter</b>", correct: true },
 				{ text: "Marte", correct: false },
 			],
 		},
@@ -88,6 +88,11 @@ describe("library tools (spec 044, RN-19)", () => {
 		expect(
 			(publicQuiz.quiz as { questions: { text: string }[] }).questions[0],
 		).toEqual(expect.objectContaining({ text: "A Terra é <b>redonda</b>" }));
+		// And so do the answers (spec 048, RN-22).
+		expect(
+			(publicQuiz.quiz as { questions: { choices?: { text: string }[] }[] })
+				.questions[1]?.choices?.[0]?.text,
+		).toBe("<b>Júpiter</b>");
 		expect(JSON.stringify(publicQuiz)).not.toContain("textFormatting");
 
 		const { groupId } = await ana.api.callerFor("bruno").group.create({

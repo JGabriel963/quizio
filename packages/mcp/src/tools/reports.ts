@@ -2,10 +2,11 @@ import {
 	REPORT_NAME_MAX_LENGTH,
 	REPORT_SECTIONS,
 } from "@quizio/core/reports/domain/report";
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { z } from "zod";
-
 import { defineTool } from "../define-tool";
-import { withStatementMarkup } from "../schemas/statement-markup";
+
+import { withTextMarkup } from "../schemas/text-markup";
 import { ToolInputError } from "../tool-input-error";
 import { WRITTEN_BY_PLAYERS } from "./groups";
 
@@ -16,6 +17,23 @@ const gameId = z
 const gameIds = z.array(z.string().max(10_000)).min(1).max(200);
 
 /** Reports: a reading of each game that started (spec 044, RN-28). */
+interface MarkedAnswer {
+	/** Null when the answer is an image, which goes as it is (spec 049, RN-26). */
+	text: string | null;
+	textFormatting: TextFormatting;
+}
+
+/** What a participant answered, with the answers written with tags (spec 048, RN-22). */
+function answersWithMarkup(view: {
+	choices: (MarkedAnswer & { shapeIndex: number; correct: boolean })[];
+	puzzleOrder: MarkedAnswer[] | null;
+}) {
+	return {
+		choices: view.choices.map(withTextMarkup),
+		puzzleOrder: view.puzzleOrder?.map(withTextMarkup) ?? null,
+	};
+}
+
 export const reportTools = [
 	defineTool({
 		name: "list_reports",
@@ -79,10 +97,9 @@ export const reportTools = [
 					...report,
 					summary: {
 						...report.summary,
-						hardestQuestion:
-							hardestQuestion && withStatementMarkup(hardestQuestion),
+						hardestQuestion: hardestQuestion && withTextMarkup(hardestQuestion),
 					},
-					questions: report.questions.map(withStatementMarkup),
+					questions: report.questions.map(withTextMarkup),
 				},
 				links: { report: context.links.report(id) },
 			};
@@ -113,17 +130,33 @@ export const reportTools = [
 				return {
 					participant: {
 						...participant,
-						answers: participant.answers.map(withStatementMarkup),
+						answers: participant.answers.map((answer) => ({
+							...withTextMarkup(answer),
+							...answersWithMarkup(answer),
+						})),
 					},
 				};
 			}
+			const detail = await context.useCases.getReportQuestion({
+				...target,
+				questionIndex: (questionPosition ?? 1) - 1,
+			});
 			return {
-				question: withStatementMarkup(
-					await context.useCases.getReportQuestion({
-						...target,
-						questionIndex: (questionPosition ?? 1) - 1,
-					}),
-				),
+				question: {
+					...withTextMarkup(detail),
+					choices: detail.choices.map(withTextMarkup),
+					participants: detail.participants.map((participant) => ({
+						...participant,
+						...answersWithMarkup(participant),
+					})),
+					puzzleAnswers: detail.puzzleAnswers && {
+						correctOrder: detail.puzzleAnswers.correctOrder.map(withTextMarkup),
+						orders: detail.puzzleAnswers.orders.map((order) => ({
+							...order,
+							answers: order.answers.map(withTextMarkup),
+						})),
+					},
+				},
 			};
 		},
 	}),

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { QuestionData } from "@/lib/api-types";
 import { SaveTrackerProvider } from "@/lib/save-tracker";
-import { typeStatement } from "@/testing/statement-editor";
+import { formattedField, typeInEditor } from "@/testing/formatted-text-editor";
 
 import { QuestionCanvas } from "./question-canvas";
 import { NO_UPLOAD } from "./question-media";
@@ -43,6 +43,8 @@ function withChoices(
 		choices: texts.map((text, index) => ({
 			id: `choice-${index + 1}`,
 			text,
+			textFormatting: {},
+			image: null,
 			correct: correct.includes(index),
 		})),
 	};
@@ -62,8 +64,15 @@ describe("QuestionCanvas", () => {
 		).toHaveTextContent("Capital?");
 		const media = screen.getByRole("region", { name: "Mídia" });
 		expect(media).toHaveTextContent("Encontre e insira mídia");
+		await Promise.all(
+			[1, 2, 3, 4].map((position) =>
+				formattedField(() =>
+					screen.getByRole("textbox", { name: `Resposta ${position}` }),
+				),
+			),
+		);
 		expect(
-			answerFields().map((field) => field.getAttribute("placeholder")),
+			answerFields().map((field) => field.getAttribute("aria-placeholder")),
 		).toEqual([
 			"Adicionar resposta 1",
 			"Adicionar resposta 2",
@@ -149,10 +158,7 @@ describe("QuestionCanvas", () => {
 		expect(
 			screen.getByText("Nenhuma pergunta foi adicionada."),
 		).toBeInTheDocument();
-		typeStatement(
-			await screen.findByRole("textbox", { name: "Pergunta" }),
-			"C",
-		);
+		typeInEditor(await screen.findByRole("textbox", { name: "Pergunta" }), "C");
 
 		expect(screen.queryByText("Nenhuma pergunta foi adicionada.")).toBeNull();
 	});
@@ -218,26 +224,36 @@ describe("QuestionCanvas with a puzzle (spec 033)", () => {
 		items: ["Nilo", "Amazonas", null, null],
 	});
 
-	it("shows the puzzle's four answers in place of the grid", () => {
+	it("shows the puzzle's four answers in place of the grid", async () => {
 		renderCanvas(puzzle());
 
-		expect(screen.getByRole("textbox", { name: "Resposta 1" })).toHaveValue(
-			"Nilo",
-		);
-		expect(screen.getByRole("textbox", { name: "Resposta 4" })).toHaveValue("");
+		expect(
+			await formattedField(() =>
+				screen.getByRole("textbox", { name: "Resposta 1" }),
+			),
+		).toHaveTextContent("Nilo");
+		expect(
+			await formattedField(() =>
+				screen.getByRole("textbox", { name: "Resposta 4" }),
+			),
+		).toHaveTextContent("");
 		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
 	});
 
 	it("saves a slot's text through its own handler", async () => {
 		const { handlers, user } = renderCanvas(puzzle());
-
-		await user.type(
+		const third = await formattedField(() =>
 			screen.getByRole("textbox", { name: "Resposta 3" }),
-			"Yangtzé",
 		);
-		await user.tab();
+		act(() => third.focus());
 
-		expect(handlers.onSavePuzzleItem).toHaveBeenLastCalledWith(2, "Yangtzé");
+		typeInEditor(third, "Yangtzé");
+		await user.click(screen.getByRole("textbox", { name: "Pergunta" }));
+
+		expect(handlers.onSavePuzzleItem).toHaveBeenLastCalledWith(2, {
+			text: "Yangtzé",
+			formatting: {},
+		});
 	});
 
 	it("the question text tells to add the expected order while it is edited (RN-06)", async () => {

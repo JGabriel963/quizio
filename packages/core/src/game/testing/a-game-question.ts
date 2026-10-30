@@ -10,6 +10,8 @@ export function someChoices(
 		id: `choice-${index + 1}`,
 		shapeIndex: index,
 		text,
+		textFormatting: {},
+		image: null,
 		correct: correct.includes(index),
 	}));
 }

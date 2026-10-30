@@ -5,7 +5,7 @@ import { responseTimeLabel, unansweredLabel } from "@/lib/report-labels";
 import { formatSliderNumber } from "@/lib/slider-format";
 
 import { AccuracyRing } from "./accuracy-ring";
-import { orderLabel } from "./question-detail";
+import { OrderedAnswers } from "./question-detail";
 import { ChoiceChip, pointsLabel, ResultBadge } from "./report-parts";
 
 /**
@@ -61,15 +61,17 @@ export function ParticipantDetail({
 											<ChoiceChip
 												shapeIndex={choice.shapeIndex}
 												text={choice.text}
+												textFormatting={choice.textFormatting}
+												image={choice.image}
 											/>
 										</li>
 									))}
 								</ul>
 							)}
 							{answer.puzzleOrder !== null && (
-								<p className="font-semibold text-sm">
+								<p data-slot="puzzle-order" className="font-semibold text-sm">
 									<span className="sr-only">Ordem enviada: </span>
-									{orderLabel(answer.puzzleOrder)}
+									<OrderedAnswers answers={answer.puzzleOrder} />
 								</p>
 							)}
 							{answer.typedText !== null && (

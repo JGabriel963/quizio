@@ -4,7 +4,10 @@ import {
 } from "@quizio/core/game/domain/assignment";
 import { endGame, type Game } from "@quizio/core/game/domain/game";
 import { revealedThrough } from "@quizio/core/game/domain/game-progress";
-import type { GameQuestion } from "@quizio/core/game/domain/game-question";
+import type {
+	GameChoice,
+	GameQuestion,
+} from "@quizio/core/game/domain/game-question";
 import { removePlayer } from "@quizio/core/game/domain/player";
 import { rankPlayers } from "@quizio/core/game/domain/standings";
 import { aGame, aPlayer, aPlayingGame } from "@quizio/core/game/testing/a-game";
@@ -475,6 +478,71 @@ describe("DrizzleReportGameQuery (spec 015)", () => {
 		const game = await query.findGame("game-1", now);
 
 		expect(game?.questions[0]?.textFormatting).toEqual({});
+	});
+
+	it("reads the choices' formatting from game_question (spec 048, RN-19)", async () => {
+		const formatted = aGameQuestion({ index: 0 });
+		const [first, ...rest] = formatted.choices;
+		await seedPlayed(finished({ questionCount: 1 }), [
+			{
+				...formatted,
+				choices: [
+					{ ...(first as GameChoice), textFormatting: { bold: [[0, 3]] } },
+					...rest,
+				],
+			},
+		]);
+
+		const game = await query.findGame("game-1", now);
+
+		expect(
+			game?.questions[0]?.choices.map((choice) => choice.textFormatting),
+		).toEqual([{ bold: [[0, 3]] }, {}, {}, {}]);
+	});
+
+	it("reads the choices' images from game_question (spec 049, RN-24)", async () => {
+		const pictured = aGameQuestion({ index: 0 });
+		const [first, ...rest] = pictured.choices;
+		const rice = {
+			key: "media/user-1/arroz.png",
+			crop: null,
+			altText: "Arroz",
+		};
+		await seedPlayed(finished({ questionCount: 1 }), [
+			{
+				...pictured,
+				choices: [
+					{ ...(first as GameChoice), text: null, image: rice },
+					...rest,
+				],
+			},
+		]);
+
+		const game = await query.findGame("game-1", now);
+
+		expect(game?.questions[0]?.choices.map((choice) => choice.image)).toEqual([
+			rice,
+			null,
+			null,
+			null,
+		]);
+	});
+
+	it("an old copy's choices read without formatting (spec 048, RN-17)", async () => {
+		const copy = aGameQuestion({ index: 0 });
+		const old = {
+			...copy,
+			choices: copy.choices.map(({ textFormatting: _f, ...choice }) => choice),
+		};
+		await seedPlayed(finished({ questionCount: 1 }), [
+			old as unknown as GameQuestion,
+		]);
+
+		const game = await query.findGame("game-1", now);
+
+		expect(
+			game?.questions[0]?.choices.map((choice) => choice.textFormatting),
+		).toEqual([{}, {}, {}, {}]);
 	});
 
 	it("reads typed answers and accepted answers of a type answer question (spec 031)", async () => {

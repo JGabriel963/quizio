@@ -27,6 +27,8 @@ function quiz(
 			shapeIndex: index,
 			label: null,
 			text: texts ? text : null,
+			textFormatting: {},
+			image: null,
 		})),
 	};
 }
@@ -44,12 +46,16 @@ const trueFalse = (withTexts: boolean): PlayerQuestionData => ({
 			shapeIndex: 1,
 			label: "Verdadeiro",
 			text: withTexts ? "Verdadeiro" : null,
+			textFormatting: {},
+			image: null,
 		},
 		{
 			id: "false",
 			shapeIndex: 0,
 			label: "Falso",
 			text: withTexts ? "Falso" : null,
+			textFormatting: {},
+			image: null,
 		},
 	],
 });
@@ -238,5 +244,58 @@ describe("AnswerButtons: multiple selection (spec 012)", () => {
 
 		await user.click(screen.getByRole("button", { name: "Enviar" }));
 		expect(onAnswer).toHaveBeenCalledExactlyOnceWith(["choice-1"]);
+	});
+});
+
+describe("formatted answers on the phone (spec 048, RN-19 to RN-21)", () => {
+	const powers = (): PlayerQuestionData => {
+		const question = quiz({ texts: ["x2", "y", "z", "w"] });
+		return {
+			...question,
+			choices: question.choices.map((choice, index) =>
+				index === 0
+					? { ...choice, textFormatting: { superscript: [[1, 2]] } }
+					: choice,
+			),
+		};
+	};
+
+	it("draws the superscript", () => {
+		renderButtons(powers());
+
+		const sup = screen.getByText("2", { selector: "sup" });
+		expect(sup.parentElement).toHaveClass("font-normal");
+	});
+
+	it("the button's name is the plain text", () => {
+		renderButtons(powers());
+
+		expect(screen.getByRole("button", { name: /x2/ })).toBeInTheDocument();
+	});
+});
+
+describe("image answers on the phone (spec 049, RN-23)", () => {
+	const rice = {
+		url: "https://media.test/media/ana/arroz.png",
+		crop: null,
+		altText: "Arroz",
+	};
+
+	it("an image answer button shows the image without the shape, and is tapped like the others", async () => {
+		const onAnswer = vi.fn();
+		const question = quiz({ texts: TEXTS });
+		question.choices[0] = {
+			...question.choices[0],
+			text: null,
+			image: rice,
+		} as never;
+		render(<AnswerButtons question={question} onAnswer={onAnswer} />);
+
+		const button = screen.getByRole("button", { name: "Arroz" });
+		expect(button).toHaveAttribute("data-format", "image");
+		expect(button.querySelector("[data-slot=answer-button-shape]")).toBeNull();
+
+		await userEvent.click(button);
+		expect(onAnswer).toHaveBeenCalledWith(["choice-1"]);
 	});
 });

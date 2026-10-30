@@ -114,10 +114,34 @@ describe("PlayResult of a puzzle (spec 033, RN-29)", () => {
 		textFormatting: {},
 		image: null,
 		choices: [
-			{ id: "choice-3", shapeIndex: 0, text: "Yangtzé" },
-			{ id: "choice-4", shapeIndex: 1, text: "Mississipi" },
-			{ id: "choice-1", shapeIndex: 2, text: "Nilo" },
-			{ id: "choice-2", shapeIndex: 3, text: "Amazonas" },
+			{
+				id: "choice-3",
+				shapeIndex: 0,
+				text: "Yangtzé",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-4",
+				shapeIndex: 1,
+				text: "Mississipi",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-1",
+				shapeIndex: 2,
+				text: "Nilo",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 3,
+				text: "Amazonas",
+				textFormatting: {},
+				image: null,
+			},
 		],
 	};
 
@@ -188,5 +212,85 @@ describe("PlayResult of a puzzle (spec 033, RN-29)", () => {
 		expect(
 			screen.getByRole("list", { name: "A ordem certa é:" }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("PlayResult with formatted answers (spec 048, RN-19)", () => {
+	const water = (type: "quiz" | "puzzle") => ({
+		index: 0,
+		type,
+		selection: "single" as const,
+		slider: null,
+		text: "Ordene",
+		textFormatting: {},
+		image: null,
+		choices: [
+			{
+				id: "choice-1",
+				shapeIndex: 0,
+				text: "H2O",
+				textFormatting: { subscript: [[1, 2]] as [number, number][] },
+				image: null,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 1,
+				text: "Sal",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-3",
+				shapeIndex: 2,
+				text: "Ar",
+				textFormatting: {},
+				image: null,
+			},
+		],
+	});
+	const result = {
+		typedText: null,
+		sliderValue: null,
+		sliderAnswer: null,
+		acceptedAnswers: [],
+		points: 0,
+	};
+
+	it("the answers, the sent and the right order are formatted", () => {
+		const { unmount } = render(
+			<PlayResult
+				animate={false}
+				questionCount={5}
+				result={{
+					...result,
+					question: water("quiz"),
+					chosenIds: ["choice-2"],
+					rightIds: ["choice-1"],
+					rightOrder: [],
+					result: "wrong",
+				}}
+			/>,
+		);
+		expect(screen.getByText("2", { selector: "sub" })).toBeInTheDocument();
+		unmount();
+
+		render(
+			<PlayResult
+				animate={false}
+				questionCount={5}
+				result={{
+					...result,
+					question: water("puzzle"),
+					chosenIds: ["choice-2", "choice-1", "choice-3"],
+					rightIds: [],
+					rightOrder: ["choice-1", "choice-2", "choice-3"],
+					result: "wrong",
+				}}
+			/>,
+		);
+		const subsIn = (name: string) =>
+			screen.getByRole("list", { name }).querySelectorAll("sub");
+		expect(subsIn("Sua ordem")).toHaveLength(1);
+		expect(subsIn("A ordem certa é:")).toHaveLength(1);
 	});
 });

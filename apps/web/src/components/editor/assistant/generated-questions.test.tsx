@@ -18,10 +18,34 @@ const quiz: GeneratedQuestionData = {
 	aiGenerated: true,
 	selection: "single",
 	choices: [
-		{ id: "choice-1", text: "Terra", correct: false },
-		{ id: "choice-2", text: "Júpiter", correct: true },
-		{ id: "choice-3", text: "Marte", correct: false },
-		{ id: "choice-4", text: "Vênus", correct: false },
+		{
+			id: "choice-1",
+			text: "Terra",
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-2",
+			text: "Júpiter",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{
+			id: "choice-3",
+			text: "Marte",
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-4",
+			text: "Vênus",
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
 	],
 };
 const trueFalse: GeneratedQuestionData = {

@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { documentToStatement, statementToDocument } from "./statement-document";
+import {
+	fromFormattedDocument,
+	toFormattedDocument,
+} from "./formatted-text-document";
 
 describe("statement document (spec 047, RN-03)", () => {
-	it("statementToDocument makes one paragraph with a text node per segment", () => {
+	it("toFormattedDocument makes one paragraph with a text node per segment", () => {
 		expect(
-			statementToDocument("Quanto é 22?", {
+			toFormattedDocument("Quanto é 22?", {
 				bold: [[0, 6]],
 				superscript: [[10, 11]],
 			}),
@@ -25,9 +28,9 @@ describe("statement document (spec 047, RN-03)", () => {
 		});
 	});
 
-	it("documentToStatement turns marked text nodes into ranges", () => {
+	it("fromFormattedDocument turns marked text nodes into ranges", () => {
 		expect(
-			documentToStatement({
+			fromFormattedDocument({
 				type: "doc",
 				content: [
 					{
@@ -45,7 +48,7 @@ describe("statement document (spec 047, RN-03)", () => {
 
 	it("a text node with two marks gives a range in each", () => {
 		expect(
-			documentToStatement({
+			fromFormattedDocument({
 				type: "doc",
 				content: [
 					{
@@ -68,7 +71,7 @@ describe("statement document (spec 047, RN-03)", () => {
 
 	it("a superscript digit becomes a superscript range", () => {
 		expect(
-			documentToStatement({
+			fromFormattedDocument({
 				type: "doc",
 				content: [
 					{
@@ -90,17 +93,17 @@ describe("statement document (spec 047, RN-03)", () => {
 		} as const;
 
 		expect(
-			documentToStatement(
-				statementToDocument(statement.text, statement.formatting),
+			fromFormattedDocument(
+				toFormattedDocument(statement.text, statement.formatting),
 			),
 		).toEqual(statement);
 	});
 
 	it("an empty document is an empty text", () => {
 		expect(
-			documentToStatement({ type: "doc", content: [{ type: "paragraph" }] }),
+			fromFormattedDocument({ type: "doc", content: [{ type: "paragraph" }] }),
 		).toEqual({ text: "", formatting: {} });
-		expect(statementToDocument("", {})).toEqual({
+		expect(toFormattedDocument("", {})).toEqual({
 			type: "doc",
 			content: [{ type: "paragraph" }],
 		});

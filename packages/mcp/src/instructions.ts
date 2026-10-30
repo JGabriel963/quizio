@@ -13,8 +13,9 @@ How to work:
 Common flows:
 - Create a quiz with its questions in one call (create_quiz), check what is missing (get_quiz), then publish_quiz. Only a published quiz can be hosted live or assigned.
 - Question types: quiz (2 to 6 answers, one or more correct), trueFalse, typeAnswer (1 to 4 accepted answers), slider (a number on a scale) and puzzle (3 or 4 items in the right order). Each type has its own time limits.
-- A statement may be formatted with <b>, <i>, <sub> and <sup> in its text (H<sub>2</sub>O, x<sup>2</sup>); statements you read come the same way. Sending a statement replaces the old one with its formatting.
-- Images (quiz cover, question image, theme logo or background, group attachments) come from a public link ({ "url": ... }) or, if you can run commands, from request_upload: PUT the file to the address it gives, then pass { "uploadKey": ... }.
+- A statement, a quiz answer and a puzzle answer may be formatted with <b>, <i>, <sub> and <sup> in their text (H<sub>2</sub>O, x<sup>2</sup>); what you read comes the same way. Sending a statement or a list of answers replaces the old one with its formatting.
+- A quiz answer (choices[].image) or a puzzle position (itemImages) may be an image instead of text: send its text as null; an answer is never both. You read them with their url, crop and alt text.
+- Images (quiz cover, question image, answer images, theme logo or background, group attachments) come from a public link ({ "url": ... }) or, if you can run commands, from request_upload: PUT the file to the address it gives, then pass { "uploadKey": ... }.
 - Live game: host_live_game opens the lobby and gives the 6-digit PIN, the link players join by and the host screen link. Ask the person to open the host screen and project it: it starts the game and moves through the questions. You may lock the lobby, change the options, remove a player and end the game.
 - Assignment: create_assignment gives the link and the 8-digit PIN participants play by at their own pace until the deadline; post it in groups with assign_to_groups or create_group_post.
 - Reports: list_reports, then get_report and get_report_detail. Below 35% is a difficult question or a participant who needs help.

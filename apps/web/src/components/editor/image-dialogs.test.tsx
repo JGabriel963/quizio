@@ -324,3 +324,21 @@ describe("BackgroundNoticeDialog", () => {
 		expect(onClose).toHaveBeenCalledExactlyOnceWith(true);
 	});
 });
+
+describe("CropImageDialog for an answer (spec 049, RN-11)", () => {
+	it("the crop dialog offers only the shapes it is given", () => {
+		render(
+			<CropImageDialog
+				url={URL}
+				shapes={["landscape", "portrait", "square"]}
+				onSave={() => {}}
+				onClose={() => {}}
+			/>,
+		);
+
+		for (const name of ["Paisagem", "Retrato", "Quadrado"]) {
+			expect(screen.getByRole("radio", { name })).toBeInTheDocument();
+		}
+		expect(screen.queryByRole("radio", { name: "Círculo" })).toBeNull();
+	});
+});

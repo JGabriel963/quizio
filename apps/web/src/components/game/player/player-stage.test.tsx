@@ -27,6 +27,8 @@ function quiz(
 			shapeIndex: index,
 			label: null,
 			text: null,
+			textFormatting: {},
+			image: null,
 		})),
 	};
 }
@@ -39,8 +41,22 @@ const trueFalse: PlayerQuestionData = {
 	textFormatting: {},
 	image: null,
 	choices: [
-		{ id: "true", shapeIndex: 1, label: "Verdadeiro", text: null },
-		{ id: "false", shapeIndex: 0, label: "Falso", text: null },
+		{
+			id: "true",
+			shapeIndex: 1,
+			label: "Verdadeiro",
+			text: null,
+			textFormatting: {},
+			image: null,
+		},
+		{
+			id: "false",
+			shapeIndex: 0,
+			label: "Falso",
+			text: null,
+			textFormatting: {},
+			image: null,
+		},
 	],
 };
 
@@ -64,6 +80,8 @@ function onDevice(
 			shapeIndex: index,
 			label: null,
 			text,
+			textFormatting: {},
+			image: null,
 		})),
 		...overrides,
 	};
@@ -128,6 +146,7 @@ describe("PlayerStage: before the answers (spec 009)", () => {
 				question: onDevice({
 					text: "Qual é a fórmula da água, H2O?",
 					textFormatting: { subscript: [[27, 28]] },
+					image: null,
 				}),
 			}),
 		);
@@ -691,8 +710,17 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 							shapeIndex: 1,
 							label: "Verdadeiro",
 							text: "Verdadeiro",
+							textFormatting: {},
+							image: null,
 						},
-						{ id: "false", shapeIndex: 0, label: "Falso", text: "Falso" },
+						{
+							id: "false",
+							shapeIndex: 0,
+							label: "Falso",
+							text: "Falso",
+							textFormatting: {},
+							image: null,
+						},
 					],
 				},
 			}),
@@ -985,6 +1013,8 @@ describe("PlayerStage: a puzzle (spec 033)", () => {
 			shapeIndex,
 			label: null,
 			text: texts[shapeIndex] ?? null,
+			textFormatting: {},
+			image: null,
 		})),
 	});
 	const blockTexts = () =>

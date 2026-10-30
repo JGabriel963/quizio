@@ -1,5 +1,7 @@
+import type { Question } from "@quizio/core/quiz/domain/question";
 import {
 	formattedSegments,
+	NO_FORMATTING,
 	type TextFormatting,
 	type TextMark,
 	type TextRange,
@@ -8,9 +10,10 @@ import {
 import { ToolInputError } from "../tool-input-error";
 
 /**
- * How an agent reads and writes a statement's formatting (spec 047, RN-28 to
- * RN-30; ADR 0025): the plain text with the four marks as inline tags, which
- * a language model already knows, instead of positions it would miscount.
+ * How an agent reads and writes the formatting of a statement or an answer
+ * (spec 047, RN-28 to RN-30; spec 048, RN-22 to RN-24; ADR 0025): the plain
+ * text with the four marks as inline tags, which a language model already
+ * knows, instead of positions it would miscount.
  */
 const TAG_OF: Record<TextMark, string> = {
 	bold: "b",
@@ -27,17 +30,17 @@ const TAG_LIKE = /<(\/?)([A-Za-z][A-Za-z0-9]*)\s*>/g;
 /** A "<" of the text that would read as a tag is written "&lt;". */
 const STARTS_A_TAG = /<(?=\/?[A-Za-z][A-Za-z0-9]*\s*>)/g;
 
-export const STATEMENT_MARKUP_HELP =
+export const TEXT_MARKUP_HELP =
 	"Formatting goes in the text as <b>bold</b>, <i>italic</i>, <sub>subscript</sub> and <sup>superscript</sup> (H<sub>2</sub>O, x<sup>2</sup>); they nest, but subscript and superscript never cover the same characters. Write a literal < that would read as a tag as &lt;. The character limit counts the text without the tags.";
 
 function unknownTag(tag: string): never {
 	throw new ToolInputError(
-		`Unknown tag <${tag}>: a statement takes only <b>, <i>, <sub> and <sup>.`,
+		`Unknown tag <${tag}>: a statement or an answer takes only <b>, <i>, <sub> and <sup>.`,
 	);
 }
 
-/** The text and its marked stretches from a statement written with the four tags. */
-export function parseStatementMarkup(markup: string): {
+/** The text and its marked stretches from a text written with the four tags. */
+export function parseTextMarkup(markup: string): {
 	text: string;
 	formatting: TextFormatting;
 } {
@@ -73,11 +76,8 @@ export function parseStatementMarkup(markup: string): {
 	return { text, formatting: ranges };
 }
 
-/** The statement written with the four tags, for an agent to read. */
-export function statementMarkup(
-	text: string,
-	formatting: TextFormatting,
-): string {
+/** A text written with the four tags, for an agent to read. */
+export function textMarkup(text: string, formatting: TextFormatting): string {
 	let markup = "";
 	let open: TextMark[] = [];
 	for (const segment of formattedSegments(text, formatting)) {
@@ -106,14 +106,13 @@ export function statementMarkup(
  * A view as an agent reads it: the statement written with the four tags in
  * `text`, and no separate formatting.
  */
-export function withStatementMarkup<
+export function withTextMarkup<
 	T extends { text: string | null; textFormatting: TextFormatting },
 >(view: T): Omit<T, "textFormatting"> {
 	const { textFormatting, ...rest } = view;
 	return {
 		...rest,
-		text:
-			view.text === null ? null : statementMarkup(view.text, textFormatting),
+		text: view.text === null ? null : textMarkup(view.text, textFormatting),
 	};
 }
 
@@ -125,6 +124,86 @@ export function statementFromMarkup(text: string | null | undefined): {
 	if (typeof text !== "string") {
 		return text === undefined ? {} : { text };
 	}
-	const parsed = parseStatementMarkup(text);
+	const parsed = parseTextMarkup(text);
 	return { text: parsed.text, textFormatting: parsed.formatting };
+}
+
+function markedOrNull(text: string | null, formatting: TextFormatting) {
+	return text === null ? null : textMarkup(text, formatting);
+}
+
+/**
+ * A question's answers as an agent reads them (spec 048, RN-22): a quiz's
+ * choices and a puzzle's items written with the four tags, and no separate
+ * formatting. Other types have none to mark.
+ */
+export function withAnswerMarkup(question: Question) {
+	switch (question.type) {
+		case "quiz":
+			return {
+				...question,
+				choices: question.choices.map(({ textFormatting, ...choice }) => ({
+					...choice,
+					text: markedOrNull(choice.text, textFormatting),
+				})),
+			};
+		case "puzzle": {
+			const { itemFormatting, ...rest } = question;
+			return {
+				...rest,
+				items: question.items.map((item, index) =>
+					markedOrNull(item, itemFormatting[index] ?? NO_FORMATTING),
+				),
+			};
+		}
+		default:
+			return question;
+	}
+}
+
+/** A whole question as an agent reads it: the statement and the answers with tags. */
+export function questionMarkup(question: Question) {
+	return withTextMarkup(withAnswerMarkup(question));
+}
+
+function fromMarkupOrNull(text: string | null) {
+	return text === null
+		? { text: null, formatting: NO_FORMATTING }
+		: parseTextMarkup(text);
+}
+
+/**
+ * The answers an agent sent, split into texts and formattings for the core
+ * (spec 048, RN-23): a list sent replaces the old one whole, with the
+ * formatting its tags carry.
+ */
+export function answersFromMarkup(input: {
+	choices?: { text: string | null; correct: boolean }[];
+	items?: (string | null)[];
+}): {
+	choices?: {
+		text: string | null;
+		textFormatting: TextFormatting;
+		correct: boolean;
+	}[];
+	items?: (string | null)[];
+	itemFormatting?: TextFormatting[];
+} {
+	const items = input.items?.map(fromMarkupOrNull);
+	return {
+		...(input.choices && {
+			choices: input.choices.map((choice) => {
+				const parsed = fromMarkupOrNull(choice.text);
+				return {
+					text: parsed.text,
+					textFormatting: parsed.formatting,
+					correct: choice.correct,
+				};
+			}),
+		}),
+		...(items && {
+			items: items.map(({ text }) => text),
+			itemFormatting: items.map(({ formatting }) => formatting),
+		}),
+	};
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { asPuzzle, asSlider, asTypeAnswer } from "../testing/a-question";
+import {
+	asPuzzle,
+	asQuiz,
+	asSlider,
+	asTypeAnswer,
+} from "../testing/a-question";
 import {
 	AcceptedAnswerTooLongError,
 	blankContent,
@@ -18,7 +23,10 @@ import {
 	InvalidTextFormattingError,
 	InvalidTimeLimitError,
 	isBlankQuestion,
+	isFilledChoice,
+	isFilledSlot,
 	parseAcceptedAnswer,
+	parseAnswer,
 	parseChoiceText,
 	parsePoints,
 	parseQuestionStatement,
@@ -49,6 +57,8 @@ const emptyChoices = (count: number) =>
 	Array.from({ length: count }, (_, index) => ({
 		id: choiceIdAt(index),
 		text: null,
+		textFormatting: {},
+		image: null,
 		correct: false,
 	}));
 
@@ -184,10 +194,34 @@ describe("isBlankQuestion", () => {
 			isBlankQuestion({
 				...blankQuestion("q"),
 				choices: [
-					{ id: "choice-1", text: null, correct: false },
-					{ id: "choice-2", text: "Rio", correct: false },
-					{ id: "choice-3", text: null, correct: false },
-					{ id: "choice-4", text: null, correct: false },
+					{
+						id: "choice-1",
+						text: null,
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
+					{
+						id: "choice-2",
+						text: "Rio",
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
+					{
+						id: "choice-3",
+						text: null,
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
+					{
+						id: "choice-4",
+						text: null,
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
 				],
 			}),
 		).toBe(false);
@@ -318,16 +352,58 @@ describe("parseQuizContent", () => {
 		const content = {
 			selection: "multiple",
 			choices: [
-				{ id: "choice-1", text: "Brasília", correct: true },
-				{ id: "choice-2", text: "Rio", correct: true },
-				{ id: "choice-3", text: null, correct: false },
-				{ id: "choice-4", text: null, correct: false },
-				{ id: "choice-5", text: "Salvador", correct: false },
-				{ id: "choice-6", text: null, correct: false },
+				{
+					id: "choice-1",
+					text: "Brasília",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-2",
+					text: "Rio",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-3",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-4",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-5",
+					text: "Salvador",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-6",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
 			],
 		};
 
-		expect(parseQuizContent(content)).toEqual(content);
+		expect(parseQuizContent(content)).toEqual({
+			...content,
+			choices: content.choices.map((choice) => ({
+				...choice,
+				textFormatting: {},
+			})),
+		});
 	});
 
 	it("parses quiz content tolerantly, completing defaults", () => {
@@ -342,7 +418,15 @@ describe("parseQuizContent", () => {
 		expect(
 			parseQuizContent({
 				selection: "weird",
-				choices: [{ id: "choice-1", text: 42, correct: "yes" }],
+				choices: [
+					{
+						id: "choice-1",
+						text: 42,
+						textFormatting: {},
+						image: null,
+						correct: "yes",
+					},
+				],
 			}),
 		).toEqual({ selection: "single", choices: emptyChoices(4) });
 	});
@@ -662,6 +746,8 @@ describe("puzzle question", () => {
 			textFormatting: {},
 			aiGenerated: false,
 			items: [null, null, null, null],
+			itemFormatting: [{}, {}, {}, {}],
+			itemImages: [null, null, null, null],
 		});
 		expect(isBlankQuestion(blankQuestion("question-1", "puzzle"))).toBe(true);
 		expect(
@@ -684,10 +770,17 @@ describe("puzzle question", () => {
 		expect(parseStoredContent("puzzle", { items: ["Nilo", 3, "  "] })).toEqual({
 			type: "puzzle",
 			items: ["Nilo", null, null, null],
+			itemFormatting: [{}, {}, {}, {}],
+			itemImages: [null, null, null, null],
 		});
 		expect(
 			parseStoredContent("puzzle", { items: ["a", "b", "c", "d", "e"] }),
-		).toEqual({ type: "puzzle", items: ["a", "b", "c", "d"] });
+		).toEqual({
+			type: "puzzle",
+			items: ["a", "b", "c", "d"],
+			itemFormatting: [{}, {}, {}, {}],
+			itemImages: [null, null, null, null],
+		});
 		expect(parseStoredContent("puzzle", undefined)).toEqual(
 			blankContent("puzzle"),
 		);
@@ -703,6 +796,316 @@ describe("puzzle question", () => {
 		expect(copy.items).not.toBe(source.items);
 		expect(storedContent(copy)).toEqual({
 			items: ["Nilo", "Amazonas", null, "Yangtzé"],
+			itemFormatting: [{}, {}, {}, {}],
+			itemImages: [null, null, null, null],
 		});
+	});
+});
+
+describe("answer formatting (spec 048)", () => {
+	it("parseAnswer keeps a bold range", () => {
+		expect(parseAnswer("Capital do Brasil", { bold: [[11, 17]] })).toEqual({
+			text: "Capital do Brasil",
+			textFormatting: { bold: [[11, 17]] },
+		});
+	});
+
+	it("parseAnswer turns blank text into null without formatting", () => {
+		expect(parseAnswer("   ", { bold: [[0, 3]] })).toEqual({
+			text: null,
+			textFormatting: {},
+		});
+		expect(parseAnswer(null, {})).toEqual({ text: null, textFormatting: {} });
+		expect(parseAnswer("  H2O ", { subscript: [[3, 4]] })).toEqual({
+			text: "H2O",
+			textFormatting: { subscript: [[1, 2]] },
+		});
+	});
+
+	it("the answer limit counts the text, not the formatting", () => {
+		const text = "a".repeat(CHOICE_TEXT_MAX_LENGTH);
+		const halfBold = { bold: [[0, 37] as [number, number]] };
+
+		expect(parseAnswer(text, halfBold).text).toBe(text);
+		expect(() => parseAnswer(`${text}a`, halfBold)).toThrow(
+			ChoiceTextTooLongError,
+		);
+		expect(parseChoiceText(text)).toBe(text);
+	});
+
+	it("parseAnswer refuses a range outside the text and subscript over superscript", () => {
+		expect(() => parseAnswer("abc", { bold: [[0, 9]] })).toThrow(
+			InvalidTextFormattingError,
+		);
+		expect(() =>
+			parseAnswer("x2", { subscript: [[1, 2]], superscript: [[1, 2]] }),
+		).toThrow(InvalidTextFormattingError);
+	});
+
+	it("blank content has no answer formatting", () => {
+		expect(blankContent("quiz")).toEqual({
+			type: "quiz",
+			selection: "single",
+			choices: emptyChoices(4),
+		});
+		expect(blankContent("puzzle")).toEqual({
+			type: "puzzle",
+			items: [null, null, null, null],
+			itemFormatting: [{}, {}, {}, {}],
+			itemImages: [null, null, null, null],
+		});
+	});
+
+	it("stored choices and puzzle items without formatting read as none", () => {
+		const stored = parseQuizContent({
+			selection: "single",
+			choices: [
+				{
+					id: "choice-1",
+					text: "Brasília",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-2",
+					text: "H2O",
+					textFormatting: { subscript: [[1, 2]] },
+					image: null,
+					correct: false,
+				},
+				{ id: "choice-3", text: "Rio", textFormatting: "x", correct: false },
+				{
+					id: "choice-4",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+			],
+		});
+
+		expect(stored.choices.map((choice) => choice.textFormatting)).toEqual([
+			{},
+			{ subscript: [[1, 2]] },
+			{},
+			{},
+		]);
+		expect(
+			parseStoredContent("puzzle", { items: ["Nilo", null, null, null] }),
+		).toEqual({
+			type: "puzzle",
+			items: ["Nilo", null, null, null],
+			itemFormatting: [{}, {}, {}, {}],
+			itemImages: [null, null, null, null],
+		});
+	});
+
+	it("a stored puzzle's formatting stays aligned with its four slots", () => {
+		expect(
+			parseStoredContent("puzzle", {
+				items: ["Nilo", "Amazonas", null, null],
+				itemFormatting: [{ bold: [[0, 4]] }],
+			}),
+		).toEqual({
+			type: "puzzle",
+			items: ["Nilo", "Amazonas", null, null],
+			itemFormatting: [{ bold: [[0, 4]] }, {}, {}, {}],
+			itemImages: [null, null, null, null],
+		});
+		expect(
+			parseStoredContent("puzzle", {
+				items: [null, "Lua", "Sol", null, "x"],
+				itemFormatting: [
+					{ bold: [[0, 3]] },
+					{ italic: [[0, 3]] },
+					{ bold: [[0, 9]] },
+					{},
+					{ bold: [[0, 1]] },
+				],
+			}),
+		).toEqual({
+			type: "puzzle",
+			items: [null, "Lua", "Sol", null],
+			itemFormatting: [{}, { italic: [[0, 3]] }, {}, {}],
+			itemImages: [null, null, null, null],
+		});
+	});
+
+	it("copyQuestion copies the answers' formatting deeply", () => {
+		const [, ...rest] = emptyChoices(4);
+		const source: QuizQuestion = {
+			...blankQuestion("question-1"),
+			choices: [
+				{
+					id: choiceIdAt(0),
+					text: "H2O",
+					textFormatting: { subscript: [[1, 2]] },
+					image: null,
+					correct: true,
+				},
+				...rest,
+			],
+		};
+		const copy = asQuiz(copyQuestion(source, "question-2"));
+
+		expect(copy.choices[0]?.textFormatting).toEqual({ subscript: [[1, 2]] });
+		expect(copy.choices[0]?.textFormatting).not.toBe(
+			source.choices[0]?.textFormatting,
+		);
+
+		const puzzle = {
+			...blankQuestion("question-1", "puzzle"),
+			items: ["H2O", null, null, null],
+			itemFormatting: [{ subscript: [[1, 2] as [number, number]] }, {}, {}, {}],
+		};
+		const puzzleCopy = asPuzzle(copyQuestion(puzzle, "question-2"));
+
+		expect(puzzleCopy.itemFormatting).toEqual(puzzle.itemFormatting);
+		expect(puzzleCopy.itemFormatting).not.toBe(puzzle.itemFormatting);
+		expect(puzzleCopy.itemFormatting[0]).not.toBe(puzzle.itemFormatting[0]);
+		expect(storedContent(puzzleCopy)).toEqual({
+			items: ["H2O", null, null, null],
+			itemFormatting: [{ subscript: [[1, 2]] }, {}, {}, {}],
+			itemImages: [null, null, null, null],
+		});
+	});
+});
+
+describe("answer images (spec 049)", () => {
+	const water = { key: "media/ana/agua.png", crop: null, altText: "Água" };
+
+	it("blank content has no answer images", () => {
+		const quiz = blankContent("quiz");
+		const puzzle = blankContent("puzzle");
+
+		expect(quiz.type === "quiz" && quiz.choices.map((c) => c.image)).toEqual([
+			null,
+			null,
+			null,
+			null,
+		]);
+		expect(puzzle.type === "puzzle" && puzzle.itemImages).toEqual([
+			null,
+			null,
+			null,
+			null,
+		]);
+	});
+
+	it("stored choices and puzzle slots read their images, and old ones have none", () => {
+		const quiz = parseQuizContent({
+			selection: "single",
+			choices: [
+				{ id: "choice-1", text: null, image: water, correct: true },
+				{ id: "choice-2", text: "Rio", correct: false },
+				{ id: "choice-3", text: null, correct: false },
+				{ id: "choice-4", text: null, correct: false },
+			],
+		});
+
+		expect(quiz.choices[0]).toEqual({
+			id: "choice-1",
+			text: null,
+			textFormatting: {},
+			image: water,
+			correct: true,
+		});
+		expect(quiz.choices[1]?.image).toBeNull();
+		expect(
+			parseStoredContent("puzzle", {
+				items: [null, "Sal", null, null],
+				itemImages: [water],
+			}),
+		).toMatchObject({
+			items: [null, "Sal", null, null],
+			itemImages: [water, null, null, null],
+		});
+	});
+
+	it("a stored answer with text and image keeps the image and loses the text", () => {
+		const quiz = parseQuizContent({
+			selection: "single",
+			choices: [
+				{
+					id: "choice-1",
+					text: "Arroz",
+					textFormatting: { bold: [[0, 5]] },
+					image: water,
+					correct: false,
+				},
+				{ id: "choice-2", text: null, correct: false },
+				{ id: "choice-3", text: null, correct: false },
+				{ id: "choice-4", text: null, correct: false },
+			],
+		});
+		const puzzle = parseStoredContent("puzzle", {
+			items: ["Sal", null, null, null],
+			itemImages: [water],
+		});
+
+		expect(quiz.choices[0]).toMatchObject({
+			text: null,
+			textFormatting: {},
+			image: water,
+		});
+		expect(puzzle).toMatchObject({
+			items: [null, null, null, null],
+			itemImages: [water, null, null, null],
+		});
+	});
+
+	it("copyQuestion copies the answer images deeply", () => {
+		const cropped = {
+			...water,
+			crop: { shape: "square" as const, zoom: 2, x: 0.5, y: 0.5 },
+		};
+		const [first, ...rest] = emptyChoices(4);
+		const source: QuizQuestion = {
+			...blankQuestion("question-1"),
+			choices: [
+				{ ...(first as (typeof rest)[number]), image: cropped },
+				...rest,
+			],
+		};
+		const copy = asQuiz(copyQuestion(source, "question-2"));
+
+		expect(copy.choices[0]?.image).toEqual(cropped);
+		expect(copy.choices[0]?.image?.crop).not.toBe(cropped.crop);
+
+		const puzzle = {
+			...blankQuestion("question-1", "puzzle"),
+			itemImages: [cropped, null, null, null],
+		};
+		const puzzleCopy = asPuzzle(copyQuestion(puzzle, "question-2"));
+		expect(puzzleCopy.itemImages[0]).toEqual(cropped);
+		expect(puzzleCopy.itemImages[0]).not.toBe(cropped);
+	});
+
+	it("an image answer counts as filled", () => {
+		const [first, second, ...rest] = emptyChoices(4);
+		const quiz: QuizQuestion = {
+			...blankQuestion("question-1"),
+			choices: [
+				{ ...(first as (typeof rest)[number]), image: water },
+				{ ...(second as (typeof rest)[number]), text: "Rio" },
+				...rest,
+			],
+		};
+
+		expect(isFilledChoice(quiz.choices[0] as (typeof rest)[number])).toBe(true);
+		expect(isFilledChoice(quiz.choices[2] as (typeof rest)[number])).toBe(
+			false,
+		);
+		expect(
+			isBlankQuestion({ ...blankQuestion("q"), choices: quiz.choices }),
+		).toBe(false);
+		const puzzle = {
+			...blankQuestion("q", "puzzle"),
+			itemImages: [water, null, null, null],
+		};
+		expect(isFilledSlot(puzzle, 0)).toBe(true);
+		expect(isFilledSlot(puzzle, 1)).toBe(false);
+		expect(isBlankQuestion(puzzle)).toBe(false);
 	});
 });

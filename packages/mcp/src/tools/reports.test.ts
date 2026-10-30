@@ -132,6 +132,115 @@ describe("report tools (spec 044, RN-28)", () => {
 		);
 	});
 
+	it("get_report_detail returns the answers and the puzzle orders as markup (spec 048, RN-22)", async () => {
+		const quiz = aReportQuestion(0);
+		const puzzle = aReportQuestion(1, { type: "puzzle" });
+		const ana = await withReports(
+			aReportGame({
+				header: {
+					gameId: "game-1",
+					ownerId: "ana",
+					endedAt: new Date("2026-05-10T18:00:00.000Z"),
+				},
+				questions: [
+					{
+						...quiz,
+						choices: quiz.choices.map((choice, index) =>
+							index === 0
+								? { ...choice, textFormatting: { bold: [[0, 8]] } }
+								: choice,
+						),
+					},
+					{
+						...puzzle,
+						correctOrder: puzzle.choices.map(({ id }) => id),
+						choices: puzzle.choices.map((choice, index) =>
+							index === 0
+								? { ...choice, textFormatting: { italic: [[0, 8]] } }
+								: choice,
+						),
+					},
+				],
+				players: ["Ana"],
+				answers: {
+					Ana: [
+						{ choiceIds: ["q0-a"], correctness: "correct" },
+						{
+							choiceIds: ["q1-a", "q1-b", "q1-c", "q1-d"],
+							correctness: "correct",
+						},
+					],
+				},
+			}),
+		);
+		const bold = "<b>Resposta</b> A";
+		const italic = "<i>Resposta</i> A";
+
+		const { participant } = await ana.ok("get_report_detail", {
+			gameId: "game-1",
+			participantId: "player-Ana",
+		});
+		const { question } = await ana.ok("get_report_detail", {
+			gameId: "game-1",
+			questionPosition: 1,
+		});
+		const { question: second } = await ana.ok("get_report_detail", {
+			gameId: "game-1",
+			questionPosition: 2,
+		});
+
+		expect(question).toMatchObject({
+			choices: expect.arrayContaining([
+				expect.objectContaining({ text: bold }),
+			]),
+			participants: [
+				expect.objectContaining({
+					choices: expect.arrayContaining([
+						expect.objectContaining({ text: bold }),
+					]),
+				}),
+			],
+		});
+		expect(second).toMatchObject({
+			puzzleAnswers: {
+				correctOrder: expect.arrayContaining([
+					expect.objectContaining({ text: italic }),
+				]),
+				orders: [
+					expect.objectContaining({
+						answers: expect.arrayContaining([
+							expect.objectContaining({ text: italic }),
+						]),
+					}),
+				],
+			},
+			participants: [
+				expect.objectContaining({
+					puzzleOrder: expect.arrayContaining([
+						expect.objectContaining({ text: italic }),
+					]),
+				}),
+			],
+		});
+		expect(participant).toMatchObject({
+			answers: [
+				{
+					choices: expect.arrayContaining([
+						expect.objectContaining({ text: bold }),
+					]),
+				},
+				{
+					puzzleOrder: expect.arrayContaining([
+						expect.objectContaining({ text: italic }),
+					]),
+				},
+			],
+		});
+		expect(JSON.stringify([participant, question, second])).not.toContain(
+			"textFormatting",
+		);
+	});
+
 	it("rename_report and set_reports_trashed", async () => {
 		const ana = await withReports(report("game-1"), report("game-2"));
 

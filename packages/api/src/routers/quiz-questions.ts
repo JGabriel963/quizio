@@ -23,6 +23,26 @@ const seconds = z.number().int();
 const choiceId = z.string().min(1).max(10_000);
 
 const textOffset = z.number().int().min(0).max(10_000);
+
+const crop = z.object({
+	shape: z.enum(CROP_SHAPES),
+	zoom: z.number(),
+	x: z.number(),
+	y: z.number(),
+});
+
+/** An answer's image as the editor sends it back in a type change (spec 049). */
+const answerImage = z.object({
+	key: z.string().min(1).max(10_000),
+	crop: crop.nullable(),
+	altText: z.string().max(10_000).nullable(),
+});
+
+/** Which answer an image change is about: a quiz choice or a puzzle slot (spec 049). */
+const answerRef = z.union([
+	z.object({ choiceId: z.string().min(1).max(10_000) }),
+	z.object({ slot: z.number().int().min(0).max(3) }),
+]);
 /**
  * A text's marked stretches as the editor sends them (spec 047): known marks
  * only, each a list of [start, end) pairs. Whether they fit the text is the
@@ -42,6 +62,9 @@ const content = z.discriminatedUnion("type", [
 			.array(
 				z.object({
 					text: z.string().max(10_000).nullable(),
+					// Spec 048: without it, the answer comes back with none.
+					textFormatting: textFormattingInput.default(() => ({})),
+					image: answerImage.nullable().default(null),
 					correct: z.boolean(),
 				}),
 			)
@@ -63,6 +86,14 @@ const content = z.discriminatedUnion("type", [
 	z.object({
 		type: z.literal("puzzle"),
 		items: z.array(z.string().max(300).nullable()).max(4),
+		itemFormatting: z
+			.array(textFormattingInput)
+			.max(4)
+			.default(() => []),
+		itemImages: z
+			.array(answerImage.nullable())
+			.max(4)
+			.default(() => []),
 	}),
 ]);
 /** An accepted answer's position; how many there may be is the core's (spec 031). */
@@ -87,6 +118,8 @@ const change = z.discriminatedUnion("kind", [
 		kind: z.literal("choiceText"),
 		choiceId,
 		text: z.string().max(10_000).nullable(),
+		// A tab still on the version before spec 048 sends none.
+		formatting: textFormattingInput.default(() => ({})),
 	}),
 	z.object({
 		kind: z.literal("choiceCorrect"),
@@ -117,6 +150,7 @@ const change = z.discriminatedUnion("kind", [
 		kind: z.literal("puzzleItemText"),
 		index: puzzleSlot,
 		text: z.string().max(300).nullable(),
+		formatting: textFormattingInput.default(() => ({})),
 	}),
 	z.object({
 		kind: z.literal("puzzleItemMoved"),
@@ -141,17 +175,21 @@ const change = z.discriminatedUnion("kind", [
 		kind: z.literal("imagePlacement"),
 		placement: z.enum(IMAGE_PLACEMENTS),
 	}),
-	z.object({
-		kind: z.literal("imageCrop"),
-		crop: z.object({
-			shape: z.enum(CROP_SHAPES),
-			zoom: z.number(),
-			x: z.number(),
-			y: z.number(),
-		}),
-	}),
+	z.object({ kind: z.literal("imageCrop"), crop }),
 	z.object({
 		kind: z.literal("imageAltText"),
+		altText: z.string().max(10_000).nullable(),
+	}),
+	// Spec 049: an answer's image; the key comes from `media.requestUpload`.
+	z.object({
+		kind: z.literal("answerImage"),
+		answer: answerRef,
+		key: z.string().min(1).max(10_000).nullable(),
+	}),
+	z.object({ kind: z.literal("answerImageCrop"), answer: answerRef, crop }),
+	z.object({
+		kind: z.literal("answerImageAltText"),
+		answer: answerRef,
 		altText: z.string().max(10_000).nullable(),
 	}),
 ]);

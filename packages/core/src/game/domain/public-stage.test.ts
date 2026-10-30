@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { aTrueFalseQuestion } from "../../quiz/testing/a-question";
+import type { TextFormatting } from "../../shared/domain/text-formatting";
 import { aPlayingGame } from "../testing/a-game";
-import { aGameQuestion, aPuzzleGameQuestion } from "../testing/a-game-question";
+import {
+	aGameQuestion,
+	aPuzzleGameQuestion,
+	someChoices,
+} from "../testing/a-game-question";
 import { DEFAULT_GAME_OPTIONS } from "./game-options";
 import type { GamePhase } from "./game-progress";
 import { toGameQuestion } from "./game-question";
@@ -96,10 +101,38 @@ describe("public stage with the questions on the devices (spec 012)", () => {
 				altText: "Mapa do Brasil",
 			},
 			choices: [
-				{ id: "choice-1", shapeIndex: 0, label: null, text: "Brasília" },
-				{ id: "choice-2", shapeIndex: 1, label: null, text: "Rio de Janeiro" },
-				{ id: "choice-3", shapeIndex: 2, label: null, text: "Salvador" },
-				{ id: "choice-4", shapeIndex: 3, label: null, text: "Recife" },
+				{
+					id: "choice-1",
+					shapeIndex: 0,
+					label: null,
+					text: "Brasília",
+					textFormatting: {},
+					image: null,
+				},
+				{
+					id: "choice-2",
+					shapeIndex: 1,
+					label: null,
+					text: "Rio de Janeiro",
+					textFormatting: {},
+					image: null,
+				},
+				{
+					id: "choice-3",
+					shapeIndex: 2,
+					label: null,
+					text: "Salvador",
+					textFormatting: {},
+					image: null,
+				},
+				{
+					id: "choice-4",
+					shapeIndex: 3,
+					label: null,
+					text: "Recife",
+					textFormatting: {},
+					image: null,
+				},
 			],
 			slider: null,
 		});
@@ -113,8 +146,22 @@ describe("public stage with the questions on the devices (spec 012)", () => {
 		);
 
 		expect(stage.question?.choices).toEqual([
-			{ id: "true", shapeIndex: 1, label: "Verdadeiro", text: "Verdadeiro" },
-			{ id: "false", shapeIndex: 0, label: "Falso", text: "Falso" },
+			{
+				id: "true",
+				shapeIndex: 1,
+				label: "Verdadeiro",
+				text: "Verdadeiro",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "false",
+				shapeIndex: 0,
+				label: "Falso",
+				text: "Falso",
+				textFormatting: {},
+				image: null,
+			},
 		]);
 	});
 
@@ -153,10 +200,38 @@ describe("public stage of a puzzle (spec 033)", () => {
 		const stage = publicStageOf(showing("answering"), puzzle, urlOf);
 
 		expect(stage.question?.choices).toEqual([
-			{ id: "choice-3", shapeIndex: 0, label: null, text: "Yangtzé" },
-			{ id: "choice-4", shapeIndex: 1, label: null, text: "Mississipi" },
-			{ id: "choice-1", shapeIndex: 2, label: null, text: "Nilo" },
-			{ id: "choice-2", shapeIndex: 3, label: null, text: "Amazonas" },
+			{
+				id: "choice-3",
+				shapeIndex: 0,
+				label: null,
+				text: "Yangtzé",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-4",
+				shapeIndex: 1,
+				label: null,
+				text: "Mississipi",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-1",
+				shapeIndex: 2,
+				label: null,
+				text: "Nilo",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 3,
+				label: null,
+				text: "Amazonas",
+				textFormatting: {},
+				image: null,
+			},
 		]);
 		expect(JSON.stringify(stage)).not.toMatch(/correct/i);
 	});
@@ -172,5 +247,84 @@ describe("public stage of a puzzle (spec 033)", () => {
 			[2, null],
 			[3, null],
 		]);
+	});
+});
+
+describe("answer formatting on the devices (spec 048)", () => {
+	const marks = (count: number, from: number) =>
+		Array.from({ length: count }, (_, index): [number, number] => [
+			from + index * 7,
+			from + index * 7 + 2,
+		]);
+	/** Ten bold, ten italic, five subscript and five superscript stretches. */
+	const heavy = (): TextFormatting => ({
+		bold: marks(10, 0),
+		italic: marks(10, 1),
+		subscript: marks(5, 3),
+		superscript: marks(5, 38),
+	});
+	const answerText = "a".repeat(75);
+	const formattedQuestion = () =>
+		aGameQuestion({
+			text: "q".repeat(160),
+			textFormatting: {
+				bold: marks(20, 0),
+				italic: marks(20, 1),
+				subscript: marks(10, 3),
+				superscript: marks(10, 80),
+			},
+			choices: someChoices(
+				Array.from({ length: 6 }, () => answerText),
+				[0],
+			).map((entry) => ({ ...entry, textFormatting: heavy() })),
+		});
+
+	it("the choices carry the formatting only with the texts", () => {
+		const question = formattedQuestion();
+		const shown = publicStageOf(showing("answering"), question, urlOf);
+		const hidden = publicStageOf(aPlayingGame("answering"), question, urlOf);
+
+		expect(shown.question?.choices[0]?.textFormatting).toEqual(heavy());
+		expect(hidden.question?.choices[0]?.textFormatting).toEqual({});
+	});
+
+	it("a stage with every answer and the statement formatted stays under 10 KB", () => {
+		const stage = publicStageOf(
+			showing("answering"),
+			formattedQuestion(),
+			urlOf,
+		);
+
+		// Every character here is ASCII, so the length is the size in bytes.
+		expect(JSON.stringify(stage).length).toBeLessThan(10_000);
+	});
+});
+
+describe("public stage with image answers (spec 049, RN-23)", () => {
+	const rice = {
+		key: "media/ana/arroz.png",
+		crop: { shape: "square" as const, zoom: 2, x: 0.5, y: 0.5 },
+		altText: "Arroz",
+	};
+	const question = aGameQuestion({
+		choices: someChoices(["", "Feijão"]).map((choice, index) =>
+			index === 0 ? { ...choice, text: null, image: rice } : choice,
+		),
+	});
+
+	it("the image goes only with the texts and never in the intro", () => {
+		const answering = publicStageOf(showing("answering"), question, urlOf);
+		expect(answering.question?.choices[0]?.image).toEqual({
+			url: urlOf(rice.key),
+			crop: rice.crop,
+			altText: "Arroz",
+		});
+		expect(answering.question?.choices[1]?.image).toBeNull();
+
+		const intro = publicStageOf(showing("questionIntro"), question, urlOf);
+		expect(intro.question?.choices.every((c) => c.image === null)).toBe(true);
+
+		const hidden = publicStageOf(aPlayingGame("answering"), question, urlOf);
+		expect(hidden.question?.choices.every((c) => c.image === null)).toBe(true);
 	});
 });

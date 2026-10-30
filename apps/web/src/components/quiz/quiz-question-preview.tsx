@@ -1,5 +1,9 @@
 import type { Question } from "@quizio/core/quiz/domain/question";
 import {
+	NO_FORMATTING,
+	type TextFormatting,
+} from "@quizio/core/shared/domain/text-formatting";
+import {
 	ANSWER_COLOR_CLASSES,
 	AnswerShape,
 	answerShapeAt,
@@ -19,6 +23,12 @@ import {
 	type ShownTheme,
 	themeStyle,
 } from "@/lib/theme-catalog";
+import {
+	AnswerImage,
+	type AnswerImageShown,
+	answerImageLabel,
+	answerImageShown,
+} from "./answer-image";
 import { FormattedText } from "./formatted-text";
 
 /** How "Perguntas (N)" is laid out, as Kahoot's three buttons. */
@@ -30,22 +40,52 @@ interface PreviewAnswer {
 	key: string;
 	/** Picks the color and the shape (`answerShapeAt`); null for a typed one. */
 	shapeIndex: number | null;
+	/** Drawn before the text, such as a puzzle answer's place ("1. "). */
+	prefix?: string;
 	text: string;
+	/** A quiz or puzzle answer's marked stretches (spec 048, RN-19). */
+	formatting: TextFormatting;
+	/** A thumbnail in place of the text (spec 049, RN-24). */
+	image?: AnswerImageShown | null;
 	correct: boolean;
 }
 
+/** An answer's text with its formatting, in normal weight (spec 048, RN-18). */
+function PreviewAnswerText({ answer }: { answer: PreviewAnswer }) {
+	return (
+		<>
+			{answer.prefix && <span className="font-normal">{answer.prefix}</span>}
+			{answer.image ? (
+				<span className="inline-flex size-10 align-middle">
+					<AnswerImage
+						image={answer.image}
+						label={answerImageLabel(answer.shapeIndex ?? 0)}
+					/>
+				</span>
+			) : (
+				<FormattedText text={answer.text} formatting={answer.formatting} />
+			)}
+		</>
+	);
+}
+
 /** What a question shows under its text, whatever its type. */
-function previewAnswers(question: Question): PreviewAnswer[] {
+function previewAnswers(
+	question: Question,
+	imageUrls: Readonly<Record<string, string>>,
+): PreviewAnswer[] {
 	switch (question.type) {
 		case "quiz":
 			return question.choices.flatMap((choice, index) =>
-				choice.text === null
+				choice.text === null && choice.image === null
 					? []
 					: [
 							{
 								key: choice.id,
 								shapeIndex: index,
-								text: choice.text,
+								text: choice.text ?? "",
+								formatting: choice.textFormatting,
+								image: answerImageShown(choice.image, imageUrls),
 								correct: choice.correct,
 							},
 						],
@@ -57,12 +97,14 @@ function previewAnswers(question: Question): PreviewAnswer[] {
 					key: "true",
 					shapeIndex: 1,
 					text: "Verdadeiro",
+					formatting: NO_FORMATTING,
 					correct: question.correct === true,
 				},
 				{
 					key: "false",
 					shapeIndex: 0,
 					text: "Falso",
+					formatting: NO_FORMATTING,
 					correct: question.correct === false,
 				},
 			];
@@ -75,6 +117,7 @@ function previewAnswers(question: Question): PreviewAnswer[] {
 								key: `${index}`,
 								shapeIndex: null,
 								text: answer,
+								formatting: NO_FORMATTING,
 								correct: true,
 							},
 						],
@@ -87,19 +130,23 @@ function previewAnswers(question: Question): PreviewAnswer[] {
 							key: "answer",
 							shapeIndex: null,
 							text: `${formatSliderNumber(question.answer)}${question.unit ? ` ${question.unit}` : ""}`,
+							formatting: NO_FORMATTING,
 							correct: true,
 						},
 					];
 		case "puzzle":
 			// Slots have no id: the place is the slot (spec 033).
 			return question.items.flatMap((item, index) =>
-				item === null
+				item === null && !question.itemImages[index]
 					? []
 					: [
 							{
 								key: `${index}`,
 								shapeIndex: index,
-								text: `${index + 1}. ${item}`,
+								prefix: `${index + 1}. `,
+								text: item ?? "",
+								formatting: question.itemFormatting[index] ?? NO_FORMATTING,
+								image: answerImageShown(question.itemImages[index], imageUrls),
 								correct: false,
 							},
 						],
@@ -138,6 +185,7 @@ export function QuizQuestionPreview({
 						imageUrl={
 							question.image ? imageUrls[question.image.key] : undefined
 						}
+						imageUrls={imageUrls}
 						showAnswers={showAnswers}
 						theme={theme}
 					/>
@@ -158,6 +206,7 @@ export function QuizQuestionPreview({
 					question={question}
 					number={index + 1}
 					imageUrl={question.image ? imageUrls[question.image.key] : undefined}
+					imageUrls={imageUrls}
 					large={layout === "large"}
 					showAnswers={showAnswers}
 					theme={theme}
@@ -187,6 +236,7 @@ function QuestionSlide({
 	question,
 	number,
 	imageUrl,
+	imageUrls,
 	large,
 	showAnswers,
 	theme,
@@ -194,6 +244,8 @@ function QuestionSlide({
 	question: Question;
 	number: number;
 	imageUrl: string | undefined;
+	/** The answers' images by key (spec 049). */
+	imageUrls: Readonly<Record<string, string>>;
 	large: boolean;
 	showAnswers: boolean;
 	theme: ShownTheme;
@@ -204,7 +256,7 @@ function QuestionSlide({
 		question.image && question.image.placement === "media" && imageUrl
 			? question.image
 			: null;
-	const answers = previewAnswers(question);
+	const answers = previewAnswers(question, imageUrls);
 
 	return (
 		<li
@@ -297,7 +349,9 @@ function SlideAnswers({
 								size,
 							)}
 						>
-							<span className="min-w-0 flex-1 break-words">{answer.text}</span>
+							<span className="min-w-0 flex-1 break-words">
+								<PreviewAnswerText answer={answer} />
+							</span>
 							<CheckIcon aria-hidden="true" className="size-4 stroke-3" />
 						</li>
 					))
@@ -341,7 +395,7 @@ function SlideAnswers({
 						{showAnswers && (
 							<>
 								<span className="min-w-0 flex-1 break-words">
-									{answer.text}
+									<PreviewAnswerText answer={answer} />
 								</span>
 								{answer.correct && (
 									<>
@@ -366,16 +420,19 @@ function QuestionRow({
 	question,
 	number,
 	imageUrl,
+	imageUrls,
 	showAnswers,
 	theme,
 }: {
 	question: Question;
 	number: number;
 	imageUrl: string | undefined;
+	/** The answers' images by key (spec 049). */
+	imageUrls: Readonly<Record<string, string>>;
 	showAnswers: boolean;
 	theme: ShownTheme;
 }) {
-	const answers = previewAnswers(question);
+	const answers = previewAnswers(question, imageUrls);
 	const marked = question.type === "quiz" || question.type === "trueFalse";
 	// Each row opens on its own too, as in Kahoot's list.
 	const [open, setOpen] = useState(showAnswers);
@@ -471,7 +528,7 @@ function QuestionRow({
 									<span className="size-5 shrink-0 rounded-sm bg-success" />
 								)}
 								<span className="min-w-0 flex-1 break-words">
-									{answer.text}
+									<PreviewAnswerText answer={answer} />
 								</span>
 								{marked &&
 									(answer.correct ? (

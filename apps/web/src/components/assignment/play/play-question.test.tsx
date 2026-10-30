@@ -19,10 +19,34 @@ const question = {
 		altText: "Cristo Redentor",
 	},
 	choices: [
-		{ id: "choice-1", shapeIndex: 0, text: "Brasília" },
-		{ id: "choice-2", shapeIndex: 1, text: "Rio de Janeiro" },
-		{ id: "choice-3", shapeIndex: 2, text: "Salvador" },
-		{ id: "choice-4", shapeIndex: 3, text: "Recife" },
+		{
+			id: "choice-1",
+			shapeIndex: 0,
+			text: "Brasília",
+			textFormatting: {},
+			image: null,
+		},
+		{
+			id: "choice-2",
+			shapeIndex: 1,
+			text: "Rio de Janeiro",
+			textFormatting: {},
+			image: null,
+		},
+		{
+			id: "choice-3",
+			shapeIndex: 2,
+			text: "Salvador",
+			textFormatting: {},
+			image: null,
+		},
+		{
+			id: "choice-4",
+			shapeIndex: 3,
+			text: "Recife",
+			textFormatting: {},
+			image: null,
+		},
 	],
 };
 
@@ -226,10 +250,34 @@ describe("PlayQuestion with a puzzle (spec 033, RN-28)", () => {
 		textFormatting: {},
 		image: null,
 		choices: [
-			{ id: "choice-3", shapeIndex: 0, text: "Yangtzé" },
-			{ id: "choice-4", shapeIndex: 1, text: "Mississipi" },
-			{ id: "choice-1", shapeIndex: 2, text: "Nilo" },
-			{ id: "choice-2", shapeIndex: 3, text: "Amazonas" },
+			{
+				id: "choice-3",
+				shapeIndex: 0,
+				text: "Yangtzé",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-4",
+				shapeIndex: 1,
+				text: "Mississipi",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-1",
+				shapeIndex: 2,
+				text: "Nilo",
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 3,
+				text: "Amazonas",
+				textFormatting: {},
+				image: null,
+			},
 		],
 	};
 

@@ -1,4 +1,7 @@
 import {
+	aFormattedAnswersQuestion,
+	anImageAnswersQuestion,
+	aPuzzleQuestion,
 	aQuestion,
 	aTrueFalseQuestion,
 } from "@quizio/core/quiz/testing/a-question";
@@ -13,10 +16,16 @@ import { QuizQuestionPreview } from "./quiz-question-preview";
 const capital = aQuestion({
 	id: "q1",
 	choices: [
-		{ id: "c1", text: "Rio", correct: false },
-		{ id: "c2", text: "Brasília", correct: true },
-		{ id: "c3", text: null, correct: false },
-		{ id: "c4", text: null, correct: false },
+		{ id: "c1", text: "Rio", textFormatting: {}, image: null, correct: false },
+		{
+			id: "c2",
+			text: "Brasília",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{ id: "c3", text: null, textFormatting: {}, image: null, correct: false },
+		{ id: "c4", text: null, textFormatting: {}, image: null, correct: false },
 	],
 });
 const trueFalse = aTrueFalseQuestion({ id: "q2", correct: true });
@@ -71,6 +80,33 @@ describe("QuizQuestionPreview", () => {
 			/>,
 		);
 		expect(document.querySelector("strong")).toHaveTextContent("não");
+	});
+
+	it("draws the answers formatted, in normal weight (spec 048, RN-18)", () => {
+		const water = aFormattedAnswersQuestion({ id: "q4" });
+		const puzzle = aPuzzleQuestion({
+			id: "q5",
+			items: ["H2O", "Sal", "Ar", null],
+			itemFormatting: [{ subscript: [[1, 2]] }, {}, {}, {}],
+		});
+
+		for (const layout of ["large", "grid", "list"] as const) {
+			const { unmount } = render(
+				<QuizQuestionPreview
+					questions={[water, puzzle]}
+					imageUrls={{}}
+					layout={layout}
+					showAnswers
+				/>,
+			);
+			const subs = document.querySelectorAll("sub");
+			expect(subs.length).toBeGreaterThanOrEqual(2);
+			for (const sub of subs) {
+				expect(sub).toHaveTextContent("2");
+				expect(sub.parentElement).toHaveClass("font-normal");
+			}
+			unmount();
+		}
 	});
 
 	it("shows the answers and marks the right ones with Mostrar respostas", () => {
@@ -173,5 +209,26 @@ describe("QuizQuestionPreview", () => {
 		expect(thumbnail.style.getPropertyValue("--game-bg-image")).toContain(
 			"https://cdn.test/themes/u1/bg.webp",
 		);
+	});
+});
+
+describe("QuizQuestionPreview with image answers (spec 049, RN-24)", () => {
+	it("an image answer shows as a thumbnail with the answers shown", () => {
+		render(
+			<QuizQuestionPreview
+				questions={[anImageAnswersQuestion({ id: "q1" })]}
+				imageUrls={{
+					"media/user-1/arroz.png": "https://media.test/media/user-1/arroz.png",
+				}}
+				layout="large"
+				showAnswers
+			/>,
+		);
+
+		expect(screen.getByRole("img", { name: "Arroz" })).toHaveAttribute(
+			"src",
+			"https://media.test/media/user-1/arroz.png",
+		);
+		expect(screen.getByText("Feijão")).toBeInTheDocument();
 	});
 });

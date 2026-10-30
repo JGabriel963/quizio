@@ -1,4 +1,8 @@
 import {
+	ANSWER_CROP_SHAPES,
+	type AnswerImage,
+} from "@quizio/core/quiz/domain/answer-image";
+import {
 	CHOICE_TEXT_MAX_LENGTH,
 	MAX_ACCEPTED_ANSWERS,
 	MAX_CHOICE_COUNT,
@@ -26,10 +30,11 @@ import { z } from "zod";
 import type { ToolContext } from "../define-tool";
 import { fileSource, resolveFile } from "./file-source";
 import {
-	STATEMENT_MARKUP_HELP,
+	answersFromMarkup,
+	questionMarkup,
 	statementFromMarkup,
-	withStatementMarkup,
-} from "./statement-markup";
+	TEXT_MARKUP_HELP,
+} from "./text-markup";
 
 const timeLimits = QUESTION_TYPES.map(
 	(type) => `${type}: ${timeLimitsFor(type).join(", ")}`,
@@ -62,6 +67,30 @@ const imageInput = z
 	})
 	.describe("The question's image, of any type.");
 
+/** An answer shown as an image instead of text (spec 049, RN-27). */
+const answerImageInput = z
+	.object({
+		source: fileSource,
+		altText: z
+			.string()
+			.max(10_000)
+			.nullish()
+			.describe(
+				`A description for screen readers, up to ${IMAGE_ALT_TEXT_MAX_LENGTH} characters.`,
+			),
+		crop: z
+			.object({
+				shape: z.enum(ANSWER_CROP_SHAPES),
+				zoom: z.number().describe("1 to 3."),
+				x: z.number().describe("0 to 1; 0.5 is centered."),
+				y: z.number().describe("0 to 1; 0.5 is centered."),
+			})
+			.nullish(),
+	})
+	.describe(
+		"An image in place of the answer's text: send text null with it, never both.",
+	);
+
 const questionShape = {
 	type: z
 		.enum(QUESTION_TYPES)
@@ -73,7 +102,7 @@ const questionShape = {
 		.max(10_000)
 		.nullish()
 		.describe(
-			`The statement, up to ${QUESTION_TEXT_MAX_LENGTH} characters. ${STATEMENT_MARKUP_HELP}`,
+			`The statement, up to ${QUESTION_TEXT_MAX_LENGTH} characters. ${TEXT_MARKUP_HELP}`,
 		),
 	timeLimitSeconds: z
 		.number()
@@ -94,7 +123,10 @@ const questionShape = {
 					.string()
 					.max(10_000)
 					.nullable()
-					.describe(`Up to ${CHOICE_TEXT_MAX_LENGTH} characters.`),
+					.describe(
+						`Up to ${CHOICE_TEXT_MAX_LENGTH} characters, with the statement's tags; null with an image.`,
+					),
+				image: answerImageInput.nullish(),
 				correct: z.boolean(),
 			}),
 		)
@@ -148,7 +180,14 @@ const questionShape = {
 		.max(8)
 		.optional()
 		.describe(
-			`puzzle only: 3 or ${PUZZLE_ITEM_COUNT} texts of up to ${CHOICE_TEXT_MAX_LENGTH} characters, top to bottom in the right order.`,
+			`puzzle only: 3 or ${PUZZLE_ITEM_COUNT} texts of up to ${CHOICE_TEXT_MAX_LENGTH} characters, with the statement's tags, top to bottom in the right order; null where itemImages has an image.`,
+		),
+	itemImages: z
+		.array(answerImageInput.nullable())
+		.max(4)
+		.optional()
+		.describe(
+			"puzzle only: an image per position in place of its text, aligned with items; replaced whole with items.",
 		),
 };
 
@@ -184,14 +223,59 @@ async function imageDraft(
 	};
 }
 
+type AnswerImageInput = z.infer<typeof answerImageInput>;
+
+async function answerImageDraft(
+	image: AnswerImageInput | null | undefined,
+	context: ToolContext,
+) {
+	return image
+		? {
+				key: await resolveFile(image.source, { kind: "media" }, context),
+				altText: image.altText,
+				crop: image.crop,
+			}
+		: null;
+}
+
+/** The answers' images with their files in storage (spec 049, RN-27). */
+async function answerImagesDraft(
+	input: Pick<QuestionInput, "choices" | "itemImages">,
+	context: ToolContext,
+): Promise<Pick<QuestionDraft, "choices" | "itemImages">> {
+	const markup = answersFromMarkup(input);
+	return {
+		...(markup.choices &&
+			input.choices && {
+				choices: await Promise.all(
+					markup.choices.map(async (choice, index) => ({
+						...choice,
+						image: await answerImageDraft(
+							input.choices?.[index]?.image,
+							context,
+						),
+					})),
+				),
+			}),
+		...(input.itemImages && {
+			itemImages: await Promise.all(
+				input.itemImages.map((image) => answerImageDraft(image, context)),
+			),
+		}),
+	};
+}
+
 /** The draft the core checks, with the image's file in storage. */
 export async function toQuestionDraft(
 	input: QuestionInput,
 	context: ToolContext,
 ): Promise<QuestionDraft> {
+	const { choices: _choices, itemImages: _itemImages, ...rest } = input;
 	return {
-		...input,
+		...rest,
 		...statementFromMarkup(input.text),
+		...answersFromMarkup(input),
+		...(await answerImagesDraft(input, context)),
 		image: await imageDraft(input.image, context),
 	};
 }
@@ -201,7 +285,13 @@ export async function toQuestionPatch(
 	context: ToolContext,
 ): Promise<QuestionPatch> {
 	const { image, text, ...rest } = input;
-	const changes = { ...rest, ...statementFromMarkup(text) };
+	const { choices: _choices, itemImages: _itemImages, ...fields } = rest;
+	const changes = {
+		...fields,
+		...statementFromMarkup(text),
+		...answersFromMarkup(rest),
+		...(await answerImagesDraft(rest, context)),
+	};
 	return image === undefined
 		? changes
 		: { ...changes, image: await imageDraft(image, context) };
@@ -213,8 +303,22 @@ export function questionOutput(
 	position: number,
 	imageUrls: Record<string, string> = {},
 ) {
+	const answerImage = (image: AnswerImage | null) =>
+		image && { ...image, url: imageUrls[image.key] ?? null };
+	const read = questionMarkup(question);
+	const markedChoices = ("choices" in read ? read.choices : []) as object[];
 	return {
-		...withStatementMarkup(question),
+		...read,
+		// The answers' images with their address (spec 049, RN-26).
+		...(question.type === "quiz" && {
+			choices: question.choices.map((choice, index) => ({
+				...markedChoices[index],
+				image: answerImage(choice.image),
+			})),
+		}),
+		...(question.type === "puzzle" && {
+			itemImages: question.itemImages.map(answerImage),
+		}),
 		position,
 		issues: questionIssues(question),
 		...(question.image

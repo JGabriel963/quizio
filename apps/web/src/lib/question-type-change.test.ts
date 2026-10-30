@@ -16,12 +16,48 @@ const written = aQuestion({
 	id: "q-1",
 	selection: "multiple",
 	choices: [
-		{ id: "choice-1", text: "Sim", correct: true },
-		{ id: "choice-2", text: "Não", correct: false },
-		{ id: "choice-3", text: null, correct: false },
-		{ id: "choice-4", text: null, correct: false },
-		{ id: "choice-5", text: "Talvez", correct: true },
-		{ id: "choice-6", text: null, correct: false },
+		{
+			id: "choice-1",
+			text: "Sim",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{
+			id: "choice-2",
+			text: "Não",
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-3",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-4",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-5",
+			text: "Talvez",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{
+			id: "choice-6",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
 	],
 });
 
@@ -121,6 +157,7 @@ describe("typeChangeFor", () => {
 		const puzzle = {
 			...blankQuestion("q-3", "puzzle"),
 			items: ["Nilo", null, "Amazonas", null],
+			itemFormatting: [{ italic: [[0, 4] as [number, number]] }, {}, {}, {}],
 		};
 		const toQuiz = typeChangeFor(remembered, puzzle, "quiz");
 		const asQuiz = applyQuestionChange(
@@ -131,7 +168,13 @@ describe("typeChangeFor", () => {
 		expect(typeChangeFor(remembered, asQuiz, "puzzle")).toEqual({
 			kind: "type",
 			type: "puzzle",
-			remembered: { type: "puzzle", items: ["Nilo", null, "Amazonas", null] },
+			// The formatting goes with the slots (spec 048, RN-15).
+			remembered: {
+				type: "puzzle",
+				items: ["Nilo", null, "Amazonas", null],
+				itemFormatting: [{ italic: [[0, 4]] }, {}, {}, {}],
+				itemImages: [null, null, null, null],
+			},
 		});
 	});
 

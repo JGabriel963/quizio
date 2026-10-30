@@ -25,6 +25,8 @@ export function asDeviceQuestion(
 			shapeIndex: choice.shapeIndex,
 			label: question.type === "trueFalse" ? choice.text : null,
 			text: choice.text,
+			textFormatting: choice.textFormatting,
+			image: choice.image,
 		})),
 	};
 }

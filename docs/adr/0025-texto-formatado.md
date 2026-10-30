@@ -26,6 +26,15 @@ O enunciado ganha negrito, itálico, subscrito e sobrescrito por trecho, e a spe
 - **Um `contenteditable` feito à mão**: acentos com tecla morta, desfazer, colar e o cursor são o que um editor de texto resolve; refazer isso não compensa.
 - **Confiar nas fontes do sistema para os símbolos**: o grego e muitos operadores apareceriam em fontes diferentes em cada aparelho, e símbolos de moeda recentes viram um quadrado em celulares antigos, sem um teste que pegue isso.
 
+## Atualização (2026-10-30, spec 048)
+
+As respostas do Quiz e do Puzzle ganharam a mesma formatação, como esta ADR previa, sem decisão nova de arquitetura:
+
+- **Sem coluna nova.** A formatação de cada resposta vai dentro do `content` `jsonb` da pergunta (que já guarda as alternativas), da versão jogável e da cópia da partida, lida com a mesma tolerância: o que foi gravado antes fica sem formatação.
+- **No Puzzle, uma lista paralela** (`itemFormatting`, uma por posição) ao lado de `items`, em vez de trocar os textos por objetos: o formato gravado e quem lê as respostas do Puzzle (partida, relatórios, agentes) só ganham um campo. Só três funções do core escrevem as duas listas, para elas nunca se desencontrarem.
+- **O que é certo não olha a formatação**: a ordem certa do Puzzle continua comparando os textos.
+- **No editor, um campo formatado comum** (`FormattedTextField`) serve ao enunciado e às respostas, cada um com o próprio editor Tiptap e o próprio desfazer.
+
 ## Consequências
 
 - A formatação das respostas (próxima spec) reaproveita o valor, as funções do shared kernel, o editor e a marcação dos agentes.

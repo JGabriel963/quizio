@@ -803,6 +803,8 @@ const stageOf = (
 						shapeIndex,
 						label: null,
 						text: null,
+						textFormatting: {},
+						image: null,
 					})),
 				},
 });

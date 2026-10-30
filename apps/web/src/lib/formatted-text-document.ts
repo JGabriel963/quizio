@@ -13,7 +13,7 @@ import type { JSONContent } from "@tiptap/core";
  * ADR 0025): one paragraph whose text nodes carry the marks. The editor's
  * mark names are the core's `TextMark`s.
  */
-export function statementToDocument(
+export function toFormattedDocument(
 	text: string,
 	formatting: TextFormatting,
 ): JSONContent {
@@ -42,7 +42,7 @@ function isTextMark(type: string | undefined): type is TextMark {
 }
 
 /** The text of the document and the stretches each mark covers, normalized. */
-export function documentToStatement(document: JSONContent): {
+export function fromFormattedDocument(document: JSONContent): {
 	text: string;
 	formatting: TextFormatting;
 } {

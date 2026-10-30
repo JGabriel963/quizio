@@ -1,4 +1,3 @@
-import { QUESTION_TEXT_MAX_LENGTH } from "@quizio/core/quiz/domain/question";
 import {
 	characterCount,
 	truncateCharacters,
@@ -15,13 +14,11 @@ import { Placeholder, UndoRedo } from "@tiptap/extensions";
 import { Fragment, type Node, Slice } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 
-export const STATEMENT_PLACEHOLDER = "Comece a digitar a pergunta";
-
 /**
  * No Markdown shortcuts: "2*3*4" in a math question must not turn "3"
  * italic, nor "**" bold.
  */
-export const STATEMENT_EDITOR_OPTIONS = {
+export const FORMATTED_TEXT_EDITOR_OPTIONS = {
 	enableInputRules: false,
 	enablePasteRules: false,
 } satisfies Partial<EditorOptions>;
@@ -78,9 +75,12 @@ export function fitSliceToRoom(slice: Slice, room: number): Slice {
 	return new Slice(Fragment.fromArray(nodes), 0, 0);
 }
 
-/** One sentence: Enter adds no line, and what is pasted comes in one line. */
-const StatementLine = Extension.create({
-	name: "statementLine",
+/**
+ * One line, for a statement or an answer: Enter adds no line, and what is
+ * pasted comes in one line.
+ */
+const SingleLine = Extension.create({
+	name: "singleLine",
 
 	addKeyboardShortcuts() {
 		const stay = () => true;
@@ -90,7 +90,7 @@ const StatementLine = Extension.create({
 	addProseMirrorPlugins() {
 		return [
 			new Plugin({
-				key: new PluginKey("statementLine"),
+				key: new PluginKey("singleLine"),
 				props: {
 					// The schema has no line break: a <br> would glue two words.
 					transformPastedHTML: (html) => html.replace(/<br\s*\/?>/gi, " "),
@@ -103,23 +103,23 @@ const StatementLine = Extension.create({
 });
 
 /**
- * The statement's limit in user-perceived characters, as the core counts it
- * (spec 047, RN-07, RN-08, RN-14): a change that would pass it is refused,
- * unless it does not make the text longer (a mark, a deletion), and a paste
- * is cut to the room left.
+ * The field's limit in user-perceived characters, as the core counts it
+ * (spec 047, RN-07, RN-08, RN-14; spec 048, RN-05, RN-06): a change that
+ * would pass it is refused, unless it does not make the text longer (a mark,
+ * a deletion), and a paste is cut to the room left.
  */
-const StatementLimit = Extension.create<{ max: number }>({
-	name: "statementLimit",
+const CharacterLimit = Extension.create<{ max: number }>({
+	name: "characterLimit",
 
 	addOptions() {
-		return { max: QUESTION_TEXT_MAX_LENGTH };
+		return { max: Number.POSITIVE_INFINITY };
 	},
 
 	addProseMirrorPlugins() {
 		const { max } = this.options;
 		return [
 			new Plugin({
-				key: new PluginKey("statementLimit"),
+				key: new PluginKey("characterLimit"),
 				filterTransaction: (transaction, state) => {
 					if (!transaction.docChanged) {
 						return true;
@@ -144,12 +144,20 @@ const StatementLimit = Extension.create<{ max: number }>({
 });
 
 /**
- * The statement's editor (spec 047, ADR 0025): one paragraph of text with the
- * four marks and nothing else, so whatever else a paste brings is dropped.
- * Subscript and superscript exclude each other (RN-04); the marks bring their
- * shortcuts, Mod-B, Mod-I, Mod-, and Mod-. (RN-06).
+ * The editor of a statement or an answer (spec 047, ADR 0025; spec 048): one
+ * paragraph of text with the four marks and nothing else, so whatever else a
+ * paste brings is dropped. Subscript and superscript exclude each other
+ * (RN-04); the marks bring their shortcuts, Mod-B, Mod-I, Mod-, and Mod-.
+ * (RN-06). A placeholder given as a function is read again on every draw, so
+ * it can follow what the field is (a puzzle's optional slot).
  */
-export function statementExtensions(max: number = QUESTION_TEXT_MAX_LENGTH) {
+export function formattedTextExtensions({
+	maxLength,
+	placeholder,
+}: {
+	maxLength: number;
+	placeholder: string | (() => string);
+}) {
 	return [
 		Document.extend({ content: "paragraph" }),
 		Paragraph,
@@ -159,8 +167,11 @@ export function statementExtensions(max: number = QUESTION_TEXT_MAX_LENGTH) {
 		Subscript.extend({ excludes: "superscript" }),
 		Superscript.extend({ excludes: "subscript" }),
 		UndoRedo,
-		Placeholder.configure({ placeholder: STATEMENT_PLACEHOLDER }),
-		StatementLine,
-		StatementLimit.configure({ max }),
+		Placeholder.configure({
+			placeholder:
+				typeof placeholder === "function" ? () => placeholder() : placeholder,
+		}),
+		SingleLine,
+		CharacterLimit.configure({ max: maxLength }),
 	];
 }
