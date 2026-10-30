@@ -97,7 +97,7 @@ export function ChoiceField({
 		<li className="relative flex flex-col">
 			<div
 				className={cn(
-					"relative flex min-h-16 flex-1 items-center @4xl:gap-4 gap-3 rounded-md p-2 shadow-press-light transition-colors sm:min-h-[clamp(4.5rem,11svh,7rem)]",
+					"relative flex min-h-16 flex-1 items-center @4xl:gap-4 gap-3 rounded-md p-2 shadow-press-light transition-[background-color,opacity] duration-200 ease-out hover:opacity-90 sm:min-h-[clamp(4.5rem,11svh,7rem)]",
 					filled
 						? [ANSWER_COLOR_CLASSES[shape], "text-answer-foreground"]
 						: "bg-card",

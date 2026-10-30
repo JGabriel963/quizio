@@ -2,7 +2,7 @@ import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting"
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createSaveTracker, SaveTrackerProvider } from "@/lib/save-tracker";
 import {
@@ -265,5 +265,65 @@ describe("QuestionTextField (spec 003, RN-10; spec 047)", () => {
 
 		await user.click(screen.getByRole("button", { name: "Fora" }));
 		expect(screen.queryByText(/caracteres restantes/)).toBeNull();
+	});
+});
+
+describe("QuestionTextField on a phone or a tablet", () => {
+	function stubTouchDevice(touch: boolean) {
+		vi.stubGlobal(
+			"matchMedia",
+			(query: string): Partial<MediaQueryList> => ({
+				media: query,
+				matches: touch && query.includes("pointer: coarse"),
+				addEventListener: () => {},
+				removeEventListener: () => {},
+			}),
+		);
+	}
+
+	const fieldset = () => screen.getByRole("group", { name: "Enunciado" });
+	const backdrop = () =>
+		document.querySelector("[data-slot=statement-backdrop]");
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("rises over a darkened screen while edited, keeping a copy in its place", async () => {
+		stubTouchDevice(true);
+		const { textbox } = await renderField("Capital?");
+		expect(backdrop()).toBeNull();
+
+		act(() => textbox.focus());
+
+		expect(fieldset()).toHaveClass("fixed");
+		expect(backdrop()).toBeInTheDocument();
+		expect(screen.getAllByText("Capital?")).toHaveLength(2);
+	});
+
+	it("goes back to its place when the darkened screen is touched", async () => {
+		stubTouchDevice(true);
+		const { textbox } = await renderField("Capital?");
+		act(() => textbox.focus());
+
+		act(() => {
+			backdrop()?.dispatchEvent(
+				new PointerEvent("pointerdown", { bubbles: true, cancelable: true }),
+			);
+		});
+
+		expect(textbox).not.toHaveFocus();
+		expect(fieldset()).not.toHaveClass("fixed");
+		expect(backdrop()).toBeNull();
+	});
+
+	it("stays in place on a computer, whatever the window's width", async () => {
+		stubTouchDevice(false);
+		const { textbox } = await renderField("Capital?");
+
+		act(() => textbox.focus());
+
+		expect(fieldset()).not.toHaveClass("fixed");
+		expect(backdrop()).toBeNull();
 	});
 });
