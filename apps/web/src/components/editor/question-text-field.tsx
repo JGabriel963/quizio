@@ -84,9 +84,11 @@ export function QuestionTextField({
 						aria-hidden="true"
 						data-slot="statement-backdrop"
 						className="fade-in fixed inset-0 z-40 animate-in bg-black/60 duration-200"
-						onPointerDown={(event) => {
-							// Keeps the touch from reaching what is under it.
-							event.preventDefault();
+						// The press keeps the focus, so the backdrop stays until the
+						// click and takes it: closing on the press would unmount it
+						// first and the click would land on what is under it.
+						onPointerDown={(event) => event.preventDefault()}
+						onClick={() => {
 							if (document.activeElement instanceof HTMLElement) {
 								document.activeElement.blur();
 							}

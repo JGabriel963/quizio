@@ -410,7 +410,7 @@ function PuzzleAnswerField({
 			data-slot="puzzle-answer"
 			style={{ transform: CSS.Transform.toString(transform), transition }}
 			className={cn(
-				"relative flex min-h-16 items-center gap-2 rounded-md py-2 pr-2 pl-4 shadow-press-light transition-[background-color,opacity] duration-200 ease-out hover:opacity-90 sm:min-h-[clamp(4.5rem,11svh,7rem)]",
+				"relative flex min-h-16 items-center gap-2 rounded-md py-2 pr-2 pl-4 shadow-press-light transition-[background-color,opacity] duration-200 ease-out not-focus-within:hover:opacity-90 sm:min-h-[clamp(4.5rem,11svh,7rem)]",
 				filled
 					? [ANSWER_COLOR_CLASSES[shape], "text-answer-foreground"]
 					: "bg-card",

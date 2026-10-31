@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ScoreboardEntryData } from "@/lib/api-types";
 import { GAME_MOTION } from "@/lib/game-motion";
-import { stubReducedMotion } from "@/testing/reduced-motion";
+import { stubReducedMotion } from "@/testing/media-query";
 
 import { GameScreen } from "../game-screen";
 import { SCOREBOARD_HOLD_MS, Scoreboard } from "./scoreboard";

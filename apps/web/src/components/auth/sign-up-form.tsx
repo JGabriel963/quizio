@@ -9,6 +9,7 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { z } from "zod";
 
+import { LegalConsent } from "@/components/legal/legal-consent";
 import {
 	type AuthErrorLike,
 	authErrorMessage,
@@ -166,27 +167,10 @@ export function SignUpForm({
 				</form.Subscribe>
 			</form>
 
-			<p className="text-muted-foreground text-xs">
-				Ao criar sua conta, você concorda com os{" "}
-				<a
-					href="/terms"
-					target="_blank"
-					rel="noreferrer"
-					className="text-primary underline underline-offset-4"
-				>
-					Termos de Uso
-				</a>{" "}
-				e a{" "}
-				<a
-					href="/privacy"
-					target="_blank"
-					rel="noreferrer"
-					className="text-primary underline underline-offset-4"
-				>
-					Política de Privacidade
-				</a>
-				.
-			</p>
+			<LegalConsent
+				action="criar sua conta"
+				className="text-muted-foreground"
+			/>
 			{switchToSignIn}
 		</div>
 	);

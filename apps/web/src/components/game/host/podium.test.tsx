@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { HostFinalData, HostGameData } from "@/lib/api-types";
-import { stubReducedMotion } from "@/testing/reduced-motion";
+import { stubReducedMotion } from "@/testing/media-query";
 
 import { Podium, type PodiumActions } from "./podium";
 

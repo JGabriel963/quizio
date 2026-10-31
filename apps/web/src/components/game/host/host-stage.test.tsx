@@ -12,7 +12,7 @@ import type {
 	HostStageData,
 } from "@/lib/api-types";
 import { GAME_MOTION } from "@/lib/game-motion";
-import { stubReducedMotion } from "@/testing/reduced-motion";
+import { stubReducedMotion } from "@/testing/media-query";
 
 import {
 	ADVANCE_RETRY_MS,

@@ -10,6 +10,7 @@ import {
 	formattedField,
 	typeInEditor,
 } from "@/testing/formatted-text-editor";
+import { stubTouchDevice } from "@/testing/media-query";
 
 import { QuestionTextField, type Statement } from "./question-text-field";
 
@@ -269,18 +270,6 @@ describe("QuestionTextField (spec 003, RN-10; spec 047)", () => {
 });
 
 describe("QuestionTextField on a phone or a tablet", () => {
-	function stubTouchDevice(touch: boolean) {
-		vi.stubGlobal(
-			"matchMedia",
-			(query: string): Partial<MediaQueryList> => ({
-				media: query,
-				matches: touch && query.includes("pointer: coarse"),
-				addEventListener: () => {},
-				removeEventListener: () => {},
-			}),
-		);
-	}
-
 	const fieldset = () => screen.getByRole("group", { name: "Enunciado" });
 	const backdrop = () =>
 		document.querySelector("[data-slot=statement-backdrop]");
@@ -306,15 +295,40 @@ describe("QuestionTextField on a phone or a tablet", () => {
 		const { textbox } = await renderField("Capital?");
 		act(() => textbox.focus());
 
+		const press = new PointerEvent("pointerdown", {
+			bubbles: true,
+			cancelable: true,
+		});
 		act(() => {
-			backdrop()?.dispatchEvent(
-				new PointerEvent("pointerdown", { bubbles: true, cancelable: true }),
-			);
+			backdrop()?.dispatchEvent(press);
+		});
+		// The press alone keeps the panel: the click that follows must land on
+		// the backdrop, not on the answer under it.
+		expect(press.defaultPrevented).toBe(true);
+		expect(backdrop()).toBeInTheDocument();
+
+		act(() => {
+			(backdrop() as HTMLElement).click();
 		});
 
 		expect(textbox).not.toHaveFocus();
 		expect(fieldset()).not.toHaveClass("fixed");
 		expect(backdrop()).toBeNull();
+	});
+
+	it("stays up while the symbols dialog is open", async () => {
+		stubTouchDevice(true);
+		const { textbox, user } = await renderField("Capital?");
+		act(() => textbox.focus());
+
+		await user.click(screen.getByRole("button", { name: "Símbolos" }));
+
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		// The modal dialog hides the page from the accessibility tree.
+		expect(
+			document.querySelector("fieldset[aria-label=Enunciado]"),
+		).toHaveClass("fixed");
+		expect(backdrop()).toBeInTheDocument();
 	});
 
 	it("stays in place on a computer, whatever the window's width", async () => {

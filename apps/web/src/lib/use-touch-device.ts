@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMediaQuery } from "./use-media-query";
 
 /**
  * A phone or a tablet: the main pointer is a finger and cannot hover. Not the
@@ -7,16 +7,6 @@ import { useSyncExternalStore } from "react";
  */
 export const TOUCH_DEVICE_QUERY = "(hover: none) and (pointer: coarse)";
 
-function subscribeToTouchDevice(onChange: () => void): () => void {
-	const query = window.matchMedia?.(TOUCH_DEVICE_QUERY);
-	query?.addEventListener("change", onChange);
-	return () => query?.removeEventListener("change", onChange);
-}
-
 export function useTouchDevice(): boolean {
-	return useSyncExternalStore(
-		subscribeToTouchDevice,
-		() => window.matchMedia?.(TOUCH_DEVICE_QUERY).matches ?? false,
-		() => false,
-	);
+	return useMediaQuery(TOUCH_DEVICE_QUERY);
 }

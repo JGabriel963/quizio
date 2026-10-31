@@ -3,6 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { z } from "zod";
 
+import { LegalConsent } from "@/components/legal/legal-consent";
 import {
 	type AuthErrorLike,
 	authErrorMessage,
@@ -81,6 +82,11 @@ export function SignInForm({
 					<SocialSignIn>
 						<GoogleSignInButton onClick={onGoogleSignIn} />
 					</SocialSignIn>
+					{/* Google creates the account of who has none yet. */}
+					<LegalConsent
+						action="continuar com o Google"
+						className="-mt-2 text-center text-muted-foreground"
+					/>
 					<AuthDivider />
 				</>
 			)}

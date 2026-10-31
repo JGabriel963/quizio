@@ -6,6 +6,8 @@ import { cn } from "@quizio/ui/lib/utils";
 import { ArrowRightIcon, CircleAlertIcon } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 
+import { LegalConsent } from "@/components/legal/legal-consent";
+
 import { GameScreen, Wordmark } from "../game-screen";
 
 const fieldClass =
@@ -169,7 +171,15 @@ export function NicknameForm({
 	return (
 		<JoinCard
 			notice={error}
-			footer={<p className="font-semibold">Não use seu nome verdadeiro</p>}
+			footer={
+				<>
+					<p className="font-semibold">Não use seu nome verdadeiro</p>
+					<LegalConsent
+						action="entrar no jogo"
+						className="max-w-xs text-center text-game-fg/80"
+					/>
+				</>
+			}
 		>
 			<form
 				className="flex w-full max-w-xs flex-col gap-3 rounded-md bg-white p-4 shadow-lg"

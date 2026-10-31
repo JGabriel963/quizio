@@ -67,6 +67,18 @@ describe("SignInForm", () => {
 		);
 	});
 
+	it("says that continuing with Google accepts the Terms and the Privacy Policy", () => {
+		renderForm({ googleEnabled: true });
+
+		expect(screen.getByRole("link", { name: "Termos de Uso" })).toHaveAttribute(
+			"href",
+			"/terms",
+		);
+		expect(
+			screen.getByRole("link", { name: "Política de Privacidade" }),
+		).toHaveAttribute("href", "/privacy");
+	});
+
 	it("hides the Google button when Google is disabled", () => {
 		renderForm({ googleEnabled: false });
 

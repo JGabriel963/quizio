@@ -383,3 +383,4 @@ O criador formata trechos do enunciado com negrito, itálico, subscrito e sobres
 - 2026-10-30 — implementação: a aba Moeda ficou com 28 símbolos, sem ؋, ៛ e ﷼, que nenhuma das fontes de símbolos tem (RN-16). A pedido do usuário, a fonte do app passou a ser a Montserrat estática, como a do Kahoot, em vez da variável.
 - 2026-10-30 — implementada (tarefas T01 a T29): testes de unidade, componentes, repositórios, API, MCP e E2E verdes.
 - 2026-10-30 — a barra passa a flutuar **abaixo** do enunciado: reservar espaço acima afastava o enunciado do topo e descentralizava o ⋮ (pedido do usuário, com a captura de produção); acima, dentro da área que rola, não há espaço sem empurrar a tela.
+- 2026-10-30 — no celular e no tablet (ponteiro de toque sem hover, não a largura da tela), o enunciado em edição sobe para um painel centralizado sobre a tela escurecida, como no Kahoot; o diálogo de símbolos não o fecha, e um toque fora fecha sem chegar ao que está embaixo.

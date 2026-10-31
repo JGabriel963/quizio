@@ -62,6 +62,18 @@ describe("NicknameStep (spec 030, RN-02 to RN-04)", () => {
 		expect(within(joined).queryByRole("button")).toBeNull();
 	});
 
+	it("says that joining accepts the Terms and the Privacy Policy", () => {
+		renderStep();
+
+		expect(screen.getByRole("link", { name: "Termos de Uso" })).toHaveAttribute(
+			"href",
+			"/terms",
+		);
+		expect(
+			screen.getByRole("link", { name: "Política de Privacidade" }),
+		).toHaveAttribute("href", "/privacy");
+	});
+
 	it("Ok, vamos lá! sends the nickname", async () => {
 		const { onSubmit, user } = renderStep();
 

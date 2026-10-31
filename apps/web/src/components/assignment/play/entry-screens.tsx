@@ -8,6 +8,7 @@ import { Avatar } from "@/components/game/avatar";
 import { GameScreen, Wordmark } from "@/components/game/game-screen";
 import { AvatarEditor } from "@/components/game/player/avatar-editor";
 import { JoinNotice } from "@/components/game/player/join-forms";
+import { LegalConsent } from "@/components/legal/legal-consent";
 import { QuizCover } from "@/components/quiz/quiz-cover";
 import type { OpenAssignmentCoverData } from "@/lib/api-types";
 import { questionCountLabel } from "@/lib/quiz-labels";
@@ -162,6 +163,10 @@ export function NicknameStep({
 				<p className="self-center rounded bg-white/90 px-2 py-1 text-neutral-800 text-sm">
 					Não use seu nome verdadeiro
 				</p>
+				<LegalConsent
+					action="entrar na atividade"
+					className="self-center rounded bg-white/90 px-2 py-1 text-center text-neutral-800"
+				/>
 			</form>
 			<JoinNotice message={notice} />
 		</Card>

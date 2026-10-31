@@ -5,7 +5,7 @@ import {
 } from "@quizio/core/shared/domain/text-formatting";
 import { cn } from "@quizio/ui/lib/utils";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
-import { type FocusEvent, type ReactNode, useState } from "react";
+import { type FocusEvent, type ReactNode, useRef, useState } from "react";
 
 import { FormattedText } from "@/components/quiz/formatted-text";
 import {
@@ -93,6 +93,12 @@ export function FormattedTextField({
 }) {
 	const [focused, setFocused] = useState(false);
 	const [symbolsOpen, setSymbolsOpen] = useState(false);
+	// Read by the blur that opening the dialog causes, before a render.
+	const symbolsOpenRef = useRef(false);
+	const openSymbols = (open: boolean) => {
+		symbolsOpenRef.current = open;
+		setSymbolsOpen(open);
+	};
 	const placeholderNow =
 		typeof placeholder === "function" ? placeholder() : placeholder;
 
@@ -152,7 +158,12 @@ export function FormattedTextField({
 	};
 
 	const leave = (event: FocusEvent<HTMLFieldSetElement>) => {
-		if (event.currentTarget.contains(event.relatedTarget)) {
+		// The symbols dialog is part of the edit: the field keeps its focus
+		// state (and its place, on a phone) until the dialog gives it back.
+		if (
+			event.currentTarget.contains(event.relatedTarget) ||
+			symbolsOpenRef.current
+		) {
 			return;
 		}
 		changeFocus(false);
@@ -173,7 +184,7 @@ export function FormattedTextField({
 						label={toolbarLabel}
 						active={active}
 						onToggle={toggle}
-						onSymbols={() => setSymbolsOpen(true)}
+						onSymbols={() => openSymbols(true)}
 						onImage={onImage}
 						className={cn(
 							"absolute left-1/2 z-20 -translate-x-1/2",
@@ -196,7 +207,7 @@ export function FormattedTextField({
 			<SymbolDialog
 				open={symbolsOpen}
 				onOpenChange={(open) => {
-					setSymbolsOpen(open);
+					openSymbols(open);
 					if (!open) {
 						// Back to the cursor and the selection of before (RN-13).
 						editor?.commands.focus();
