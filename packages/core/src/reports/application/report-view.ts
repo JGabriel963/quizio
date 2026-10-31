@@ -3,6 +3,7 @@ import type { QuestionType } from "../../quiz/domain/question";
 import type { ObjectStorage } from "../../shared/application/ports/object-storage";
 import type { QuizShareGrants } from "../../shared/application/ports/quiz-share-grants";
 import { marginRange } from "../../shared/domain/slider-scale";
+import type { TextFormatting } from "../../shared/domain/text-formatting";
 import { groupTypedAnswers } from "../../shared/domain/typed-answer";
 import { accuracyPercent, isLowAccuracy } from "../domain/accuracy";
 import {
@@ -11,10 +12,13 @@ import {
 	isOpenAssignment,
 	type ReportHeader,
 } from "../domain/report";
-import type {
-	ReportAnswer,
-	ReportGame,
-	ReportQuestion,
+import {
+	type AnswerImageOf,
+	type ReportAnswer,
+	type ReportAnswerImage,
+	type ReportGame,
+	type ReportQuestion,
+	withoutAddress,
 } from "../domain/report-game";
 import type { ParticipantStats, QuestionStats } from "../domain/report-stats";
 
@@ -39,6 +43,7 @@ export interface ParticipantRowView {
 export interface QuestionRowView {
 	index: number;
 	text: string;
+	textFormatting: TextFormatting;
 	type: QuestionType;
 	accuracyPercent: number | null;
 	difficult: boolean;
@@ -47,7 +52,12 @@ export interface QuestionRowView {
 /** An answer as the game showed it. */
 export interface ChoiceView {
 	shapeIndex: number;
-	text: string;
+	/** Null when the answer is an image (spec 049). */
+	text: string | null;
+	/** Its marked stretches (spec 048, RN-19). */
+	textFormatting: TextFormatting;
+	/** A thumbnail of an image answer (spec 049, RN-24). */
+	image: ReportAnswerImage | null;
 	correct: boolean;
 }
 
@@ -70,6 +80,7 @@ export function questionRow(
 	return {
 		index: question.index,
 		text: question.text,
+		textFormatting: question.textFormatting,
 		type: question.type,
 		accuracyPercent: accuracyPercent(stats.accuracy),
 		difficult: isLowAccuracy(stats.accuracy),
@@ -80,6 +91,7 @@ export function questionRow(
 export function chosenChoices(
 	question: ReportQuestion,
 	answer: ReportAnswer | undefined,
+	imageOf: AnswerImageOf = withoutAddress,
 ): ChoiceView[] {
 	// A puzzle's answer is its order (`puzzleOrderOf`), not marked answers (spec 033).
 	if (question.type === "puzzle") {
@@ -87,7 +99,13 @@ export function chosenChoices(
 	}
 	return question.choices
 		.filter((choice) => answer?.choiceIds.includes(choice.id))
-		.map(({ shapeIndex, text, correct }) => ({ shapeIndex, text, correct }));
+		.map(({ shapeIndex, text, textFormatting, image, correct }) => ({
+			shapeIndex,
+			text,
+			textFormatting,
+			image: image && imageOf(image),
+			correct,
+		}));
 }
 
 /** What was typed in a type answer, grouped as the game grouped it (spec 031, RN-37). */
@@ -133,6 +151,23 @@ export function imageUrlOf(
 	return header.quiz !== null && key !== null
 		? storage.getPublicUrl(key)
 		: null;
+}
+
+/**
+ * The images of the answers, with their address while the quiz exists: the
+ * files are the quiz's (spec 049, RN-24, as the statement's image).
+ */
+export function answerImageOf(
+	header: ReportHeader,
+	storage: ImageUrlResolver,
+): AnswerImageOf {
+	return header.quiz === null
+		? withoutAddress
+		: ({ key, crop, altText }) => ({
+				url: storage.getPublicUrl(key),
+				crop,
+				altText,
+			});
 }
 
 export function coverUrlOf(

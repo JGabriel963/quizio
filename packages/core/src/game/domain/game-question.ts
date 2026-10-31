@@ -1,4 +1,9 @@
 import {
+	type AnswerImage,
+	copyAnswerImage,
+	readAnswerImage,
+} from "../../quiz/domain/answer-image";
+import {
 	choiceIdAt,
 	type Question,
 	type QuestionPoints,
@@ -10,6 +15,12 @@ import {
 	ANSWER_MARGINS,
 	type SliderScale,
 } from "../../shared/domain/slider-scale";
+import {
+	copyTextFormatting,
+	NO_FORMATTING,
+	readTextFormatting,
+	type TextFormatting,
+} from "../../shared/domain/text-formatting";
 import type { GameOptions } from "./game-options";
 import { placedInOrder, wrongOrderOf } from "./puzzle";
 
@@ -18,7 +29,12 @@ export interface GameChoice {
 	id: string;
 	/** Position of color and shape, 0 to 5 (spec 004, RN-01). */
 	shapeIndex: number;
-	text: string;
+	/** Null when the answer is an image (spec 049, RN-16). */
+	text: string | null;
+	/** The answer's marked stretches, copied with it (spec 048, RN-16). */
+	textFormatting: TextFormatting;
+	/** The answer as an image instead of text (spec 049); never both. */
+	image: AnswerImage | null;
 	correct: boolean;
 }
 
@@ -37,6 +53,8 @@ export interface GameQuestion {
 	index: number;
 	type: QuestionType;
 	text: string;
+	/** The statement's marked stretches (spec 047, RN-21). */
+	textFormatting: TextFormatting;
 	timeLimitSeconds: number;
 	points: QuestionPoints;
 	selection: SelectionMode;
@@ -74,13 +92,15 @@ function choicesOf(question: Question): GameChoice[] {
 	switch (question.type) {
 		case "quiz":
 			return question.choices.flatMap((choice, shapeIndex) =>
-				choice.text === null
+				choice.text === null && choice.image === null
 					? []
 					: [
 							{
 								id: choice.id,
 								shapeIndex,
 								text: choice.text,
+								textFormatting: copyTextFormatting(choice.textFormatting),
+								image: copyAnswerImage(choice.image),
 								correct: choice.correct,
 							},
 						],
@@ -92,21 +112,39 @@ function choicesOf(question: Question): GameChoice[] {
 					id: TRUE_CHOICE_ID,
 					shapeIndex: 1,
 					text: TRUE_CHOICE_TEXT,
+					textFormatting: NO_FORMATTING,
+					image: null,
 					correct: question.correct === true,
 				},
 				{
 					id: FALSE_CHOICE_ID,
 					shapeIndex: 0,
 					text: FALSE_CHOICE_TEXT,
+					textFormatting: NO_FORMATTING,
+					image: null,
 					correct: question.correct === false,
 				},
 			];
 		case "puzzle":
 			// The filled slots, top to bottom: all right, in the right order (RN-08).
 			return question.items
-				.flatMap((text, slot) =>
-					text === null ? [] : [{ id: choiceIdAt(slot), text, correct: true }],
-				)
+				.flatMap((text, slot) => {
+					const image = question.itemImages[slot] ?? null;
+					return text === null && image === null
+						? []
+						: [
+								{
+									id: choiceIdAt(slot),
+									text,
+									// The slot's formatting goes with its text (spec 048, RN-16).
+									textFormatting: copyTextFormatting(
+										question.itemFormatting[slot] ?? NO_FORMATTING,
+									),
+									image: copyAnswerImage(image),
+									correct: true,
+								},
+							];
+				})
 				.map((choice, shapeIndex) => ({ ...choice, shapeIndex }));
 		case "typeAnswer":
 		case "slider":
@@ -146,6 +184,7 @@ export function toGameQuestion(
 		index,
 		type: question.type,
 		text: question.text ?? "",
+		textFormatting: copyTextFormatting(question.textFormatting),
 		timeLimitSeconds: question.timeLimitSeconds,
 		points: question.points,
 		selection: question.type === "quiz" ? question.selection : "single",
@@ -233,7 +272,13 @@ export function arrangeGameQuestions(
 	});
 }
 
-function isChoice(value: unknown): value is GameChoice {
+function isChoice(value: unknown): value is Omit<
+	GameChoice,
+	"textFormatting" | "image"
+> & {
+	textFormatting?: unknown;
+	image?: unknown;
+} {
 	if (typeof value !== "object" || value === null) {
 		return false;
 	}
@@ -241,7 +286,7 @@ function isChoice(value: unknown): value is GameChoice {
 	return (
 		typeof id === "string" &&
 		typeof shapeIndex === "number" &&
-		typeof text === "string" &&
+		(typeof text === "string" || text === null) &&
 		typeof correct === "boolean"
 	);
 }
@@ -280,15 +325,30 @@ export function parseStoredGameQuestion(raw: unknown): GameQuestion | null {
 		index,
 		type: type as QuestionType,
 		text,
+		// Games stored before spec 047 have none (RN-22).
+		textFormatting: readTextFormatting(text, stored.textFormatting),
 		timeLimitSeconds,
 		points: points as QuestionPoints,
 		selection: selection as SelectionMode,
-		choices: choices.map(({ id, shapeIndex, text: choiceText, correct }) => ({
-			id,
-			shapeIndex,
-			text: choiceText,
-			correct,
-		})),
+		choices: choices.map(
+			({
+				id,
+				shapeIndex,
+				text: choiceText,
+				textFormatting: raw,
+				image: rawImage,
+				correct,
+			}) => ({
+				id,
+				shapeIndex,
+				text: choiceText,
+				// Games stored before spec 048 have none (RN-17).
+				textFormatting: readTextFormatting(choiceText, raw),
+				// Games stored before spec 049 have none.
+				image: readAnswerImage(rawImage),
+				correct,
+			}),
+		),
 		acceptedAnswers,
 		slider: parseStoredSlider(stored.slider),
 		// Games stored before spec 033 have no right order.

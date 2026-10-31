@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { stubReducedMotion } from "@/testing/reduced-motion";
+import { stubReducedMotion } from "@/testing/media-query";
 
 import { ConnectionBar, type ConnectionTrouble } from "./connection-bar";
 

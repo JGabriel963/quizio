@@ -6,6 +6,7 @@ import {
 	themeLookView,
 } from "../../shared/application/theme-look-view";
 import { marginRange } from "../../shared/domain/slider-scale";
+import type { TextFormatting } from "../../shared/domain/text-formatting";
 import type { ThemeId } from "../../shared/domain/theme";
 import type { Answer, Correctness } from "../domain/answer";
 import {
@@ -33,6 +34,8 @@ import {
 	shownPlayers,
 } from "../domain/player";
 import {
+	type AnswerImageView,
+	answerImageView,
 	type PublicImage,
 	type PublicSliderScale,
 	publicSliderScale,
@@ -57,7 +60,12 @@ export interface ParticipantReference {
 export interface PlayChoiceView {
 	id: string;
 	shapeIndex: number;
-	text: string;
+	/** Null when the answer is an image (spec 049). */
+	text: string | null;
+	/** Its marked stretches (spec 048, RN-19). */
+	textFormatting: TextFormatting;
+	/** An image answer: an assignment always shows the answers (spec 049, RN-23). */
+	image: AnswerImageView | null;
 }
 
 /** A question on the participant's screen: never which answer is right. */
@@ -66,6 +74,8 @@ export interface PlayQuestionView {
 	type: QuestionType;
 	selection: SelectionMode;
 	text: string;
+	/** The statement's marked stretches (spec 047, RN-25). */
+	textFormatting: TextFormatting;
 	image: PublicImage | null;
 	choices: PlayChoiceView[];
 	/** A slider's public scale (spec 032, RN-33). */
@@ -237,6 +247,7 @@ function questionView(
 		type: question.type,
 		selection: question.selection,
 		text: question.text,
+		textFormatting: question.textFormatting,
 		image: question.image
 			? {
 					url: storage.getPublicUrl(question.image.key),
@@ -245,10 +256,12 @@ function questionView(
 					altText: question.image.altText,
 				}
 			: null,
-		choices: choices.map(({ id, shapeIndex, text }) => ({
+		choices: choices.map(({ id, shapeIndex, text, textFormatting, image }) => ({
 			id,
 			shapeIndex,
 			text,
+			textFormatting,
+			image: answerImageView(image, (key) => storage.getPublicUrl(key)),
 		})),
 		slider: question.slider && publicSliderScale(question.slider),
 	};

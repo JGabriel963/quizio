@@ -20,12 +20,15 @@ function quiz(
 		selection,
 		slider: null,
 		text: null,
+		textFormatting: {},
 		image: null,
 		choices: Array.from({ length: count }, (_, index) => ({
 			id: `choice-${index + 1}`,
 			shapeIndex: index,
 			label: null,
 			text: null,
+			textFormatting: {},
+			image: null,
 		})),
 	};
 }
@@ -35,10 +38,25 @@ const trueFalse: PlayerQuestionData = {
 	selection: "single",
 	slider: null,
 	text: null,
+	textFormatting: {},
 	image: null,
 	choices: [
-		{ id: "true", shapeIndex: 1, label: "Verdadeiro", text: null },
-		{ id: "false", shapeIndex: 0, label: "Falso", text: null },
+		{
+			id: "true",
+			shapeIndex: 1,
+			label: "Verdadeiro",
+			text: null,
+			textFormatting: {},
+			image: null,
+		},
+		{
+			id: "false",
+			shapeIndex: 0,
+			label: "Falso",
+			text: null,
+			textFormatting: {},
+			image: null,
+		},
 	],
 };
 
@@ -55,12 +73,15 @@ function onDevice(
 		selection: "single",
 		slider: null,
 		text: STATEMENT,
+		textFormatting: {},
 		image: null,
 		choices: texts.map((text, index) => ({
 			id: `choice-${index + 1}`,
 			shapeIndex: index,
 			label: null,
 			text,
+			textFormatting: {},
+			image: null,
 		})),
 		...overrides,
 	};
@@ -119,6 +140,23 @@ afterEach(() => {
 });
 
 describe("PlayerStage: before the answers (spec 009)", () => {
+	it("the device draws the subscript with the option on (spec 047, RN-25)", () => {
+		renderStage(
+			stageAt({
+				question: onDevice({
+					text: "Qual é a fórmula da água, H2O?",
+					textFormatting: { subscript: [[27, 28]] },
+					image: null,
+				}),
+			}),
+		);
+
+		const heading = screen.getByRole("heading", {
+			name: "Qual é a fórmula da água, H2O?",
+		});
+		expect(heading.querySelector("sub")).toHaveTextContent("2");
+	});
+
 	it("gets ready during the game intro", () => {
 		renderStage(stageAt({ phase: "gameIntro", question: null }));
 
@@ -664,6 +702,7 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 					selection: "single",
 					slider: null,
 					text: "A capital do Brasil é Brasília",
+					textFormatting: {},
 					image: null,
 					choices: [
 						{
@@ -671,8 +710,17 @@ describe("PlayerStage: the question on the device (spec 012)", () => {
 							shapeIndex: 1,
 							label: "Verdadeiro",
 							text: "Verdadeiro",
+							textFormatting: {},
+							image: null,
 						},
-						{ id: "false", shapeIndex: 0, label: "Falso", text: "Falso" },
+						{
+							id: "false",
+							shapeIndex: 0,
+							label: "Falso",
+							text: "Falso",
+							textFormatting: {},
+							image: null,
+						},
 					],
 				},
 			}),
@@ -794,6 +842,7 @@ describe("PlayerStage: type answer (spec 031)", () => {
 		selection: "single",
 		slider: null,
 		text,
+		textFormatting: {},
 		image: null,
 		choices: [],
 	});
@@ -889,6 +938,7 @@ describe("PlayerStage: slider (spec 032)", () => {
 		selection: "single",
 		slider: scale,
 		text,
+		textFormatting: {},
 		image: null,
 		choices: [],
 	});
@@ -956,12 +1006,15 @@ describe("PlayerStage: a puzzle (spec 033)", () => {
 		selection: "single",
 		slider: null,
 		text: texts[0] === null ? null : "Coloque estes rios do maior para o menor",
+		textFormatting: {},
 		image: null,
 		choices: ids.map((id, shapeIndex) => ({
 			id,
 			shapeIndex,
 			label: null,
 			text: texts[shapeIndex] ?? null,
+			textFormatting: {},
+			image: null,
 		})),
 	});
 	const blockTexts = () =>

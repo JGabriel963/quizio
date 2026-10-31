@@ -1,17 +1,18 @@
 import { blankQuestion } from "@quizio/core/quiz/domain/question";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { QuestionData } from "@/lib/api-types";
 import { SaveTrackerProvider } from "@/lib/save-tracker";
+import { formattedField, typeInEditor } from "@/testing/formatted-text-editor";
 
 import { QuestionCanvas } from "./question-canvas";
 import { NO_UPLOAD } from "./question-media";
 
 function renderCanvas(question: QuestionData, showHints = true) {
 	const handlers = {
-		onSaveText: vi.fn(async () => {}),
+		onSaveStatement: vi.fn(async () => {}),
 		onSaveChoiceText: vi.fn(async () => {}),
 		onSaveAcceptedAnswer: vi.fn(async () => {}),
 		onSavePuzzleItem: vi.fn(async () => {}),
@@ -42,6 +43,8 @@ function withChoices(
 		choices: texts.map((text, index) => ({
 			id: `choice-${index + 1}`,
 			text,
+			textFormatting: {},
+			image: null,
 			correct: correct.includes(index),
 		})),
 	};
@@ -53,16 +56,23 @@ const answerFields = () =>
 	);
 
 describe("QuestionCanvas", () => {
-	it("shows the text, the media area and four answer fields with Kahoot placeholders", () => {
+	it("shows the text, the media area and four answer fields with Kahoot placeholders", async () => {
 		renderCanvas({ ...blankQuestion("a"), text: "Capital?" });
 
-		expect(screen.getByRole("textbox", { name: "Pergunta" })).toHaveValue(
-			"Capital?",
-		);
+		expect(
+			await screen.findByRole("textbox", { name: "Pergunta" }),
+		).toHaveTextContent("Capital?");
 		const media = screen.getByRole("region", { name: "Mídia" });
 		expect(media).toHaveTextContent("Encontre e insira mídia");
+		await Promise.all(
+			[1, 2, 3, 4].map((position) =>
+				formattedField(() =>
+					screen.getByRole("textbox", { name: `Resposta ${position}` }),
+				),
+			),
+		);
 		expect(
-			answerFields().map((field) => field.getAttribute("placeholder")),
+			answerFields().map((field) => field.getAttribute("aria-placeholder")),
 		).toEqual([
 			"Adicionar resposta 1",
 			"Adicionar resposta 2",
@@ -78,9 +88,9 @@ describe("QuestionCanvas", () => {
 			text: "O céu é azul",
 		});
 
-		expect(screen.getByRole("textbox", { name: "Pergunta" })).toHaveValue(
-			"O céu é azul",
-		);
+		expect(
+			await screen.findByRole("textbox", { name: "Pergunta" }),
+		).toHaveTextContent("O céu é azul");
 		expect(
 			within(screen.getByRole("list", { name: "Respostas" }))
 				.getAllByRole("listitem")
@@ -143,12 +153,12 @@ describe("QuestionCanvas", () => {
 	});
 
 	it("hints the missing question text until it is written", async () => {
-		const { user } = renderCanvas(blankQuestion("a"));
+		renderCanvas(blankQuestion("a"));
 
 		expect(
 			screen.getByText("Nenhuma pergunta foi adicionada."),
 		).toBeInTheDocument();
-		await user.type(screen.getByRole("textbox", { name: "Pergunta" }), "C");
+		typeInEditor(await screen.findByRole("textbox", { name: "Pergunta" }), "C");
 
 		expect(screen.queryByText("Nenhuma pergunta foi adicionada.")).toBeNull();
 	});
@@ -214,43 +224,55 @@ describe("QuestionCanvas with a puzzle (spec 033)", () => {
 		items: ["Nilo", "Amazonas", null, null],
 	});
 
-	it("shows the puzzle's four answers in place of the grid", () => {
+	it("shows the puzzle's four answers in place of the grid", async () => {
 		renderCanvas(puzzle());
 
-		expect(screen.getByRole("textbox", { name: "Resposta 1" })).toHaveValue(
-			"Nilo",
-		);
-		expect(screen.getByRole("textbox", { name: "Resposta 4" })).toHaveValue("");
+		expect(
+			await formattedField(() =>
+				screen.getByRole("textbox", { name: "Resposta 1" }),
+			),
+		).toHaveTextContent("Nilo");
+		expect(
+			await formattedField(() =>
+				screen.getByRole("textbox", { name: "Resposta 4" }),
+			),
+		).toHaveTextContent("");
 		expect(screen.queryByRole("list", { name: "Respostas" })).toBeNull();
 	});
 
 	it("saves a slot's text through its own handler", async () => {
 		const { handlers, user } = renderCanvas(puzzle());
-
-		await user.type(
+		const third = await formattedField(() =>
 			screen.getByRole("textbox", { name: "Resposta 3" }),
-			"Yangtzé",
 		);
-		await user.tab();
+		act(() => third.focus());
 
-		expect(handlers.onSavePuzzleItem).toHaveBeenLastCalledWith(2, "Yangtzé");
+		typeInEditor(third, "Yangtzé");
+		await user.click(screen.getByRole("textbox", { name: "Pergunta" }));
+
+		expect(handlers.onSavePuzzleItem).toHaveBeenLastCalledWith(2, {
+			text: "Yangtzé",
+			formatting: {},
+		});
 	});
 
 	it("the question text tells to add the expected order while it is edited (RN-06)", async () => {
-		const { user } = renderCanvas(puzzle());
+		renderCanvas(puzzle());
 		const tip =
 			'Adicione a ordem esperada para ajudar os participantes a responder corretamente (por exemplo, "do menor ao maior").';
 		expect(screen.queryByText(tip)).toBeNull();
 
-		await user.click(screen.getByRole("textbox", { name: "Pergunta" }));
+		const statement = await screen.findByRole("textbox", { name: "Pergunta" });
+		act(() => statement.focus());
 
 		expect(screen.getByText(tip)).toBeInTheDocument();
 	});
 
 	it("other types have no such tip", async () => {
-		const { user } = renderCanvas(withChoices(["A", "B", null, null], [0]));
+		renderCanvas(withChoices(["A", "B", null, null], [0]));
 
-		await user.click(screen.getByRole("textbox", { name: "Pergunta" }));
+		const statement = await screen.findByRole("textbox", { name: "Pergunta" });
+		act(() => statement.focus());
 
 		expect(screen.queryByText(/ordem esperada/)).toBeNull();
 	});

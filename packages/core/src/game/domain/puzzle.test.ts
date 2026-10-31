@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { aPuzzleGameQuestion, someChoices } from "../testing/a-game-question";
+import type { GameChoice } from "./game-question";
 import {
 	isRightOrder,
 	placedInOrder,
@@ -98,10 +99,107 @@ describe("puzzle (spec 033)", () => {
 		expect(
 			placedInOrder(rivers, ["choice-3", "choice-4", "choice-1", "choice-2"]),
 		).toEqual([
-			{ id: "choice-3", shapeIndex: 0, text: "Yangtzé", correct: true },
-			{ id: "choice-4", shapeIndex: 1, text: "Mississipi", correct: true },
-			{ id: "choice-1", shapeIndex: 2, text: "Nilo", correct: true },
-			{ id: "choice-2", shapeIndex: 3, text: "Amazonas", correct: true },
+			{
+				id: "choice-3",
+				shapeIndex: 0,
+				text: "Yangtzé",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-4",
+				shapeIndex: 1,
+				text: "Mississipi",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-1",
+				shapeIndex: 2,
+				text: "Nilo",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 3,
+				text: "Amazonas",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
 		]);
+	});
+});
+
+describe("puzzle formatting (spec 048)", () => {
+	it("equal texts with different formatting may swap places", () => {
+		const choices = someChoices(["Sol", "Lua", "Sol"], [0, 1, 2]).map(
+			(entry, index) =>
+				index === 0
+					? { ...entry, textFormatting: { bold: [[0, 3] as [number, number]] } }
+					: entry,
+		);
+		const question = aPuzzleGameQuestion({
+			choices,
+			correctOrder: choices.map(({ id }) => id),
+		});
+
+		expect(isRightOrder(question, ["choice-3", "choice-2", "choice-1"])).toBe(
+			true,
+		);
+	});
+});
+
+describe("puzzle with image answers (spec 049, RN-20)", () => {
+	const imageOf = (key: string) => ({ key, crop: null, altText: null });
+
+	function withImages(choices: GameChoice[], images: (string | null)[]) {
+		return choices.map((choice, index) => {
+			const key = images[index];
+			return key ? { ...choice, text: null, image: imageOf(key) } : choice;
+		});
+	}
+
+	it("two image answers are never the same answer, nor an image the same as a text", () => {
+		const choices = withImages(someChoices(["", "", "Nilo"], [0, 1, 2]), [
+			"media/a.png",
+			"media/b.png",
+			null,
+		]);
+		const puzzle = aPuzzleGameQuestion({
+			choices,
+			correctOrder: choices.map(({ id }) => id),
+		});
+
+		expect(isRightOrder(puzzle, ["choice-1", "choice-2", "choice-3"])).toBe(
+			true,
+		);
+		expect(isRightOrder(puzzle, ["choice-2", "choice-1", "choice-3"])).toBe(
+			false,
+		);
+		expect(isRightOrder(puzzle, ["choice-3", "choice-2", "choice-1"])).toBe(
+			false,
+		);
+		expect(wrongOrderOf(puzzle, asDrawn)).not.toEqual(puzzle.correctOrder);
+	});
+
+	it("the same picture twice may swap places, like equal texts", () => {
+		const choices = withImages(someChoices(["", "", "Nilo"], [0, 1, 2]), [
+			"media/a.png",
+			"media/a.png",
+			null,
+		]);
+		const puzzle = aPuzzleGameQuestion({
+			choices,
+			correctOrder: choices.map(({ id }) => id),
+		});
+
+		expect(isRightOrder(puzzle, ["choice-2", "choice-1", "choice-3"])).toBe(
+			true,
+		);
 	});
 });

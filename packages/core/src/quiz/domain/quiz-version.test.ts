@@ -22,12 +22,48 @@ const quizQuestion = aQuestion({
 	timeLimitSeconds: 45,
 	points: "double",
 	choices: [
-		{ id: "choice-1", text: "Brasília", correct: true },
-		{ id: "choice-2", text: "Rio", correct: false },
-		{ id: "choice-3", text: null, correct: false },
-		{ id: "choice-4", text: null, correct: false },
-		{ id: "choice-5", text: "Salvador", correct: true },
-		{ id: "choice-6", text: null, correct: false },
+		{
+			id: "choice-1",
+			text: "Brasília",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{
+			id: "choice-2",
+			text: "Rio",
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-3",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-4",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-5",
+			text: "Salvador",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{
+			id: "choice-6",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
 	],
 });
 const trueFalse = aTrueFalseQuestion({
@@ -118,6 +154,154 @@ describe("sameQuestionLists", () => {
 	])("order, count, type and content are changes: %s", (_, changed) => {
 		expect(sameQuestionLists(published, changed)).toBe(false);
 		expect(sameQuestionLists(changed, published)).toBe(false);
+	});
+});
+
+describe("formatting in versions (spec 047)", () => {
+	const formatted = aQuestion({
+		text: "Qual destas não é uma capital?",
+		textFormatting: { bold: [[12, 15]] },
+	});
+
+	it("a formatting change makes the lists differ", () => {
+		expect(
+			sameQuestionLists(
+				[formatted],
+				[{ ...formatted, textFormatting: { italic: [[12, 15]] } }],
+			),
+		).toBe(false);
+		expect(
+			sameQuestionLists([formatted], [{ ...formatted, textFormatting: {} }]),
+		).toBe(false);
+	});
+
+	it("the same formatting written in another order is the same", () => {
+		const twoStretches = aQuestion({
+			text: "Qual destas não é uma capital?",
+			textFormatting: { bold: [[0, 4]], italic: [[12, 15]] },
+		});
+
+		expect(
+			sameQuestionLists(
+				[twoStretches],
+				[
+					{
+						...twoStretches,
+						textFormatting: { italic: [[12, 15]], bold: [[0, 4]] },
+					},
+				],
+			),
+		).toBe(true);
+	});
+
+	it("parseVersionQuestions reads the formatting and leaves it out of the content", () => {
+		const stored = JSON.parse(JSON.stringify([formatted]));
+
+		expect(parseVersionQuestions(stored)).toEqual([formatted]);
+	});
+
+	it("a stored version without the field reads without formatting", () => {
+		const { textFormatting: _formatting, ...old } = formatted;
+		const stored = JSON.parse(JSON.stringify([old]));
+
+		expect(parseVersionQuestions(stored)[0]?.textFormatting).toEqual({});
+	});
+});
+
+describe("answer formatting in versions (spec 048)", () => {
+	const subscript2 = { subscript: [[1, 2] as [number, number]] };
+	const withAnswer = aQuestion({
+		choices: [
+			{
+				id: "choice-1",
+				text: "H2O",
+				textFormatting: subscript2,
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				text: "CO2",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-3",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-4",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+		],
+	});
+
+	it("an answer's formatting change makes the lists differ", () => {
+		const unformatted = {
+			...withAnswer,
+			choices: withAnswer.choices.map((choice) => ({
+				...choice,
+				textFormatting: {},
+			})),
+		};
+
+		expect(sameQuestionLists([withAnswer], [unformatted])).toBe(false);
+		expect(sameQuestionLists([withAnswer], [{ ...withAnswer }])).toBe(true);
+	});
+
+	it("a puzzle item's formatting change makes the lists differ", () => {
+		const puzzle = aPuzzleQuestion({
+			itemFormatting: [{ bold: [[0, 4]] }, {}, {}, {}],
+		});
+
+		expect(
+			sameQuestionLists(
+				[puzzle],
+				[{ ...puzzle, itemFormatting: [{ italic: [[0, 4]] }, {}, {}, {}] }],
+			),
+		).toBe(false);
+		expect(
+			sameQuestionLists(
+				[puzzle],
+				[{ ...puzzle, itemFormatting: [{ bold: [[0, 4]] }, {}, {}, {}] }],
+			),
+		).toBe(true);
+	});
+
+	it("a stored version without answer formatting reads as none", () => {
+		const stored = JSON.parse(
+			JSON.stringify([
+				{
+					...withAnswer,
+					choices: withAnswer.choices.map(
+						({ textFormatting: _f, ...choice }) => choice,
+					),
+				},
+				(({ itemFormatting: _f, ...puzzle }) => puzzle)(aPuzzleQuestion()),
+			]),
+		);
+
+		const [quiz, puzzle] = parseVersionQuestions(stored);
+
+		expect(quiz?.type === "quiz" && quiz.choices[0]?.textFormatting).toEqual(
+			{},
+		);
+		expect(puzzle?.type === "puzzle" && puzzle.itemFormatting).toEqual([
+			{},
+			{},
+			{},
+			{},
+		]);
+		expect(
+			parseVersionQuestions(JSON.parse(JSON.stringify([withAnswer]))),
+		).toEqual([withAnswer]);
 	});
 });
 
@@ -266,5 +450,79 @@ describe("puzzles in versions", () => {
 		const stored = JSON.parse(JSON.stringify([puzzle]));
 
 		expect(parseVersionQuestions(stored)).toEqual([puzzle]);
+	});
+});
+
+describe("answer images in versions (spec 049, RN-17)", () => {
+	const image = { key: "media/ana/arroz.png", crop: null, altText: null };
+
+	it("an answer image change makes the lists differ, and the version reads it back", () => {
+		const withImage = aQuestion({
+			id: "a",
+			choices: [
+				{
+					id: "choice-1",
+					text: null,
+					textFormatting: {},
+					image,
+					correct: true,
+				},
+				{
+					id: "choice-2",
+					text: "B",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-3",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-4",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+			],
+		});
+		const described = aQuestion({
+			...withImage,
+			choices: withImage.choices.map((choice) =>
+				choice.image
+					? { ...choice, image: { ...image, altText: "Arroz" } }
+					: choice,
+			),
+		});
+		const puzzle = aPuzzleQuestion({
+			id: "p",
+			itemImages: [image, null, null, null],
+			items: [null, "B", "C", null],
+		});
+		const movedPuzzle = aPuzzleQuestion({
+			id: "p",
+			itemImages: [null, image, null, null],
+			items: ["B", null, "C", null],
+		});
+
+		expect(sameQuestionLists([withImage], [described])).toBe(false);
+		expect(sameQuestionLists([puzzle], [movedPuzzle])).toBe(false);
+		expect(sameQuestionLists([withImage, puzzle], [withImage, puzzle])).toBe(
+			true,
+		);
+
+		const version = newQuizVersion({
+			quizId: "quiz-1",
+			number: 1,
+			questions: [withImage, puzzle],
+			now,
+		});
+		expect(
+			parseVersionQuestions(JSON.parse(JSON.stringify(version.questions))),
+		).toEqual([withImage, puzzle]);
 	});
 });

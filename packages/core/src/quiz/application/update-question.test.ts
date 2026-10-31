@@ -64,6 +64,39 @@ describe("updateQuestion", () => {
 		expect((await quizzes.findById("quiz-1"))?.updatedAt).toEqual(clock.now());
 	});
 
+	it("saves the text and its formatting (spec 047, RN-18)", async () => {
+		await updateQuestion({
+			...ref,
+			change: {
+				kind: "text",
+				text: "Qual destas não é uma capital?",
+				formatting: { bold: [[12, 15]] },
+			},
+		});
+
+		expect(questions.listOf("quiz-1")[0]).toMatchObject({
+			text: "Qual destas não é uma capital?",
+			textFormatting: { bold: [[12, 15]] },
+		});
+	});
+
+	it("saves an answer's text and formatting (spec 048, RN-13)", async () => {
+		await updateQuestion({
+			...ref,
+			change: {
+				kind: "choiceText",
+				choiceId: "choice-1",
+				text: "H2O",
+				formatting: { subscript: [[1, 2]] },
+			},
+		});
+
+		expect(asQuiz(questions.listOf("quiz-1")[0]).choices[0]).toMatchObject({
+			text: "H2O",
+			textFormatting: { subscript: [[1, 2]] },
+		});
+	});
+
 	describe("on a published quiz", () => {
 		const published = [
 			aQuestion({ id: "a", text: "Capital do Brasil?" }),
@@ -98,6 +131,63 @@ describe("updateQuestion", () => {
 				publishedVersion: 1,
 				hasUnpublishedChanges: true,
 			});
+		});
+
+		it("a formatting change alone marks unpublished changes (spec 047, RN-19)", async () => {
+			await updateQuestion({
+				...ref,
+				change: {
+					kind: "text",
+					text: "Capital do Brasil?",
+					formatting: { bold: [[11, 17]] },
+				},
+			});
+
+			expect((await quizzes.findById("quiz-1"))?.hasUnpublishedChanges).toBe(
+				true,
+			);
+		});
+
+		it("an answer's formatting change alone marks unpublished changes (spec 048, RN-14)", async () => {
+			await updateQuestion({
+				...ref,
+				change: {
+					kind: "choiceText",
+					choiceId: "choice-1",
+					text: null,
+					formatting: {},
+				},
+			});
+			await quizzes.save(aPublishedQuiz());
+			await versions.save(
+				newQuizVersion({
+					quizId: "quiz-1",
+					number: 2,
+					questions: questions.listOf("quiz-1"),
+					now: new Date("2026-03-01T10:00:00.000Z"),
+				}),
+			);
+			await updateQuestion({
+				...ref,
+				change: {
+					kind: "choiceText",
+					choiceId: "choice-1",
+					text: "Brasília",
+				},
+			});
+			await updateQuestion({
+				...ref,
+				change: {
+					kind: "choiceText",
+					choiceId: "choice-1",
+					text: "Brasília",
+					formatting: { bold: [[0, 8]] },
+				},
+			});
+
+			expect((await quizzes.findById("quiz-1"))?.hasUnpublishedChanges).toBe(
+				true,
+			);
 		});
 
 		it("undoing an edit clears the flag", async () => {
@@ -177,8 +267,20 @@ describe("updateQuestion", () => {
 		const stored = asQuiz(questions.listOf("quiz-1")[0]);
 		expect(stored.selection).toBe("multiple");
 		expect(stored.choices.slice(0, 2)).toEqual([
-			{ id: "choice-1", text: "Brasília", correct: true },
-			{ id: "choice-2", text: "Rio", correct: true },
+			{
+				id: "choice-1",
+				text: "Brasília",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				text: "Rio",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
 		]);
 	});
 

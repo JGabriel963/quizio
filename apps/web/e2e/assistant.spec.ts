@@ -71,7 +71,7 @@ test.describe("creation assistant (spec 027)", () => {
 		// The blank question of the new quiz gave its place (RN-26).
 		await expect(questionItems(page)).toHaveCount(1);
 		await expect(questionItems(page).first()).toContainText("feita com IA");
-		await expect(page.getByRole("textbox", { name: "Pergunta" })).toHaveValue(
+		await expect(page.getByRole("textbox", { name: "Pergunta" })).toHaveText(
 			"Pergunta 2 sobre o sistema solar?",
 		);
 

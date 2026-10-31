@@ -52,6 +52,37 @@ describe("discardQuizChanges", () => {
 		);
 	});
 
+	it("brings back the saved formatting (spec 047, RN-19)", async () => {
+		await quizzes.save(aPublishedQuiz({ hasUnpublishedChanges: true }));
+		await questions.saveList("quiz-1", [
+			{ ...a, textFormatting: { bold: [[0, 1]] } },
+			b,
+		]);
+
+		await discardQuizChanges(ref);
+
+		expect(questions.listOf("quiz-1")[0]?.textFormatting).toEqual({});
+	});
+
+	it("brings back the answers' saved formatting (spec 048, RN-14)", async () => {
+		await quizzes.save(aPublishedQuiz({ hasUnpublishedChanges: true }));
+		await questions.saveList("quiz-1", [
+			{
+				...a,
+				choices: a.choices.map((choice, index) =>
+					index === 0
+						? { ...choice, text: "X", textFormatting: { bold: [[0, 1]] } }
+						: choice,
+				),
+			},
+			b,
+		]);
+
+		await discardQuizChanges(ref);
+
+		expect(questions.listOf("quiz-1")[0]).toEqual(a);
+	});
+
 	it("restores the questions of the current version", async () => {
 		await quizzes.save(aPublishedQuiz({ hasUnpublishedChanges: true }));
 		// A edited, B deleted and C added since the version was saved.

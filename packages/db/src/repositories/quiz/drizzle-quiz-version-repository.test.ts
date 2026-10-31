@@ -1,5 +1,7 @@
 import { newQuizVersion } from "@quizio/core/quiz/domain/quiz-version";
 import {
+	aFormattedAnswersQuestion,
+	anImageAnswersQuestion,
 	aQuestion,
 	aTrueFalseQuestion,
 } from "@quizio/core/quiz/testing/a-question";
@@ -22,12 +24,48 @@ const quizQuestion = aQuestion({
 	timeLimitSeconds: 45,
 	points: "double",
 	choices: [
-		{ id: "choice-1", text: "Brasília", correct: true },
-		{ id: "choice-2", text: "Rio", correct: false },
-		{ id: "choice-3", text: null, correct: false },
-		{ id: "choice-4", text: null, correct: false },
-		{ id: "choice-5", text: "Salvador", correct: true },
-		{ id: "choice-6", text: null, correct: false },
+		{
+			id: "choice-1",
+			text: "Brasília",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{
+			id: "choice-2",
+			text: "Rio",
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-3",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-4",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-5",
+			text: "Salvador",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{
+			id: "choice-6",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
 	],
 });
 const trueFalse = aTrueFalseQuestion({
@@ -150,6 +188,35 @@ describe("DrizzleQuizVersionRepository", () => {
 		expect((await versions.find("quiz-1", 1))?.questions[0]?.aiGenerated).toBe(
 			true,
 		);
+	});
+
+	it("a saved version keeps the formatting (spec 047)", async () => {
+		const versions = createDrizzleQuizVersionRepository(testDb.db);
+		await versions.save(
+			versionOf("quiz-1", 1, [
+				{ ...trueFalse, text: "H2O", textFormatting: { subscript: [[1, 2]] } },
+			]),
+		);
+
+		expect(
+			(await versions.find("quiz-1", 1))?.questions[0]?.textFormatting,
+		).toEqual({ subscript: [[1, 2]] });
+	});
+
+	it("versions carry the answers' formatting (spec 048)", async () => {
+		const versions = createDrizzleQuizVersionRepository(testDb.db);
+		const formatted = aFormattedAnswersQuestion({ id: "a" });
+		await versions.save(versionOf("quiz-1", 1, [formatted]));
+
+		expect((await versions.find("quiz-1", 1))?.questions).toEqual([formatted]);
+	});
+
+	it("versions carry the answer images (spec 049)", async () => {
+		const versions = createDrizzleQuizVersionRepository(testDb.db);
+		const pictured = anImageAnswersQuestion({ id: "a" });
+		await versions.save(versionOf("quiz-1", 1, [pictured]));
+
+		expect((await versions.find("quiz-1", 1))?.questions).toEqual([pictured]);
 	});
 
 	it("deletes every version of a quiz", async () => {

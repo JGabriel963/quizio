@@ -2,7 +2,7 @@ import type {
 	MediaUploadRepository,
 	MediaUsage,
 } from "@quizio/core/media/application/ports/media-upload-repository";
-import { and, asc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, lt, or, sql } from "drizzle-orm";
 
 import { profilePhoto } from "../../schema/identity";
 import { mediaUpload } from "../../schema/media";
@@ -79,7 +79,16 @@ export function createDrizzleMediaUsage(db: Database): MediaUsage {
 						.select({ id: question.id })
 						.from(question)
 						.innerJoin(quiz, eq(quiz.id, question.quizId))
-						.where(and(ofOwner, sql`${question.image} ->> 'key' = ${key}`))
+						.where(
+							and(
+								ofOwner,
+								// The statement's image, or an answer's in the content (spec 049).
+								or(
+									sql`${question.image} ->> 'key' = ${key}`,
+									sql`strpos(${question.content}::text, ${quoted}) > 0`,
+								),
+							),
+						)
 						.limit(1),
 				)) ||
 				found(

@@ -2,9 +2,11 @@ import {
 	REPORT_NAME_MAX_LENGTH,
 	REPORT_SECTIONS,
 } from "@quizio/core/reports/domain/report";
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { z } from "zod";
-
 import { defineTool } from "../define-tool";
+
+import { withTextMarkup } from "../schemas/text-markup";
 import { ToolInputError } from "../tool-input-error";
 import { WRITTEN_BY_PLAYERS } from "./groups";
 
@@ -15,6 +17,23 @@ const gameId = z
 const gameIds = z.array(z.string().max(10_000)).min(1).max(200);
 
 /** Reports: a reading of each game that started (spec 044, RN-28). */
+interface MarkedAnswer {
+	/** Null when the answer is an image, which goes as it is (spec 049, RN-26). */
+	text: string | null;
+	textFormatting: TextFormatting;
+}
+
+/** What a participant answered, with the answers written with tags (spec 048, RN-22). */
+function answersWithMarkup(view: {
+	choices: (MarkedAnswer & { shapeIndex: number; correct: boolean })[];
+	puzzleOrder: MarkedAnswer[] | null;
+}) {
+	return {
+		choices: view.choices.map(withTextMarkup),
+		puzzleOrder: view.puzzleOrder?.map(withTextMarkup) ?? null,
+	};
+}
+
 export const reportTools = [
 	defineTool({
 		name: "list_reports",
@@ -67,13 +86,24 @@ export const reportTools = [
 		description: `A report as its screen shows it: the summary, the participants with their accuracy and points, and the questions with their accuracy. Below 35% is a difficult question or a participant who needs help. A group admin also reads the reports of members' assignments posted in the group, read-only. ${WRITTEN_BY_PLAYERS}`,
 		kind: "read",
 		input: z.object({ gameId }),
-		run: async ({ gameId: id }, context) => ({
-			report: await context.useCases.getReport({
+		run: async ({ gameId: id }, context) => {
+			const report = await context.useCases.getReport({
 				ownerId: context.identity.userId,
 				gameId: id,
-			}),
-			links: { report: context.links.report(id) },
-		}),
+			});
+			const { hardestQuestion } = report.summary;
+			return {
+				report: {
+					...report,
+					summary: {
+						...report.summary,
+						hardestQuestion: hardestQuestion && withTextMarkup(hardestQuestion),
+					},
+					questions: report.questions.map(withTextMarkup),
+				},
+				links: { report: context.links.report(id) },
+			};
+		},
 	}),
 	defineTool({
 		name: "get_report_detail",
@@ -92,19 +122,42 @@ export const reportTools = [
 					"Send either participantId or questionPosition",
 				);
 			}
-			return participantId !== undefined
-				? {
-						participant: await context.useCases.getReportParticipant({
-							...target,
-							playerId: participantId,
-						}),
-					}
-				: {
-						question: await context.useCases.getReportQuestion({
-							...target,
-							questionIndex: (questionPosition ?? 1) - 1,
-						}),
-					};
+			if (participantId !== undefined) {
+				const participant = await context.useCases.getReportParticipant({
+					...target,
+					playerId: participantId,
+				});
+				return {
+					participant: {
+						...participant,
+						answers: participant.answers.map((answer) => ({
+							...withTextMarkup(answer),
+							...answersWithMarkup(answer),
+						})),
+					},
+				};
+			}
+			const detail = await context.useCases.getReportQuestion({
+				...target,
+				questionIndex: (questionPosition ?? 1) - 1,
+			});
+			return {
+				question: {
+					...withTextMarkup(detail),
+					choices: detail.choices.map(withTextMarkup),
+					participants: detail.participants.map((participant) => ({
+						...participant,
+						...answersWithMarkup(participant),
+					})),
+					puzzleAnswers: detail.puzzleAnswers && {
+						correctOrder: detail.puzzleAnswers.correctOrder.map(withTextMarkup),
+						orders: detail.puzzleAnswers.orders.map((order) => ({
+							...order,
+							answers: order.answers.map(withTextMarkup),
+						})),
+					},
+				},
+			};
 		},
 	}),
 	defineTool({

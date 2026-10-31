@@ -90,6 +90,20 @@ describe("IncompleteQuestionsDialog", () => {
 		).toEqual(["!Resposta correta não selecionada"]);
 	});
 
+	it("shows the statement formatted (spec 047, RN-25)", () => {
+		renderDialog([
+			{
+				...noCorrect,
+				text: "H2O?",
+				textFormatting: { subscript: [[1, 2]] },
+			},
+		]);
+
+		const card = cards().getAllByRole("listitem")[0];
+		expect(card?.querySelector("sub")).toHaveTextContent("2");
+		expect(card).toHaveTextContent("H2O?");
+	});
+
 	it("Corrigir asks for that question", async () => {
 		const { props, user } = renderDialog([complete, noCorrect, blank]);
 

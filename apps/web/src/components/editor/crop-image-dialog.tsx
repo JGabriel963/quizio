@@ -50,11 +50,14 @@ const KEY_STEP = 0.05;
  */
 export function CropImageDialog({
 	url,
+	shapes = CROP_SHAPES,
 	onSave,
 	onClose,
 }: {
 	/** The image to crop, or null while the dialog is closed. */
 	url: string | null;
+	/** The frames offered: an answer's image has no circle (spec 049, RN-11). */
+	shapes?: readonly CropShape[];
 	onSave: (crop: ImageCrop) => void;
 	onClose: () => void;
 }) {
@@ -70,7 +73,12 @@ export function CropImageDialog({
 			<DialogContent showCloseButton={false} className="sm:max-w-3xl">
 				{/* Mounted only while open, so every opening starts from the original. */}
 				{url !== null && (
-					<CropForm url={url} onSave={onSave} onClose={onClose} />
+					<CropForm
+						url={url}
+						shapes={shapes}
+						onSave={onSave}
+						onClose={onClose}
+					/>
 				)}
 			</DialogContent>
 		</Dialog>
@@ -79,10 +87,12 @@ export function CropImageDialog({
 
 function CropForm({
 	url,
+	shapes,
 	onSave,
 	onClose,
 }: {
 	url: string;
+	shapes: readonly CropShape[];
 	onSave: (crop: ImageCrop) => void;
 	onClose: () => void;
 }) {
@@ -138,7 +148,7 @@ function CropForm({
 				aria-label="Forma do recorte"
 				className="flex justify-center gap-2 sm:gap-6"
 			>
-				{CROP_SHAPES.map((shape) => {
+				{shapes.map((shape) => {
 					const { label, icon: Icon } = SHAPES[shape];
 					const selected = crop.shape === shape;
 					return (

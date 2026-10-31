@@ -303,6 +303,7 @@ export function createDrizzleReportGameQuery(db: Database): ReportGameQuery {
 									index: parsed.index,
 									type: parsed.type,
 									text: parsed.text,
+									textFormatting: parsed.textFormatting,
 									imageKey: parsed.image?.key ?? null,
 									choices: parsed.choices,
 									acceptedAnswers: parsed.acceptedAnswers,

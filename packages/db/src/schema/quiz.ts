@@ -104,6 +104,14 @@ export const question = pgTable(
 		position: integer("position").notNull(),
 		type: questionType("type").notNull(),
 		text: text("text"),
+		/**
+		 * The statement's marked stretches (spec 047, ADR 0025); read through
+		 * `readTextFormatting`, so rows written before have none.
+		 */
+		textFormatting: jsonb("text_formatting")
+			.$type<unknown>()
+			.notNull()
+			.default({}),
 		timeLimitSeconds: integer("time_limit_seconds")
 			.notNull()
 			.default(DEFAULT_TIME_LIMIT_SECONDS),

@@ -1,4 +1,7 @@
+import type { Question } from "@quizio/core/quiz/domain/question";
 import {
+	aFormattedAnswersQuestion,
+	anImageAnswersQuestion,
 	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
@@ -66,6 +69,130 @@ describe("DrizzleQuestionRepository", () => {
 			text: "A2",
 			aiGenerated: true,
 		});
+	});
+
+	it("round-trips text_formatting (spec 047)", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const formatted: Question = {
+			...a,
+			text: "H2O e 22",
+			textFormatting: { bold: [[0, 3]], subscript: [[1, 2]] },
+		};
+		await questions.saveList("quiz-1", [formatted, b]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([formatted, b]);
+
+		await questions.saveQuestion("quiz-1", {
+			...formatted,
+			textFormatting: { superscript: [[7, 8]] },
+		});
+
+		expect((await questions.listByQuiz("quiz-1"))[0]?.textFormatting).toEqual({
+			superscript: [[7, 8]],
+		});
+	});
+
+	it("saveList rewrites the formatting with the text", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const formatted: Question = { ...a, textFormatting: { bold: [[0, 1]] } };
+		await questions.saveList("quiz-1", [formatted]);
+
+		await questions.saveList("quiz-1", [
+			{ ...a, text: "B", textFormatting: {} },
+		]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([
+			{ ...a, text: "B", textFormatting: {} },
+		]);
+	});
+
+	it("a row written before reads without formatting", async () => {
+		await testDb.db.insert(questionTable).values({
+			id: "old",
+			type: "quiz",
+			quizId: "quiz-1",
+			position: 0,
+			text: "Antiga",
+		});
+
+		const [question] = await createDrizzleQuestionRepository(
+			testDb.db,
+		).listByQuiz("quiz-1");
+
+		expect(question?.textFormatting).toEqual({});
+	});
+
+	it("round-trips the answers' formatting in content (spec 048)", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const quiz = aFormattedAnswersQuestion({ id: "a" });
+		const puzzle = aPuzzleQuestion({
+			id: "p",
+			itemFormatting: [{ bold: [[0, 4]] }, {}, { italic: [[0, 7]] }, {}],
+		});
+		await questions.saveList("quiz-1", [quiz, puzzle]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([quiz, puzzle]);
+	});
+
+	it("round-trips answer images in content (spec 049)", async () => {
+		const questions = createDrizzleQuestionRepository(testDb.db);
+		const quiz = anImageAnswersQuestion({ id: "a" });
+		const puzzle = aPuzzleQuestion({
+			id: "p",
+			items: [null, "B", "C", null],
+			itemImages: [
+				{ key: "media/user-1/a.png", crop: null, altText: "A" },
+				null,
+				null,
+				null,
+			],
+		});
+		await questions.saveList("quiz-1", [quiz, puzzle]);
+
+		expect(await questions.listByQuiz("quiz-1")).toEqual([quiz, puzzle]);
+	});
+
+	it("a row written before reads without answer formatting", async () => {
+		await testDb.db.insert(questionTable).values([
+			{
+				id: "old",
+				type: "quiz",
+				quizId: "quiz-1",
+				position: 0,
+				text: "Antiga",
+				content: {
+					selection: "single",
+					choices: [
+						{ id: "choice-1", text: "Brasília", correct: true },
+						{ id: "choice-2", text: "Rio", correct: false },
+						{ id: "choice-3", text: null, correct: false },
+						{ id: "choice-4", text: null, correct: false },
+					],
+				},
+			},
+			{
+				id: "old-puzzle",
+				type: "puzzle",
+				quizId: "quiz-1",
+				position: 1,
+				text: "Ordene",
+				content: { items: ["Nilo", "Amazonas", "Yangtzé", null] },
+			},
+		]);
+
+		const [quiz, puzzle] = await createDrizzleQuestionRepository(
+			testDb.db,
+		).listByQuiz("quiz-1");
+
+		expect(
+			quiz?.type === "quiz" && quiz.choices.map((c) => c.textFormatting),
+		).toEqual([{}, {}, {}, {}]);
+		expect(puzzle?.type === "puzzle" && puzzle.itemFormatting).toEqual([
+			{},
+			{},
+			{},
+			{},
+		]);
 	});
 
 	it("an existing row reads as not AI generated", async () => {
@@ -205,12 +332,48 @@ describe("DrizzleQuestionRepository", () => {
 			points: "double",
 			selection: "multiple",
 			choices: [
-				{ id: "choice-1", text: "Brasília", correct: true },
-				{ id: "choice-2", text: "Rio", correct: true },
-				{ id: "choice-3", text: null, correct: false },
-				{ id: "choice-4", text: null, correct: false },
-				{ id: "choice-5", text: "Salvador", correct: false },
-				{ id: "choice-6", text: null, correct: false },
+				{
+					id: "choice-1",
+					text: "Brasília",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-2",
+					text: "Rio",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-3",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-4",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-5",
+					text: "Salvador",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-6",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
 			],
 		});
 

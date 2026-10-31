@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import { QuestionTextTooLongError } from "./question";
+import { asPuzzle, asQuiz } from "../testing/a-question";
+import { type Question, QuestionTextTooLongError } from "./question";
 import { questionFromDraft } from "./question-draft";
 import { patchedQuestion } from "./question-patch";
 
@@ -107,5 +107,131 @@ describe("patchedQuestion (spec 044, RN-21)", () => {
 		expect(() => patchedQuestion(quiz(), { text: "a".repeat(161) })).toThrow(
 			QuestionTextTooLongError,
 		);
+	});
+
+	it("a patch with a text replaces the formatting with the one sent (spec 047, RN-29)", () => {
+		const formatted: Question = {
+			...quiz(),
+			textFormatting: { bold: [[0, 7]] },
+		};
+
+		expect(
+			patchedQuestion(formatted, {
+				text: "Capital da Itália?",
+				textFormatting: { italic: [[11, 17]] },
+			}).textFormatting,
+		).toEqual({ italic: [[11, 17]] });
+		expect(
+			patchedQuestion(formatted, { text: "Capital da Itália?" }).textFormatting,
+		).toEqual({});
+	});
+
+	it("a patch with choices replaces their formatting with the one sent (spec 048, RN-23)", () => {
+		const formatted = patchedQuestion(quiz(), {
+			choices: [
+				{ text: "Paris", textFormatting: { bold: [[0, 5]] }, correct: true },
+				{ text: "Lyon", correct: false },
+			],
+		});
+		expect(asQuiz(formatted).choices[0]?.textFormatting).toEqual({
+			bold: [[0, 5]],
+		});
+
+		const replaced = patchedQuestion(formatted, {
+			choices: [
+				{ text: "Paris", correct: true },
+				{ text: "Lyon", correct: false },
+			],
+		});
+		expect(asQuiz(replaced).choices[0]?.textFormatting).toEqual({});
+
+		const puzzle = patchedQuestion(quiz(), {
+			type: "puzzle",
+			items: ["H2O", "Sal", "Ar"],
+			itemFormatting: [{ subscript: [[1, 2]] }],
+		});
+		expect(
+			asPuzzle(patchedQuestion(puzzle, { items: ["H2O", "Sal", "Ar"] }))
+				.itemFormatting,
+		).toEqual([{}, {}, {}, {}]);
+	});
+
+	it("a patch without answers keeps them with their formatting", () => {
+		const formatted = patchedQuestion(quiz(), {
+			choices: [
+				{ text: "Paris", textFormatting: { bold: [[0, 5]] }, correct: true },
+				{ text: "Lyon", correct: false },
+			],
+		});
+		const puzzle = patchedQuestion(quiz(), {
+			type: "puzzle",
+			items: ["H2O", "Sal", "Ar"],
+			itemFormatting: [{ subscript: [[1, 2]] }],
+		});
+
+		expect(
+			asQuiz(patchedQuestion(formatted, { timeLimitSeconds: 30 })).choices[0]
+				?.textFormatting,
+		).toEqual({ bold: [[0, 5]] });
+		expect(
+			asPuzzle(patchedQuestion(puzzle, { text: "Ordene de novo" }))
+				.itemFormatting[0],
+		).toEqual({ subscript: [[1, 2]] });
+	});
+
+	it("a patch without a text keeps text and formatting", () => {
+		const formatted: Question = {
+			...quiz(),
+			textFormatting: { bold: [[0, 7]] },
+		};
+
+		const patched = patchedQuestion(formatted, { timeLimitSeconds: 30 });
+
+		expect(patched.text).toBe("Capital da França?");
+		expect(patched.textFormatting).toEqual({ bold: [[0, 7]] });
+	});
+});
+
+describe("answer images in patches (spec 049, RN-21)", () => {
+	const image = { key: "media/ana/arroz.png", crop: null, altText: null };
+
+	it("choices sent replace the images too, and other fields keep them", () => {
+		const withImage = patchedQuestion(quiz(), {
+			choices: [
+				{ text: null, image, correct: true },
+				{ text: "Lyon", correct: false },
+			],
+		});
+		expect(asQuiz(withImage).choices[0]?.image).toEqual(image);
+
+		const renamed = patchedQuestion(withImage, { text: "Outra pergunta?" });
+		expect(asQuiz(renamed).choices[0]?.image).toEqual(image);
+
+		const replaced = patchedQuestion(withImage, {
+			choices: [
+				{ text: "Paris", correct: true },
+				{ text: "Lyon", correct: false },
+			],
+		});
+		expect(asQuiz(replaced).choices[0]?.image).toBeNull();
+	});
+
+	it("puzzle items sent replace the images, and other fields keep them", () => {
+		const puzzle = questionFromDraft(
+			{
+				type: "puzzle",
+				text: "Ordem?",
+				items: [null, "Dois", "Três"],
+				itemImages: [image],
+			},
+			"q2",
+		);
+		expect(
+			asPuzzle(patchedQuestion(puzzle, { points: "double" })).itemImages[0],
+		).toEqual(image);
+		expect(
+			asPuzzle(patchedQuestion(puzzle, { items: ["Um", "Dois", "Três"] }))
+				.itemImages,
+		).toEqual([null, null, null, null]);
 	});
 });

@@ -20,10 +20,34 @@ const question = (
 	...blankQuestion(id),
 	text,
 	choices: [
-		{ id: "choice-1", text: "Brasília", correct: true },
-		{ id: "choice-2", text: "Rio", correct: false },
-		{ id: "choice-3", text: null, correct: false },
-		{ id: "choice-4", text: null, correct: false },
+		{
+			id: "choice-1",
+			text: "Brasília",
+			textFormatting: {},
+			image: null,
+			correct: true,
+		},
+		{
+			id: "choice-2",
+			text: "Rio",
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-3",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
+		{
+			id: "choice-4",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		},
 	],
 	...overrides,
 });
@@ -123,6 +147,20 @@ describe("QuestionList", () => {
 		expect(first).toHaveTextContent("1 Quiz");
 		expect(first).toHaveTextContent("Qual é a capital do Brasil?");
 		expect(second).toHaveTextContent("2 Quiz");
+	});
+
+	it("the item shows the statement formatted and keeps a plain aria-label (spec 047, RN-27)", () => {
+		renderList([
+			question("a", "Quanto é 22?", {
+				textFormatting: { superscript: [[10, 11]] },
+			}),
+		]);
+
+		const [first] = items();
+		expect(first?.querySelector("sup")).toHaveTextContent("2");
+		expect(
+			screen.getByRole("button", { name: "Pergunta 1: Quanto é 22?" }),
+		).toBeInTheDocument();
 	});
 
 	it("shows the type name, the two answers and the alert of a true/false question", () => {

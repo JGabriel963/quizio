@@ -1,7 +1,22 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/montserrat";
+/*
+ * Montserrat in its static weights, as Kahoot uses it: hinted, so on Windows
+ * the regular text is as heavy as Kahoot's (the variable file is unhinted and
+ * draws thinner). Each weight downloads only when a page uses it.
+ */
+@import "@fontsource/montserrat/400.css";
+@import "@fontsource/montserrat/500.css";
+@import "@fontsource/montserrat/600.css";
+@import "@fontsource/montserrat/700.css";
+@import "@fontsource/montserrat/800.css";
+@import "@fontsource/montserrat/900.css";
+/* The statement's italic and bold italic (spec 047): without them the browser slants the upright font. */
+@import "@fontsource/montserrat/400-italic.css";
+@import "@fontsource/montserrat/700-italic.css";
+/* The symbols of "Insira um símbolo" that Montserrat lacks (spec 047, RN-16). */
+@import "../fonts/quizio-symbols.css";
 @source "../../../apps/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 
@@ -183,7 +198,8 @@
 }
 
 @theme inline {
-	--font-sans: "Montserrat Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-sans:
+		"Montserrat", "Quizio Symbols", ui-sans-serif, system-ui, sans-serif;
 	--color-answer-red: var(--answer-red);
 	--color-answer-blue: var(--answer-blue);
 	--color-answer-yellow: var(--answer-yellow);

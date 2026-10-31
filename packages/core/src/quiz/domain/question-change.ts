@@ -2,6 +2,18 @@ import { DomainError } from "../../shared/domain/domain-error";
 import { NotFoundError } from "../../shared/domain/not-found-error";
 import { ANSWER_MARGINS } from "../../shared/domain/slider-scale";
 import {
+	copyTextFormatting,
+	NO_FORMATTING,
+	type TextFormatting,
+} from "../../shared/domain/text-formatting";
+import {
+	type AnswerImage,
+	type AnswerImageInput,
+	newAnswerImage,
+	parseAnswerCrop,
+	parseAnswerImage,
+} from "./answer-image";
+import {
 	blankContent,
 	type Choice,
 	choiceIdAt,
@@ -11,14 +23,15 @@ import {
 	InvalidQuestionTypeError,
 	InvalidSelectionModeError,
 	InvalidSliderNumberError,
+	isFilledChoice,
 	MAX_ACCEPTED_ANSWERS,
 	MAX_CHOICE_COUNT,
 	PUZZLE_ITEM_COUNT,
 	type PuzzleQuestion,
 	parseAcceptedAnswer,
-	parseChoiceText,
+	parseAnswer,
 	parsePoints,
-	parseQuestionText,
+	parseQuestionStatement,
 	parseQuestionType,
 	parseSelection,
 	parseSliderNumber,
@@ -51,7 +64,14 @@ export type QuestionContentInput =
 	| {
 			type: "quiz";
 			selection: string;
-			choices: { text: string | null; correct: boolean }[];
+			choices: {
+				text: string | null;
+				/** Spec 048: none sent is none kept. */
+				textFormatting?: TextFormatting;
+				/** Spec 049: never with a text. */
+				image?: AnswerImageInput | null;
+				correct: boolean;
+			}[];
 	  }
 	| { type: "trueFalse"; correct: boolean | null }
 	| { type: "typeAnswer"; acceptedAnswers: (string | null)[] }
@@ -63,18 +83,48 @@ export type QuestionContentInput =
 			unit: string | null;
 			answerMargin: string;
 	  }
-	| { type: "puzzle"; items: (string | null)[] };
+	| {
+			type: "puzzle";
+			items: (string | null)[];
+			/** Spec 048: one per slot; missing ones are none. */
+			itemFormatting?: TextFormatting[];
+			/** Spec 049: one per slot, never with a text. */
+			itemImages?: (AnswerImageInput | null)[];
+	  };
+
+/** Which answer an image change is about: a quiz choice or a puzzle slot (spec 049). */
+export type AnswerRef = { choiceId: string } | { slot: number };
+
+export class AnswerHasImageError extends DomainError {
+	readonly code = "QUIZ.ANSWER_HAS_IMAGE";
+}
+
+export class AnswerHasNoImageError extends DomainError {
+	readonly code = "QUIZ.ANSWER_HAS_NO_IMAGE";
+}
+
+/** An answer is a text or an image, never both (spec 049, RN-01, RN-27). */
+export class AnswerTextAndImageError extends DomainError {
+	readonly code = "QUIZ.ANSWER_TEXT_AND_IMAGE";
+}
 
 /**
  * One edit of a question (specs 004, 005). Values arrive raw (from the API or
  * the optimistic client) and are validated here.
  */
 export type QuestionChange =
-	| { kind: "text"; text: string | null }
+	/** The whole statement with its formatting; none sent is none kept (spec 047, RN-18). */
+	| { kind: "text"; text: string | null; formatting?: TextFormatting }
 	| { kind: "timeLimit"; seconds: number }
 	| { kind: "points"; points: string }
 	| { kind: "selection"; selection: string }
-	| { kind: "choiceText"; choiceId: string; text: string | null }
+	/** The whole answer with its formatting; none sent is none kept (spec 048, RN-13). */
+	| {
+			kind: "choiceText";
+			choiceId: string;
+			text: string | null;
+			formatting?: TextFormatting;
+	  }
 	| { kind: "choiceCorrect"; choiceId: string; correct: boolean }
 	| { kind: "extraChoices"; visible: boolean }
 	| { kind: "trueFalseCorrect"; correct: boolean }
@@ -94,8 +144,20 @@ export type QuestionChange =
 	| { kind: "sliderUnit"; text: string | null }
 	| { kind: "answerMargin"; margin: string }
 	/** Spec 033: a slot's text, and a slot taken to another place (RN-03, RN-05). */
-	| { kind: "puzzleItemText"; index: number; text: string | null }
+	| {
+			kind: "puzzleItemText";
+			index: number;
+			text: string | null;
+			formatting?: TextFormatting;
+	  }
 	| { kind: "puzzleItemMoved"; from: number; to: number }
+	/**
+	 * Spec 049: an answer's image, which takes the place of its text (RN-07);
+	 * null removes it and leaves the answer empty (RN-13).
+	 */
+	| { kind: "answerImage"; answer: AnswerRef; key: string | null }
+	| { kind: "answerImageCrop"; answer: AnswerRef; crop: ImageCropInput }
+	| { kind: "answerImageAltText"; answer: AnswerRef; altText: string | null }
 	/** `remembered` is what the question had in that type earlier in the session (RN-17). */
 	| { kind: "type"; type: string; remembered: QuestionContentInput | null }
 	/** A new upload, or null to remove the image with its adjustments (spec 007). */
@@ -186,20 +248,63 @@ export function parseQuestionContent(
 				answerMargin: parseAnswerMargin(input.answerMargin),
 			};
 		case "puzzle":
-			return { type: input.type, items: parsePuzzleItems(input.items) };
+			return {
+				type: input.type,
+				...parsePuzzleItems(
+					input.items,
+					input.itemFormatting ?? [],
+					input.itemImages ?? [],
+				),
+			};
 	}
 }
 
-/** Four slots, each checked as a quiz answer; missing ones are empty. */
-function parsePuzzleItems(items: (string | null)[]): (string | null)[] {
+/**
+ * Four slots, each checked as a quiz answer with its formatting (spec 048);
+ * missing ones are empty.
+ */
+function parsePuzzleItems(
+	items: (string | null)[],
+	itemFormatting: readonly TextFormatting[],
+	itemImages: readonly (AnswerImageInput | null)[],
+): Pick<PuzzleQuestion, "items" | "itemFormatting" | "itemImages"> {
 	if (items.length > PUZZLE_ITEM_COUNT) {
 		throw new PuzzleItemNotFoundError(
 			`A puzzle has ${PUZZLE_ITEM_COUNT} slots`,
 		);
 	}
-	return Array.from({ length: PUZZLE_ITEM_COUNT }, (_, index) =>
-		parseChoiceText(items[index]),
+	const slots = Array.from({ length: PUZZLE_ITEM_COUNT }, (_, index) =>
+		parseTextOrImage(
+			items[index],
+			itemFormatting[index] ?? NO_FORMATTING,
+			itemImages[index],
+		),
 	);
+	return {
+		items: slots.map(({ text }) => text),
+		itemFormatting: slots.map(({ textFormatting }) => textFormatting),
+		itemImages: slots.map(({ image }) => image),
+	};
+}
+
+/** An answer sent whole: a text with its formatting, or an image (spec 049, RN-01). */
+function parseTextOrImage(
+	rawText: string | null | undefined,
+	formatting: TextFormatting,
+	rawImage: AnswerImageInput | null | undefined,
+): {
+	text: string | null;
+	textFormatting: TextFormatting;
+	image: AnswerImage | null;
+} {
+	const { text, textFormatting } = parseAnswer(rawText, formatting);
+	const image = rawImage ? parseAnswerImage(rawImage) : null;
+	if (image && text !== null) {
+		throw new AnswerTextAndImageError(
+			"An answer is a text or an image, not both",
+		);
+	}
+	return { text, textFormatting, image };
 }
 
 /** A remembered number: finite, with at most 2 decimals (spec 032, RN-04). */
@@ -246,13 +351,23 @@ function parseQuizInput(
 		);
 	}
 	const choices = input.choices.map((choice, index) => {
-		const text = parseChoiceText(choice.text);
-		if (choice.correct && text === null) {
+		const { text, textFormatting, image } = parseTextOrImage(
+			choice.text,
+			choice.textFormatting ?? NO_FORMATTING,
+			choice.image,
+		);
+		if (choice.correct && text === null && image === null) {
 			throw new EmptyChoiceCannotBeCorrectError(
 				"An empty answer cannot be correct",
 			);
 		}
-		return { id: choiceIdAt(index), text, correct: choice.correct };
+		return {
+			id: choiceIdAt(index),
+			text,
+			textFormatting,
+			image,
+			correct: choice.correct,
+		};
 	});
 	const selection = parseSelection(input.selection);
 	if (
@@ -325,12 +440,19 @@ function setPuzzleItem(
 	question: PuzzleQuestion,
 	index: number,
 	rawText: string | null,
+	formatting: TextFormatting,
 ): QuestionChangeResult {
 	requirePuzzleSlot(index);
-	const text = parseChoiceText(rawText);
+	if (question.itemImages[index]) {
+		throw new AnswerHasImageError("This answer is an image");
+	}
+	const { text, textFormatting } = parseAnswer(rawText, formatting);
 	return unchanged({
 		...question,
 		items: question.items.map((item, i) => (i === index ? text : item)),
+		itemFormatting: question.itemFormatting.map((kept, i) =>
+			i === index ? textFormatting : kept,
+		),
 	});
 }
 
@@ -348,7 +470,68 @@ function movePuzzleItem(
 	const items = [...question.items];
 	const [moved] = items.splice(from, 1);
 	items.splice(to, 0, moved ?? null);
-	return unchanged({ ...question, items });
+	// The formatting goes with its text (spec 048, RN-11).
+	const itemFormatting = [...question.itemFormatting];
+	const [movedFormatting] = itemFormatting.splice(from, 1);
+	itemFormatting.splice(to, 0, movedFormatting ?? NO_FORMATTING);
+	// And so does the image (spec 049, RN-15).
+	const itemImages = [...question.itemImages];
+	const [movedImage] = itemImages.splice(from, 1);
+	itemImages.splice(to, 0, movedImage ?? null);
+	return unchanged({ ...question, items, itemFormatting, itemImages });
+}
+
+/**
+ * Applies `update` to the image of one answer, a choice or a slot (spec 049);
+ * `image` is what the answer has, `null` when it is text or empty.
+ */
+function updateAnswerImage(
+	question: Question,
+	answer: AnswerRef,
+	update: (image: AnswerImage | null) => AnswerImage | null,
+): Question {
+	if ("choiceId" in answer) {
+		return replaceChoice(requireQuiz(question), answer.choiceId, (choice) => {
+			const image = update(choice.image);
+			return image
+				? { ...choice, text: null, textFormatting: NO_FORMATTING, image }
+				: // Removed: an empty answer is never correct (RN-13).
+					{
+						...choice,
+						text: choice.image ? null : choice.text,
+						textFormatting: choice.image
+							? NO_FORMATTING
+							: choice.textFormatting,
+						image: null,
+						correct: choice.image ? false : choice.correct,
+					};
+		});
+	}
+	const puzzle = requirePuzzle(question);
+	requirePuzzleSlot(answer.slot);
+	const kept = puzzle.itemImages[answer.slot] ?? null;
+	const image = update(kept);
+	const replaces = image !== null || kept !== null;
+	return {
+		...puzzle,
+		items: puzzle.items.map((item, i) =>
+			i === answer.slot && replaces ? null : item,
+		),
+		itemFormatting: puzzle.itemFormatting.map((formatting, i) =>
+			i === answer.slot && replaces ? NO_FORMATTING : formatting,
+		),
+		itemImages: puzzle.itemImages.map((current, i) =>
+			i === answer.slot ? image : current,
+		),
+	};
+}
+
+/** The image an adjustment changes; there must be one (spec 049). */
+function requireAnswerImage(image: AnswerImage | null): AnswerImage {
+	if (!image) {
+		throw new AnswerHasNoImageError("This answer has no image");
+	}
+	return image;
 }
 
 /** Writes a typed number; the range may change past the answer (spec 032, RN-16). */
@@ -469,7 +652,7 @@ function markCorrect(
 	correct: boolean,
 ): QuestionChangeResult {
 	const updated = replaceChoice(question, choiceId, (choice) => {
-		if (correct && choice.text === null) {
+		if (correct && !isFilledChoice(choice)) {
 			throw new EmptyChoiceCannotBeCorrectError(
 				"An empty answer cannot be correct",
 			);
@@ -551,12 +734,12 @@ function changeType(
 		? parseQuestionContent(remembered)
 		: blankContent(type);
 	const answersSetAside =
-		question.type === "quiz" &&
-		question.choices.some((choice) => choice.text !== null);
+		question.type === "quiz" && question.choices.some(isFilledChoice);
 	return {
 		question: {
 			id: question.id,
 			text: question.text,
+			textFormatting: copyTextFormatting(question.textFormatting),
 			// Spec 031, RN-07: below what the new type takes, it gets its shortest time.
 			timeLimitSeconds: fitTimeLimit(type, question.timeLimitSeconds),
 			points: question.points,
@@ -587,7 +770,13 @@ export function applyQuestionChange(
 ): QuestionChangeResult {
 	switch (change.kind) {
 		case "text":
-			return unchanged({ ...question, text: parseQuestionText(change.text) });
+			return unchanged({
+				...question,
+				...parseQuestionStatement(
+					change.text,
+					change.formatting ?? NO_FORMATTING,
+				),
+			});
 		case "timeLimit": {
 			const seconds = parseTimeLimit(change.seconds);
 			if (!timeLimitsFor(question.type).includes(seconds)) {
@@ -602,14 +791,23 @@ export function applyQuestionChange(
 		case "selection":
 			return changeSelection(requireQuiz(question), change.selection);
 		case "choiceText": {
-			const text = parseChoiceText(change.text);
+			const { text, textFormatting } = parseAnswer(
+				change.text,
+				change.formatting ?? NO_FORMATTING,
+			);
 			// RN-06: an empty answer is never correct.
 			return unchanged(
-				replaceChoice(requireQuiz(question), change.choiceId, (choice) => ({
-					...choice,
-					text,
-					correct: choice.correct && text !== null,
-				})),
+				replaceChoice(requireQuiz(question), change.choiceId, (choice) => {
+					if (choice.image) {
+						throw new AnswerHasImageError("This answer is an image");
+					}
+					return {
+						...choice,
+						text,
+						textFormatting,
+						correct: choice.correct && text !== null,
+					};
+				}),
 			);
 		}
 		case "choiceCorrect":
@@ -652,9 +850,38 @@ export function applyQuestionChange(
 				answerMargin: parseAnswerMargin(change.margin),
 			});
 		case "puzzleItemText":
-			return setPuzzleItem(requirePuzzle(question), change.index, change.text);
+			return setPuzzleItem(
+				requirePuzzle(question),
+				change.index,
+				change.text,
+				change.formatting ?? NO_FORMATTING,
+			);
 		case "puzzleItemMoved":
 			return movePuzzleItem(requirePuzzle(question), change.from, change.to);
+		case "answerImage":
+			return unchanged(
+				updateAnswerImage(question, change.answer, () =>
+					change.key === null ? null : newAnswerImage(change.key),
+				),
+			);
+		case "answerImageCrop": {
+			const crop = parseAnswerCrop(change.crop);
+			return unchanged(
+				updateAnswerImage(question, change.answer, (image) => ({
+					...requireAnswerImage(image),
+					crop,
+				})),
+			);
+		}
+		case "answerImageAltText": {
+			const altText = parseImageAltText(change.altText);
+			return unchanged(
+				updateAnswerImage(question, change.answer, (image) => ({
+					...requireAnswerImage(image),
+					altText,
+				})),
+			);
+		}
 		case "type":
 			return changeType(question, change.type, change.remembered);
 		case "image":

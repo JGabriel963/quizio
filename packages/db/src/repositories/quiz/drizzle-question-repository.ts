@@ -7,6 +7,7 @@ import {
 	storedContent,
 } from "@quizio/core/quiz/domain/question";
 import { parseStoredImage } from "@quizio/core/quiz/domain/question-image";
+import { readTextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { and, asc, count, eq, notInArray, sql } from "drizzle-orm";
 
 import { question as questionTable } from "../../schema/quiz";
@@ -17,6 +18,7 @@ type QuestionRow = Pick<
 	| "id"
 	| "type"
 	| "text"
+	| "textFormatting"
 	| "timeLimitSeconds"
 	| "points"
 	| "content"
@@ -29,6 +31,7 @@ function toQuestion(row: QuestionRow): Question {
 	return {
 		id: row.id,
 		text: row.text,
+		textFormatting: readTextFormatting(row.text, row.textFormatting),
 		timeLimitSeconds: parseStoredTimeLimit(row.type, row.timeLimitSeconds),
 		points: QUESTION_POINTS.includes(row.points) ? row.points : "standard",
 		image: parseStoredImage(row.image),
@@ -42,6 +45,7 @@ function toColumns(question: Question) {
 	return {
 		type: question.type,
 		text: question.text,
+		textFormatting: question.textFormatting,
 		timeLimitSeconds: question.timeLimitSeconds,
 		points: question.points,
 		content: storedContent(question),
@@ -62,6 +66,7 @@ export function createDrizzleQuestionRepository(
 					id: questionTable.id,
 					type: questionTable.type,
 					text: questionTable.text,
+					textFormatting: questionTable.textFormatting,
 					timeLimitSeconds: questionTable.timeLimitSeconds,
 					points: questionTable.points,
 					content: questionTable.content,
@@ -117,6 +122,9 @@ export function createDrizzleQuestionRepository(
 							position: sql.raw(`excluded.${questionTable.position.name}`),
 							type: sql.raw(`excluded.${questionTable.type.name}`),
 							text: sql.raw(`excluded.${questionTable.text.name}`),
+							textFormatting: sql.raw(
+								`excluded.${questionTable.textFormatting.name}`,
+							),
 							timeLimitSeconds: sql.raw(
 								`excluded.${questionTable.timeLimitSeconds.name}`,
 							),

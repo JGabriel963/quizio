@@ -1,0 +1,1 @@
+ALTER TABLE "question" ADD COLUMN "text_formatting" jsonb DEFAULT '{}'::jsonb NOT NULL;

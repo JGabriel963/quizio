@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { stubReducedMotion } from "@/testing/reduced-motion";
+import { stubReducedMotion } from "@/testing/media-query";
 
 import { CountUp } from "./count-up";
 

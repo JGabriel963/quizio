@@ -1,122 +1,343 @@
-import { act, render, screen } from "@testing-library/react";
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { renderToString } from "react-dom/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createSaveTracker, SaveTrackerProvider } from "@/lib/save-tracker";
+import {
+	editorOf,
+	formattedField,
+	typeInEditor,
+} from "@/testing/formatted-text-editor";
+import { stubTouchDevice } from "@/testing/media-query";
 
-import { QuestionTextField } from "./question-text-field";
+import { QuestionTextField, type Statement } from "./question-text-field";
 
-function renderField(initialText: string | null = null, hint = false) {
-	const tracker = createSaveTracker();
-	const onSave = vi.fn(async (_text: string | null) => {});
-	render(
-		<SaveTrackerProvider tracker={tracker}>
-			<QuestionTextField
-				questionId="a"
-				initialText={initialText}
-				hint={hint}
-				onSave={onSave}
-			/>
-		</SaveTrackerProvider>,
+function field(
+	initialText: string | null = null,
+	{
+		hint = false,
+		formatting = {},
+	}: { hint?: boolean; formatting?: TextFormatting } = {},
+) {
+	return (onSave: (statement: Statement) => Promise<unknown>) => (
+		<QuestionTextField
+			questionId="a"
+			initialText={initialText}
+			initialFormatting={formatting}
+			hint={hint}
+			onSave={onSave}
+		/>
 	);
-	return { onSave, tracker, user: userEvent.setup() };
 }
 
-const textField = () => screen.getByRole("textbox", { name: "Pergunta" });
+async function renderField(...args: Parameters<typeof field>) {
+	const tracker = createSaveTracker();
+	const onSave = vi.fn(async (_statement: Statement) => {});
+	render(
+		<SaveTrackerProvider tracker={tracker}>
+			<button type="button">Fora</button>
+			{field(...args)(onSave)}
+		</SaveTrackerProvider>,
+	);
+	const textbox = await formattedField(() =>
+		screen.getByRole("textbox", { name: "Pergunta" }),
+	);
+	return {
+		onSave,
+		tracker,
+		textbox,
+		editor: editorOf(textbox),
+		user: userEvent.setup(),
+	};
+}
 
-describe("QuestionTextField", () => {
-	it("keeps the first 160 characters when typing or pasting 170", async () => {
-		const { user } = renderField();
+const toolbar = () =>
+	screen.queryByRole("toolbar", { name: "Formatação do enunciado" });
 
-		await user.click(textField());
-		await user.paste(`${"é".repeat(159)}🎉${"x".repeat(10)}`);
+describe("QuestionTextField (spec 003, RN-10; spec 047)", () => {
+	it("is a textbox named Pergunta", async () => {
+		const { textbox } = await renderField("Capital?");
 
-		expect(textField()).toHaveValue(`${"é".repeat(159)}🎉`);
+		expect(textbox).toHaveAttribute("contenteditable", "true");
+		expect(textbox).toHaveAttribute(
+			"aria-placeholder",
+			"Comece a digitar a pergunta",
+		);
+		expect(textbox).toHaveTextContent("Capital?");
+		expect(textbox).toHaveClass("font-normal", "overflow-y-auto");
+		expect(textbox.className).toMatch(/max-h-/);
+	});
+
+	it("shows the toolbar only while the statement or the toolbar has focus", async () => {
+		const { textbox, user } = await renderField("Capital?");
+		expect(toolbar()).toBeNull();
+
+		act(() => textbox.focus());
+		expect(toolbar()).toBeInTheDocument();
+		await user.click(
+			within(toolbar() as HTMLElement).getByRole("button", {
+				name: "Negrito",
+			}),
+		);
+		expect(toolbar()).toBeInTheDocument();
+		expect(textbox).toHaveFocus();
+
+		await user.click(screen.getByRole("button", { name: "Fora" }));
+		expect(toolbar()).toBeNull();
+	});
+
+	it("saves the text and its formatting after the pause and on blur", async () => {
+		const { editor, onSave, textbox, tracker, user } = await renderField("");
+		act(() => textbox.focus());
+
+		typeInEditor(textbox, "Qual destas ");
+		await user.click(screen.getByRole("button", { name: "Negrito" }));
+		typeInEditor(textbox, "não");
+		await user.click(screen.getByRole("button", { name: "Negrito" }));
+		typeInEditor(textbox, " é capital?");
+		await act(() => tracker.flush());
+
+		expect(onSave).toHaveBeenLastCalledWith({
+			text: "Qual destas não é capital?",
+			formatting: { bold: [[12, 15]] },
+		});
+		expect(editor.isActive("bold")).toBe(false);
+	});
+
+	it("an empty statement saves no text and no formatting", async () => {
+		const { editor, onSave, textbox, tracker } = await renderField("x", {
+			formatting: { bold: [[0, 1]] },
+		});
+		act(() => textbox.focus());
+
+		act(() => {
+			editor.chain().selectAll().deleteSelection().run();
+		});
+		await act(() => tracker.flush());
+
+		expect(onSave).toHaveBeenLastCalledWith({ text: null, formatting: {} });
+	});
+
+	it("the counter ignores the formatting", async () => {
+		const { editor, textbox } = await renderField(
+			"Texto normal, texto em negrito, texto em itálico e negrito",
+		);
+		act(() => textbox.focus());
+		expect(screen.getByText("102 caracteres restantes")).toBeInTheDocument();
+
+		act(() => {
+			editor.chain().selectAll().toggleBold().run();
+		});
+
+		expect(screen.getByText("102 caracteres restantes")).toBeInTheDocument();
+	});
+
+	it("a picked symbol goes in at the cursor and the counter drops by one", async () => {
+		const { editor, onSave, textbox, tracker, user } =
+			await renderField("Quanto vale ?");
+		act(() => {
+			textbox.focus();
+			editor.commands.setTextSelection(13);
+		});
+		expect(screen.getByText("147 caracteres restantes")).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Símbolos" }));
+		const dialog = screen.getByRole("dialog", { name: "Insira um símbolo" });
+		await user.click(within(dialog).getByRole("tab", { name: "Matemática" }));
+		await user.click(within(dialog).getByRole("button", { name: "π" }));
+		await act(() => tracker.flush());
+
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(textbox).toHaveTextContent("Quanto vale π?");
+		expect(onSave).toHaveBeenLastCalledWith({
+			text: "Quanto vale π?",
+			formatting: {},
+		});
+		expect(screen.getByText("146 caracteres restantes")).toBeInTheDocument();
+	});
+
+	it("a symbol replaces the selection and takes the marks where it goes", async () => {
+		const { editor, onSave, textbox, tracker, user } = await renderField(
+			"Custa 10 dólares",
+			{
+				formatting: { bold: [[0, 5]] },
+			},
+		);
+		act(() => {
+			textbox.focus();
+			// "dólares": from 9 to 16 in the text, 10 to 17 in the document.
+			editor.commands.setTextSelection({ from: 10, to: 17 });
+		});
+
+		await user.click(screen.getByRole("button", { name: "Símbolos" }));
+		const dialog = screen.getByRole("dialog", { name: "Insira um símbolo" });
+		await user.click(within(dialog).getByRole("tab", { name: "Moeda" }));
+		await user.click(within(dialog).getByRole("button", { name: "$" }));
+		act(() => {
+			editor.commands.setTextSelection(4);
+		});
+		await user.click(screen.getByRole("button", { name: "Símbolos" }));
+		await user.click(
+			within(screen.getByRole("dialog")).getByRole("tab", { name: "Grego" }),
+		);
+		await user.click(
+			within(screen.getByRole("dialog")).getByRole("button", { name: "Ω" }),
+		);
+		await act(() => tracker.flush());
+
+		expect(onSave).toHaveBeenLastCalledWith({
+			text: "CusΩta 10 $",
+			formatting: { bold: [[0, 6]] },
+		});
+	});
+
+	it("a symbol that does not fit changes nothing", async () => {
+		const full = "a".repeat(160);
+		const { editor, textbox, user } = await renderField(full);
+		act(() => {
+			textbox.focus();
+			editor.commands.setTextSelection(81);
+		});
+
+		await user.click(screen.getByRole("button", { name: "Símbolos" }));
+		await user.click(
+			within(screen.getByRole("dialog")).getByRole("button", { name: "Ç" }),
+		);
+
+		expect(textbox).toHaveTextContent(full);
 		expect(screen.getByText("0 caracteres restantes")).toBeInTheDocument();
 	});
 
-	it("shows the remaining characters only while the field is focused", async () => {
-		const { user } = renderField("teste");
+	it("closing the dialog gives the focus back to the field", async () => {
+		const { editor, textbox, user } = await renderField("Quanto vale ?");
+		act(() => {
+			textbox.focus();
+			editor.commands.setTextSelection(13);
+		});
 
-		expect(screen.queryByText(/caracteres restantes/)).toBeNull();
-		await user.click(textField());
+		await user.click(screen.getByRole("button", { name: "Símbolos" }));
+		await user.click(
+			within(screen.getByRole("dialog")).getByRole("button", {
+				name: "Cancelar",
+			}),
+		);
 
-		expect(screen.getByText("155 caracteres restantes")).toBeInTheDocument();
-		await user.type(textField(), "s");
-		expect(screen.getByText("154 caracteres restantes")).toBeInTheDocument();
-
-		await user.tab();
-		expect(screen.queryByText(/caracteres restantes/)).toBeNull();
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(textbox).toHaveFocus();
+		expect(editor.state.selection.from).toBe(13);
+		expect(textbox).toHaveTextContent("Quanto vale ?");
 	});
 
-	it("an empty focused field shows the whole limit", async () => {
-		const { user } = renderField();
+	it("before the editor mounts, the statement shows formatted", () => {
+		const html = renderToString(
+			<SaveTrackerProvider tracker={createSaveTracker()}>
+				{field("H2O", { formatting: { subscript: [[1, 2]] } })(async () => {})}
+			</SaveTrackerProvider>,
+		);
 
-		await user.click(textField());
-
-		expect(screen.getByText("160 caracteres restantes")).toBeInTheDocument();
-	});
-
-	it("autosaves the text", async () => {
-		const { onSave, tracker, user } = renderField();
-
-		await user.type(textField(), "Qual é a capital do Brasil?");
-		await act(() => tracker.flush());
-
-		expect(onSave).toHaveBeenLastCalledWith("Qual é a capital do Brasil?");
+		expect(html).toContain("H<sub>2</sub>O");
 	});
 
 	it("hints an empty text only when asked to, and describes the field with it", async () => {
-		const { user } = renderField(null, true);
+		const { textbox } = await renderField(null, { hint: true });
 
-		expect(textField()).toHaveAccessibleDescription(
+		expect(textbox).toHaveAccessibleDescription(
 			"Nenhuma pergunta foi adicionada.",
 		);
-		await user.type(textField(), "Capital?");
+		typeInEditor(textbox, "Capital?");
 
 		expect(screen.queryByText("Nenhuma pergunta foi adicionada.")).toBeNull();
 	});
 
-	it("shows no hint by default", () => {
-		renderField();
+	it("shows no hint by default", async () => {
+		await renderField();
 
 		expect(screen.queryByText("Nenhuma pergunta foi adicionada.")).toBeNull();
 	});
 
-	it("uses the Kahoot placeholder", () => {
-		renderField();
+	it("an empty focused field shows the whole limit, and only while focused", async () => {
+		const { textbox, user } = await renderField();
+		expect(screen.queryByText(/caracteres restantes/)).toBeNull();
 
-		expect(textField()).toHaveAttribute(
-			"placeholder",
-			"Comece a digitar a pergunta",
-		);
+		act(() => textbox.focus());
+		expect(screen.getByText("160 caracteres restantes")).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Fora" }));
+		expect(screen.queryByText(/caracteres restantes/)).toBeNull();
+	});
+});
+
+describe("QuestionTextField on a phone or a tablet", () => {
+	const fieldset = () => screen.getByRole("group", { name: "Enunciado" });
+	const backdrop = () =>
+		document.querySelector("[data-slot=statement-backdrop]");
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
 	});
 
-	it("shows a long question whole, wrapping, up to a height and then scrolling", () => {
-		renderField(
-			"Qual foi o nome da caverna comprada por Abraão para sepultar Sara?",
-		);
+	it("rises over a darkened screen while edited, keeping a copy in its place", async () => {
+		stubTouchDevice(true);
+		const { textbox } = await renderField("Capital?");
+		expect(backdrop()).toBeNull();
 
-		expect(textField().tagName).toBe("TEXTAREA");
-		expect(textField()).toHaveClass("overflow-y-auto");
-		expect(textField().className).toMatch(/max-h-/);
+		act(() => textbox.focus());
+
+		expect(fieldset()).toHaveClass("fixed");
+		expect(backdrop()).toBeInTheDocument();
+		expect(screen.getAllByText("Capital?")).toHaveLength(2);
 	});
 
-	it("Enter adds no line break: the question is one sentence", async () => {
-		const { user } = renderField("Capital");
+	it("goes back to its place when the darkened screen is touched", async () => {
+		stubTouchDevice(true);
+		const { textbox } = await renderField("Capital?");
+		act(() => textbox.focus());
 
-		await user.click(textField());
-		await user.keyboard("{End}{Enter} do Brasil?");
+		const press = new PointerEvent("pointerdown", {
+			bubbles: true,
+			cancelable: true,
+		});
+		act(() => {
+			backdrop()?.dispatchEvent(press);
+		});
+		// The press alone keeps the panel: the click that follows must land on
+		// the backdrop, not on the answer under it.
+		expect(press.defaultPrevented).toBe(true);
+		expect(backdrop()).toBeInTheDocument();
 
-		expect(textField()).toHaveValue("Capital do Brasil?");
+		act(() => {
+			(backdrop() as HTMLElement).click();
+		});
+
+		expect(textbox).not.toHaveFocus();
+		expect(fieldset()).not.toHaveClass("fixed");
+		expect(backdrop()).toBeNull();
 	});
 
-	it("line breaks of a pasted text become spaces", async () => {
-		const { user } = renderField();
+	it("stays up while the symbols dialog is open", async () => {
+		stubTouchDevice(true);
+		const { textbox, user } = await renderField("Capital?");
+		act(() => textbox.focus());
 
-		await user.click(textField());
-		await user.paste("Qual é a\ncapital\r\ndo Brasil?");
+		await user.click(screen.getByRole("button", { name: "Símbolos" }));
 
-		expect(textField()).toHaveValue("Qual é a capital do Brasil?");
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		// The modal dialog hides the page from the accessibility tree.
+		expect(
+			document.querySelector("fieldset[aria-label=Enunciado]"),
+		).toHaveClass("fixed");
+		expect(backdrop()).toBeInTheDocument();
+	});
+
+	it("stays in place on a computer, whatever the window's width", async () => {
+		stubTouchDevice(false);
+		const { textbox } = await renderField("Capital?");
+
+		act(() => textbox.focus());
+
+		expect(fieldset()).not.toHaveClass("fixed");
+		expect(backdrop()).toBeNull();
 	});
 });

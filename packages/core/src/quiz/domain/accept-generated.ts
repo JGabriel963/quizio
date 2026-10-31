@@ -1,4 +1,5 @@
 import { DomainError } from "../../shared/domain/domain-error";
+import { NO_FORMATTING } from "../../shared/domain/text-formatting";
 import { GENERATION_MAX_QUESTIONS, type GenerationOptions } from "./generation";
 import {
 	type Choice,
@@ -74,6 +75,9 @@ function quizContent(
 	const choices: Choice[] = Array.from({ length: slots }, (_, index) => ({
 		id: choiceIdAt(index),
 		text: filled[index]?.text ?? null,
+		// The assistant writes plain answers (spec 048, out of scope).
+		textFormatting: NO_FORMATTING,
+		image: null,
 		correct: filled[index]?.correct ?? false,
 	}));
 	return {
@@ -103,6 +107,8 @@ function buildQuestion(
 	const question: Question = {
 		id,
 		text,
+		// The assistant writes plain text (spec 047, out of scope).
+		textFormatting: NO_FORMATTING,
 		timeLimitSeconds: DEFAULT_TIME_LIMIT_SECONDS,
 		points: "standard",
 		image: null,

@@ -50,7 +50,7 @@ async function publishPuzzleQuiz(page: Page, title: string) {
 	// CA-02: four slots, the fourth optional, and the hint.
 	await expect(
 		page.getByRole("textbox", { name: "Resposta 4" }),
-	).toHaveAttribute("placeholder", "Adicionar resposta 4 (opcional)");
+	).toHaveAttribute("aria-placeholder", "Adicionar resposta 4 (opcional)");
 	await expect(
 		page.getByText("Adicione no mínimo 3 respostas na ordem correta."),
 	).toBeVisible();
@@ -62,10 +62,10 @@ async function publishPuzzleQuiz(page: Page, title: string) {
 	// CA-04: the keyboard takes Amazonas to the top; the colors stay put.
 	await page.getByRole("button", { name: "Mover Amazonas" }).focus();
 	await page.keyboard.press("ArrowUp");
-	await expect(page.getByRole("textbox", { name: "Resposta 1" })).toHaveValue(
+	await expect(page.getByRole("textbox", { name: "Resposta 1" })).toHaveText(
 		"Amazonas",
 	);
-	await expect(page.getByRole("textbox", { name: "Resposta 2" })).toHaveValue(
+	await expect(page.getByRole("textbox", { name: "Resposta 2" })).toHaveText(
 		"Nilo",
 	);
 	await expectSaved(page);

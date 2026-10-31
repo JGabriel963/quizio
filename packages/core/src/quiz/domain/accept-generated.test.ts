@@ -62,10 +62,51 @@ describe("acceptGeneratedQuestions", () => {
 		expect(question.text).toBe("Qual é o maior planeta do sistema solar?");
 		expect(question.selection).toBe("single");
 		expect(question.choices).toEqual([
-			{ id: "choice-1", text: "Terra", correct: false },
-			{ id: "choice-2", text: "Júpiter", correct: true },
-			{ id: "choice-3", text: "Marte", correct: false },
-			{ id: "choice-4", text: "Vênus", correct: false },
+			{
+				id: "choice-1",
+				text: "Terra",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-2",
+				text: "Júpiter",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-3",
+				text: "Marte",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-4",
+				text: "Vênus",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+		]);
+	});
+
+	it("generated answers have no formatting (spec 048)", () => {
+		const { questions } = accept([quizDraft()]);
+
+		expect(
+			asQuiz(questions[0]).choices.map((choice) => choice.textFormatting),
+		).toEqual([{}, {}, {}, {}]);
+	});
+
+	it("a generated question has no formatting", () => {
+		const { questions } = accept([quizDraft(), trueFalseDraft], extract);
+
+		expect(questions.map((question) => question.textFormatting)).toEqual([
+			{},
+			{},
 		]);
 	});
 
@@ -184,6 +225,8 @@ describe("acceptGeneratedQuestions", () => {
 		expect(withFive.choices[4]).toEqual({
 			id: "choice-5",
 			text: "E",
+			textFormatting: {},
+			image: null,
 			correct: true,
 		});
 		expect(withFive.choices[5]?.text).toBeNull();

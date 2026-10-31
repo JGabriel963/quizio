@@ -1,3 +1,4 @@
+import { imageKeysOf } from "@quizio/core/quiz/application/question-images";
 import { TIME_LIMITS_SECONDS } from "@quizio/core/quiz/domain/question";
 import { QUIZ_MAX_QUESTIONS } from "@quizio/core/quiz/domain/question-list";
 import { z } from "zod";
@@ -52,9 +53,10 @@ export const questionTools = [
 				afterQuestionId: afterQuestionId ?? null,
 				questions: drafts,
 			});
-			const imageUrls = added.questions.some((question) => question.image)
-				? await imageUrlsOf(id, context)
-				: {};
+			const imageUrls =
+				imageKeysOf(added.questions).length > 0
+					? await imageUrlsOf(id, context)
+					: {};
 			return {
 				questions: added.questions.map((question, index) =>
 					questionOutput(question, added.firstIndex + index + 1, imageUrls),

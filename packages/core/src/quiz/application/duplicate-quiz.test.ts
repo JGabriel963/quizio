@@ -5,7 +5,12 @@ import { InMemoryObjectStorage } from "../../shared/testing/in-memory-object-sto
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { blankQuestion } from "../domain/question";
 import { QuizInTrashError, QuizNotFoundError } from "../domain/quiz";
-import { aQuestion, aTrueFalseQuestion } from "../testing/a-question";
+import {
+	aPuzzleQuestion,
+	aQuestion,
+	asPuzzle,
+	aTrueFalseQuestion,
+} from "../testing/a-question";
 import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
@@ -113,6 +118,42 @@ describe("duplicateQuiz", () => {
 		]);
 	});
 
+	it("the copy keeps the formatting (spec 047, RN-20)", async () => {
+		await quizzes.save(aQuiz());
+		await questions.saveList("quiz-1", [
+			aQuestion({
+				id: "a",
+				text: "H2O",
+				textFormatting: { subscript: [[1, 2]] },
+			}),
+		]);
+
+		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(questions.listOf(copy.id)[0]?.textFormatting).toEqual({
+			subscript: [[1, 2]],
+		});
+	});
+
+	it("the copy keeps the answers' formatting (spec 048, RN-15)", async () => {
+		await quizzes.save(aQuiz());
+		await questions.saveList("quiz-1", [
+			aPuzzleQuestion({
+				id: "a",
+				itemFormatting: [{ bold: [[0, 4]] }, {}, {}, {}],
+			}),
+		]);
+
+		const copy = await duplicateQuiz({ ownerId: "user-1", quizId: "quiz-1" });
+
+		expect(asPuzzle(questions.listOf(copy.id)[0]).itemFormatting).toEqual([
+			{ bold: [[0, 4]] },
+			{},
+			{},
+			{},
+		]);
+	});
+
 	it("copies answers, corrects, selection, time and points", async () => {
 		await quizzes.save(aQuiz());
 		const original = aQuestion({
@@ -122,12 +163,48 @@ describe("duplicateQuiz", () => {
 			timeLimitSeconds: 45,
 			points: "double",
 			choices: [
-				{ id: "choice-1", text: "Paris", correct: true },
-				{ id: "choice-2", text: "Lyon", correct: false },
-				{ id: "choice-3", text: "Paris (FR)", correct: true },
-				{ id: "choice-4", text: null, correct: false },
-				{ id: "choice-5", text: "Nice", correct: false },
-				{ id: "choice-6", text: null, correct: false },
+				{
+					id: "choice-1",
+					text: "Paris",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-2",
+					text: "Lyon",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-3",
+					text: "Paris (FR)",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-4",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-5",
+					text: "Nice",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-6",
+					text: null,
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
 			],
 		});
 		await questions.saveList("quiz-1", [original]);

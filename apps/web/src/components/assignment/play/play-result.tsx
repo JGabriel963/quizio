@@ -3,6 +3,7 @@ import { CheckIcon, XIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { PuzzleBlock, PuzzleBlockCheck } from "@/components/game/puzzle-block";
+import { AnswerContent } from "@/components/quiz/answer-image";
 import type { QuestionResultData } from "@/lib/api-types";
 import { CountUp } from "@/lib/count-up";
 import { usePrefersReducedMotion } from "@/lib/game-motion";
@@ -61,6 +62,7 @@ export function PlayResult({
 			<ProgressSegments index={result.question.index} count={questionCount} />
 			<QuestionLayout
 				text={result.question.text}
+				formatting={result.question.textFormatting}
 				top={<ResultStrip result={result} animate={animate} />}
 				answers={
 					result.sliderAnswer ? (
@@ -226,6 +228,8 @@ function PuzzleResult({ result }: { result: QuestionResultData }) {
 							<PuzzleBlock
 								shapeIndex={choice.shapeIndex}
 								text={choice.text}
+								textFormatting={choice.textFormatting}
+								image={choice.image}
 								className="min-h-10 text-sm shadow-none"
 							/>
 						</li>
@@ -248,6 +252,8 @@ function PuzzleResult({ result }: { result: QuestionResultData }) {
 							<PuzzleBlock
 								shapeIndex={choice.shapeIndex}
 								text={choice.text}
+								textFormatting={choice.textFormatting}
+								image={choice.image}
 								className="min-h-10 text-sm"
 								end={<PuzzleBlockCheck />}
 							/>
@@ -334,8 +340,12 @@ function ResultAnswers({ result }: { result: QuestionResultData }) {
 										: "bg-answer-red/35 text-white/60 shadow-none",
 							)}
 						>
-							<span className="w-full break-words text-center font-bold text-lg leading-tight sm:text-2xl">
-								{choice.text}
+							<span className="flex w-full justify-center break-words text-center font-bold text-lg leading-tight sm:text-2xl">
+								<AnswerContent
+									answer={choice}
+									index={choice.shapeIndex}
+									imageClassName="h-24 sm:h-32"
+								/>
 							</span>
 							<span
 								aria-hidden="true"

@@ -130,7 +130,7 @@ test("an unanswered true/false question is still saved and keeps its alert", asy
 
 	await reload(page);
 
-	await expect(questionText(page)).toHaveValue("O céu é azul");
+	await expect(questionText(page)).toHaveText("O céu é azul");
 	await expect(answers(page)).toHaveText(["Verdadeiro", "Falso"]);
 	await expect(correctHint(page)).toBeVisible();
 	await expect(
@@ -152,9 +152,7 @@ test("changing the type keeps the question, and the answers come back within the
 	await choose(page, "Tipo de pergunta", "Verdadeiro ou falso");
 
 	await expect(page.getByText(KEPT_NOTICE)).toBeVisible();
-	await expect(questionText(page)).toHaveValue(
-		"A capital do Brasil é Brasília",
-	);
+	await expect(questionText(page)).toHaveText("A capital do Brasil é Brasília");
 	await expect(answers(page)).toHaveText(["Verdadeiro", "Falso"]);
 	await expect(mark(page, "Verdadeiro")).not.toBeChecked();
 	await expect(mark(page, "Falso")).not.toBeChecked();
@@ -163,12 +161,12 @@ test("changing the type keeps the question, and the answers come back within the
 
 	// Back to Quiz in the same session: the answers return (RN-17).
 	await choose(page, "Tipo de pergunta", "Quiz");
-	await expect(answer(page, 1)).toHaveValue("Sim");
-	await expect(answer(page, 2)).toHaveValue("Não");
+	await expect(answer(page, 1)).toHaveText("Sim");
+	await expect(answer(page, 2)).toHaveText("Não");
 	await expect(answerMark(page, 1)).toBeChecked();
 
 	await reload(page);
-	await expect(answer(page, 1)).toHaveValue("Sim");
+	await expect(answer(page, 1)).toHaveText("Sim");
 	await expect(answerMark(page, 1)).toBeChecked();
 
 	// After a reload the editor forgot the quiz answers (RN-18).
@@ -177,11 +175,9 @@ test("changing the type keeps the question, and the answers come back within the
 	await expect(answers(page)).toHaveText(["Verdadeiro", "Falso"]);
 	await choose(page, "Tipo de pergunta", "Quiz");
 
-	await expect(answer(page, 1)).toHaveValue("");
-	await expect(answer(page, 2)).toHaveValue("");
-	await expect(questionText(page)).toHaveValue(
-		"A capital do Brasil é Brasília",
-	);
+	await expect(answer(page, 1)).toHaveText("");
+	await expect(answer(page, 2)).toHaveText("");
+	await expect(questionText(page)).toHaveText("A capital do Brasil é Brasília");
 	await expectProperty(page, "Limite de tempo", "30 segundos");
 	await expectProperty(page, "Opções de resposta", "Seleção simples");
 });

@@ -10,6 +10,8 @@ export function someChoices(
 		id: `choice-${index + 1}`,
 		shapeIndex: index,
 		text,
+		textFormatting: {},
+		image: null,
 		correct: correct.includes(index),
 	}));
 }
@@ -22,6 +24,7 @@ export function aGameQuestion(
 		index: 0,
 		type: "quiz",
 		text: "Qual é a capital do Brasil?",
+		textFormatting: {},
 		timeLimitSeconds: 20,
 		points: "standard",
 		selection: "single",

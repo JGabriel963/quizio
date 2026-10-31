@@ -22,10 +22,34 @@ const complete = (id: string, text = "Qual é a capital do Brasil?") =>
 		id,
 		text,
 		choices: [
-			{ id: "choice-1", text: "Brasília", correct: true },
-			{ id: "choice-2", text: "Rio", correct: false },
-			{ id: "choice-3", text: null, correct: false },
-			{ id: "choice-4", text: null, correct: false },
+			{
+				id: "choice-1",
+				text: "Brasília",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				text: "Rio",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-3",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-4",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
 		],
 	});
 const trueFalse = aTrueFalseQuestion({ id: "tf", correct: false });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	aFormattedAnswersQuestion,
 	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
@@ -28,6 +29,8 @@ const quiz = (overrides: Parameters<typeof aQuestion>[0] = {}, correct = 1) =>
 	aQuestion({
 		choices: ["a", "b", "c", "d"].map((text, index) => ({
 			id: `choice-${index + 1}`,
+			textFormatting: {},
+			image: null,
 			text,
 			correct: index < correct,
 		})),
@@ -98,12 +101,41 @@ describe("getPlayerSession during a game (spec 009)", () => {
 				type: "quiz",
 				selection: "single",
 				text: null,
+				textFormatting: {},
 				image: null,
 				choices: [
-					{ id: "choice-1", shapeIndex: 0, label: null, text: null },
-					{ id: "choice-2", shapeIndex: 1, label: null, text: null },
-					{ id: "choice-3", shapeIndex: 2, label: null, text: null },
-					{ id: "choice-4", shapeIndex: 3, label: null, text: null },
+					{
+						id: "choice-1",
+						shapeIndex: 0,
+						label: null,
+						text: null,
+						textFormatting: {},
+						image: null,
+					},
+					{
+						id: "choice-2",
+						shapeIndex: 1,
+						label: null,
+						text: null,
+						textFormatting: {},
+						image: null,
+					},
+					{
+						id: "choice-3",
+						shapeIndex: 2,
+						label: null,
+						text: null,
+						textFormatting: {},
+						image: null,
+					},
+					{
+						id: "choice-4",
+						shapeIndex: 3,
+						label: null,
+						text: null,
+						textFormatting: {},
+						image: null,
+					},
 				],
 				slider: null,
 			},
@@ -598,6 +630,7 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 			type: "quiz",
 			selection: "single",
 			text: "Qual é a capital do Brasil?",
+			textFormatting: {},
 			image: {
 				url: "https://media.test/quizzes/quiz-1/questions/mapa.png",
 				placement: "background",
@@ -605,15 +638,92 @@ describe("getPlayerSession: the questions on the devices (spec 012)", () => {
 				altText: "Mapa do Brasil",
 			},
 			choices: [
-				{ id: "choice-1", shapeIndex: 0, label: null, text: "a" },
-				{ id: "choice-2", shapeIndex: 1, label: null, text: "b" },
-				{ id: "choice-3", shapeIndex: 2, label: null, text: "c" },
-				{ id: "choice-4", shapeIndex: 3, label: null, text: "d" },
+				{
+					id: "choice-1",
+					shapeIndex: 0,
+					label: null,
+					text: "a",
+					textFormatting: {},
+					image: null,
+				},
+				{
+					id: "choice-2",
+					shapeIndex: 1,
+					label: null,
+					text: "b",
+					textFormatting: {},
+					image: null,
+				},
+				{
+					id: "choice-3",
+					shapeIndex: 2,
+					label: null,
+					text: "c",
+					textFormatting: {},
+					image: null,
+				},
+				{
+					id: "choice-4",
+					shapeIndex: 3,
+					label: null,
+					text: "d",
+					textFormatting: {},
+					image: null,
+				},
 			],
 			slider: null,
 		});
 		// Never which one is right (RN-20).
 		expect(JSON.stringify(view)).not.toMatch(/"correct":/);
+	});
+
+	it("the device gets the formatting only with the statement (spec 047, RN-25)", async () => {
+		const formatted = quiz({
+			text: "Qual é a fórmula da água, H2O?",
+			textFormatting: { subscript: [[27, 28]] },
+		});
+		const shown = await createStartedGame({
+			questions: [formatted],
+			options: onDevices,
+		});
+		const hidden = await createStartedGame({ questions: [formatted] });
+		await shown.reach("answering");
+		await hidden.reach("answering");
+
+		const withStatement = await createGetPlayerSession(shown.deps)(player(1));
+		const without = await createGetPlayerSession(hidden.deps)(player(1));
+
+		expect(withStatement.stage?.question?.textFormatting).toEqual({
+			subscript: [[27, 28]],
+		});
+		expect(without.stage?.question).toMatchObject({
+			text: null,
+			textFormatting: {},
+		});
+	});
+
+	it("the device's choices carry the formatting with the texts (spec 048, RN-19)", async () => {
+		const shown = await createStartedGame({
+			questions: [aFormattedAnswersQuestion()],
+			options: onDevices,
+		});
+		const hidden = await createStartedGame({
+			questions: [aFormattedAnswersQuestion()],
+		});
+		await shown.reach("answering");
+		await hidden.reach("answering");
+
+		const withTexts = await createGetPlayerSession(shown.deps)(player(1));
+		const without = await createGetPlayerSession(hidden.deps)(player(1));
+
+		expect(withTexts.stage?.question?.choices[0]).toMatchObject({
+			text: "H2O",
+			textFormatting: { subscript: [[1, 2]] },
+		});
+		expect(without.stage?.question?.choices[0]).toMatchObject({
+			text: null,
+			textFormatting: {},
+		});
 	});
 
 	it("gets the statement alone in the question's intro", async () => {

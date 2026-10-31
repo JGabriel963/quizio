@@ -1,5 +1,13 @@
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { CheckIcon, ClockIcon, XIcon } from "lucide-react";
+import { Fragment } from "react";
 
+import {
+	AnswerImage,
+	type AnswerImageShown,
+	answerImageLabel,
+} from "@/components/quiz/answer-image";
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { QuestionDetailData } from "@/lib/api-types";
 import { questionTypeLabel } from "@/lib/quiz-labels";
 import { averageTimeLabel, responseTimeLabel } from "@/lib/report-labels";
@@ -21,7 +29,12 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 				<span className="text-muted-foreground text-xs">
 					{detail.index + 1} - {questionTypeLabel(detail.type)}
 				</span>
-				<p className="break-words font-bold text-lg">{detail.text}</p>
+				<p className="break-words text-lg">
+					<FormattedText
+						text={detail.text}
+						formatting={detail.textFormatting}
+					/>
+				</p>
 				{detail.imageUrl && (
 					<img
 						src={detail.imageUrl}
@@ -70,6 +83,8 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 									<ChoiceChip
 										shapeIndex={choice.shapeIndex}
 										text={choice.text}
+										textFormatting={choice.textFormatting}
+										image={choice.image}
 										className="flex-1"
 									/>
 									{choice.correct && (
@@ -131,6 +146,8 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 										key={choice.shapeIndex}
 										shapeIndex={choice.shapeIndex}
 										text={choice.text}
+										textFormatting={choice.textFormatting}
+										image={choice.image}
 									/>
 								))}
 								{participant.typedText !== null && (
@@ -140,7 +157,7 @@ export function QuestionDetail({ detail }: { detail: QuestionDetailData }) {
 								)}
 								{participant.puzzleOrder !== null && (
 									<span data-slot="puzzle-order" className="font-semibold">
-										{orderLabel(participant.puzzleOrder)}
+										<OrderedAnswers answers={participant.puzzleOrder} />
 									</span>
 								)}
 								{participant.sliderValue !== null && (
@@ -245,9 +262,36 @@ function SliderAnswers({
 	);
 }
 
-/** A puzzle's order on one line, as the report says it. */
-export function orderLabel(texts: readonly string[]): string {
-	return texts.join(" → ");
+/** A puzzle answer as an order lists it: its text and its formatting (spec 048). */
+interface OrderedAnswer {
+	/** Null when the answer is an image (spec 049). */
+	text: string | null;
+	textFormatting?: TextFormatting;
+	image?: AnswerImageShown | null;
+}
+
+/** A puzzle's order on one line, as the report says it, each answer formatted. */
+export function OrderedAnswers({
+	answers,
+}: {
+	answers: readonly OrderedAnswer[];
+}) {
+	return answers.map((answer, index) => (
+		// An order is a fixed list: the place is the key.
+		<Fragment key={index}>
+			{index > 0 && " → "}
+			{answer.image ? (
+				<span className="inline-flex size-8 align-middle">
+					<AnswerImage image={answer.image} label={answerImageLabel(index)} />
+				</span>
+			) : (
+				<FormattedText
+					text={answer.text ?? ""}
+					formatting={answer.textFormatting}
+				/>
+			)}
+		</Fragment>
+	));
 }
 
 /** A puzzle's right order and the orders sent, the right one first (spec 033, RN-31). */
@@ -261,18 +305,23 @@ function PuzzleOrders({
 			<ol aria-label="Ordem correta" className="flex flex-col gap-1">
 				{answers.correctOrder.map((choice) => (
 					<li key={`${choice.shapeIndex}:${choice.text}`}>
-						<ChoiceChip shapeIndex={choice.shapeIndex} text={choice.text} />
+						<ChoiceChip
+							shapeIndex={choice.shapeIndex}
+							text={choice.text}
+							textFormatting={choice.textFormatting}
+							image={choice.image}
+						/>
 					</li>
 				))}
 			</ol>
 			<ul aria-label="Ordens enviadas" className="flex flex-col gap-2">
 				{answers.orders.map((order) => (
 					<li
-						key={order.texts.join("\u0000")}
+						key={order.answers.map(({ text }) => text).join("\u0000")}
 						className="flex items-center gap-3 rounded-md p-3 ring-1 ring-foreground/10"
 					>
 						<span className="min-w-0 flex-1 break-words font-semibold">
-							{orderLabel(order.texts)}
+							<OrderedAnswers answers={order.answers} />
 						</span>
 						<span
 							className={

@@ -12,7 +12,7 @@ import type {
 	HostStageData,
 } from "@/lib/api-types";
 import { GAME_MOTION } from "@/lib/game-motion";
-import { stubReducedMotion } from "@/testing/reduced-motion";
+import { stubReducedMotion } from "@/testing/media-query";
 
 import {
 	ADVANCE_RETRY_MS,
@@ -31,11 +31,14 @@ function capitals(correct: (boolean | null)[]): HostQuestionData {
 		selection: "single",
 		slider: null,
 		text: "Qual é a capital do Brasil?",
+		textFormatting: {},
 		choices: ["Rio de Janeiro", "Salvador", "Brasília", "Recife"].map(
 			(text, index) => ({
 				id: `choice-${index + 1}`,
 				shapeIndex: index,
 				text,
+				textFormatting: {},
+				image: null,
 				correct: correct[index] ?? null,
 			}),
 		),
@@ -295,6 +298,61 @@ describe("HostStage: openings (spec 009)", () => {
 });
 
 describe("HostStage: answers (spec 009)", () => {
+	it("draws the statement formatted, in normal weight (spec 047, RN-24, RN-25)", () => {
+		renderStage(
+			stageAt({
+				question: {
+					...capitals(hidden),
+					text: "Quanto é 22?",
+					textFormatting: { superscript: [[10, 11]] },
+					image: null,
+				},
+			}),
+		);
+
+		const heading = screen.getByRole("heading", { name: "Quanto é 22?" });
+		expect(heading.querySelector("sup")).toHaveTextContent("2");
+		expect(heading.querySelector(".font-normal")).not.toBeNull();
+		expect(heading).not.toHaveClass("font-bold");
+	});
+
+	it("draws the answers formatted, in normal weight, in the answers and the results (spec 048, RN-18)", () => {
+		const withPower = (correct: (boolean | null)[]): HostQuestionData => {
+			const question = capitals(correct);
+			return {
+				...question,
+				choices: question.choices.map((choice, index) =>
+					index === 0
+						? {
+								...choice,
+								text: "x2",
+								textFormatting: { superscript: [[1, 2]] },
+								image: null,
+							}
+						: choice,
+				),
+			};
+		};
+		const { rerender } = renderStage(stageAt({ question: withPower(hidden) }));
+
+		const sup = () => screen.getByText("2", { selector: "sup" }) as HTMLElement;
+		expect(sup().parentElement).toHaveClass("font-normal");
+
+		rerender(
+			stageAt({
+				phase: "results",
+				question: withPower(revealed),
+				distribution: [
+					{ choiceId: "choice-1", count: 1 },
+					{ choiceId: "choice-2", count: 0 },
+					{ choiceId: "choice-3", count: 2 },
+					{ choiceId: "choice-4", count: 0 },
+				],
+			}),
+		);
+		expect(sup()).toBeInTheDocument();
+	});
+
 	it("shows the question, the answers, the time left and the total of answers", () => {
 		renderStage(stageAt({ remainingMs: 12_000, answerCount: 1 }));
 
@@ -423,6 +481,8 @@ describe("HostStage: answers (spec 009)", () => {
 						id: `choice-${index + 1}`,
 						shapeIndex: index,
 						text,
+						textFormatting: {},
+						image: null,
 						correct: null,
 					})),
 				},
@@ -569,9 +629,24 @@ describe("HostStage: results (spec 009)", () => {
 				selection: "single",
 				slider: null,
 				text: "A capital do Brasil é o Rio de Janeiro",
+				textFormatting: {},
 				choices: [
-					{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: false },
-					{ id: "false", shapeIndex: 0, text: "Falso", correct: true },
+					{
+						id: "true",
+						shapeIndex: 1,
+						text: "Verdadeiro",
+						textFormatting: {},
+						image: null,
+						correct: false,
+					},
+					{
+						id: "false",
+						shapeIndex: 0,
+						text: "Falso",
+						textFormatting: {},
+						image: null,
+						correct: true,
+					},
 				],
 				image: null,
 			},
@@ -1213,6 +1288,7 @@ describe("HostStage: type answer (spec 031)", () => {
 		selection: "single",
 		slider: null,
 		text: "Quem andou sobre as águas?",
+		textFormatting: {},
 		choices: [],
 		image: null,
 	};
@@ -1351,6 +1427,7 @@ describe("HostStage: slider (spec 032)", () => {
 		selection: "single",
 		slider: scale,
 		text: "Quantos anos tinha Noé?",
+		textFormatting: {},
 		choices: [],
 		image: null,
 	};
@@ -1521,6 +1598,7 @@ describe("HostStage: slider results, pointing (spec 032, RN-31)", () => {
 						unit: "anos",
 					},
 					text: "Quantos anos?",
+					textFormatting: {},
 					choices: [],
 					image: null,
 				},

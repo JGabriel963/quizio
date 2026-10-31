@@ -13,9 +13,25 @@ test("a visitor sees the public landing with sign-in actions and no main nav", a
 }) => {
 	await page.goto("/");
 
-	await expect(page.getByRole("heading", { name: "Quizio" })).toBeVisible();
-	await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();
-	await expect(page.getByRole("link", { name: "Criar conta" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", {
+			level: 1,
+			name: "Transforme qualquer aula num jogo ao vivo",
+		}),
+	).toBeVisible();
+	await expect(
+		page.getByRole("link", { name: "Entrar", exact: true }).first(),
+	).toBeVisible();
+	await expect(
+		page.getByRole("link", { name: "Criar conta grátis" }).first(),
+	).toBeVisible();
+	await page
+		.getByRole("main")
+		.getByRole("link", { name: "Jogar com PIN" })
+		.first()
+		.click();
+	await expect(page).toHaveURL(/\/join$/);
+	await page.goto("/");
 	await expect(
 		page.getByRole("navigation", { name: "Navegação principal" }),
 	).toBeHidden();

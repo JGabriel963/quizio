@@ -55,7 +55,12 @@ describe("getQuizEditor", () => {
 	});
 
 	it("returns the published questions of a published quiz", async () => {
-		const published = aQuestion({ id: "a", text: "Capital do Brasil?" });
+		const published = aQuestion({
+			id: "a",
+			text: "Capital do Brasil?",
+			// The published questions carry the formatting (spec 047, RN-19).
+			textFormatting: { bold: [[11, 17]] },
+		});
 		await quizzes.save(aPublishedQuiz({ hasUnpublishedChanges: true }));
 		await versions.save(
 			newQuizVersion({

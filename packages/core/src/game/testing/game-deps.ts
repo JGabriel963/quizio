@@ -37,6 +37,8 @@ export function somePlayableQuestions(): Question[] {
 				(text, index) => ({
 					id: `choice-${index + 1}`,
 					text,
+					textFormatting: {},
+					image: null,
 					correct: index === 0,
 				}),
 			),

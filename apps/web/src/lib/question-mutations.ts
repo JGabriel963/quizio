@@ -272,6 +272,43 @@ export function useEditorActions(quizId: string): EditorActions {
 		}
 	}
 
+	/**
+	 * Sends the file, then puts it where `changeOf` says: on the question
+	 * (spec 007) or in an answer (spec 049). Resolves null, or the message of
+	 * why the image was not added.
+	 */
+	const uploadImage = async (
+		trackKey: string,
+		questionId: string,
+		file: File,
+		onProgress: (fraction: number) => void,
+		changeOf: (key: string) => QuestionChange,
+	): Promise<string | null> => {
+		let failure: string | null = null;
+		await tracker.track(
+			trackKey,
+			async () => {
+				try {
+					const upload = await requestUpload.mutateAsync({
+						contentType: file.type,
+						sizeBytes: file.size,
+					});
+					await uploadFile({ file, upload, onProgress });
+					setData((data) => withImageUrl(data, upload.key, upload.publicUrl));
+					await prepareChange(questionId, changeOf(upload.key))?.();
+				} catch (error) {
+					failure = isDomainRefusal(error)
+						? quizErrorMessage(error)
+						: IMAGE_UPLOAD_FAILED_MESSAGE;
+					// The image may already be in the cache: go back to what was saved.
+					void queryClient.invalidateQueries({ queryKey: editorKey });
+				}
+			},
+			{ retryable: false },
+		);
+		return failure;
+	};
+
 	return {
 		current: getData,
 
@@ -329,34 +366,26 @@ export function useEditorActions(quizId: string): EditorActions {
 		// Tracked like a save, so the header says "Salvando" and leaving waits for
 		// it (spec 007, RN-12). A failure is told next to the media area, not as a
 		// failed save: there is nothing to retry without the file.
-		uploadQuestionImage: async (questionId, file, onProgress) => {
-			let failure: string | null = null;
-			await tracker.track(
+		uploadQuestionImage: (questionId, file, onProgress) =>
+			uploadImage(
 				`question:${questionId}:upload`,
-				async () => {
-					try {
-						const upload = await requestUpload.mutateAsync({
-							contentType: file.type,
-							sizeBytes: file.size,
-						});
-						await uploadFile({ file, upload, onProgress });
-						setData((data) => withImageUrl(data, upload.key, upload.publicUrl));
-						await prepareChange(questionId, {
-							kind: "image",
-							key: upload.key,
-						})?.();
-					} catch (error) {
-						failure = isDomainRefusal(error)
-							? quizErrorMessage(error)
-							: IMAGE_UPLOAD_FAILED_MESSAGE;
-						// The image may already be in the cache: go back to what was saved.
-						void queryClient.invalidateQueries({ queryKey: editorKey });
-					}
-				},
-				{ retryable: false },
-			);
-			return failure;
-		},
+				questionId,
+				file,
+				onProgress,
+				(key) => ({
+					kind: "image",
+					key,
+				}),
+			),
+
+		uploadAnswerImage: (questionId, answer, file, onProgress) =>
+			uploadImage(
+				`question:${questionId}:answer-upload`,
+				questionId,
+				file,
+				onProgress,
+				(key) => ({ kind: "answerImage", answer, key }),
+			),
 
 		changeQuestionType: (questionId, type) => {
 			const current = getData()?.questions.find(({ id }) => id === questionId);

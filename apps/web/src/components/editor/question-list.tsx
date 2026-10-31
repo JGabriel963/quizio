@@ -41,6 +41,7 @@ import {
 	useRef,
 } from "react";
 
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { QuestionData } from "@/lib/api-types";
 import { questionIssueLabel } from "@/lib/question-labels";
 import { questionTypeLabel } from "@/lib/quiz-labels";
@@ -313,10 +314,17 @@ function QuestionListItem({
 								"h-4 w-full truncate text-center text-xs leading-4 max-lg:hidden",
 								question.text === null
 									? "text-muted-foreground/70"
-									: "font-semibold text-foreground/80",
+									: "text-foreground/80",
 							)}
 						>
-							{question.text ?? "Pergunta"}
+							{question.text === null ? (
+								"Pergunta"
+							) : (
+								<FormattedText
+									text={question.text}
+									formatting={question.textFormatting}
+								/>
+							)}
 						</span>
 						{/* The media placeholder sits in the middle of the card; the time, at its left. */}
 						<span

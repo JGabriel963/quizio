@@ -2,6 +2,7 @@ import { LIBRARY_SECTIONS } from "@quizio/core/library/domain/library-section";
 import { z } from "zod";
 
 import { defineTool } from "../define-tool";
+import { questionMarkup } from "../schemas/text-markup";
 
 /** The library and quizzes of other people (spec 044, RN-19, RN-20). */
 export const libraryTools = [
@@ -55,22 +56,24 @@ export const libraryTools = [
 			{ useCases, identity, links },
 		) => {
 			if (groupId) {
+				const quiz = await useCases.getSharedQuiz({
+					userId: identity.userId,
+					groupId,
+					quizId,
+				});
 				return {
-					quiz: await useCases.getSharedQuiz({
-						userId: identity.userId,
-						groupId,
-						quizId,
-					}),
+					quiz: { ...quiz, questions: quiz.questions.map(questionMarkup) },
 					links: { page: links.sharedQuiz(groupId, quizId) },
 				};
 			}
 			const owner = ownerId ?? "";
+			const quiz = await useCases.getPublicQuiz({
+				viewerId: identity.userId,
+				ownerId: owner,
+				quizId,
+			});
 			return {
-				quiz: await useCases.getPublicQuiz({
-					viewerId: identity.userId,
-					ownerId: owner,
-					quizId,
-				}),
+				quiz: { ...quiz, questions: quiz.questions.map(questionMarkup) },
 				links: { page: links.publicQuiz(owner, quizId) },
 			};
 		},

@@ -320,6 +320,8 @@ describe("submitAnswer (spec 009)", () => {
 					timeLimitSeconds: 30,
 					choices: ["a", "b", "c", "d"].map((text, index) => ({
 						id: `choice-${index + 1}`,
+						textFormatting: {},
+						image: null,
 						text,
 						correct: index < 3,
 					})),

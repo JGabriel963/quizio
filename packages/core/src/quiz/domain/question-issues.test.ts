@@ -26,6 +26,8 @@ function withChoices(
 		choices: texts.map((choiceText, index) => ({
 			id: `choice-${index + 1}`,
 			text: choiceText,
+			textFormatting: {},
+			image: null,
 			correct: correct.includes(index),
 		})),
 	});
@@ -232,5 +234,34 @@ describe("questionIssues of a puzzle", () => {
 			),
 		).toEqual([]);
 		expect(questionIssues(aPuzzleQuestion())).toEqual([]);
+	});
+});
+
+describe("image answers (spec 049, RN-02)", () => {
+	const image = { key: "media/ana/a.png", crop: null, altText: null };
+
+	it("a quiz of image answers is complete", () => {
+		const question = aQuestion({
+			text: "Prato típico do Piauí?",
+			choices: [0, 1, 2, 3].map((index) => ({
+				id: `choice-${index + 1}`,
+				text: null,
+				textFormatting: {},
+				image: { ...image, key: `media/ana/${index}.png` },
+				correct: index === 0,
+			})),
+		});
+
+		expect(questionIssues(question)).toEqual([]);
+		expect(missingAnswerHints(question)).toEqual([]);
+	});
+
+	it("a puzzle of image answers is complete", () => {
+		const question = aPuzzleQuestion({
+			items: [null, null, "Ar", null],
+			itemImages: [image, { ...image, key: "media/ana/b.png" }, null, null],
+		});
+
+		expect(questionIssues(question)).toEqual([]);
 	});
 });

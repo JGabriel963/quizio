@@ -1,3 +1,4 @@
+import { newAnswerImage } from "@quizio/core/quiz/domain/answer-image";
 import { DEFAULT_GENERATION_OPTIONS } from "@quizio/core/quiz/domain/generation";
 import { DEFAULT_CREDIT_PRICING } from "@quizio/core/quiz/domain/generation-credits";
 import { blankQuestion } from "@quizio/core/quiz/domain/question";
@@ -14,6 +15,7 @@ import {
 	type SaveTracker,
 	SaveTrackerProvider,
 } from "@/lib/save-tracker";
+import { formattedField, typeInEditor } from "@/testing/formatted-text-editor";
 import { renderWithRouter } from "@/testing/render-with-router";
 
 import {
@@ -169,6 +171,38 @@ async function renderEditor(
 					});
 				}),
 		),
+		// Like the real action: on success the answer gets the image (spec 049).
+		uploadAnswerImage: vi.fn(
+			(questionId, answer, _file, onProgress) =>
+				new Promise<string | null>((resolve) => {
+					onProgress(0.5);
+					pendingUploads.push(() => {
+						if (uploadFailure === null) {
+							setData({
+								...latest,
+								imageUrls: { ...latest.imageUrls, [IMAGE_KEY]: IMAGE_URL },
+								questions: latest.questions.map((item) =>
+									item.id === questionId && item.type === "quiz"
+										? {
+												...item,
+												choices: item.choices.map((choice) =>
+													"choiceId" in answer && choice.id === answer.choiceId
+														? {
+																...choice,
+																text: null,
+																image: newAnswerImage(IMAGE_KEY),
+															}
+														: choice,
+												),
+											}
+										: item,
+								),
+							});
+						}
+						resolve(uploadFailure);
+					});
+				}),
+		),
 		changeQuestionType: vi.fn(),
 		applyTimeLimitToAll: vi.fn(),
 		// Like the real mutation: the cache (here, the harness state) gets the new list.
@@ -269,7 +303,7 @@ const exitButton = () => screen.getByRole("button", { name: "Sair" });
 const header = () => document.querySelector("header") as HTMLElement;
 const badge = (label: string) => within(header()).queryByText(label);
 
-const questionText = () => screen.getByRole("textbox", { name: "Pergunta" });
+const questionText = () => screen.findByRole("textbox", { name: "Pergunta" });
 
 describe("QuizEditor", () => {
 	it("shows header, list, canvas and properties without the main nav", async () => {
@@ -277,7 +311,7 @@ describe("QuizEditor", () => {
 
 		expect(screen.getByRole("banner")).toBeInTheDocument();
 		expect(screen.getByRole("list", { name: "Perguntas" })).toBeInTheDocument();
-		expect(questionText()).toHaveValue("Capital?");
+		expect(await questionText()).toHaveTextContent("Capital?");
 		expect(
 			screen.getByRole("heading", { name: "Propriedades da pergunta" }),
 		).toBeInTheDocument();
@@ -293,7 +327,7 @@ describe("QuizEditor", () => {
 
 		await user.click(screen.getByRole("button", { name: "Pergunta 2: B?" }));
 
-		expect(questionText()).toHaveValue("B?");
+		expect(await questionText()).toHaveTextContent("B?");
 		expect(
 			screen.getByRole("button", { name: "Pergunta 2: B?" }),
 		).toHaveAttribute("aria-current", "true");
@@ -440,7 +474,7 @@ describe("QuizEditor", () => {
 		await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
 
 		expect(actions.deleteQuestion).toHaveBeenCalledExactlyOnceWith("b");
-		expect(questionText()).toHaveValue("C?");
+		expect(await questionText()).toHaveTextContent("C?");
 		await vi.waitFor(() =>
 			expect(screen.queryByRole("alertdialog")).toBeNull(),
 		);
@@ -510,11 +544,11 @@ describe("QuizEditor", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Pergunta 2: B?" }));
 
-		await user.type(
+		const first = await formattedField(() =>
 			screen.getByRole("textbox", { name: "Resposta 1" }),
-			"Brasília",
 		);
-		await user.tab();
+		act(() => first.focus());
+		typeInEditor(first, "Brasília");
 		await user.click(screen.getByRole("combobox", { name: "Limite de tempo" }));
 		await user.click(
 			await screen.findByRole("option", { name: "45 segundos" }),
@@ -530,6 +564,7 @@ describe("QuizEditor", () => {
 			kind: "choiceText",
 			choiceId: "choice-1",
 			text: "Brasília",
+			formatting: {},
 		});
 		expect(actions.changeQuestion).toHaveBeenCalledWith("b", {
 			kind: "timeLimit",
@@ -1052,8 +1087,8 @@ describe("QuizEditor: published quiz", () => {
 		);
 		expect(onExit).not.toHaveBeenCalled();
 		expect(
-			screen.getByRole("textbox", { name: "Pergunta", hidden: true }),
-		).toHaveValue("Mudou");
+			await screen.findByRole("textbox", { name: "Pergunta", hidden: true }),
+		).toHaveTextContent("Mudou");
 		expect(badge("Alterações não salvas")).toBeInTheDocument();
 	});
 
@@ -1485,5 +1520,82 @@ describe("QuizEditor: Seus temas (spec 043)", () => {
 		);
 
 		expect(canvas()).toHaveAttribute("data-theme", "standard");
+	});
+});
+
+describe("QuizEditor answer images (spec 049)", () => {
+	it("an answer image goes to the answer the upload started in, and the dialog closes", async () => {
+		const { actions, user, endUpload } = await renderEditor(
+			editorData(question("a", "A?"), question("b", "B?")),
+		);
+
+		await user.click(
+			screen.getByRole("button", { name: "Adicionar imagem à resposta 3" }),
+		);
+		await user.upload(
+			screen.getByLabelText("Carregar mídia"),
+			new File(["x"], "arroz.png", { type: "image/png" }),
+		);
+		expect(
+			screen.getByRole("progressbar", { name: "Enviando imagem" }),
+		).toHaveValue(0.5);
+		await endUpload();
+
+		expect(actions.uploadAnswerImage).toHaveBeenCalledExactlyOnceWith(
+			"a",
+			{ choiceId: "choice-3" },
+			expect.any(File),
+			expect.any(Function),
+		);
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(
+			screen.getByRole("img", { name: "Imagem da resposta 3" }),
+		).toHaveAttribute("src", IMAGE_URL);
+	});
+
+	it("a failed answer upload is told in the dialog and changes nothing", async () => {
+		const { user, endUpload } = await renderEditor(
+			editorData(question("a", "A?")),
+		);
+
+		await user.click(
+			screen.getByRole("button", { name: "Adicionar imagem à resposta 1" }),
+		);
+		await user.upload(
+			screen.getByLabelText("Carregar mídia"),
+			new File(["x"], "arroz.png", { type: "image/png" }),
+		);
+		await endUpload("A imagem não foi enviada.");
+
+		expect(
+			within(screen.getByRole("dialog")).getByText("A imagem não foi enviada."),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("img", { name: /Imagem da resposta/ }),
+		).toBeNull();
+	});
+
+	it("removing an answer image sends answerImage with null", async () => {
+		const { actions, user, endUpload } = await renderEditor(
+			editorData(question("a", "A?")),
+		);
+		await user.click(
+			screen.getByRole("button", { name: "Adicionar imagem à resposta 2" }),
+		);
+		await user.upload(
+			screen.getByLabelText("Carregar mídia"),
+			new File(["x"], "arroz.png", { type: "image/png" }),
+		);
+		await endUpload();
+
+		await user.click(
+			screen.getByRole("button", { name: "Remover imagem da resposta 2" }),
+		);
+
+		expect(actions.changeQuestion).toHaveBeenLastCalledWith("a", {
+			kind: "answerImage",
+			answer: { choiceId: "choice-2" },
+			key: null,
+		});
 	});
 });

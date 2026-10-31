@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { Question } from "../../quiz/domain/question";
 import {
+	aFormattedAnswersQuestion,
+	anImageAnswersQuestion,
 	aPuzzleQuestion,
 	aQuestion,
 	aSliderQuestion,
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
+	RICE_IMAGE_VIEW,
 } from "../../quiz/testing/a-question";
 import {
 	A_THEME_LOOK,
@@ -35,6 +38,8 @@ const quizWith = (
 	aQuestion({
 		choices: choices.map((entry, index) => ({
 			id: `choice-${index + 1}`,
+			textFormatting: {},
+			image: null,
 			...entry,
 		})),
 		...overrides,
@@ -84,6 +89,53 @@ describe("getHostGame during a game (spec 009)", () => {
 		});
 	});
 
+	it("the host's question carries the formatting (spec 047, RN-25)", async () => {
+		const { deps, reach } = await createStartedGame({
+			questions: [
+				aQuestion({
+					text: "Qual destas não é uma capital?",
+					textFormatting: { bold: [[12, 15]] },
+				}),
+			],
+		});
+		await reach("questionIntro");
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage?.question).toMatchObject({
+			text: "Qual destas não é uma capital?",
+			textFormatting: { bold: [[12, 15]] },
+		});
+	});
+
+	it("the host's choices carry the formatting (spec 048, RN-19)", async () => {
+		const { deps, reach } = await createStartedGame({
+			questions: [aFormattedAnswersQuestion()],
+		});
+		await reach("answering");
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage?.question?.choices[0]).toMatchObject({
+			text: "H2O",
+			textFormatting: { subscript: [[1, 2]] },
+		});
+	});
+
+	it("the host's choices carry the image with its address (spec 049, RN-22)", async () => {
+		const { deps, reach } = await createStartedGame({
+			questions: [anImageAnswersQuestion()],
+		});
+		await reach("answering");
+
+		const view = await createGetHostGame(deps)(mine);
+
+		expect(view.stage?.question?.choices).toMatchObject([
+			{ text: null, image: RICE_IMAGE_VIEW },
+			{ text: "Feijão", image: null },
+		]);
+	});
+
 	it("hides the correct answer until the results", async () => {
 		const { deps, reach, answer } = await createStartedGame({
 			players: ["Ana", "Bia", "Caio"],
@@ -96,10 +148,38 @@ describe("getHostGame during a game (spec 009)", () => {
 
 		expect(open.stage).toMatchObject({ answerCount: 1, distribution: null });
 		expect(open.stage?.question?.choices).toEqual([
-			{ id: "choice-1", shapeIndex: 0, text: "Brasília", correct: null },
-			{ id: "choice-2", shapeIndex: 1, text: "Rio de Janeiro", correct: null },
-			{ id: "choice-3", shapeIndex: 2, text: "Salvador", correct: null },
-			{ id: "choice-4", shapeIndex: 3, text: "Recife", correct: null },
+			{
+				id: "choice-1",
+				shapeIndex: 0,
+				text: "Brasília",
+				textFormatting: {},
+				image: null,
+				correct: null,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 1,
+				text: "Rio de Janeiro",
+				textFormatting: {},
+				image: null,
+				correct: null,
+			},
+			{
+				id: "choice-3",
+				shapeIndex: 2,
+				text: "Salvador",
+				textFormatting: {},
+				image: null,
+				correct: null,
+			},
+			{
+				id: "choice-4",
+				shapeIndex: 3,
+				text: "Recife",
+				textFormatting: {},
+				image: null,
+				correct: null,
+			},
 		]);
 		// The options are the host's own switches, not a hint of the answer.
 		expect(JSON.stringify({ ...open, options: null })).not.toContain("true");
@@ -165,8 +245,22 @@ describe("getHostGame during a game (spec 009)", () => {
 		const { stage } = await createGetHostGame(deps)(mine);
 
 		expect(stage?.question?.choices).toEqual([
-			{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: false },
-			{ id: "false", shapeIndex: 0, text: "Falso", correct: true },
+			{
+				id: "true",
+				shapeIndex: 1,
+				text: "Verdadeiro",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "false",
+				shapeIndex: 0,
+				text: "Falso",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
 		]);
 		expect(stage?.distribution).toHaveLength(2);
 	});

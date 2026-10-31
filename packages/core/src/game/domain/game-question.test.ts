@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-
+import type { AnswerImage } from "../../quiz/domain/answer-image";
 import {
 	aPuzzleQuestion,
 	aQuestion,
@@ -7,6 +7,7 @@ import {
 	aTrueFalseQuestion,
 	aTypeAnswerQuestion,
 } from "../../quiz/testing/a-question";
+import type { TextFormatting } from "../../shared/domain/text-formatting";
 import { aPlayingGame } from "../testing/a-game";
 import { aGameQuestion } from "../testing/a-game-question";
 import { DEFAULT_GAME_OPTIONS } from "./game-options";
@@ -25,12 +26,19 @@ const urlOf = (key: string) => `https://media.test/${key}`;
 const backwards = <T>(items: readonly T[]): T[] => [...items].reverse();
 
 function quizWith(
-	choices: { text: string | null; correct: boolean }[],
+	choices: {
+		text: string | null;
+		textFormatting?: TextFormatting;
+		image?: AnswerImage | null;
+		correct: boolean;
+	}[],
 	overrides: Parameters<typeof aQuestion>[0] = {},
 ) {
 	return aQuestion({
 		choices: choices.map((entry, index) => ({
 			id: `choice-${index + 1}`,
+			textFormatting: {},
+			image: null,
 			...entry,
 		})),
 		...overrides,
@@ -57,9 +65,30 @@ describe("game question (spec 009)", () => {
 			selection: "single",
 		});
 		expect(question.choices).toEqual([
-			{ id: "choice-1", shapeIndex: 0, text: "Brasília", correct: true },
-			{ id: "choice-2", shapeIndex: 1, text: "Rio de Janeiro", correct: false },
-			{ id: "choice-4", shapeIndex: 3, text: "Salvador", correct: false },
+			{
+				id: "choice-1",
+				shapeIndex: 0,
+				text: "Brasília",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 1,
+				text: "Rio de Janeiro",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-4",
+				shapeIndex: 3,
+				text: "Salvador",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
 		]);
 	});
 
@@ -87,8 +116,22 @@ describe("game question (spec 009)", () => {
 
 		expect(question.selection).toBe("single");
 		expect(question.choices).toEqual([
-			{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: false },
-			{ id: "false", shapeIndex: 0, text: "Falso", correct: true },
+			{
+				id: "true",
+				shapeIndex: 1,
+				text: "Verdadeiro",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "false",
+				shapeIndex: 0,
+				text: "Falso",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
 		]);
 	});
 
@@ -105,9 +148,33 @@ describe("game question (spec 009)", () => {
 		expect(question.image?.crop).not.toBe(image.crop);
 	});
 
+	it("toGameQuestion copies the formatting (spec 047, RN-21)", () => {
+		const formatting = { bold: [[12, 15]] } as const;
+		const source = aQuestion({
+			text: "Qual destas não é uma capital?",
+			textFormatting: formatting,
+		});
+
+		const question = toGameQuestion(source, 0);
+
+		expect(question.textFormatting).toEqual(formatting);
+		expect(question.textFormatting).not.toBe(source.textFormatting);
+	});
+
+	it("parseStoredGameQuestion reads a copy without formatting", () => {
+		const { textFormatting: _formatting, ...old } = aGameQuestion({
+			textFormatting: { bold: [[0, 4]] },
+		});
+
+		expect(
+			parseStoredGameQuestion(JSON.parse(JSON.stringify(old)))?.textFormatting,
+		).toEqual({});
+	});
+
 	it("reads a stored question back", () => {
 		const question = aGameQuestion({
 			index: 4,
+			textFormatting: { superscript: [[5, 6]] },
 			image: {
 				key: "a.png",
 				placement: "media",
@@ -176,14 +243,30 @@ describe("game question (spec 009)", () => {
 			// The same three shapes (0, 1 and 3), handed out backwards, in position
 			// order, each answer named after its new place (L8).
 			expect(first?.choices).toEqual([
-				{ id: "choice-1", shapeIndex: 0, text: "Salvador", correct: false },
+				{
+					id: "choice-1",
+					shapeIndex: 0,
+					text: "Salvador",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
 				{
 					id: "choice-2",
 					shapeIndex: 1,
 					text: "Rio de Janeiro",
+					textFormatting: {},
+					image: null,
 					correct: false,
 				},
-				{ id: "choice-4", shapeIndex: 3, text: "Brasília", correct: true },
+				{
+					id: "choice-4",
+					shapeIndex: 3,
+					text: "Brasília",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
 			]);
 		});
 
@@ -212,8 +295,22 @@ describe("game question (spec 009)", () => {
 			);
 
 			expect(arranged[2]?.choices).toEqual([
-				{ id: "choice-1", shapeIndex: 0, text: "Verde", correct: true },
-				{ id: "choice-2", shapeIndex: 1, text: "Azul", correct: false },
+				{
+					id: "choice-1",
+					shapeIndex: 0,
+					text: "Verde",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-2",
+					shapeIndex: 1,
+					text: "Azul",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
 			]);
 		});
 
@@ -225,8 +322,22 @@ describe("game question (spec 009)", () => {
 			);
 
 			expect(arranged[1]?.choices).toEqual([
-				{ id: "true", shapeIndex: 1, text: "Verdadeiro", correct: true },
-				{ id: "false", shapeIndex: 0, text: "Falso", correct: false },
+				{
+					id: "true",
+					shapeIndex: 1,
+					text: "Verdadeiro",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "false",
+					shapeIndex: 0,
+					text: "Falso",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
 			]);
 		});
 
@@ -261,12 +372,41 @@ describe("public stage (spec 009)", () => {
 				type: "quiz",
 				selection: "single",
 				text: null,
+				textFormatting: {},
 				image: null,
 				choices: [
-					{ id: "choice-1", shapeIndex: 0, label: null, text: null },
-					{ id: "choice-2", shapeIndex: 1, label: null, text: null },
-					{ id: "choice-3", shapeIndex: 2, label: null, text: null },
-					{ id: "choice-4", shapeIndex: 3, label: null, text: null },
+					{
+						id: "choice-1",
+						shapeIndex: 0,
+						label: null,
+						text: null,
+						textFormatting: {},
+						image: null,
+					},
+					{
+						id: "choice-2",
+						shapeIndex: 1,
+						label: null,
+						text: null,
+						textFormatting: {},
+						image: null,
+					},
+					{
+						id: "choice-3",
+						shapeIndex: 2,
+						label: null,
+						text: null,
+						textFormatting: {},
+						image: null,
+					},
+					{
+						id: "choice-4",
+						shapeIndex: 3,
+						label: null,
+						text: null,
+						textFormatting: {},
+						image: null,
+					},
 				],
 				slider: null,
 			},
@@ -282,8 +422,22 @@ describe("public stage (spec 009)", () => {
 		);
 
 		expect(stage.question?.choices).toEqual([
-			{ id: "true", shapeIndex: 1, label: "Verdadeiro", text: null },
-			{ id: "false", shapeIndex: 0, label: "Falso", text: null },
+			{
+				id: "true",
+				shapeIndex: 1,
+				label: "Verdadeiro",
+				text: null,
+				textFormatting: {},
+				image: null,
+			},
+			{
+				id: "false",
+				shapeIndex: 0,
+				label: "Falso",
+				text: null,
+				textFormatting: {},
+				image: null,
+			},
 		]);
 	});
 
@@ -424,10 +578,38 @@ describe("puzzle in a game (spec 033)", () => {
 			acceptedAnswers: [],
 			slider: null,
 			choices: [
-				{ id: "choice-1", shapeIndex: 0, text: "Nilo", correct: true },
-				{ id: "choice-2", shapeIndex: 1, text: "Amazonas", correct: true },
-				{ id: "choice-3", shapeIndex: 2, text: "Yangtzé", correct: true },
-				{ id: "choice-4", shapeIndex: 3, text: "Mississipi", correct: true },
+				{
+					id: "choice-1",
+					shapeIndex: 0,
+					text: "Nilo",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-2",
+					shapeIndex: 1,
+					text: "Amazonas",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-3",
+					shapeIndex: 2,
+					text: "Yangtzé",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
+				{
+					id: "choice-4",
+					shapeIndex: 3,
+					text: "Mississipi",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
 			],
 			correctOrder: ["choice-1", "choice-2", "choice-3", "choice-4"],
 		});
@@ -441,9 +623,30 @@ describe("puzzle in a game (spec 033)", () => {
 		);
 
 		expect(copied.choices).toEqual([
-			{ id: "choice-1", shapeIndex: 0, text: "Nilo", correct: true },
-			{ id: "choice-2", shapeIndex: 1, text: "Amazonas", correct: true },
-			{ id: "choice-4", shapeIndex: 2, text: "Yangtzé", correct: true },
+			{
+				id: "choice-1",
+				shapeIndex: 0,
+				text: "Nilo",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 1,
+				text: "Amazonas",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-4",
+				shapeIndex: 2,
+				text: "Yangtzé",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
 		]);
 		expect(copied.correctOrder).toEqual(["choice-1", "choice-2", "choice-4"]);
 	});
@@ -518,5 +721,208 @@ describe("puzzle in a game (spec 033)", () => {
 		);
 
 		expect(trueFalse?.choices.map(({ id }) => id)).toEqual(["true", "false"]);
+	});
+});
+
+describe("answer formatting in a game (spec 048)", () => {
+	const subscript2: TextFormatting = { subscript: [[1, 2]] };
+
+	it("a quiz choice takes its answer's formatting", () => {
+		const source = quizWith([
+			{ text: "H2O", textFormatting: subscript2, correct: true },
+			choice("CO2"),
+			choice(null),
+			choice(null),
+		]);
+
+		const question = toGameQuestion(source, 0);
+
+		expect(question.choices.map((entry) => entry.textFormatting)).toEqual([
+			subscript2,
+			{},
+		]);
+		expect(question.choices[0]?.textFormatting).not.toBe(
+			source.choices[0]?.textFormatting,
+		);
+	});
+
+	it("a puzzle choice takes its slot's formatting", () => {
+		const question = toGameQuestion(
+			aPuzzleQuestion({
+				items: ["H2O", null, "Sal", "Ar"],
+				itemFormatting: [subscript2, {}, {}, { italic: [[0, 2]] }],
+			}),
+			0,
+		);
+
+		expect(
+			question.choices.map(({ text, textFormatting }) => ({
+				text,
+				textFormatting,
+			})),
+		).toEqual([
+			{ text: "H2O", textFormatting: subscript2 },
+			{ text: "Sal", textFormatting: {} },
+			{ text: "Ar", textFormatting: { italic: [[0, 2]] } },
+		]);
+	});
+
+	it("true/false choices have none", () => {
+		const question = toGameQuestion(aTrueFalseQuestion({ correct: true }), 0);
+
+		expect(question.choices.map((entry) => entry.textFormatting)).toEqual([
+			{},
+			{},
+		]);
+	});
+
+	it("parseStoredGameQuestion reads choices without formatting", () => {
+		const copy = toGameQuestion(
+			quizWith([
+				{ text: "H2O", textFormatting: subscript2, correct: true },
+				choice("CO2"),
+			]),
+			0,
+		);
+		const stored = JSON.parse(JSON.stringify(copy));
+
+		expect(parseStoredGameQuestion(stored)?.choices[0]?.textFormatting).toEqual(
+			subscript2,
+		);
+
+		const old = {
+			...stored,
+			choices: stored.choices.map(
+				({ textFormatting: _f, ...entry }: Record<string, unknown>) => entry,
+			),
+		};
+		expect(
+			parseStoredGameQuestion(old)?.choices.map(
+				(entry) => entry.textFormatting,
+			),
+		).toEqual([{}, {}]);
+
+		const broken = {
+			...stored,
+			choices: [{ ...stored.choices[0], textFormatting: { bold: [[0, 99]] } }],
+		};
+		expect(parseStoredGameQuestion(broken)?.choices[0]?.textFormatting).toEqual(
+			{},
+		);
+	});
+
+	it("a shuffled or drawn choice keeps its formatting", () => {
+		const quiz = quizWith([
+			{ text: "H2O", textFormatting: subscript2, correct: true },
+			choice("CO2"),
+			choice("Sal"),
+		]);
+		const puzzle = aPuzzleQuestion({
+			items: ["H2O", "Sal", "Ar", null],
+			itemFormatting: [subscript2, {}, {}, {}],
+		});
+
+		const [quizCopy, puzzleCopy] = arrangeGameQuestions(
+			[quiz, puzzle],
+			{ ...DEFAULT_GAME_OPTIONS, randomizeAnswers: true },
+			backwards,
+		);
+
+		expect(
+			quizCopy?.choices.find((entry) => entry.text === "H2O")?.textFormatting,
+		).toEqual(subscript2);
+		expect(
+			puzzleCopy?.choices.find((entry) => entry.text === "H2O")?.textFormatting,
+		).toEqual(subscript2);
+	});
+});
+
+describe("answer images in the game (spec 049)", () => {
+	const rice: AnswerImage = {
+		key: "media/ana/arroz.png",
+		crop: { shape: "square", zoom: 2, x: 0.5, y: 0.5 },
+		altText: "Arroz",
+	};
+
+	it("an image answer is copied with its image and no text", () => {
+		const question = toGameQuestion(
+			quizWith([
+				{ text: null, image: rice, correct: true },
+				choice("Feijão"),
+				choice(null),
+				choice(null),
+			]),
+			0,
+		);
+
+		expect(question.choices).toEqual([
+			{
+				id: "choice-1",
+				shapeIndex: 0,
+				text: null,
+				textFormatting: {},
+				image: rice,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				shapeIndex: 1,
+				text: "Feijão",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+		]);
+		expect(question.choices[0]?.image).not.toBe(rice);
+
+		const puzzle = toGameQuestion(
+			aPuzzleQuestion({
+				items: [null, "Dois", "Três", null],
+				itemImages: [rice, null, null, null],
+			}),
+			1,
+		);
+		expect(puzzle.choices.map(({ text, image }) => ({ text, image }))).toEqual([
+			{ text: null, image: rice },
+			{ text: "Dois", image: null },
+			{ text: "Três", image: null },
+		]);
+	});
+
+	it("reads a stored choice with an image, and an old one without", () => {
+		const question = toGameQuestion(
+			quizWith([{ text: null, image: rice, correct: true }, choice("Feijão")]),
+			0,
+		);
+		const stored = JSON.parse(JSON.stringify(question));
+		expect(parseStoredGameQuestion(stored)).toEqual(question);
+
+		const old = JSON.parse(JSON.stringify(question));
+		old.choices = old.choices.map(
+			({ image: _, ...choice }: Record<string, unknown>) => choice,
+		);
+		old.choices[0].text = "Arroz";
+		expect(parseStoredGameQuestion(old)?.choices[0]).toMatchObject({
+			text: "Arroz",
+			image: null,
+		});
+	});
+
+	it("a shuffled image answer keeps its image", () => {
+		const [question] = arrangeGameQuestions(
+			[
+				quizWith([
+					{ text: null, image: rice, correct: true },
+					choice("Feijão"),
+					choice("Milho"),
+					choice("Trigo"),
+				]),
+			],
+			{ randomizeQuestions: false, randomizeAnswers: true },
+			backwards,
+		);
+
+		const shown = question?.choices.find((choice) => choice.image !== null);
+		expect(shown).toMatchObject({ shapeIndex: 3, image: rice, correct: true });
 	});
 });

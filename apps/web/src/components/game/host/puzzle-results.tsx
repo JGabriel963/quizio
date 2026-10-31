@@ -1,8 +1,10 @@
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import { Button } from "@quizio/ui/components/button";
 import { CheckIcon, XIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { type ReactNode, useEffect, useState } from "react";
 
+import type { AnswerImageShown } from "@/components/quiz/answer-image";
 import type { HostImageData, HostStageData } from "@/lib/api-types";
 import { usePrefersReducedMotion } from "@/lib/game-motion";
 
@@ -12,7 +14,10 @@ import { StageImage } from "./stage-image";
 interface PuzzleChoice {
 	id: string;
 	shapeIndex: number;
-	text: string;
+	/** Null when the answer is an image (spec 049). */
+	text: string | null;
+	textFormatting?: TextFormatting;
+	image?: AnswerImageShown | null;
 }
 
 /** How long the drawn order stays before the blocks slide into the right one. */
@@ -34,6 +39,8 @@ export function PuzzleAnswering({
 					<PuzzleBlock
 						shapeIndex={choice.shapeIndex}
 						text={choice.text}
+						textFormatting={choice.textFormatting}
+						image={choice.image}
 						className="min-h-[clamp(3.5rem,11svh,6rem)] text-xl sm:text-2xl"
 					/>
 				</li>
@@ -128,6 +135,8 @@ export function PuzzleResults({
 							<PuzzleBlock
 								shapeIndex={choice.shapeIndex}
 								text={choice.text}
+								textFormatting={choice.textFormatting}
+								image={choice.image}
 								className="min-h-[clamp(3.5rem,11svh,6rem)] text-xl sm:text-2xl"
 								end={revealed && <PuzzleBlockCheck />}
 							/>

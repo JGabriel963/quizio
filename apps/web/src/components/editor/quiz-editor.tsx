@@ -2,7 +2,10 @@ import {
 	isBlankQuestion,
 	type QuestionType,
 } from "@quizio/core/quiz/domain/question";
-import type { QuestionChange } from "@quizio/core/quiz/domain/question-change";
+import type {
+	AnswerRef,
+	QuestionChange,
+} from "@quizio/core/quiz/domain/question-change";
 import { incompleteQuestions } from "@quizio/core/quiz/domain/question-issues";
 import type { ThemeLookView } from "@quizio/core/shared/application/theme-look-view";
 import {
@@ -51,6 +54,7 @@ import { DeleteCustomThemeDialog } from "./themes/delete-custom-theme-dialog";
 import { ThemesPanel } from "./themes-panel";
 import { ThemesSheet } from "./themes-sheet";
 import { UnsavedChangesDialog } from "./unsaved-changes-dialog";
+import { UploadImageDialog } from "./upload-image-dialog";
 
 export const PUBLISHED_QUIZ_NEEDS_TITLE = "Um quiz publicado precisa de título";
 
@@ -87,6 +91,13 @@ export interface EditorActions {
 	 */
 	uploadQuestionImage: (
 		questionId: string,
+		file: File,
+		onProgress: (fraction: number) => void,
+	) => Promise<string | null>;
+	/** Sends the file and puts it in that answer (spec 049); like `uploadQuestionImage`. */
+	uploadAnswerImage: (
+		questionId: string,
+		answer: AnswerRef,
 		file: File,
 		onProgress: (fraction: number) => void,
 	) => Promise<string | null>;
@@ -203,6 +214,11 @@ export function QuizEditor({
 	// By question: an upload belongs to the question it started in, whatever is
 	// selected when it ends (spec 007, RN-12).
 	const [uploads, setUploads] = useState<Record<string, ImageUploadState>>({});
+	// The answer the upload dialog was opened from: the image goes there,
+	// whatever is selected when it ends (spec 049, RN-08).
+	const [answerUpload, setAnswerUpload] = useState<
+		({ questionId: string; answer: AnswerRef } & ImageUploadState) | null
+	>(null);
 	// Bumped to reload the header's title field from the saved title.
 	const [titleReset, setTitleReset] = useState(0);
 	// The side panel on wide screens; Propriedades first (spec 042, RN-22).
@@ -324,6 +340,29 @@ export function QuizEditor({
 			(progress) => set({ progress, error: null }),
 		);
 		set({ progress: null, error: failure });
+	};
+
+	const uploadAnswerImage = async (file: File) => {
+		const target = answerUpload;
+		if (!target || target.progress !== null) {
+			return;
+		}
+		// Only the dialog of this upload follows it; a closed one stays closed.
+		const set = (state: ImageUploadState | null) =>
+			setAnswerUpload((current) =>
+				current?.questionId === target.questionId &&
+				current.answer === target.answer
+					? state && { ...current, ...state }
+					: current,
+			);
+		set({ progress: 0, error: null });
+		const failure = await actions.uploadAnswerImage(
+			target.questionId,
+			target.answer,
+			file,
+			(progress) => set({ progress, error: null }),
+		);
+		set(failure === null ? null : { progress: null, error: failure });
 	};
 
 	const latest = () => actions.current() ?? data;
@@ -461,14 +500,19 @@ export function QuizEditor({
 							upload={uploads[selected.id] ?? NO_UPLOAD}
 							onUploadImage={(file) => void uploadImage(selected.id, file)}
 							showHints={!quietIds.has(selected.id)}
-							onSaveText={(text) =>
-								actions.saveQuestionField(selected.id, { kind: "text", text })
+							onSaveStatement={({ text, formatting }) =>
+								actions.saveQuestionField(selected.id, {
+									kind: "text",
+									text,
+									formatting,
+								})
 							}
-							onSaveChoiceText={(choiceId, text) =>
+							onSaveChoiceText={(choiceId, { text, formatting }) =>
 								actions.saveQuestionField(selected.id, {
 									kind: "choiceText",
 									choiceId,
 									text,
+									formatting,
 								})
 							}
 							onSaveAcceptedAnswer={(index, text) =>
@@ -478,14 +522,24 @@ export function QuizEditor({
 									text,
 								})
 							}
-							onSavePuzzleItem={(index, text) =>
+							onSavePuzzleItem={(index, { text, formatting }) =>
 								actions.saveQuestionField(selected.id, {
 									kind: "puzzleItemText",
 									index,
 									text,
+									formatting,
 								})
 							}
 							onChange={(change) => actions.changeQuestion(selected.id, change)}
+							answerImages={{
+								urlOf: (key) => data.imageUrls[key] ?? null,
+								pick: (answer) =>
+									setAnswerUpload({
+										questionId: selected.id,
+										answer,
+										...NO_UPLOAD,
+									}),
+							}}
 							titleAside={
 								<QuestionPropertiesMenu
 									className="lg:hidden"
@@ -556,6 +610,13 @@ export function QuizEditor({
 					}
 					setDeletingTheme(null);
 				}}
+			/>
+			<UploadImageDialog
+				open={answerUpload !== null}
+				progress={answerUpload?.progress ?? null}
+				error={answerUpload?.error ?? null}
+				onFile={(file) => void uploadAnswerImage(file)}
+				onClose={() => setAnswerUpload(null)}
 			/>
 			<DeleteQuestionDialog
 				position={deletingIndex === -1 ? null : deletingIndex + 1}

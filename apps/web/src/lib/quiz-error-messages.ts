@@ -32,6 +32,7 @@ const MESSAGES_BY_DOMAIN_CODE: Record<string, string> = {
 	"QUIZ.QUESTION_NOT_FOUND":
 		"Esta pergunta não existe mais. Recarregue a página.",
 	"QUIZ.QUESTION_TEXT_TOO_LONG": `A pergunta deve ter no máximo ${QUESTION_TEXT_MAX_LENGTH} caracteres.`,
+	"QUIZ.INVALID_TEXT_FORMATTING": "Não foi possível salvar a formatação.",
 	"QUIZ.QUESTION_LIMIT_REACHED": `Limite de ${QUIZ_MAX_QUESTIONS} perguntas atingido.`,
 	"QUIZ.LAST_QUESTION": "Não é possível excluir todo o conteúdo.",
 	"QUIZ.INVALID_QUESTION_POSITION":

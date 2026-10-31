@@ -28,15 +28,65 @@ export async function assertUsableImages(
 	}
 }
 
-/** The distinct image files a question list uses. */
+/** The files of a question's answers (spec 049, RN-19). */
+function answerImageKeysOf(question: Question): string[] {
+	switch (question.type) {
+		case "quiz":
+			return question.choices.flatMap(({ image }) =>
+				image ? [image.key] : [],
+			);
+		case "puzzle":
+			return question.itemImages.flatMap((image) => (image ? [image.key] : []));
+		default:
+			return [];
+	}
+}
+
+/** The distinct image files a question list uses: statements and answers. */
 export function imageKeysOf(questions: readonly Question[]): string[] {
 	return [
 		...new Set(
-			questions.flatMap((question) =>
-				question.image ? [question.image.key] : [],
-			),
+			questions.flatMap((question) => [
+				...(question.image ? [question.image.key] : []),
+				...answerImageKeysOf(question),
+			]),
 		),
 	];
+}
+
+/** The question with every image file renamed, the statement's and the answers'. */
+export function withRenamedImages(
+	question: Question,
+	rename: (key: string) => string,
+): Question {
+	const image = question.image && {
+		...question.image,
+		key: rename(question.image.key),
+	};
+	switch (question.type) {
+		case "quiz":
+			return {
+				...question,
+				image,
+				choices: question.choices.map((choice) => ({
+					...choice,
+					image: choice.image && {
+						...choice.image,
+						key: rename(choice.image.key),
+					},
+				})),
+			};
+		case "puzzle":
+			return {
+				...question,
+				image,
+				itemImages: question.itemImages.map(
+					(item) => item && { ...item, key: rename(item.key) },
+				),
+			};
+		default:
+			return { ...question, image };
+	}
 }
 
 /**

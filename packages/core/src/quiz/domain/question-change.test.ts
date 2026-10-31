@@ -29,6 +29,9 @@ import {
 } from "./question";
 import {
 	AcceptedAnswerNotFoundError,
+	AnswerHasImageError,
+	AnswerHasNoImageError,
+	AnswerTextAndImageError,
 	applyQuestionChange,
 	ChoiceNotFoundError,
 	EmptyChoiceCannotBeCorrectError,
@@ -40,6 +43,10 @@ import {
 	TimeLimitNotAllowedError,
 	TooManyAcceptedAnswersError,
 } from "./question-change";
+import {
+	ImageAltTextTooLongError,
+	InvalidImageCropError,
+} from "./question-image";
 
 function withChoices(
 	texts: (string | null)[],
@@ -50,6 +57,8 @@ function withChoices(
 		choices: texts.map((text, index) => ({
 			id: `choice-${index + 1}`,
 			text,
+			textFormatting: {},
+			image: null,
 			correct: correct.includes(index),
 		})),
 		...overrides,
@@ -146,12 +155,22 @@ describe("applyQuestionChange changing the type", () => {
 			id: "q-7",
 			type: "trueFalse",
 			text: "A capital do Brasil é Brasília",
+			textFormatting: {},
 			timeLimitSeconds: 30,
 			points: "double",
 			image: null,
 			aiGenerated: false,
 			correct: null,
 		});
+	});
+
+	it("a type change keeps the formatting", () => {
+		const { question } = applyQuestionChange(
+			{ ...written, textFormatting: { bold: [[2, 9]] } },
+			{ kind: "type", type: "trueFalse", remembered: null },
+		);
+
+		expect(question.textFormatting).toEqual({ bold: [[2, 9]] });
 	});
 
 	it("tells when quiz answers were set aside", () => {
@@ -281,6 +300,26 @@ describe("applyQuestionChange", () => {
 			expect(notice).toBeNull();
 		});
 
+		it("a text change saves the text and its formatting", () => {
+			const { question } = applyToQuiz(aQuestion(), {
+				kind: "text",
+				text: " Quanto é 22? ",
+				formatting: { superscript: [[11, 12]] },
+			});
+
+			expect(question.text).toBe("Quanto é 22?");
+			expect(question.textFormatting).toEqual({ superscript: [[10, 11]] });
+		});
+
+		it("a text change without marks clears the formatting", () => {
+			const { question } = applyToQuiz(
+				aQuestion({ text: "H2O", textFormatting: { subscript: [[1, 2]] } }),
+				{ kind: "text", text: "H2O" },
+			);
+
+			expect(question.textFormatting).toEqual({});
+		});
+
 		it("refuses more than 160 characters", () => {
 			expect(() =>
 				applyToQuiz(aQuestion(), {
@@ -304,6 +343,8 @@ describe("applyQuestionChange", () => {
 			expect(question.choices[1]).toEqual({
 				id: "choice-2",
 				text: "Brasília",
+				textFormatting: {},
+				image: null,
 				correct: false,
 			});
 			expect(question.choices[0]).toEqual(source.choices[0]);
@@ -339,6 +380,8 @@ describe("applyQuestionChange", () => {
 			expect(question.choices[0]).toEqual({
 				id: "choice-1",
 				text: null,
+				textFormatting: {},
+				image: null,
 				correct: false,
 			});
 		});
@@ -481,6 +524,8 @@ describe("applyQuestionChange", () => {
 			expect(question.choices[5]).toEqual({
 				id: "choice-6",
 				text: null,
+				textFormatting: {},
+				image: null,
 				correct: false,
 			});
 		});
@@ -1041,5 +1086,359 @@ describe("applyQuestionChange on a puzzle", () => {
 				remembered: { type: "puzzle", items: ["a".repeat(76)] },
 			}),
 		).toThrow(ChoiceTextTooLongError);
+	});
+});
+
+describe("answer formatting changes (spec 048)", () => {
+	const subscript2 = { subscript: [[1, 2] as [number, number]] };
+
+	it("choiceText saves the text and its formatting", () => {
+		const { question } = applyToQuiz(withChoices([null, null, null, null]), {
+			kind: "choiceText",
+			choiceId: "choice-1",
+			text: "  H2O ",
+			formatting: { subscript: [[3, 4]] },
+		});
+
+		expect(question.choices[0]).toEqual({
+			id: "choice-1",
+			text: "H2O",
+			textFormatting: subscript2,
+			image: null,
+			correct: false,
+		});
+	});
+
+	it("choiceText without marks clears the formatting", () => {
+		const formatted = applyToQuiz(withChoices([null, null, null, null]), {
+			kind: "choiceText",
+			choiceId: "choice-1",
+			text: "H2O",
+			formatting: subscript2,
+		}).question;
+
+		const { question } = applyToQuiz(formatted, {
+			kind: "choiceText",
+			choiceId: "choice-1",
+			text: "H2O",
+		});
+
+		expect(question.choices[0]?.textFormatting).toEqual({});
+	});
+
+	it("a blank answer stops being correct and has no formatting", () => {
+		const formatted = applyToQuiz(
+			withChoices(["Rio", "Lua", null, null], [0]),
+			{
+				kind: "choiceText",
+				choiceId: "choice-1",
+				text: "Rio",
+				formatting: { bold: [[0, 3]] },
+			},
+		).question;
+
+		const { question } = applyToQuiz(formatted, {
+			kind: "choiceText",
+			choiceId: "choice-1",
+			text: "   ",
+			formatting: { bold: [[0, 3]] },
+		});
+
+		expect(question.choices[0]).toEqual({
+			id: "choice-1",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		});
+	});
+
+	it("puzzleItemText saves the slot's formatting", () => {
+		const { question } = applyQuestionChange(
+			aPuzzleQuestion({ items: [null, null, null, null] }),
+			{
+				kind: "puzzleItemText",
+				index: 2,
+				text: "H2O",
+				formatting: subscript2,
+			},
+		);
+
+		expect(asPuzzle(question).items).toEqual([null, null, "H2O", null]);
+		expect(asPuzzle(question).itemFormatting).toEqual([{}, {}, subscript2, {}]);
+	});
+
+	it("puzzleItemMoved carries the formatting with the text", () => {
+		const puzzle = aPuzzleQuestion({
+			items: ["H2O", "CO2", "Sal", null],
+			itemFormatting: [subscript2, { subscript: [[2, 3]] }, {}, {}],
+		});
+
+		const { question } = applyQuestionChange(puzzle, {
+			kind: "puzzleItemMoved",
+			from: 1,
+			to: 0,
+		});
+
+		expect(asPuzzle(question).items).toEqual(["CO2", "H2O", "Sal", null]);
+		expect(asPuzzle(question).itemFormatting).toEqual([
+			{ subscript: [[2, 3]] },
+			subscript2,
+			{},
+			{},
+		]);
+	});
+
+	it("removing the extra answers drops their formatting", () => {
+		const six = applyToQuiz(withChoices(["A", "B", null, null]), {
+			kind: "extraChoices",
+			visible: true,
+		}).question;
+		const written = applyToQuiz(six, {
+			kind: "choiceText",
+			choiceId: "choice-5",
+			text: "x2",
+			formatting: { superscript: [[1, 2]] },
+		}).question;
+
+		const hidden = applyToQuiz(written, {
+			kind: "extraChoices",
+			visible: false,
+		}).question;
+		const back = applyToQuiz(hidden, {
+			kind: "extraChoices",
+			visible: true,
+		}).question;
+
+		expect(back.choices[4]).toEqual({
+			id: "choice-5",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		});
+	});
+
+	it("remembered content brings the answers' formatting back", () => {
+		const quiz = applyToQuiz(withChoices([null, "Lua", null, null]), {
+			kind: "choiceText",
+			choiceId: "choice-1",
+			text: "H2O",
+			formatting: subscript2,
+		}).question;
+		const asTrueFalseQuestion = applyQuestionChange(quiz, {
+			kind: "type",
+			type: "trueFalse",
+			remembered: null,
+		}).question;
+
+		const back = applyQuestionChange(asTrueFalseQuestion, {
+			kind: "type",
+			type: "quiz",
+			remembered: questionContent(quiz),
+		}).question;
+
+		expect(asQuiz(back).choices[0]?.textFormatting).toEqual(subscript2);
+
+		const puzzle = aPuzzleQuestion({
+			items: ["H2O", "Sal", "Ar", null],
+			itemFormatting: [subscript2, {}, { italic: [[0, 2]] }, {}],
+		});
+		const puzzleBack = applyQuestionChange(aQuestion(), {
+			kind: "type",
+			type: "puzzle",
+			remembered: questionContent(puzzle),
+		}).question;
+
+		expect(asPuzzle(puzzleBack).itemFormatting).toEqual(puzzle.itemFormatting);
+	});
+});
+
+describe("answer image changes (spec 049)", () => {
+	const key = "media/ana/arroz.png";
+	const water = { key, crop: null, altText: null };
+	const square = { shape: "square", zoom: 2, x: 0.5, y: 0.5 };
+	const choice1 = { choiceId: "choice-1" };
+
+	function quizWithImage() {
+		return applyToQuiz(withChoices(["Rio", "Lua", null, null], [0]), {
+			kind: "answerImage",
+			answer: choice1,
+			key,
+		}).question;
+	}
+
+	it("answerImage puts the image, drops the text and its formatting and keeps the correct mark", () => {
+		const formatted = applyToQuiz(
+			withChoices(["Rio", "Lua", null, null], [0]),
+			{
+				kind: "choiceText",
+				choiceId: "choice-1",
+				text: "Rio",
+				formatting: { bold: [[0, 3]] },
+			},
+		).question;
+
+		const { question } = applyToQuiz(formatted, {
+			kind: "answerImage",
+			answer: choice1,
+			key,
+		});
+
+		expect(question.choices[0]).toEqual({
+			id: "choice-1",
+			text: null,
+			textFormatting: {},
+			image: water,
+			correct: true,
+		});
+	});
+
+	it("answerImage with null removes the image and the correct mark, leaving an empty answer", () => {
+		const { question } = applyToQuiz(quizWithImage(), {
+			kind: "answerImage",
+			answer: choice1,
+			key: null,
+		});
+
+		expect(question.choices[0]).toEqual({
+			id: "choice-1",
+			text: null,
+			textFormatting: {},
+			image: null,
+			correct: false,
+		});
+	});
+
+	it("answerImageCrop saves the crop and refuses a circle", () => {
+		const { question } = applyToQuiz(quizWithImage(), {
+			kind: "answerImageCrop",
+			answer: choice1,
+			crop: square,
+		});
+
+		expect(question.choices[0]?.image?.crop).toEqual(square);
+		expect(() =>
+			applyToQuiz(quizWithImage(), {
+				kind: "answerImageCrop",
+				answer: choice1,
+				crop: { ...square, shape: "circle" },
+			}),
+		).toThrow(InvalidImageCropError);
+	});
+
+	it("answerImageAltText saves up to 1000 characters", () => {
+		const { question } = applyToQuiz(quizWithImage(), {
+			kind: "answerImageAltText",
+			answer: choice1,
+			altText: "  Arroz de cuxá ",
+		});
+
+		expect(question.choices[0]?.image?.altText).toBe("Arroz de cuxá");
+		expect(() =>
+			applyToQuiz(quizWithImage(), {
+				kind: "answerImageAltText",
+				answer: choice1,
+				altText: "a".repeat(1001),
+			}),
+		).toThrow(ImageAltTextTooLongError);
+	});
+
+	it("crop or alt text on an answer without image is ANSWER_HAS_NO_IMAGE", () => {
+		expect(() =>
+			applyToQuiz(withChoices(["Rio", null, null, null]), {
+				kind: "answerImageAltText",
+				answer: choice1,
+				altText: "x",
+			}),
+		).toThrow(AnswerHasNoImageError);
+	});
+
+	it("a text change on an image answer is ANSWER_HAS_IMAGE", () => {
+		expect(() =>
+			applyToQuiz(quizWithImage(), {
+				kind: "choiceText",
+				choiceId: "choice-1",
+				text: "Rio",
+			}),
+		).toThrow(AnswerHasImageError);
+		const puzzle = applyQuestionChange(aPuzzleQuestion(), {
+			kind: "answerImage",
+			answer: { slot: 0 },
+			key,
+		}).question;
+		expect(() =>
+			applyQuestionChange(puzzle, {
+				kind: "puzzleItemText",
+				index: 0,
+				text: "Nilo",
+			}),
+		).toThrow(AnswerHasImageError);
+	});
+
+	it("puzzle slots take an image and puzzleItemMoved carries it", () => {
+		const puzzle = applyQuestionChange(
+			aPuzzleQuestion({ items: ["Nilo", "Amazonas", "Yangtzé", null] }),
+			{ kind: "answerImage", answer: { slot: 1 }, key },
+		).question;
+
+		expect(asPuzzle(puzzle).items).toEqual(["Nilo", null, "Yangtzé", null]);
+		expect(asPuzzle(puzzle).itemImages[1]).toEqual(water);
+
+		const moved = applyQuestionChange(puzzle, {
+			kind: "puzzleItemMoved",
+			from: 1,
+			to: 0,
+		}).question;
+		expect(asPuzzle(moved).items).toEqual([null, "Nilo", "Yangtzé", null]);
+		expect(asPuzzle(moved).itemImages).toEqual([water, null, null, null]);
+	});
+
+	it("removing the extra answers drops their images", () => {
+		const six = applyToQuiz(withChoices(["A", "B", null, null]), {
+			kind: "extraChoices",
+			visible: true,
+		}).question;
+		const withImage = applyToQuiz(six, {
+			kind: "answerImage",
+			answer: { choiceId: "choice-5" },
+			key,
+		}).question;
+		const back = applyToQuiz(
+			applyToQuiz(withImage, { kind: "extraChoices", visible: false }).question,
+			{ kind: "extraChoices", visible: true },
+		).question;
+
+		expect(back.choices[4]?.image).toBeNull();
+	});
+
+	it("remembered content brings the images back, and refuses text and image together", () => {
+		const quiz = quizWithImage();
+		const back = applyQuestionChange(
+			applyQuestionChange(quiz, {
+				kind: "type",
+				type: "trueFalse",
+				remembered: null,
+			}).question,
+			{ kind: "type", type: "quiz", remembered: questionContent(quiz) },
+		).question;
+
+		expect(asQuiz(back).choices[0]?.image).toEqual(water);
+		expect(() =>
+			applyQuestionChange(aTrueFalseQuestion(), {
+				kind: "type",
+				type: "quiz",
+				remembered: {
+					type: "quiz",
+					selection: "single",
+					choices: [
+						{ text: "Rio", image: water, correct: true },
+						{ text: "Lua", correct: false },
+						{ text: null, correct: false },
+						{ text: null, correct: false },
+					],
+				},
+			}),
+		).toThrow(AnswerTextAndImageError);
 	});
 });

@@ -90,8 +90,8 @@ test("answers and corrects are saved, a second correct turns on multiple choice 
 	).toHaveCount(0);
 
 	await reload(page);
-	await expect(answer(page, 1)).toHaveValue("Brasília");
-	await expect(answer(page, 2)).toHaveValue("Rio");
+	await expect(answer(page, 1)).toHaveText("Brasília");
+	await expect(answer(page, 2)).toHaveText("Rio");
 	await expect(correctMark(page, 1)).toBeChecked();
 	await expect(correctMark(page, 2)).toBeChecked();
 });
@@ -103,10 +103,51 @@ test("an incomplete question is still saved and keeps its alert", async ({
 
 	await reload(page);
 
-	await expect(answer(page, 1)).toHaveValue("Brasília");
+	await expect(answer(page, 1)).toHaveText("Brasília");
 	await expect(
 		page.getByRole("button", { name: "Pergunta 1 incompleta" }),
 	).toBeVisible();
+});
+
+test("a long answer wraps and shows whole, in one line of text, with what is left counted", async ({
+	page,
+}) => {
+	const long =
+		"Deus Pai, Jesus, o anjo, João e os leitores/ouvintes das sete igrejas";
+	await answer(page, 1).click();
+	await expect(page.getByText("75 caracteres restantes")).toBeAttached();
+	await page.keyboard.type(long);
+	await page.keyboard.press("Enter");
+	await page.keyboard.type(" da Ásia e mais");
+	// Past 75 characters nothing goes in.
+	const kept = `${long} da Ásia e mais`.slice(0, 75);
+	await expect(answer(page, 1)).toHaveText(kept);
+	await expect(page.getByText("0 caracteres restantes")).toBeAttached();
+	await writeAnswer(page, 2, "aba".repeat(25));
+
+	// Nothing of either answer is hidden, and the row keeps one height.
+	const fields = [answer(page, 1), answer(page, 2)];
+	for (const field of fields) {
+		expect(
+			await field.evaluate(
+				(element) => element.scrollHeight <= element.clientHeight + 1,
+			),
+		).toBe(true);
+	}
+	const heights = await Promise.all(
+		fields.map(async (field) =>
+			Math.round(
+				(await field.locator("xpath=ancestor::li[1]").boundingBox())?.height ??
+					0,
+			),
+		),
+	);
+	if (test.info().project.name !== "mobile") {
+		expect(heights[0]).toBe(heights[1]);
+	}
+
+	await reload(page);
+	await expect(answer(page, 1)).toHaveText(kept);
 });
 
 test("extra answers come with colors 5 and 6, and removing them discards their text", async ({
@@ -115,7 +156,7 @@ test("extra answers come with colors 5 and 6, and removing them discards their t
 	await page.getByRole("button", { name: "Adicionar mais respostas" }).click();
 	await expect(answerFields(page)).toHaveCount(6);
 	await expect(answer(page, 6)).toHaveAttribute(
-		"placeholder",
+		"aria-placeholder",
 		"Adicionar resposta 6 (opcional)",
 	);
 	await writeAnswer(page, 5, "Salvador");
@@ -127,7 +168,7 @@ test("extra answers come with colors 5 and 6, and removing them discards their t
 	await reload(page);
 	await expect(answerFields(page)).toHaveCount(4);
 	await page.getByRole("button", { name: "Adicionar mais respostas" }).click();
-	await expect(answer(page, 5)).toHaveValue("");
+	await expect(answer(page, 5)).toHaveText("");
 });
 
 test("time limit shows in the list, applies to every question, and points persist", async ({

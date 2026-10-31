@@ -283,6 +283,7 @@ export function HostStage({
 			{phase === "results" && question && review && (
 				<AnswerReview
 					questionText={question.text}
+					questionFormatting={question.textFormatting}
 					groups={review.groups}
 					busy={review.busy}
 					error={review.error}

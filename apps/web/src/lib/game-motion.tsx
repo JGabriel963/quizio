@@ -1,5 +1,7 @@
 import { MotionConfig } from "motion/react";
-import { type ReactNode, useSyncExternalStore } from "react";
+import type { ReactNode } from "react";
+
+import { useMediaQuery } from "./use-media-query";
 
 /**
  * How long the game's animations take (spec 011, RN-26): each movement about
@@ -14,22 +16,12 @@ export const GAME_MOTION = {
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
-function subscribeToReducedMotion(onChange: () => void): () => void {
-	const query = window.matchMedia?.(REDUCED_MOTION_QUERY);
-	query?.addEventListener("change", onChange);
-	return () => query?.removeEventListener("change", onChange);
-}
-
 /**
  * Whether the device asks for less movement (spec 011, RN-27). The game's
  * screens then show the final state of every animation at once.
  */
 export function usePrefersReducedMotion(): boolean {
-	return useSyncExternalStore(
-		subscribeToReducedMotion,
-		() => window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false,
-		() => false,
-	);
+	return useMediaQuery(REDUCED_MOTION_QUERY);
 }
 
 /**

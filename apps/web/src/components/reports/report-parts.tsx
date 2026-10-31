@@ -1,3 +1,4 @@
+import type { TextFormatting } from "@quizio/core/shared/domain/text-formatting";
 import {
 	ANSWER_COLOR_CLASSES,
 	AnswerShape,
@@ -18,6 +19,12 @@ import {
 	XIcon,
 } from "lucide-react";
 
+import {
+	AnswerImage,
+	type AnswerImageShown,
+	answerImageLabel,
+} from "@/components/quiz/answer-image";
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { AnswerResultData } from "@/lib/api-types";
 import { RESULT_LABELS } from "@/lib/report-labels";
 
@@ -71,14 +78,20 @@ export function ResultBadge({
 	);
 }
 
-/** An answer with the shape and the color it had in the game. */
+/** An answer with the shape and the color it had in the game, formatted (spec 048, RN-19). */
 export function ChoiceChip({
 	shapeIndex,
 	text,
+	textFormatting,
+	image = null,
 	className,
 }: {
 	shapeIndex: number;
-	text: string;
+	/** Null when the answer is an image (spec 049). */
+	text: string | null;
+	textFormatting?: TextFormatting;
+	/** A thumbnail in place of the text (spec 049, RN-24). */
+	image?: AnswerImageShown | null;
 	className?: string;
 }) {
 	const shape = answerShapeAt(shapeIndex);
@@ -92,7 +105,15 @@ export function ChoiceChip({
 			>
 				<AnswerShape shape={shape} className="size-3.5" />
 			</span>
-			<span className="min-w-0 break-words">{text}</span>
+			{image ? (
+				<span className="flex size-12 shrink-0">
+					<AnswerImage image={image} label={answerImageLabel(shapeIndex)} />
+				</span>
+			) : (
+				<span className="min-w-0 break-words">
+					<FormattedText text={text ?? ""} formatting={textFormatting} />
+				</span>
+			)}
 		</span>
 	);
 }

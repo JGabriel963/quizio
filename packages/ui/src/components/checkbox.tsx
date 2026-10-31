@@ -14,10 +14,13 @@ const checkboxVariants = cva(
 					"size-4 rounded-md border border-input after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-1 group-has-disabled/field:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 aria-invalid:aria-checked:border-primary data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:bg-input/30 dark:data-checked:bg-primary dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_[data-slot=checkbox-indicator]>svg]:size-3.5",
 				/**
 				 * Kahoot's round "correct answer" mark on an answer block: a white
-				 * ring, filled light green with a white check once marked.
+				 * ring, filled light green with a white check once marked. On hover it
+				 * grows a little and shows the check before it is marked, as in Kahoot;
+				 * `hover:` only applies where the pointer can hover, so a tap on a phone
+				 * never leaves the check on an unmarked answer.
 				 */
 				answer:
-					"size-9 rounded-full border-[3px] border-answer-foreground bg-transparent text-answer-foreground focus-visible:ring-3 data-checked:bg-answer-correct data-checked:shadow-[0_2px_4px_rgb(0_0_0/0.35)] [&_[data-slot=checkbox-indicator]>svg]:size-5 [&_[data-slot=checkbox-indicator]>svg]:stroke-4 [&_[data-slot=checkbox-indicator]>svg]:drop-shadow-[0_1px_1px_rgb(0_0_0/0.3)]",
+					"size-9 rounded-full border-[3px] border-answer-foreground bg-transparent text-answer-foreground transition-[background-color,box-shadow,scale] duration-200 ease-out focus-visible:ring-3 data-checked:bg-answer-correct data-checked:shadow-[0_2px_4px_rgb(0_0_0/0.35)] motion-safe:not-data-disabled:hover:scale-110 [&_[data-slot=checkbox-indicator]>svg]:size-5 [&_[data-slot=checkbox-indicator]>svg]:stroke-4 [&_[data-slot=checkbox-indicator]>svg]:drop-shadow-[0_1px_1px_rgb(0_0_0/0.3)] [&_[data-slot=checkbox-indicator][data-unchecked]]:opacity-0 not-data-disabled:hover:[&_[data-slot=checkbox-indicator][data-unchecked]]:opacity-100 [&_[data-slot=checkbox-indicator]]:transition-opacity [&_[data-slot=checkbox-indicator]]:duration-200 [&_[data-slot=checkbox-indicator]]:ease-out",
 			},
 		},
 		defaultVariants: {
@@ -40,6 +43,7 @@ function Checkbox({
 		>
 			<CheckboxPrimitive.Indicator
 				data-slot="checkbox-indicator"
+				keepMounted={variant === "answer"}
 				className="grid place-content-center text-current transition-none"
 			>
 				<CheckIcon />

@@ -12,8 +12,10 @@ import { MinusIcon, PlusIcon } from "lucide-react";
 
 import { NO_CORRECT_ANSWER_HINT } from "@/lib/question-labels";
 
+import type { AnswerImageActions } from "./answer-image-field";
 import { ChoiceField } from "./choice-field";
 import { EditorHint } from "./editor-hint";
+import type { SavedText } from "./formatted-text-field";
 
 /** The answer grid of a quiz question, with its hints and the extra answers (spec 004). */
 export function QuizAnswers({
@@ -21,13 +23,16 @@ export function QuizAnswers({
 	showHints,
 	onSaveChoiceText,
 	onChange,
+	answerImages,
 }: {
 	question: QuizQuestion;
 	/** Whether to point out what is missing (RN-16). */
 	showHints: boolean;
-	onSaveChoiceText: (choiceId: string, text: string | null) => Promise<unknown>;
+	onSaveChoiceText: (choiceId: string, answer: SavedText) => Promise<unknown>;
 	/** Changes saved at once: corrects and the extra answers. */
 	onChange: (change: QuestionChange) => void;
+	/** Images in the answers (spec 049); none in tests that do not need them. */
+	answerImages?: AnswerImageActions;
 }) {
 	const hints = showHints ? missingAnswerHints(question) : [];
 	const noCorrect =
@@ -36,20 +41,37 @@ export function QuizAnswers({
 
 	return (
 		<div className="flex flex-col gap-2">
-			{/* Room for the hint below the answers, kept even without it so nothing moves. */}
-			<div className="relative mb-7">
+			{/*
+				Room for the hint below the answers, kept even without it so nothing
+				moves. Two columns and the larger sizes follow the editor's width, not
+				the window's: the side panels can leave it narrow on a wide screen.
+			*/}
+			<div className="@container relative mb-7">
 				<ul
 					aria-label="Respostas"
-					className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+					// Every row as tall as the tallest, as in Kahoot: an image answer
+					// raises them all (spec 049).
+					className="grid auto-rows-fr @xl:grid-cols-2 grid-cols-1 gap-2"
 				>
 					{question.choices.map((choice, index) => (
 						<ChoiceField
-							key={`${question.id}:${choice.id}`}
+							// A new field when the answer turns into an image or back (RN-07, RN-13).
+							key={`${question.id}:${choice.id}:${choice.image ? "image" : "text"}`}
 							questionId={question.id}
 							choice={choice}
 							index={index}
 							hint={hints.includes(index + 1)}
-							onSaveText={(text) => onSaveChoiceText(choice.id, text)}
+							onSaveText={(answer) => onSaveChoiceText(choice.id, answer)}
+							imageUrl={
+								choice.image && answerImages
+									? answerImages.urlOf(choice.image.key)
+									: null
+							}
+							onPickImage={
+								answerImages &&
+								(() => answerImages.pick({ choiceId: choice.id }))
+							}
+							onImageChange={onChange}
 							onCorrectChange={(correct) =>
 								onChange({
 									kind: "choiceCorrect",

@@ -152,6 +152,8 @@ const questions: ReportQuestionData[] = [
 ].map((text, index) => ({
 	index,
 	text,
+	// "Salmo 90" in italic (spec 047).
+	textFormatting: index === 10 ? { italic: [[16, 24]] } : {},
 	type: index === 11 ? "trueFalse" : "quiz",
 	accuracyPercent: [20, 16, 52, 36, 40, 32, 32, 44, 68, 36, 16, 90][index] ?? 0,
 	difficult: [0, 1, 5, 6, 10].includes(index),
@@ -206,6 +208,26 @@ describe("QuestionsTable (spec 015)", () => {
 		await userEvent.type(screen.getByRole("searchbox"), "xyz");
 		expect(
 			screen.getByText("Nada encontrado para “MATUSALEMxyz”."),
+		).toBeInTheDocument();
+	});
+
+	it("the question list shows the formatting and the search uses the text (spec 047, RN-23)", async () => {
+		renderWithRouter(
+			<QuestionsTable gameId="game-1" questions={questions} view="all" />,
+		);
+
+		await userEvent.type(
+			await screen.findByRole("searchbox", { name: "Pesquisar perguntas" }),
+			"salmo 90",
+		);
+
+		const list = await rows("Perguntas");
+		expect(list).toHaveLength(1);
+		expect(list[0]?.querySelector("em")).toHaveTextContent("Salmo 90");
+		expect(
+			within(list[0] as HTMLElement).getByRole("link", {
+				name: "Quem escreveu o Salmo 90?",
+			}),
 		).toBeInTheDocument();
 	});
 

@@ -1,4 +1,5 @@
 import {
+	type OrderedAnswer,
 	type PuzzleAnswersView,
 	puzzleAnswersOf,
 	puzzleOrderOf,
@@ -8,6 +9,7 @@ import { participantStats, questionStats } from "../domain/report-stats";
 import { loadReport, type ReportReadDeps } from "./load-report";
 import {
 	type AnswerResult,
+	answerImageOf,
 	type ChoiceView,
 	chosenChoices,
 	type ImageUrlResolver,
@@ -36,8 +38,8 @@ export interface QuestionParticipantView {
 	typedText: string | null;
 	/** What they picked on a slider (spec 032); null otherwise. */
 	sliderValue: number | null;
-	/** The order they sent in a puzzle, by text (spec 033); null otherwise. */
-	puzzleOrder: string[] | null;
+	/** The order they sent in a puzzle, with its formatting (specs 033, 048); null otherwise. */
+	puzzleOrder: OrderedAnswer[] | null;
 	points: number;
 	responseTimeMs: number | null;
 }
@@ -86,22 +88,27 @@ export function createGetReportQuestion(
 		const countOf = new Map(
 			stats.choiceCounts.map(({ choiceId, count }) => [choiceId, count]),
 		);
+		const imageOf = answerImageOf(game.header, deps.storage);
 
 		return {
 			...questionRow(question, stats),
 			imageUrl: imageUrlOf(game.header, question.imageKey, deps.storage),
 			unanswered: stats.unanswered,
 			averageResponseTimeMs: stats.averageResponseTimeMs,
-			choices: question.choices.map(({ id, shapeIndex, text, correct }) => ({
-				id,
-				shapeIndex,
-				text,
-				correct,
-				count: countOf.get(id) ?? 0,
-			})),
+			choices: question.choices.map(
+				({ id, shapeIndex, text, textFormatting, image, correct }) => ({
+					id,
+					shapeIndex,
+					text,
+					textFormatting,
+					image: image && imageOf(image),
+					correct,
+					count: countOf.get(id) ?? 0,
+				}),
+			),
 			typedAnswers: typedAnswersOf(question, [...answerOf.values()]),
 			sliderAnswers: sliderAnswersOf(question, [...answerOf.values()]),
-			puzzleAnswers: puzzleAnswersOf(question, [...answerOf.values()]),
+			puzzleAnswers: puzzleAnswersOf(question, [...answerOf.values()], imageOf),
 			participants: participantStats(game)
 				.filter(
 					({ playerId }) =>
@@ -114,10 +121,10 @@ export function createGetReportQuestion(
 						playerId,
 						nickname,
 						result: answer?.correctness ?? "unanswered",
-						choices: chosenChoices(question, answer),
+						choices: chosenChoices(question, answer, imageOf),
 						typedText: answer?.text ?? null,
 						sliderValue: answer?.value ?? null,
-						puzzleOrder: puzzleOrderOf(question, answer),
+						puzzleOrder: puzzleOrderOf(question, answer, imageOf),
 						points: answer?.points ?? 0,
 						responseTimeMs: answer?.responseTimeMs ?? null,
 					};

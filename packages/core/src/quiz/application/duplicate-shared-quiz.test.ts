@@ -6,7 +6,7 @@ import { InMemoryQuizShareGrants } from "../../shared/testing/in-memory-quiz-sha
 import { SequentialIdGenerator } from "../../shared/testing/sequential-id-generator";
 import { QuizNotFoundError, trashQuiz } from "../domain/quiz";
 import { newQuizVersion } from "../domain/quiz-version";
-import { aQuestion } from "../testing/a-question";
+import { aQuestion, asQuiz } from "../testing/a-question";
 import { aPublishedQuiz, aQuiz } from "../testing/a-quiz";
 import { InMemoryQuestionRepository } from "../testing/in-memory-question-repository";
 import { InMemoryQuizRepository } from "../testing/in-memory-quiz-repository";
@@ -53,6 +53,37 @@ describe("duplicateSharedQuiz (spec 037, RN-21)", () => {
 					aQuestion({
 						id: "q1",
 						text: "Salva",
+						textFormatting: { bold: [[0, 5]] },
+						choices: [
+							{
+								id: "choice-1",
+								text: "H2O",
+								textFormatting: { subscript: [[1, 2]] },
+								image: null,
+								correct: true,
+							},
+							{
+								id: "choice-2",
+								text: null,
+								textFormatting: {},
+								image: null,
+								correct: false,
+							},
+							{
+								id: "choice-3",
+								text: null,
+								textFormatting: {},
+								image: null,
+								correct: false,
+							},
+							{
+								id: "choice-4",
+								text: null,
+								textFormatting: {},
+								image: null,
+								correct: false,
+							},
+						],
 						image: {
 							key: IMAGE,
 							placement: "media",
@@ -78,6 +109,12 @@ describe("duplicateSharedQuiz (spec 037, RN-21)", () => {
 
 		const copied = await questions.listByQuiz(copy.id);
 		expect(copied.map((question) => question.text)).toEqual(["Salva"]);
+		// The copy keeps the formatting of the version (spec 047, RN-20).
+		expect(copied[0]?.textFormatting).toEqual({ bold: [[0, 5]] });
+		// And the answers' (spec 048, RN-15).
+		expect(asQuiz(copied[0]).choices[0]?.textFormatting).toEqual({
+			subscript: [[1, 2]],
+		});
 		expect(copied[0]?.id).not.toBe("q1");
 	});
 

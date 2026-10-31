@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { aQuestion } from "../../quiz/testing/a-question";
+import type { Question } from "../../quiz/domain/question";
+import {
+	aFormattedAnswersQuestion,
+	aQuestion,
+} from "../../quiz/testing/a-question";
 import {
 	GameEndedError,
 	GameNotFoundError,
@@ -169,6 +173,44 @@ describe("startGame (spec 009)", () => {
 		);
 	});
 
+	it("a game takes the formatting of the playable version, and a later edit does not reach the copy (spec 047, RN-21)", async () => {
+		const deps = await lobby();
+		const [first, second] = somePlayableQuestions();
+		deps.versionQuestions.set(1, [
+			{
+				...(first as Question),
+				text: "H2O?",
+				textFormatting: { subscript: [[1, 2]] },
+			},
+			second as Question,
+		]);
+
+		await createStartGame(deps)(mine);
+		deps.versionQuestions.set(1, [aQuestion({ text: "H2O?" })]);
+
+		expect(deps.gameQuestions.allOf("game-1")[0]?.textFormatting).toEqual({
+			subscript: [[1, 2]],
+		});
+	});
+
+	it("a game takes the answers' formatting of the playable version, and a later edit does not reach the copy (spec 048, RN-16)", async () => {
+		const deps = await lobby();
+		const [, second] = somePlayableQuestions();
+		deps.versionQuestions.set(1, [
+			aFormattedAnswersQuestion(),
+			second as Question,
+		]);
+
+		await createStartGame(deps)(mine);
+		deps.versionQuestions.set(1, [aQuestion({ text: "H2O?" })]);
+
+		expect(
+			deps.gameQuestions
+				.allOf("game-1")[0]
+				?.choices.map((choice) => choice.textFormatting),
+		).toEqual([{ subscript: [[1, 2]] }, {}]);
+	});
+
 	it("refuses a version that is gone", async () => {
 		const deps = await lobby();
 		deps.versionQuestions.clear();
@@ -206,15 +248,38 @@ describe("startGame (spec 009)", () => {
 			const [quiz, trueFalse] = deps.gameQuestions.allOf("game-1");
 			// Each answer is named after its drawn place (L8).
 			expect(quiz?.choices).toEqual([
-				{ id: "choice-1", shapeIndex: 0, text: "Recife", correct: false },
-				{ id: "choice-2", shapeIndex: 1, text: "Salvador", correct: false },
+				{
+					id: "choice-1",
+					shapeIndex: 0,
+					text: "Recife",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
+				{
+					id: "choice-2",
+					shapeIndex: 1,
+					text: "Salvador",
+					textFormatting: {},
+					image: null,
+					correct: false,
+				},
 				{
 					id: "choice-3",
 					shapeIndex: 2,
 					text: "Rio de Janeiro",
+					textFormatting: {},
+					image: null,
 					correct: false,
 				},
-				{ id: "choice-4", shapeIndex: 3, text: "Brasília", correct: true },
+				{
+					id: "choice-4",
+					shapeIndex: 3,
+					text: "Brasília",
+					textFormatting: {},
+					image: null,
+					correct: true,
+				},
 			]);
 			// "Verdadeiro" stays the blue diamond (RN-24).
 			expect(trueFalse?.choices.map((choice) => choice.shapeIndex)).toEqual([

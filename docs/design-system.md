@@ -26,7 +26,7 @@
 | `answer-correct` | `#66bf39` | Marcação de "resposta correta" sobre um bloco de alternativa |
 | `shadow-press` / `shadow-press-sm` / `shadow-press-light` | inset inferior | Efeito de botão pressionável |
 | `--radius` | `0.375rem` | Cantos levemente arredondados (primitivos passaram de `rounded-none` para `rounded-md`) |
-| Fonte | Montserrat Variable | `@fontsource-variable/montserrat` |
+| Fonte | Montserrat (pesos estáticos 400 a 900 e itálico 400 e 700), seguida de "Quizio Symbols" | `@fontsource/montserrat`; a fonte de símbolos em `packages/ui/src/fonts` |
 
 A classe `.dark` define superfícies roxas para as telas de partida (lobby, pergunta, pódio). O app em si é claro, como o Kahoot.
 
@@ -103,6 +103,27 @@ Uma cor livre, como o seletor de "Cores personalizadas" do Kahoot (spec 043): o 
 
 - Chave liga/desliga que vale na hora, sem botão de salvar (spec 012): verde (`success`) quando ligada.
 - `size`: `default` e `sm`. Sem rótulo próprio: dê o nome com `aria-labelledby` ou envolva num `Label`.
+
+### `Toggle`
+
+- Um botão que fica pressionado ou não, com `aria-pressed` (spec 047). `variant="toolbar"`: símbolo escuro sobre a barra cinza, clareia ao passar o ponteiro e fica cinza-escuro com o símbolo branco quando pressionado. É o botão da barra de formatação do enunciado e das respostas (spec 048).
+
+### `Tabs`
+
+- Abas que trocam painéis na mesma página (spec 044); para seções que moram no endereço, use `TabNav`.
+- `variant="pill"` no `TabsList` e no `TabsTrigger` (spec 047): botões pressionáveis separados, cinza-claros, e a aba escolhida azul (`primary`) com o texto branco, como as abas do diálogo de símbolos do Kahoot.
+
+### Texto formatado (spec 047)
+
+- O enunciado das perguntas e as respostas do Quiz e do Puzzle (spec 048) têm negrito, itálico, subscrito e sobrescrito. Toda tela que os mostra usa `FormattedText` (`apps/web/src/components/quiz/formatted-text.tsx`): o texto sem marca em **peso normal**, os trechos em `strong`, `em`, `sub` e `sup` (o preflight do Tailwind não deixa `sub` e `sup` afastarem as linhas), e o texto sempre como nós de texto, nunca HTML.
+- A fonte é a Montserrat **estática**, como a do Kahoot: com hinting, o texto normal fica tão encorpado quanto o do Kahoot no Windows (a variável, sem hinting, desenhava mais fino). `globals.css` importa os pesos 400 a 900 e os itálicos 400 e 700; cada arquivo só é baixado quando uma página o usa.
+- **"Quizio Symbols"** vem logo depois na pilha: um recorte das Noto (OFL 1.1) com os símbolos do diálogo "Insira um símbolo" que a Montserrat não tem (grego, operadores, moedas), um arquivo por fonte de origem, declarado com `unicode-range`. É gerado por `packages/ui/scripts/build-symbol-font.py` (leia o cabeçalho do script); acrescentar um símbolo ao catálogo pede gerar de novo, ou o teste de cobertura do catálogo falha.
+
+### Imagem da resposta (spec 049)
+
+- Uma resposta de Quiz ou de Puzzle pode ser uma imagem no lugar do texto. Toda tela a desenha com `AnswerImage` (`apps/web/src/components/quiz/answer-image.tsx`): inteira sem recorte, ou a parte recortada na forma (Paisagem, Retrato ou Quadrado; nunca Círculo), centrada na caixa que quem usa dimensiona. Sem texto alternativo, o nome é "Imagem da resposta N" (`answerImageLabel`); sem endereço (relatório de um quiz excluído), é um ícone com o mesmo nome. `AnswerContent` escolhe entre o texto formatado e a imagem.
+- No telão, a imagem vem logo depois da forma, com a altura inteira do bloco; no celular, centralizada no botão, sem a forma; nas páginas do quiz e nos relatórios, uma miniatura no lugar do texto.
+- No editor, `AnswerImageField` mostra a imagem no bloco e, ao passar o ponteiro ou com o foco, Remover, Recortar e Detalhes da mídia. A resposta vazia tem o ícone de imagem, e a barra de formatação das respostas começa com o botão "Adicione imagem como resposta alternativa" (`FormattingToolbar` com `onImage`).
 
 ### `Calendar`
 

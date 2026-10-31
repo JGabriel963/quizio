@@ -71,6 +71,7 @@ describe("addQuestion", () => {
 			id: "new-1",
 			type: "trueFalse",
 			text: null,
+			textFormatting: {},
 			timeLimitSeconds: 20,
 			points: "standard",
 			image: null,

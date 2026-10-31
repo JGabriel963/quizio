@@ -61,6 +61,18 @@ describe("SignUpForm", () => {
 		});
 	});
 
+	it("says that creating the account accepts the Terms and the Privacy Policy", () => {
+		renderForm();
+
+		expect(screen.getByRole("link", { name: "Termos de Uso" })).toHaveAttribute(
+			"href",
+			"/terms",
+		);
+		expect(
+			screen.getByRole("link", { name: "Política de Privacidade" }),
+		).toHaveAttribute("href", "/privacy");
+	});
+
 	it("shows the server error in Portuguese", async () => {
 		renderForm({
 			onSignUp: vi.fn(async () => ({ error: { code: "USER_ALREADY_EXISTS" } })),

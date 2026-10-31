@@ -32,10 +32,23 @@ const question = (index: number, text: string) => ({
 	selection: "single" as const,
 	slider: null,
 	text,
+	textFormatting: {},
 	image: null,
 	choices: [
-		{ id: `q${index}-a`, shapeIndex: 0, text: "Brasília" },
-		{ id: `q${index}-b`, shapeIndex: 1, text: "Recife" },
+		{
+			id: `q${index}-a`,
+			shapeIndex: 0,
+			text: "Brasília",
+			textFormatting: {},
+			image: null,
+		},
+		{
+			id: `q${index}-b`,
+			shapeIndex: 1,
+			text: "Recife",
+			textFormatting: {},
+			image: null,
+		},
 	],
 });
 

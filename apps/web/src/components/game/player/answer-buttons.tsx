@@ -8,6 +8,8 @@ import { cn } from "@quizio/ui/lib/utils";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 
+import { AnswerImage, answerImageLabel } from "@/components/quiz/answer-image";
+import { FormattedText } from "@/components/quiz/formatted-text";
 import type { PlayerQuestionData } from "@/lib/api-types";
 import { answerShapeName } from "@/lib/game-stage";
 
@@ -30,7 +32,9 @@ export function AnswerButtons({
 }) {
 	const [marked, setMarked] = useState<readonly string[]>([]);
 	const multiple = question.selection === "multiple";
-	const withTexts = question.choices.some((choice) => choice.text !== null);
+	const withTexts = question.choices.some(
+		(choice) => choice.text !== null || choice.image !== null,
+	);
 
 	function tap(choice: PlayerChoice) {
 		if (!multiple) {
@@ -113,17 +117,19 @@ function AnswerButton({
 }) {
 	const shape = answerShapeAt(choice.shapeIndex);
 	const withText = choice.text !== null;
+	// An image answer: centered, the color around and no shape (spec 049, RN-23).
+	const withImage = choice.image !== null;
 
 	return (
 		<button
 			type="button"
 			data-slot="answer-button"
 			data-shape={shape}
-			data-format={withText ? "text" : "shape"}
+			data-format={withImage ? "image" : withText ? "text" : "shape"}
 			// With only color and shape, as in Kahoot, true/false buttons are named
 			// for screen readers and the others by their shape. A text names itself.
 			aria-label={
-				withText
+				withText || withImage
 					? undefined
 					: (choice.label ?? answerShapeName(choice.shapeIndex))
 			}
@@ -133,10 +139,18 @@ function AnswerButton({
 				"relative flex min-h-0 select-none flex-col items-center justify-center gap-2 rounded-md text-answer-foreground shadow-press outline-none transition-[filter,transform,box-shadow] hover:brightness-110 focus-visible:ring-4 focus-visible:ring-white/70 active:translate-y-0.5 active:shadow-press-sm",
 				ANSWER_COLOR_CLASSES[shape],
 				withText && "px-3 py-8",
+				withImage && "p-2",
 				marked && "ring-4 ring-white",
 			)}
 		>
-			{withText ? (
+			{choice.image ? (
+				<span className="flex h-28 w-full sm:h-40">
+					<AnswerImage
+						image={choice.image}
+						label={answerImageLabel(choice.shapeIndex)}
+					/>
+				</span>
+			) : withText ? (
 				<>
 					<AnswerShape
 						data-slot="answer-button-shape"
@@ -147,7 +161,10 @@ function AnswerButton({
 						data-slot="answer-button-text"
 						className="w-full break-words text-center font-bold text-lg leading-tight sm:text-2xl"
 					>
-						{choice.text}
+						<FormattedText
+							text={choice.text ?? ""}
+							formatting={choice.textFormatting}
+						/>
 					</span>
 				</>
 			) : (

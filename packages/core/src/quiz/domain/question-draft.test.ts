@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-
+import { asPuzzle, asQuiz } from "../testing/a-question";
 import {
 	AcceptedAnswerTooLongError,
 	ChoiceTextTooLongError,
@@ -9,12 +9,14 @@ import {
 	QuestionTextTooLongError,
 } from "./question";
 import {
+	AnswerTextAndImageError,
 	EmptyChoiceCannotBeCorrectError,
 	InvalidChoiceCountError,
 	TimeLimitNotAllowedError,
 	TooManyAcceptedAnswersError,
 } from "./question-change";
 import { questionFromDraft, TooManyPuzzleItemsError } from "./question-draft";
+import { InvalidImageCropError } from "./question-image";
 import { questionIssues } from "./question-issues";
 
 describe("questionFromDraft (spec 044, RN-21, RN-22)", () => {
@@ -39,10 +41,34 @@ describe("questionFromDraft (spec 044, RN-21, RN-22)", () => {
 			points: "standard",
 		});
 		expect(single.type === "quiz" && single.choices).toEqual([
-			{ id: "choice-1", text: "Paris", correct: true },
-			{ id: "choice-2", text: "Lyon", correct: false },
-			{ id: "choice-3", text: null, correct: false },
-			{ id: "choice-4", text: null, correct: false },
+			{
+				id: "choice-1",
+				text: "Paris",
+				textFormatting: {},
+				image: null,
+				correct: true,
+			},
+			{
+				id: "choice-2",
+				text: "Lyon",
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-3",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
+			{
+				id: "choice-4",
+				text: null,
+				textFormatting: {},
+				image: null,
+				correct: false,
+			},
 		]);
 
 		const primes = ["2", "3", "4", "5", "6"].map((text) => ({
@@ -267,5 +293,157 @@ describe("questionFromDraft (spec 044, RN-21, RN-22)", () => {
 		expect(questionFromDraft({ type: "trueFalse" }, "q").aiGenerated).toBe(
 			true,
 		);
+	});
+
+	it("a draft keeps its formatting (spec 047, RN-29)", () => {
+		const question = questionFromDraft(
+			{
+				type: "trueFalse",
+				text: "A fórmula da água é H2O",
+				textFormatting: { bold: [[13, 17]], subscript: [[21, 22]] },
+			},
+			"q",
+		);
+
+		expect(question.textFormatting).toEqual({
+			bold: [[13, 17]],
+			subscript: [[21, 22]],
+		});
+	});
+
+	it("a draft without formatting has none", () => {
+		expect(
+			questionFromDraft({ type: "trueFalse", text: "H2O" }, "q").textFormatting,
+		).toEqual({});
+	});
+
+	it("a quiz draft keeps its answers' formatting (spec 048, RN-23)", () => {
+		const question = asQuiz(
+			questionFromDraft(
+				{
+					type: "quiz",
+					text: "Fórmula da água?",
+					choices: [
+						{
+							text: " H2O ",
+							textFormatting: { subscript: [[2, 3]] },
+							correct: true,
+						},
+						{ text: "CO2", correct: false },
+					],
+				},
+				"q",
+			),
+		);
+
+		expect(question.choices.map((choice) => choice.textFormatting)).toEqual([
+			{ subscript: [[1, 2]] },
+			{},
+			{},
+			{},
+		]);
+	});
+
+	it("a puzzle draft keeps its items' formatting", () => {
+		const question = asPuzzle(
+			questionFromDraft(
+				{
+					type: "puzzle",
+					text: "Ordene",
+					items: ["H2O", "Sal", "Ar"],
+					itemFormatting: [{ subscript: [[1, 2]] }, {}, { italic: [[0, 2]] }],
+				},
+				"q",
+			),
+		);
+
+		expect(question.itemFormatting).toEqual([
+			{ subscript: [[1, 2]] },
+			{},
+			{ italic: [[0, 2]] },
+			{},
+		]);
+	});
+
+	it("a draft without answer formatting has none", () => {
+		const puzzle = asPuzzle(
+			questionFromDraft(
+				{ type: "puzzle", text: "Ordene", items: ["a", "b", "c"] },
+				"q",
+			),
+		);
+
+		expect(puzzle.itemFormatting).toEqual([{}, {}, {}, {}]);
+	});
+});
+
+describe("answer images in drafts (spec 049, RN-21, RN-27)", () => {
+	const image = { key: "media/ana/arroz.png", altText: "Arroz" };
+
+	it("a draft takes image answers for quiz and puzzle", () => {
+		const quiz = asQuiz(
+			questionFromDraft(
+				{
+					type: "quiz",
+					text: "Prato típico?",
+					choices: [
+						{ text: null, image, correct: true },
+						{ text: "Feijão", correct: false },
+					],
+				},
+				"q1",
+			),
+		);
+		expect(quiz.choices[0]).toMatchObject({
+			text: null,
+			image: { key: image.key, crop: null, altText: "Arroz" },
+			correct: true,
+		});
+		expect(questionIssues(quiz)).toEqual([]);
+
+		const puzzle = asPuzzle(
+			questionFromDraft(
+				{
+					type: "puzzle",
+					text: "Ordem?",
+					items: [null, "Dois", "Três"],
+					itemImages: [image],
+				},
+				"q2",
+			),
+		);
+		expect(puzzle.itemImages[0]?.key).toBe(image.key);
+		expect(puzzle.itemImages.slice(1)).toEqual([null, null, null]);
+		expect(questionIssues(puzzle)).toEqual([]);
+	});
+
+	it("an answer with text and image is ANSWER_TEXT_AND_IMAGE", () => {
+		expect(() =>
+			questionFromDraft(
+				{
+					type: "quiz",
+					choices: [{ text: "Arroz", image, correct: true }],
+				},
+				"q1",
+			),
+		).toThrow(AnswerTextAndImageError);
+		expect(() =>
+			questionFromDraft(
+				{
+					type: "quiz",
+					choices: [
+						{
+							text: null,
+							image: {
+								...image,
+								crop: { shape: "circle", zoom: 1, x: 0.5, y: 0.5 },
+							},
+							correct: true,
+						},
+					],
+				},
+				"q1",
+			),
+		).toThrow(InvalidImageCropError);
 	});
 });

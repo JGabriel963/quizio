@@ -1,4 +1,10 @@
 import { describe, expect, it } from "vitest";
+import type { Question } from "../../quiz/domain/question";
+import {
+	aFormattedAnswersQuestion,
+	anImageAnswersQuestion,
+	RICE_IMAGE_VIEW,
+} from "../../quiz/testing/a-question";
 
 import {
 	A_THEME_LOOK,
@@ -9,7 +15,7 @@ import { DEFAULT_ASSIGNMENT_OPTIONS } from "../domain/assignment";
 import { GameNotFoundError } from "../domain/game";
 import { aGame, aPlayer } from "../testing/a-game";
 import { anAnswer } from "../testing/a-game-question";
-import { createGameDeps } from "../testing/game-deps";
+import { createGameDeps, somePlayableQuestions } from "../testing/game-deps";
 import { createCreateAssignment } from "./create-assignment";
 import { createEndAssignment } from "./end-assignment";
 import { createGetAssignmentPlay } from "./get-assignment-play";
@@ -18,8 +24,8 @@ import { createJoinAssignment } from "./join-assignment";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** An assignment of the two playable questions: a Quiz of 20 s and a true/false of 10 s. */
-async function playing(options = {}) {
-	const deps = createGameDeps();
+async function playing(options = {}, questions?: Question[]) {
+	const deps = createGameDeps({ questions });
 	const { gameId } = await createCreateAssignment(deps)({
 		ownerId: "user-1",
 		quizId: "quiz-1",
@@ -112,6 +118,65 @@ describe("getAssignmentPlay (spec 030)", () => {
 			history: [],
 		});
 		expect(JSON.stringify(view)).not.toContain("correct");
+	});
+
+	it("the question and the result carry the formatting (spec 047, RN-25)", async () => {
+		const [first, second] = somePlayableQuestions();
+		const { deps, play } = await playing({}, [
+			{
+				...(first as Question),
+				text: "H2O?",
+				textFormatting: { subscript: [[1, 2]] },
+			},
+			second as Question,
+		]);
+
+		expect((await play()).screen).toMatchObject({
+			question: { text: "H2O?", textFormatting: { subscript: [[1, 2]] } },
+		});
+		deps.clock.advanceBy(60_000);
+		expect((await play()).screen).toMatchObject({
+			phase: "results",
+			result: { question: { textFormatting: { subscript: [[1, 2]] } } },
+		});
+	});
+
+	it("the choices carry the formatting (spec 048, RN-19)", async () => {
+		const [, second] = somePlayableQuestions();
+		const { play } = await playing({}, [
+			aFormattedAnswersQuestion(),
+			second as Question,
+		]);
+
+		const { screen } = await play();
+
+		expect(screen).toMatchObject({
+			question: {
+				choices: [
+					{ text: "H2O", textFormatting: { subscript: [[1, 2]] } },
+					{ text: "CO2", textFormatting: {} },
+				],
+			},
+		});
+	});
+
+	it("the choices carry the image (spec 049, RN-23)", async () => {
+		const [, second] = somePlayableQuestions();
+		const { play } = await playing({}, [
+			anImageAnswersQuestion(),
+			second as Question,
+		]);
+
+		const { screen } = await play();
+
+		expect(screen).toMatchObject({
+			question: {
+				choices: [
+					{ text: null, image: RICE_IMAGE_VIEW },
+					{ text: "Feijão", image: null },
+				],
+			},
+		});
 	});
 
 	it("without the timer the time left is null", async () => {
