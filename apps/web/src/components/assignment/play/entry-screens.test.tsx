@@ -38,6 +38,19 @@ describe("AssignmentCover (spec 030, RN-01)", () => {
 
 		expect(onStart).toHaveBeenCalledOnce();
 	});
+
+	it("says at the bottom of the page that starting accepts the Terms and the Privacy Policy", () => {
+		render(<AssignmentCover cover={cover} onStart={vi.fn()} />);
+
+		const consent = screen.getByText(/Ao iniciar a atividade/);
+		expect(consent.closest("[data-slot=legal-footer]")).not.toBeNull();
+		expect(
+			within(consent).getByRole("link", { name: "Termos de Uso" }),
+		).toHaveAttribute("href", "/terms");
+		expect(
+			within(consent).getByRole("link", { name: "Política de Privacidade" }),
+		).toHaveAttribute("href", "/privacy");
+	});
 });
 
 describe("NicknameStep (spec 030, RN-02 to RN-04)", () => {
@@ -62,16 +75,10 @@ describe("NicknameStep (spec 030, RN-02 to RN-04)", () => {
 		expect(within(joined).queryByRole("button")).toBeNull();
 	});
 
-	it("says that joining accepts the Terms and the Privacy Policy", () => {
+	it("leaves the Terms to the cover", () => {
 		renderStep();
 
-		expect(screen.getByRole("link", { name: "Termos de Uso" })).toHaveAttribute(
-			"href",
-			"/terms",
-		);
-		expect(
-			screen.getByRole("link", { name: "Política de Privacidade" }),
-		).toHaveAttribute("href", "/privacy");
+		expect(screen.queryByRole("link", { name: "Termos de Uso" })).toBeNull();
 	});
 
 	it("Ok, vamos lá! sends the nickname", async () => {

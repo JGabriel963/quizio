@@ -5,10 +5,10 @@ import { UserRoundIcon } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 
 import { Avatar } from "@/components/game/avatar";
+import { GameLegalFooter } from "@/components/game/game-legal-footer";
 import { GameScreen, Wordmark } from "@/components/game/game-screen";
 import { AvatarEditor } from "@/components/game/player/avatar-editor";
 import { JoinNotice } from "@/components/game/player/join-forms";
-import { LegalConsent } from "@/components/legal/legal-consent";
 import { QuizCover } from "@/components/quiz/quiz-cover";
 import type { OpenAssignmentCoverData } from "@/lib/api-types";
 import { questionCountLabel } from "@/lib/quiz-labels";
@@ -21,18 +21,22 @@ const fieldClass =
 function Card({
 	children,
 	header,
+	footer,
 }: {
 	children: ReactNode;
 	header?: ReactNode;
+	/** Below the card, in the room the page leaves at its foot. */
+	footer?: ReactNode;
 }) {
 	return (
-		<GameScreen className="flex min-h-svh flex-col items-center p-4 pb-20">
+		<GameScreen className="relative flex min-h-svh flex-col items-center p-4 pb-20">
 			<div className="flex w-full max-w-3xl flex-1 flex-col overflow-hidden rounded-lg bg-white/10 shadow-xl backdrop-blur-sm">
 				{header}
 				<div className="flex flex-1 flex-col items-center gap-6 px-4 py-8">
 					{children}
 				</div>
 			</div>
+			{footer}
 		</GameScreen>
 	);
 }
@@ -66,7 +70,7 @@ export function AssignmentCover({
 	onStart: () => void;
 }) {
 	return (
-		<Card>
+		<Card footer={<GameLegalFooter action="iniciar a atividade" />}>
 			<Wordmark className="text-4xl opacity-60" />
 			<div className="relative w-full max-w-sm">
 				<QuizCover url={cover.coverUrl} className="w-full" />
@@ -163,10 +167,6 @@ export function NicknameStep({
 				<p className="self-center rounded bg-white/90 px-2 py-1 text-neutral-800 text-sm">
 					Não use seu nome verdadeiro
 				</p>
-				<LegalConsent
-					action="entrar na atividade"
-					className="self-center rounded bg-white/90 px-2 py-1 text-center text-neutral-800"
-				/>
 			</form>
 			<JoinNotice message={notice} />
 		</Card>
