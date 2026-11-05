@@ -4,9 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import { NicknameForm } from "./join-forms";
 
 describe("NicknameForm", () => {
-	it("says that joining accepts the Terms and the Privacy Policy", () => {
+	it("says at the bottom of the page that joining accepts the Terms and the Privacy Policy", () => {
 		render(<NicknameForm error={null} busy={false} onSubmit={vi.fn()} />);
 
+		expect(
+			screen.getByText(/Ao entrar no jogo/).closest("[data-slot=legal-footer]"),
+		).not.toBeNull();
 		expect(screen.getByRole("link", { name: "Termos de Uso" })).toHaveAttribute(
 			"href",
 			"/terms",

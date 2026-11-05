@@ -6,8 +6,7 @@ import { cn } from "@quizio/ui/lib/utils";
 import { ArrowRightIcon, CircleAlertIcon } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 
-import { LegalConsent } from "@/components/legal/legal-consent";
-
+import { GameLegalFooter } from "../game-legal-footer";
 import { GameScreen, Wordmark } from "../game-screen";
 
 const fieldClass =
@@ -18,16 +17,20 @@ function JoinCard({
 	children,
 	notice,
 	footer,
+	legal,
 }: {
 	children: ReactNode;
 	notice: string | null;
 	footer?: ReactNode;
+	/** The Terms at the foot of the page: what joining here is ("entrar no jogo"). */
+	legal?: string;
 }) {
 	return (
-		<GameScreen className="flex flex-col items-center justify-center gap-8 p-4 pb-24">
+		<GameScreen className="relative flex flex-col items-center justify-center gap-8 p-4 pb-24">
 			<Wordmark className="text-6xl" />
 			{children}
 			{footer}
+			{legal && <GameLegalFooter action={legal} />}
 			<JoinNotice message={notice} />
 		</GameScreen>
 	);
@@ -171,15 +174,8 @@ export function NicknameForm({
 	return (
 		<JoinCard
 			notice={error}
-			footer={
-				<>
-					<p className="font-semibold">Não use seu nome verdadeiro</p>
-					<LegalConsent
-						action="entrar no jogo"
-						className="max-w-xs text-center text-game-fg/80"
-					/>
-				</>
-			}
+			footer={<p className="font-semibold">Não use seu nome verdadeiro</p>}
+			legal="entrar no jogo"
 		>
 			<form
 				className="flex w-full max-w-xs flex-col gap-3 rounded-md bg-white p-4 shadow-lg"
